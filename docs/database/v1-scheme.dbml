@@ -1,0 +1,410 @@
+Project PartyRegistryServiceV1 {
+  database_type: 'PostgreSQL'
+
+  Note: '''
+    Party Registry Service V1 - bounded context for tenant-scoped civil and legal identity.
+
+    It is the system of record for identity data registered and maintained within
+    each tenant. It owns Parties, their natural-person or legal-entity details,
+    nationalities, official identifiers, and the identification schemes used to
+    normalize and validate those identifiers.
+
+    It does not own customers, suppliers, employees, user accounts, authentication,
+    authorization, operating organizations, addresses, contacts, subscriptions,
+    audit storage, tax configuration, ownership structures, beneficial ownership,
+    or legal/corporate relationship management.
+
+    Other microservices keep party_id as an opaque reference and do not create
+    foreign keys to this database.
+
+    Country codes are logical references to the Geographic Reference Service,
+    using ISO 3166-1 alpha-2 codes, without remote foreign keys.
+
+    Complete identification values are encrypted with authenticated encryption.
+    Exact lookup and active uniqueness use a tenant-isolated HMAC fingerprint.
+
+    Keycloak authenticates accounts, but it is not the registry of persons.
+    The relationship between an authenticated subject and party_id belongs to
+    the Access Management Service.
+
+    Every mutable business table contains created_at, created_by, updated_at and
+    updated_by. Aggregate roots additionally contain version for optimistic
+    concurrency control.
+
+    party_outbox_events is infrastructure for reliable publication of tenant-scoped
+    business events. It does not publish database-schema, Flyway, platform, or
+    identifier-scheme administration events.
+  '''
+}
+
+// Enums
+
+Enum party_type {
+  NATURAL_PERSON
+  LEGAL_ENTITY
+}
+
+Enum party_record_status {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+Enum identifier_category {
+  NATIONAL_ID
+  TAX_ID
+  PASSPORT
+  RESIDENCE_PERMIT
+  LEGAL_REGISTRATION_NUMBER
+  OTHER
+}
+
+Enum identifier_subject_type {
+  NATURAL_PERSON
+  LEGAL_ENTITY
+  BOTH
+}
+
+Enum identifier_scheme_status {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+  RETIRED
+}
+
+Enum party_identifier_status {
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+Enum party_outbox_aggregate_type {
+  PARTY
+  PARTY_IDENTIFIER
+}
+
+Enum outbox_status {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+// Tables
+
+Table parties {
+  id UUID [pk, not null, default: `uuidv7()`]
+  tenant_id UUID [not null, note: 'Opaque reference to the tenant that owns this Party representation.']
+
+  type party_type [not null]
+  display_name VARCHAR(300) [not null, note: 'Denormalized search and presentation value maintained atomically with the corresponding detail row.']
+  record_status party_record_status [not null, default: 'DRAFT']
+
+  created_at TIMESTAMPTZ [not null, default: `now()`]
+  created_by VARCHAR(128) [not null, note: 'Opaque authenticated subject or service principal.']
+  updated_at TIMESTAMPTZ [not null, default: `now()`]
+  updated_by VARCHAR(128) [not null, note: 'Opaque authenticated subject or service principal.']
+  version BIGINT [not null, default: 0, note: 'Optimistic concurrency version of the Party aggregate.']
+
+  indexes {
+    (tenant_id, id) [unique, name: 'uq_parties_tenant_id']
+    (tenant_id, type, record_status) [name: 'ix_parties_tenant_type_status']
+    (tenant_id, display_name) [name: 'ix_parties_tenant_display_name']
+  }
+
+  checks {
+    `version >= 0` [name: 'ck_parties_nonnegative_version']
+  }
+
+  Note: '''
+    Root of the Party aggregate. A Party is either NATURAL_PERSON or LEGAL_ENTITY.
+    It is never a Customer, Supplier, Employee, User, Tenant, or operating company.
+
+    Any mutation to natural_person_details, legal_entity_details or
+    party_nationalities must increment parties.version in the same transaction.
+  '''
+}
+
+Table natural_person_details {
+  party_id UUID [pk, not null]
+
+  given_names VARCHAR(200) [not null]
+  family_names VARCHAR(200) [not null]
+  preferred_name VARCHAR(200)
+  birth_date DATE
+  date_of_death DATE
+  birth_country_code CHAR(2) [note: 'ISO 3166-1 alpha-2 code.']
+
+  created_at TIMESTAMPTZ [not null, default: `now()`]
+  created_by VARCHAR(128) [not null]
+  updated_at TIMESTAMPTZ [not null, default: `now()`]
+  updated_by VARCHAR(128) [not null]
+
+  checks {
+    `date_of_death IS NULL OR birth_date IS NULL OR date_of_death >= birth_date` [name: 'ck_natural_person_life_dates']
+    `birth_country_code IS NULL OR birth_country_code ~ '^[A-Z]{2}$'` [name: 'ck_natural_person_birth_country_code']
+  }
+
+  Note: '''
+    One-to-one component of the Party aggregate for NATURAL_PERSON.
+
+    Flyway must implement a deferred constraint trigger that prevents:
+    - NATURAL_PERSON Parties from having legal_entity_details.
+    - LEGAL_ENTITY Parties from having natural_person_details.
+    - The same Party from having both detail rows.
+  '''
+}
+
+Table legal_entity_details {
+  party_id UUID [pk, not null]
+
+  legal_name VARCHAR(300) [not null, note: 'Official registered name.']
+  trade_name VARCHAR(300) [note: 'Primary trade name for V1; it does not replace legal_name.']
+  legal_form_code VARCHAR(64) [note: 'Jurisdiction-qualified code, for example EC_SAS, EC_SA or US_LLC.']
+  incorporation_country_code CHAR(2) [not null, note: 'ISO 3166-1 alpha-2 code.']
+  incorporated_on DATE
+  dissolved_on DATE
+
+  created_at TIMESTAMPTZ [not null, default: `now()`]
+  created_by VARCHAR(128) [not null]
+  updated_at TIMESTAMPTZ [not null, default: `now()`]
+  updated_by VARCHAR(128) [not null]
+
+  checks {
+    `dissolved_on IS NULL OR incorporated_on IS NULL OR dissolved_on >= incorporated_on` [name: 'ck_legal_entity_lifecycle_dates']
+    `incorporation_country_code ~ '^[A-Z]{2}$'` [name: 'ck_legal_entity_incorporation_country_code']
+  }
+
+  Note: '''
+    One-to-one component of the Party aggregate for LEGAL_ENTITY.
+    It does not represent tenant configuration, tax configuration, ownership,
+    corporate hierarchy, or commercial roles.
+  '''
+}
+
+Table party_nationalities {
+  id UUID [pk, not null, default: `uuidv7()`]
+  party_id UUID [not null]
+
+  country_code CHAR(2) [not null, note: 'ISO 3166-1 alpha-2 code.']
+  is_primary BOOLEAN [not null, default: false]
+  valid_from DATE
+  valid_until DATE
+
+  created_at TIMESTAMPTZ [not null, default: `now()`]
+  created_by VARCHAR(128) [not null]
+  updated_at TIMESTAMPTZ [not null, default: `now()`]
+  updated_by VARCHAR(128) [not null]
+
+  indexes {
+    (party_id, country_code) [name: 'ix_party_nationalities_country']
+    (party_id, is_primary) [name: 'ix_party_nationalities_primary']
+  }
+
+  checks {
+    `country_code ~ '^[A-Z]{2}$'` [name: 'ck_party_nationality_country_code']
+    `valid_until IS NULL OR valid_from IS NULL OR valid_until >= valid_from` [name: 'ck_party_nationality_validity']
+  }
+
+  Note: '''
+    Nationalities known and maintained by the tenant for a natural-person Party.
+
+    Flyway must create:
+    - A partial unique index preventing more than one active row for the same
+      tenant, Party and country.
+    - A partial unique index preventing more than one active primary nationality
+      for the same tenant and Party.
+  '''
+}
+
+Table identifier_schemes {
+  id UUID [pk, not null, default: `uuidv7()`]
+
+  code VARCHAR(64) [not null, unique, note: 'Global stable code, for example EC_CEDULA, EC_RUC_NATURAL or US_EIN.']
+  issuing_country_code CHAR(2) [not null, note: 'Logical ISO 3166-1 alpha-2 reference.']
+  category identifier_category [not null]
+  applicable_subject_type identifier_subject_type [not null]
+  name VARCHAR(150) [not null]
+  description VARCHAR(500)
+
+  normalizer_key VARCHAR(64) [not null, note: 'Versioned implementation key, for example DIGITS_ONLY_V1.']
+  validator_key VARCHAR(64) [not null, note: 'Versioned implementation key, for example ECUADOR_CEDULA_V1. It does not contain executable code.']
+  minimum_length SMALLINT
+  maximum_length SMALLINT
+  requires_expiration BOOLEAN [not null, default: false]
+  status identifier_scheme_status [not null, default: 'DRAFT']
+
+  created_at TIMESTAMPTZ [not null, default: `now()`]
+  created_by VARCHAR(128) [not null]
+  updated_at TIMESTAMPTZ [not null, default: `now()`]
+  updated_by VARCHAR(128) [not null]
+  version BIGINT [not null, default: 0]
+
+  indexes {
+    (issuing_country_code, category, applicable_subject_type, status) [name: 'ix_identifier_schemes_country_category']
+  }
+
+  checks {
+    `issuing_country_code ~ '^[A-Z]{2}$'` [name: 'ck_identifier_scheme_country_code']
+    `minimum_length IS NULL OR minimum_length > 0` [name: 'ck_identifier_scheme_minimum_length']
+    `maximum_length IS NULL OR maximum_length > 0` [name: 'ck_identifier_scheme_maximum_length']
+    `minimum_length IS NULL OR maximum_length IS NULL OR maximum_length >= minimum_length` [name: 'ck_identifier_scheme_length_range']
+    `version >= 0` [name: 'ck_identifier_schemes_nonnegative_version']
+  }
+
+  Note: '''
+    Global catalog used internally by Party Registry to normalize and validate
+    official Party identifiers.
+
+    code, issuing_country_code, category and applicable_subject_type are immutable
+    after activation.
+
+    Changes to this administrative catalog are not published through the tenant
+    Party outbox.
+  '''
+}
+
+Table party_identifiers {
+  id UUID [pk, not null, default: `uuidv7()`]
+  tenant_id UUID [not null]
+  party_id UUID [not null]
+  identifier_scheme_id UUID [not null]
+
+  issuer_code VARCHAR(64) [note: 'Issuing authority, for example SRI or REGISTRO_CIVIL.']
+
+  encrypted_value TEXT [not null, note: 'Authenticated encryption; never plain text.']
+  encryption_key_version SMALLINT [not null, note: 'Version of the external KMS or secret-managed encryption key.']
+  normalized_value_hash CHAR(64) [not null, note: 'Tenant-isolated HMAC-SHA-256 hexadecimal fingerprint of the normalized value.']
+  masked_value VARCHAR(64) [not null, note: 'Safe representation for UI and logs.']
+  normalization_version SMALLINT [not null, default: 1]
+
+  is_primary BOOLEAN [not null, default: false, note: 'Primary identifier within the same Party and identifier scheme.']
+  status party_identifier_status [not null, default: 'PENDING_VERIFICATION']
+
+  issued_on DATE
+  expires_on DATE
+  verified_at TIMESTAMPTZ
+  verified_by VARCHAR(128)
+
+  created_at TIMESTAMPTZ [not null, default: `now()`]
+  created_by VARCHAR(128) [not null]
+  updated_at TIMESTAMPTZ [not null, default: `now()`]
+  updated_by VARCHAR(128) [not null]
+  version BIGINT [not null, default: 0, note: 'Optimistic concurrency version of the Party Identifier aggregate.']
+
+  indexes {
+    (tenant_id, identifier_scheme_id, normalized_value_hash, status) [name: 'ix_party_identifier_tenant_hash_status']
+    (tenant_id, party_id, identifier_scheme_id, status) [name: 'ix_party_identifiers_party_scheme_status']
+    (tenant_id, party_id, is_primary) [name: 'ix_party_identifiers_primary']
+  }
+
+  checks {
+    `expires_on IS NULL OR issued_on IS NULL OR expires_on >= issued_on` [name: 'ck_party_identifier_validity_dates']
+    `(status = 'VERIFIED' AND verified_at IS NOT NULL AND verified_by IS NOT NULL) OR status <> 'VERIFIED'` [name: 'ck_party_identifier_verification']
+    `(status = 'EXPIRED' AND expires_on IS NOT NULL) OR status <> 'EXPIRED'` [name: 'ck_party_identifier_expired_date']
+    `normalization_version > 0` [name: 'ck_party_identifier_normalization_version']
+    `encryption_key_version > 0` [name: 'ck_party_identifier_encryption_key_version']
+    `version >= 0` [name: 'ck_party_identifier_nonnegative_version']
+  }
+
+  Note: '''
+    Aggregate for official identifiers such as national ID, RUC, passport,
+    residence permit and legal registration number.
+
+    Flyway must create:
+    - A partial unique index on
+      (tenant_id, identifier_scheme_id, normalized_value_hash)
+      WHERE status IN ('PENDING_VERIFICATION', 'VERIFIED').
+    - A partial unique index on
+      (tenant_id, party_id, identifier_scheme_id)
+      WHERE is_primary = true AND status = 'VERIFIED'.
+
+    The application must ensure that the Party type is compatible with the
+    identifier scheme applicable_subject_type.
+
+    Public integration events must never contain the complete decrypted value.
+  '''
+}
+
+Table party_outbox_events {
+  id UUID [pk, not null, default: `uuidv7()`, note: 'Integration event identifier.']
+  tenant_id UUID [not null]
+
+  aggregate_type party_outbox_aggregate_type [not null]
+  aggregate_id UUID [not null]
+  aggregate_version BIGINT [not null]
+
+  event_type VARCHAR(128) [not null, note: 'Versioned business contract, for example party.created.v1 or party.identifier-verified.v1.']
+  event_schema_version SMALLINT [not null, default: 1]
+  payload JSONB [not null, note: 'Minimal integration payload without full identifiers or unnecessary personal data.']
+
+  occurred_at TIMESTAMPTZ [not null, default: `now()`]
+  correlation_id VARCHAR(128)
+  causation_id VARCHAR(128)
+
+  status outbox_status [not null, default: 'PENDING']
+  publish_attempts INTEGER [not null, default: 0]
+  next_attempt_at TIMESTAMPTZ
+  last_attempt_at TIMESTAMPTZ
+  published_at TIMESTAMPTZ
+  last_error_code VARCHAR(64)
+  last_error_detail VARCHAR(1000)
+
+  created_at TIMESTAMPTZ [not null, default: `now()`]
+  created_by VARCHAR(128) [not null, note: 'Service principal that created the business event.']
+  updated_at TIMESTAMPTZ [not null, default: `now()`]
+  updated_by VARCHAR(128) [not null, note: 'Publisher instance or service principal that last changed delivery state.']
+  version BIGINT [not null, default: 0, note: 'Optimistic concurrency version for delivery-state transitions.']
+
+  indexes {
+    (status, next_attempt_at, created_at) [name: 'ix_party_outbox_delivery']
+    (tenant_id, aggregate_type, aggregate_id, aggregate_version) [name: 'ix_party_outbox_aggregate']
+    correlation_id [name: 'ix_party_outbox_correlation']
+  }
+
+  checks {
+    `aggregate_version >= 0` [name: 'ck_party_outbox_nonnegative_aggregate_version']
+    `event_schema_version > 0` [name: 'ck_party_outbox_positive_schema_version']
+    `publish_attempts >= 0` [name: 'ck_party_outbox_nonnegative_attempts']
+    `version >= 0` [name: 'ck_party_outbox_nonnegative_version']
+    `(status = 'PUBLISHED' AND published_at IS NOT NULL) OR (status <> 'PUBLISHED' AND published_at IS NULL)` [name: 'ck_party_outbox_published_at']
+    `(status = 'FAILED' AND last_error_code IS NOT NULL) OR status <> 'FAILED'` [name: 'ck_party_outbox_failed_error']
+  }
+
+  Note: '''
+    Transactional Outbox for tenant-scoped Party Registry business events.
+
+    The business mutation and outbox insertion must be committed in the same
+    PostgreSQL transaction. A separate publisher processes PENDING rows using
+    SELECT ... FOR UPDATE SKIP LOCKED.
+
+    Aggregate mapping:
+    - PARTY: aggregate_id = parties.id and aggregate_version = parties.version.
+      This includes changes to natural_person_details, legal_entity_details and
+      party_nationalities; parties.version must be incremented in the same transaction.
+    - PARTY_IDENTIFIER: aggregate_id = party_identifiers.id and
+      aggregate_version = party_identifiers.version.
+
+    The table does not publish:
+    - PostgreSQL schema changes.
+    - Flyway migrations.
+    - Platform or infrastructure events.
+    - identifier_schemes administrative changes.
+
+    Delivery is at-least-once. Consumers must be idempotent using id as event_id.
+  '''
+}
+
+// References
+
+Ref: natural_person_details.(party_id) - parties.(id) [delete: restrict]
+
+Ref: legal_entity_details.(party_id) - parties.(id) [delete: restrict]
+
+Ref: party_nationalities.(party_id) > parties.(id) [delete: restrict]
+
+Ref: party_identifiers.(tenant_id, party_id) > parties.(tenant_id, id) [delete: restrict]
+
+Ref: party_identifiers.identifier_scheme_id > identifier_schemes.id [delete: restrict]
