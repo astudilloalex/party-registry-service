@@ -1,0 +1,44 @@
+schemaVersion: 1
+
+project:
+  name: party-registry-service
+  type: backend-service
+  pilot: true
+
+architecture:
+  style: clean-architecture
+  purity: strict
+  diagrams: likec4
+  source: generated
+
+stack:
+  profile: quarkus-java25
+  language: java
+  buildTool: gradle-kotlin-dsl
+  executionModel: auto
+  requireNonReactiveJustification: true
+
+database:
+  required: true
+  engine: postgresql
+  sourceOfTruth: docs/database/v1-scheme.dbml
+  allowAutomaticDesignChanges: false
+
+github:
+  flow: github-flow
+  issuePolicy: conditional
+  pullRequestRequired: true
+  autoMerge: false
+  humanMergeConfirmation: true
+
+deployment:
+  profile: vps-podman-quadlet
+  environments:
+    - local
+    - development
+    - staging
+    - production
+  productionAfterMerge: automatic
+
+automation:
+  maximumRepairCycles: 3
