@@ -33,10 +33,6 @@ model {
     description 'Accepts persistent Party Registry events with publisher confirms; consumer queues and DLQs are externally owned.'
   }
 
-  loggingCapability = softwareSystem 'Platform Logging Capability' {
-    description 'Collects structured operational and decryption security logs; centralized retention is operations-owned.'
-  }
-
   partyRegistry = softwareSystem 'Party Registry Service' {
     description 'Tenant-scoped system of record for civil and legal identity, protected official identifiers and approved business events.'
 
@@ -51,7 +47,7 @@ model {
         description 'Orchestrates Party, detail and nationality use cases and aggregate consistency.'
       }
       identifierCapability = component 'Identifier Application Capability' {
-        description 'Orchestrates protected identifier lifecycle, exact lookup and fail-closed decryption.'
+        description 'Orchestrates protected identifier lifecycle, permanent tenant-and-scheme identifier uniqueness, exact lookup and fail-closed decryption.'
       }
       schemeCapability = component 'Scheme Administration Capability' {
         description 'Orchestrates global identifier-scheme lifecycle and supported implementation-key policy.'
@@ -60,7 +56,7 @@ model {
         description 'Claims committed events and preserves confirmation, retry, failure and same-event recovery semantics.'
       }
       postgresAdapter = component 'PostgreSQL Adapter' {
-        description 'Implements tenant-scoped persistence and DBML-governed local transaction ports.'
+        description 'Implements tenant-scoped persistence, permanent identifier uniqueness and DBML-governed local transaction ports.'
       }
       geographicAdapter = component 'Geographic Reference Adapter' {
         description 'Validates active country codes through a bounded non-durable cache and reactive provider client.'
@@ -72,7 +68,7 @@ model {
         description 'Publishes persistent versioned events and classifies publisher-confirm outcomes.'
       }
       securityLogAdapter = component 'Decryption Security Log Adapter' {
-        description 'Emits the mandatory non-plaintext structured security log and reports successful emission before plaintext return.'
+        description 'Emits the mandatory non-plaintext structured security log through the local application logging path and reports successful emission before plaintext return.'
       }
       runtimeComposition = component 'Runtime Composition and Readiness' {
         description 'Wires ports/adapters and reports startup, liveness, readiness and non-sensitive telemetry.'
@@ -81,7 +77,7 @@ model {
 
     database = container 'Party Registry PostgreSQL Database' {
       technology 'PostgreSQL 18 contract target'
-      description 'Stores DBML-governed Party Registry business state and transactional outbox state.'
+      description 'Stores DBML-governed Party Registry business state and transactional outbox state, including permanent tenant-and-scheme identifier uniqueness.'
     }
   }
 
@@ -90,32 +86,29 @@ model {
   partyRegistry -> geographicReference 'Validates new active country references through the approved bounded cache policy.'
   partyRegistry -> rabbitMq 'Publishes persistent committed business events with publisher confirms and stable event IDs.'
   rabbitMq -> eventConsumer 'Delivers Party Registry events at least once to consumer-owned queues.'
-  partyRegistry -> loggingCapability 'Emits company-standard operational logs and mandatory non-plaintext decryption security logs.'
 
   internalConsumer -> partyRegistry.application 'Submits V1 HTTPS/JSON commands and queries with tenant, user and process context.'
   schemeAdministrator -> partyRegistry.application 'Submits global scheme administration commands and queries.'
   partyRegistry.application -> partyRegistry.database 'Stores and queries DBML-governed state using tenant-scoped reactive PostgreSQL access.'
   partyRegistry.application -> geographicReference 'Retrieves active country-reference evidence through a reactive bounded-cache adapter.'
   partyRegistry.application -> rabbitMq 'Publishes committed versioned outbox events using persistent messages and confirms.'
-  partyRegistry.application -> loggingCapability 'Emits company-standard operational and decryption security logs without plaintext.'
 
   partyRegistry.application.reactiveApi -> partyRegistry.application.partyCapability 'Invokes Party use cases with validated trusted context.'
   partyRegistry.application.reactiveApi -> partyRegistry.application.identifierCapability 'Invokes identifier use cases and maps protected outcomes.'
   partyRegistry.application.reactiveApi -> partyRegistry.application.schemeCapability 'Invokes scheme administration use cases.'
   partyRegistry.application.partyCapability -> partyRegistry.application.postgresAdapter 'Loads and commits tenant-scoped Party aggregates and required outbox records.'
   partyRegistry.application.partyCapability -> partyRegistry.application.geographicAdapter 'Validates new country references.'
-  partyRegistry.application.identifierCapability -> partyRegistry.application.postgresAdapter 'Loads and commits tenant-scoped identifier state and required outbox records.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.postgresAdapter 'Loads and commits tenant-scoped identifier state while enforcing permanent tenant-and-scheme uniqueness.'
   partyRegistry.application.identifierCapability -> partyRegistry.application.protectionAdapter 'Protects, fingerprints and decrypts identifier values through explicit outcomes.'
-  partyRegistry.application.identifierCapability -> partyRegistry.application.securityLogAdapter 'Requires acknowledged non-plaintext security-log emission before plaintext return.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.securityLogAdapter 'Requires acknowledged non-plaintext local security-log emission before plaintext return.'
   partyRegistry.application.schemeCapability -> partyRegistry.application.postgresAdapter 'Loads and commits global scheme state without tenant outbox events.'
   partyRegistry.application.eventPublication -> partyRegistry.application.postgresAdapter 'Claims and updates durable outbox delivery state.'
   partyRegistry.application.eventPublication -> partyRegistry.application.rabbitAdapter 'Publishes the same versioned event and classifies confirmation outcome.'
-  partyRegistry.application.postgresAdapter -> partyRegistry.database 'Executes DBML-governed reactive queries and local transactions.'
+  partyRegistry.application.postgresAdapter -> partyRegistry.database 'Executes DBML-governed reactive queries, uniqueness constraints and local transactions.'
   partyRegistry.application.geographicAdapter -> geographicReference 'Retrieves active ISO country references.'
   partyRegistry.application.rabbitAdapter -> rabbitMq 'Publishes persistent messages to the approved durable topic exchange.'
-  partyRegistry.application.securityLogAdapter -> loggingCapability 'Emits required decryption security logs and reports emission success or failure.'
   partyRegistry.application.runtimeComposition -> partyRegistry.application.partyCapability 'Wires application ports and health instrumentation.'
-  partyRegistry.application.runtimeComposition -> partyRegistry.application.identifierCapability 'Wires protection and security-log ports and readiness checks.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.identifierCapability 'Wires protection and local security-log ports and readiness checks.'
   partyRegistry.application.runtimeComposition -> partyRegistry.application.schemeCapability 'Wires scheme ports and implementation-catalog readiness.'
   partyRegistry.application.runtimeComposition -> partyRegistry.application.eventPublication 'Starts bounded outbox publication and exposes lag/failure signals.'
 }
@@ -139,7 +132,6 @@ deployment {
     boundary operationsDependencies 'Operations-managed Dependency Boundary' {
       databaseInstance = instanceOf partyRegistry.database
       messageBroker = instanceOf rabbitMq
-      logs = instanceOf loggingCapability
     }
 
     boundary externalServices 'Internal External-service Boundary' {
@@ -151,14 +143,13 @@ deployment {
 views {
   view systemContext of partyRegistry {
     title 'Party Registry Service — System Context'
-    description 'People, target system and external systems only.'
+    description 'People, target system and actual external systems only.'
     include internalConsumer
     include schemeAdministrator
     include partyRegistry
     include geographicReference
     include rabbitMq
     include eventConsumer
-    include loggingCapability
   }
 
   view containers of partyRegistry {
@@ -171,18 +162,17 @@ views {
     include geographicReference
     include rabbitMq
     include eventConsumer
-    include loggingCapability
   }
 
   view applicationComponents of partyRegistry.application {
     title 'Party Registry Application — Components'
-    description 'Stable Clean Architecture, transaction and sensitive-data responsibilities.'
+    description 'Stable Clean Architecture, transaction, identifier-uniqueness and sensitive-data responsibilities.'
     include *
   }
 
   deployment view productionDeployment {
     title 'Party Registry Service — Logical Production Deployment'
-    description 'Rootless Podman/Quadlet on the approved VPS with runtime secret injection and logical operations-managed dependency boundaries; physical dependency placement remains operations-owned.'
+    description 'Rootless Podman/Quadlet on the approved VPS with runtime secret injection and actual operations-managed dependency boundaries; physical dependency placement remains operations-owned.'
     include productionBoundary.**
   }
 }
