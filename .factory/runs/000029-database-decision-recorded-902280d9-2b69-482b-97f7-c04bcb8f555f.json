@@ -1,0 +1,19 @@
+{
+  "actor": "Alex",
+  "destinationState": "WAITING_FOR_DBML",
+  "dryRun": false,
+  "effectiveEvent": "DATABASE_DECISION_RECORDED",
+  "note": "Re-evaluate DATABASE_VALIDATION after AI Software Factory database-contract governance fix. The existing authoritative DBML remains unchanged. Domain/Application-owned lifecycle, contextual mutability and clock-relative business rules must not be duplicated in PostgreSQL unless explicitly required by the approved architecture or persistence contract. Missing DBML tooling is not a database-design defect.",
+  "occurredAt": "2026-08-10T21:30:42Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "DATABASE_DECISION_RECORDED",
+  "riskLevel": null,
+  "sequence": 29,
+  "sourceState": "MANUAL_DATABASE_DECISION_REQUIRED",
+  "transitionId": "902280d9-2b69-482b-97f7-c04bcb8f555f",
+  "workflowId": "software-factory-default"
+}

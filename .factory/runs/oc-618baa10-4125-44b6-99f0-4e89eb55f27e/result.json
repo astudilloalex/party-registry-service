@@ -1,0 +1,31 @@
+{
+  "agent": "database-contract-agent",
+  "assumptions": [],
+  "decision": "NEEDS_HUMAN_DECISION",
+  "evidence": [
+    ".factory/project.yaml:21-25 declares database.required=true, engine=postgresql, sourceOfTruth=docs/database/v1-scheme.dbml, and allowAutomaticDesignChanges=false.",
+    ".factory/state.json:2 records DATABASE_VALIDATION, and .factory/decisions.json:83-89 authorizes read-only re-evaluation without changing the DBML.",
+    ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json:4 records the independent requirements-gate PASS; .factory/decisions.json:76-81 supplies the later approved Amendments 001 and 002.",
+    ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json:4 records the independent Clean Architecture gate PASS for PRS-ARCH-001 version 0.6.",
+    "Repository globbing found exactly one DBML file under docs/database/: docs/database/v1-scheme.dbml. The read tool classified it as a readable file at the manifest-declared path.",
+    "Bounded manual syntax review covered 8 enums, 7 tables, all declared indexes and checks, normative notes, and 5 references. Declarations were balanced, referenced fields resolved with compatible UUID types, and no duplicate declarations or unresolved merge markers were found.",
+    "No approved repository DBML parser or linter dependency was found. Under the supplied database-contract governance, bounded manual validation was used and tooling absence was not treated as a defect.",
+    "The prior database findings concerning nationality applicability, clock-relative nationality dates, lifecycle transitions, contextual immutability, and runtime logical deletion were re-evaluated against docs/architecture/solution-architecture.md:134-174, 288-302, 343-368, 463-478 and the supplied governance. These rules are assigned to Domain/Application orchestration with explicit transaction boundaries and deterministic tests, so PostgreSQL duplication is not required.",
+    "The outbox fields and checks at docs/database/v1-scheme.dbml:353-419 support the approved claim-commit-publish-outcome sequence in docs/architecture/solution-architecture.md:333-341 and ADR-002:31-43 through committed next_attempt_at reservation, optimistic version predicates, stable event identity, and separate outcome transactions.",
+    "Validation was read-only; no DBML, workflow-state, decision, migration, implementation, or repository file was created or modified."
+  ],
+  "findings": [
+    "[HIGH][DBML-IDENTIFIER][docs/database/v1-scheme.dbml:party_identifiers.normalized_value_hash] The canonical textual encoding and case of the HMAC-SHA-256 fingerprint are not defined or constrained. Evidence: the field is CHAR(64) and described only as hexadecimal at docs/database/v1-scheme.dbml:295, while the unconditional case-sensitive unique key is declared at lines 313-315 and permanent uniqueness is required by requirements-amendment-001.md:35-61. Impact: alternate textual representations of the same fingerprint, including case differences, could bypass the persistence-owned permanent uniqueness boundary.",
+    "[MEDIUM][DBML-QUALITY][docs/database/v1-scheme.dbml:parties.display_name] The denormalized display_name is required to be maintained atomically with the corresponding detail row, but its authoritative derivation and normalization rules for natural persons and legal entities are absent. Evidence: docs/database/v1-scheme.dbml:109 and 128-134; no approved requirement or architecture rule defines whether preferred names, given/family-name ordering, legal names, or trade names control the value. Impact: downstream implementation would have to invent business-visible search and presentation behavior and could persist inconsistent denormalized data.",
+    "[MEDIUM][DBML-MIGRATION][docs/database/v1-scheme.dbml:natural_person_details.Note, party_nationalities.Note, party_identifiers.Note] PostgreSQL obligations that DBML cannot express are not migration-deterministic. Evidence: lines 157-164 require a deferred constraint trigger without its object name, covered operations, or exact timing; lines 218-226 require two partial unique indexes without names or exact predicates and refer to tenant scope although party_nationalities has no tenant_id; lines 328-350 require another partial unique index without a name or explicit migration-test obligation. Impact: independent Flyway implementations could create materially different integrity mechanisms or omit required behavior."
+  ],
+  "generatedFiles": [],
+  "nextPhase": null,
+  "phase": "DATABASE_VALIDATION",
+  "requiredActions": [
+    "Obtain an authorized decision defining the canonical normalized_value_hash textual representation, including case and row-local validity expectations, then have the authorized database designer make the persistence uniqueness contract deterministic.",
+    "Obtain an authorized business rule for deriving and normalizing parties.display_name for each Party type, including behavior when optional preferred or trade names change.",
+    "Have the authorized database designer make each deferred PostgreSQL obligation deterministic with stable object names, exact columns and predicates, applicable trigger events and timing, and explicit migration and integration-test obligations; clarify the nationality note's indirect tenant scope."
+  ],
+  "riskLevel": "HIGH"
+}

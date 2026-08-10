@@ -1,17 +1,17 @@
 {
   "currentState": "MANUAL_DATABASE_DECISION_REQUIRED",
   "initializedAt": "2026-08-09T19:08:42Z",
-  "lastEffectiveEvent": "FAIL",
-  "lastEvent": "FAIL",
-  "lastTransitionAt": "2026-08-10T20:59:40Z",
-  "lastTransitionId": "49f83cda-bbb0-472c-8728-04cf54080053",
+  "lastEffectiveEvent": "NEEDS_HUMAN_DECISION",
+  "lastEvent": "NEEDS_HUMAN_DECISION",
+  "lastTransitionAt": "2026-08-10T21:33:30Z",
+  "lastTransitionId": "027f0d5b-121d-41e8-b1e2-c9b97689fa35",
   "previousState": "DATABASE_VALIDATION",
   "project": "party-registry-service",
   "repairCycles": {
     "ARCHITECTURE_GATE": 2
   },
   "schemaVersion": 1,
-  "sequence": 28,
-  "updatedAt": "2026-08-10T20:59:40Z",
+  "sequence": 31,
+  "updatedAt": "2026-08-10T21:33:30Z",
   "workflowId": "software-factory-default"
 }

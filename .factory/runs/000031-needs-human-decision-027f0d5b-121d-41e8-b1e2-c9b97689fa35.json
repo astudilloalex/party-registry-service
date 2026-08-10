@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:database-contract-agent",
+  "destinationState": "MANUAL_DATABASE_DECISION_REQUIRED",
+  "dryRun": false,
+  "effectiveEvent": "NEEDS_HUMAN_DECISION",
+  "note": "Validated OpenCode invocation oc-618baa10-4125-44b6-99f0-4e89eb55f27e",
+  "occurredAt": "2026-08-10T21:33:30Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "NEEDS_HUMAN_DECISION",
+  "riskLevel": "HIGH",
+  "sequence": 31,
+  "sourceState": "DATABASE_VALIDATION",
+  "transitionId": "027f0d5b-121d-41e8-b1e2-c9b97689fa35",
+  "workflowId": "software-factory-default"
+}

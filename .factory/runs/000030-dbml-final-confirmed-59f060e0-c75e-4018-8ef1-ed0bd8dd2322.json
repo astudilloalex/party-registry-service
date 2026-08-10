@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:auto",
+  "destinationState": "DATABASE_VALIDATION",
+  "dryRun": false,
+  "effectiveEvent": "DBML_FINAL_CONFIRMED",
+  "note": "Automatic control transition DBML_FINAL_CONFIRMED",
+  "occurredAt": "2026-08-10T21:31:06Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "DBML_FINAL_CONFIRMED",
+  "riskLevel": null,
+  "sequence": 30,
+  "sourceState": "WAITING_FOR_DBML",
+  "transitionId": "59f060e0-c75e-4018-8ef1-ed0bd8dd2322",
+  "workflowId": "software-factory-default"
+}
