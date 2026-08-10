@@ -87,9 +87,17 @@
       "note": "Re-evaluate DATABASE_VALIDATION after AI Software Factory database-contract governance fix. The existing authoritative DBML remains unchanged. Domain/Application-owned lifecycle, contextual mutability and clock-relative business rules must not be duplicated in PostgreSQL unless explicitly required by the approved architecture or persistence contract. Missing DBML tooling is not a database-design defect.",
       "recordedAt": "2026-08-10T21:30:42Z",
       "state": "MANUAL_DATABASE_DECISION_REQUIRED"
+    },
+    {
+      "actor": "Alex",
+      "event": "DATABASE_DECISION_RECORDED",
+      "id": "540daf1d-ea35-4e98-a6cc-4d5e6258ef84",
+      "note": "Approved Party Registry V1 database-contract clarifications after DATABASE_VALIDATION. normalized_value_hash is exactly 64 uppercase hexadecimal characters representing the tenant-isolated HMAC-SHA-256 result; lowercase, mixed case, prefixes and alternate encodings are invalid. NATURAL_PERSON display_name is normalized given_names plus one ASCII space plus normalized family_names; LEGAL_ENTITY display_name is normalized legal_name; normalization trims surrounding whitespace and collapses internal whitespace runs to one ASCII space while preserving case and diacritics; preferred_name and trade_name do not replace display_name. party_nationalities intentionally does not duplicate tenant_id because party_id identifies the globally unique Party and inherits tenant ownership. Active nationality uniqueness is (party_id, country_code) WHERE valid_until IS NULL; active primary uniqueness is (party_id) WHERE is_primary = true AND valid_until IS NULL. The DBML Flyway obligations and integration-test contracts are approved as written in the merged DBML.",
+      "recordedAt": "2026-08-10T21:51:37Z",
+      "state": "MANUAL_DATABASE_DECISION_REQUIRED"
     }
   ],
   "project": "party-registry-service",
   "schemaVersion": 1,
-  "updatedAt": "2026-08-10T21:30:42Z"
+  "updatedAt": "2026-08-10T21:51:37Z"
 }

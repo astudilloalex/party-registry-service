@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:database-contract-agent",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "PASS",
+  "note": "Validated OpenCode invocation oc-ae767d3d-c531-40a3-9664-411843df2766",
+  "occurredAt": "2026-08-10T21:54:47Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "PASS",
+  "riskLevel": "LOW",
+  "sequence": 34,
+  "sourceState": "DATABASE_VALIDATION",
+  "transitionId": "acc6e3b0-afc3-4c8e-8fef-48c94efa6ddf",
+  "workflowId": "software-factory-default"
+}

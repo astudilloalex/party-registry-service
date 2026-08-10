@@ -1,0 +1,19 @@
+{
+  "actor": "Alex",
+  "destinationState": "WAITING_FOR_DBML",
+  "dryRun": false,
+  "effectiveEvent": "DATABASE_DECISION_RECORDED",
+  "note": "Approved Party Registry V1 database-contract clarifications after DATABASE_VALIDATION. normalized_value_hash is exactly 64 uppercase hexadecimal characters representing the tenant-isolated HMAC-SHA-256 result; lowercase, mixed case, prefixes and alternate encodings are invalid. NATURAL_PERSON display_name is normalized given_names plus one ASCII space plus normalized family_names; LEGAL_ENTITY display_name is normalized legal_name; normalization trims surrounding whitespace and collapses internal whitespace runs to one ASCII space while preserving case and diacritics; preferred_name and trade_name do not replace display_name. party_nationalities intentionally does not duplicate tenant_id because party_id identifies the globally unique Party and inherits tenant ownership. Active nationality uniqueness is (party_id, country_code) WHERE valid_until IS NULL; active primary uniqueness is (party_id) WHERE is_primary = true AND valid_until IS NULL. The DBML Flyway obligations and integration-test contracts are approved as written in the merged DBML.",
+  "occurredAt": "2026-08-10T21:51:37Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "DATABASE_DECISION_RECORDED",
+  "riskLevel": null,
+  "sequence": 32,
+  "sourceState": "MANUAL_DATABASE_DECISION_REQUIRED",
+  "transitionId": "540daf1d-ea35-4e98-a6cc-4d5e6258ef84",
+  "workflowId": "software-factory-default"
+}

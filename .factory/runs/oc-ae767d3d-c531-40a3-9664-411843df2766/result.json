@@ -1,0 +1,32 @@
+{
+  "agent": "database-contract-agent",
+  "assumptions": [],
+  "decision": "PASS",
+  "evidence": [
+    "Invocation requestedBy=factoryctl, agent=database-contract-agent, phase=DATABASE_VALIDATION, attempt 1 of 3, response schema contracts/agent-result.schema.json, and writePolicy.mode=READ_ONLY were validated.",
+    "Project repository root is /home/alex/Documents/Development/backend/quarkus/party-registry-service; .factory/project.yaml:21-25 declares database.required=true, engine=postgresql, sourceOfTruth=docs/database/v1-scheme.dbml, and allowAutomaticDesignChanges=false.",
+    "The read tool classified docs/database/v1-scheme.dbml as a readable file at the manifest-declared repository-relative path. Repository globbing found exactly one DBML file, and content search found no merge-conflict markers, obvious placeholders, secrets, credentials, or personal-data examples.",
+    "Approved upstream evidence includes the requirements-gate PASS at .factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json:4, human-approved Amendments 001 and 002 at .factory/decisions.json:76-81, and the Clean Architecture gate PASS at .factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json:4.",
+    "Bounded manual syntax validation covered the PostgreSQL project declaration, 8 enums, 7 tables, declared fields, indexes, checks, normative notes, and 5 references in docs/database/v1-scheme.dbml:1-484. Blocks and notes are balanced, declarations are unique, references resolve, referenced UUID fields are type-compatible, and defaults and checks are consistent with declared types.",
+    "The DBML scope and ownership note at docs/database/v1-scheme.dbml:4-45 matches docs/architecture/solution-architecture.md:58-96: Party Registry owns Parties, details, nationalities, identifiers, its database-managed Scheme catalog, and outbox state; country codes and party_id references remain logical across service boundaries with no remote foreign keys.",
+    "Tenant integrity is supported by parties.(tenant_id,id) uniqueness at docs/database/v1-scheme.dbml:119-123 and the composite party_identifiers-to-parties reference at lines 482-484. The approved decision at .factory/decisions.json:92-97 confirms that party_nationalities inherits tenant ownership through globally unique party_id without duplicating tenant_id.",
+    "The deferred Party/detail integrity mechanism is migration-deterministic at docs/database/v1-scheme.dbml:169-194: it names fn_enforce_party_detail_type and three constraint triggers, specifies events, AFTER/FOR EACH ROW/DEFERRABLE INITIALLY DEFERRED semantics, committed invariants, and required PostgreSQL integration tests.",
+    "Nationality integrity is deterministic at docs/database/v1-scheme.dbml:224-265: row-local country/date checks are declared, exact partial unique-index names, columns, and predicates are normative, and migration/integration-test obligations cover active-country and active-primary uniqueness and retained history.",
+    "Permanent identifier uniqueness and protected lookup are enforceable at docs/database/v1-scheme.dbml:324-402 through authenticated ciphertext separation, key and normalization versions, the unconditional unique key (tenant_id,identifier_scheme_id,normalized_value_hash), and the exact uppercase 64-hex check approved by .factory/decisions.json:92-97.",
+    "The verified-primary identifier rule is migration-deterministic at docs/database/v1-scheme.dbml:386-396 through the exact partial-index name, columns, predicate, business rule, and required migration/integration tests.",
+    "The authoritative display_name derivation and normalization are explicit at docs/database/v1-scheme.dbml:129-146 and match .factory/decisions.json:92-97, including Party-type-specific source fields, whitespace normalization, case/diacritic handling, and atomic source/detail and display-name updates.",
+    "Domain/Application-owned lifecycle, contextual immutability, masking, clock-relative nationality policy, and no-physical-delete runtime behavior are explicitly allocated and deterministically tested by docs/architecture/solution-architecture.md:134-174, 288-302, 343-368, and 463-478. The DBML supplies the required states and storage without contradicting those approved rules, so duplicate PostgreSQL state machines are not required under the supplied database-contract governance.",
+    "The outbox contract at docs/database/v1-scheme.dbml:405-471 supplies stable event identity, tenant and aggregate context, versions, minimal versioned JSONB payload, timestamps, delivery state, nonnegative counters, state-dependent checks, polling and aggregate indexes, atomic mutation/event intent, and at-least-once consumer idempotency. Its fields support the approved claim-commit-publish-outcome sequence in docs/architecture/solution-architecture.md:333-341 and ADR-002:31-43.",
+    "Identifier Scheme runtime read-only ownership is normative at docs/database/v1-scheme.dbml:303-321, including SELECT-only runtime behavior, denied mutation, separate governed migration/administration credentials, implementation-key compatibility, and exclusion from tenant outbox events; this matches Amendment 002 and ADR-005.",
+    "The declared UUID, UUIDv7 defaults, TIMESTAMPTZ, JSONB, enum, check, partial-index, constraint-trigger, and SKIP LOCKED obligations are consistent with the approved PostgreSQL 18 target in requirements-specification.md:DR-009 and solution-architecture.md:Database Contract Handoff, with no unapproved extension identified.",
+    "Flyway readiness is deterministic: physical names, types, nullability, keys, references, delete restrictions, checks, indexes, deferred PostgreSQL mechanisms, privilege obligations, and integration-test obligations are explicit; the PostgreSQL profile's forward-only immutable Flyway governance is preserved.",
+    "Prior database-validation findings in .factory/runs/oc-618baa10-4125-44b6-99f0-4e89eb55f27e/result.json:17-20 were revalidated against the current DBML and resolved by the exact hash representation/check, display-name derivation, and deterministic trigger/partial-index obligations approved in .factory/decisions.json:92-97.",
+    "Validation remained read-only. No DBML, migration, implementation, test, workflow-state, decision, Git metadata, or other repository file was created or modified."
+  ],
+  "findings": [],
+  "generatedFiles": [],
+  "nextPhase": null,
+  "phase": "DATABASE_VALIDATION",
+  "requiredActions": [],
+  "riskLevel": "LOW"
+}
