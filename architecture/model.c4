@@ -39,14 +39,47 @@ model {
       reactiveApi = component 'Reactive REST Adapter' {
         description 'Validates transport and trusted request context, maps Party and Identifier commands/results, ETags and stable response envelopes. It exposes no Identifier Scheme administration API.'
       }
+      partyInputPorts = component 'Party Input Ports (Application-owned)' {
+        description 'Declares boundary-neutral Party, detail and nationality commands and queries owned by the Application layer.'
+      }
+      identifierInputPorts = component 'Identifier Input Ports (Application-owned)' {
+        description 'Declares boundary-neutral Party Identifier lifecycle, exact-search and decryption use cases owned by the Application layer.'
+      }
       partyCapability = component 'Party Application Capability' {
-        description 'Orchestrates Party, detail and nationality use cases and aggregate consistency.'
+        description 'Application layer: orchestrates Party, detail and nationality use cases, pre-transaction country resolution, transaction intent and aggregate consistency.'
       }
       identifierCapability = component 'Identifier Application Capability' {
-        description 'Orchestrates protected identifier lifecycle, reads database-managed scheme metadata, enforces permanent tenant-and-scheme identifier uniqueness, exact lookup and fail-closed decryption.'
+        description 'Application layer: orchestrates protected identifier lifecycle, reads database-managed scheme metadata, enforces permanent tenant-and-scheme identifier uniqueness, exact lookup and fail-closed decryption.'
+      }
+      partyDomain = component 'Party Registry Domain' {
+        description 'Framework-independent domain entities, value objects, invariants, lifecycle policies, masking rules and domain errors.'
+      }
+      partyPersistencePorts = component 'Party Persistence and Unit-of-Work Ports (Application-owned)' {
+        description 'Application-owned output contracts for tenant-qualified Party persistence and atomic mutation plus required outbox insertion.'
+      }
+      identifierPersistencePorts = component 'Identifier and Scheme Catalog Ports (Application-owned)' {
+        description 'Application-owned output contracts for tenant-qualified Identifier persistence and query-only database-managed Scheme catalog access.'
+      }
+      geographicReferencePort = component 'Geographic Reference Port (Application-owned)' {
+        description 'Application-owned output contract returning country evidence or explicit unavailability before a state-changing transaction begins.'
+      }
+      identifierProtectionPort = component 'Identifier Protection Port (Application-owned)' {
+        description 'Application-owned output contract for authenticated encryption/decryption, tenant-effective HMAC and protected key-version outcomes.'
+      }
+      securityLogPort = component 'Decryption Security Log Port (Application-owned)' {
+        description 'Application-owned output contract requiring successful local non-plaintext security-log emission before plaintext disclosure.'
+      }
+      outboxStorePort = component 'Outbox Store Port (Application-owned)' {
+        description 'Application-owned output contract for bounded committed claims and separate optimistic delivery-outcome transactions.'
+      }
+      eventPublisherPort = component 'Event Publisher Port (Application-owned)' {
+        description 'Application-owned output contract for persistent publication and classified publisher-confirm outcomes.'
+      }
+      clockPort = component 'Clock Port (Application-owned)' {
+        description 'Application-owned output contract for testable current time without scheduling or framework dependencies.'
       }
       eventPublication = component 'Outbox Publication Capability' {
-        description 'Claims committed events and preserves confirmation, retry, failure and same-event recovery semantics.'
+        description 'Application layer: commits bounded claim reservations before broker I/O, publishes without database locks, and records confirmation outcomes in separate transactions while preserving same-event recovery semantics.'
       }
       postgresAdapter = component 'PostgreSQL Adapter' {
         description 'Implements tenant-scoped persistence, permanent identifier uniqueness, DBML-governed local transactions, and read-only runtime access to identifier_schemes.'
@@ -63,8 +96,11 @@ model {
       securityLogAdapter = component 'Decryption Security Log Adapter' {
         description 'Emits the mandatory non-plaintext structured security log through the local application logging path and reports successful emission before plaintext return.'
       }
+      systemClockAdapter = component 'System Clock Adapter' {
+        description 'Implements testable current-time access at the infrastructure boundary.'
+      }
       runtimeComposition = component 'Runtime Composition and Readiness' {
-        description 'Wires ports/adapters, validates required database-managed scheme/rule compatibility, and reports startup, liveness, readiness and non-sensitive telemetry.'
+        description 'Bootstrap boundary: selects and wires concrete adapters to core-owned ports, validates required database-managed scheme/rule compatibility, and registers health and telemetry.'
       }
     }
 
@@ -84,21 +120,40 @@ model {
   partyRegistry.application -> geographicReference 'Retrieves active country-reference evidence through a reactive bounded-cache adapter.'
   partyRegistry.application -> rabbitMq 'Publishes committed versioned outbox events using persistent messages and confirms.'
 
-  partyRegistry.application.reactiveApi -> partyRegistry.application.partyCapability 'Invokes Party use cases with validated trusted context.'
-  partyRegistry.application.reactiveApi -> partyRegistry.application.identifierCapability 'Invokes identifier use cases and maps protected outcomes.'
-  partyRegistry.application.postgresAdapter -> partyRegistry.application.partyCapability 'Implements Party persistence and atomic outbox output ports declared by the application capability.'
-  partyRegistry.application.geographicAdapter -> partyRegistry.application.partyCapability 'Implements the country-reference output port declared by the application capability.'
-  partyRegistry.application.postgresAdapter -> partyRegistry.application.identifierCapability 'Implements tenant-scoped identifier persistence and the read-only Identifier Scheme catalog output ports.'
-  partyRegistry.application.protectionAdapter -> partyRegistry.application.identifierCapability 'Implements identifier protection and fingerprint output ports without leaking provider APIs inward.'
-  partyRegistry.application.securityLogAdapter -> partyRegistry.application.identifierCapability 'Implements the local decryption security-log output port and reports emission outcome.'
-  partyRegistry.application.postgresAdapter -> partyRegistry.application.eventPublication 'Implements durable outbox claim and delivery-state output ports.'
-  partyRegistry.application.rabbitAdapter -> partyRegistry.application.eventPublication 'Implements the event publication output port and maps publisher-confirm outcomes.'
+  partyRegistry.application.reactiveApi -> partyRegistry.application.partyInputPorts 'Depends inward on and invokes Application-owned Party input contracts.'
+  partyRegistry.application.reactiveApi -> partyRegistry.application.identifierInputPorts 'Depends inward on and invokes Application-owned Identifier input contracts.'
+  partyRegistry.application.partyInputPorts -> partyRegistry.application.partyCapability 'Dispatches boundary-neutral requests to the implementing Party use cases.'
+  partyRegistry.application.identifierInputPorts -> partyRegistry.application.identifierCapability 'Dispatches boundary-neutral requests to the implementing Identifier use cases.'
+  partyRegistry.application.partyCapability -> partyRegistry.application.partyDomain 'Applies framework-independent Party domain policies and invariants.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.partyDomain 'Applies framework-independent Identifier domain policies and invariants.'
+  partyRegistry.application.partyCapability -> partyRegistry.application.partyPersistencePorts 'Invokes tenant-qualified persistence and atomic unit-of-work output contracts.'
+  partyRegistry.application.partyCapability -> partyRegistry.application.geographicReferencePort 'Resolves required country evidence before opening a state-changing PostgreSQL transaction.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.identifierPersistencePorts 'Invokes Identifier persistence and query-only Scheme catalog output contracts.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.identifierProtectionPort 'Invokes protected-value and fingerprint output contracts.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.securityLogPort 'Requires successful local security-log emission before plaintext disclosure.'
+  partyRegistry.application.partyCapability -> partyRegistry.application.clockPort 'Obtains current time for approved validation and audit semantics.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.clockPort 'Obtains current time for approved validation, lifecycle and audit semantics.'
+  partyRegistry.application.eventPublication -> partyRegistry.application.outboxStorePort 'Invokes bounded claim and separate outcome transaction contracts.'
+  partyRegistry.application.eventPublication -> partyRegistry.application.eventPublisherPort 'Invokes persistent publication and publisher-confirm contracts only after claim commit.'
+  partyRegistry.application.postgresAdapter -> partyRegistry.application.partyPersistencePorts 'Implements Application-owned Party persistence and atomic unit-of-work contracts.'
+  partyRegistry.application.postgresAdapter -> partyRegistry.application.identifierPersistencePorts 'Implements Application-owned Identifier persistence and query-only Scheme catalog contracts.'
+  partyRegistry.application.postgresAdapter -> partyRegistry.application.outboxStorePort 'Implements Application-owned short claim and separate outcome transaction contracts.'
+  partyRegistry.application.geographicAdapter -> partyRegistry.application.geographicReferencePort 'Implements the Application-owned country-reference contract without exposing provider models inward.'
+  partyRegistry.application.protectionAdapter -> partyRegistry.application.identifierProtectionPort 'Implements the Application-owned identifier protection contract without provider leakage.'
+  partyRegistry.application.securityLogAdapter -> partyRegistry.application.securityLogPort 'Implements the Application-owned local decryption security-log contract.'
+  partyRegistry.application.rabbitAdapter -> partyRegistry.application.eventPublisherPort 'Implements the Application-owned publisher-confirm contract.'
+  partyRegistry.application.systemClockAdapter -> partyRegistry.application.clockPort 'Implements the Application-owned current-time contract.'
   partyRegistry.application.postgresAdapter -> partyRegistry.database 'Executes DBML-governed reactive queries, uniqueness constraints and local transactions; runtime writes to identifier_schemes are forbidden.'
   partyRegistry.application.geographicAdapter -> geographicReference 'Retrieves active ISO country references.'
   partyRegistry.application.rabbitAdapter -> rabbitMq 'Publishes persistent messages to the approved durable topic exchange.'
-  partyRegistry.application.runtimeComposition -> partyRegistry.application.partyCapability 'Wires application ports and health instrumentation.'
-  partyRegistry.application.runtimeComposition -> partyRegistry.application.identifierCapability 'Wires scheme-read, protection and local security-log ports and readiness checks.'
-  partyRegistry.application.runtimeComposition -> partyRegistry.application.eventPublication 'Starts bounded outbox publication and exposes lag/failure signals.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.reactiveApi 'Composes the inbound adapter with Application-owned input ports.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.postgresAdapter 'Binds persistence output ports to the PostgreSQL adapter.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.geographicAdapter 'Binds the country-reference output port to its adapter.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.protectionAdapter 'Binds identifier protection to runtime-secret-backed infrastructure.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.securityLogAdapter 'Binds fail-closed decryption logging to the local logging adapter.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.rabbitAdapter 'Binds event publication to the RabbitMQ adapter.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.systemClockAdapter 'Binds current-time access to the infrastructure clock adapter.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.eventPublication 'Starts the bounded Application-layer outbox publication capability and exposes lag/failure signals.'
 }
 
 deployment {

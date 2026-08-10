@@ -4,6 +4,13 @@
 
 Proposed
 
+| Field | Value |
+|---|---|
+| Owner | `solution-architecture-agent` (proposal author; approval remains with the independent architecture gate) |
+| Decision date | 2026-08-10 |
+| Decision version | 0.6 |
+| Supersession | None; factory decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42` supersedes RG-104, not an earlier ADR |
+
 ## Context
 
 The project owner clarified that Party Registry V1 does **not** require HTTP command idempotency, `Idempotency-Key`, replay-result persistence, request fingerprints, or any separate idempotency store.
@@ -54,6 +61,10 @@ Lifecycle transitions never free the identifier for reuse. Correcting an identif
 The same normalized string is permitted in another tenant or under another Identifier Scheme, subject to all validation and subject-type rules.
 
 Party creation itself has no idempotency semantics. Two valid Party-creation requests may create two distinct Parties unless another explicit domain rule rejects them. Official-identifier uniqueness is enforced only when Party Identifier data is created or otherwise reaches the persistence constraint.
+
+## Rationale
+
+An unconditional PostgreSQL unique key is the narrowest mechanism that enforces the human-approved permanent business invariant under concurrent writes. The tenant-effective HMAC fingerprint permits deterministic equality without plaintext persistence, and including tenant and Scheme preserves the exact approved scope. Partial indexes, command replay stores and caches either contradict the amendment or weaken concurrency authority.
 
 ## Concurrency Semantics
 
@@ -111,4 +122,4 @@ Changing this rule to allow identifier reuse, status-scoped uniqueness, global u
 
 ## Traceability
 
-`.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`; `docs/requirements/requirements-amendment-001.md`; `docs/database/v1-scheme.dbml`; identifier protection decisions OD-003/RG-103/RG-105; strict DBML governance in `.factory/project.yaml`.
+`.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`; `docs/requirements/requirements-amendment-001.md`; `docs/database/v1-scheme.dbml`; identifier protection decisions OD-003/RG-103/RG-105; strict DBML governance in `.factory/project.yaml`; `docs/architecture/solution-architecture.md` sections 8 and 21.1; LikeC4 `identifierCapability`, `postgresAdapter` and `postgresAdapter -> database`.

@@ -1,0 +1,72 @@
+{
+  "agent": "clean-architecture-gate-agent",
+  "attempt": {
+    "current": 2,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-072ebe71-097a-403c-b2f6-0980cb0c3641/result.json",
+      ".factory/runs/oc-0b493fdf-5bec-4daf-8e5a-0b9eba202ff5/result.json",
+      ".factory/runs/oc-113161e8-5f32-4bcd-a470-5f35b3145311/result.json",
+      ".factory/runs/oc-1c47291c-d538-4e76-ad5b-ce502c2bc2f7/result.json",
+      ".factory/runs/oc-1c5c08b6-ef23-4c32-bde4-0231f1b56287/result.json",
+      ".factory/runs/oc-20d0d5d6-bfb6-4dc2-b774-ae5a0ab86cef/result.json",
+      ".factory/runs/oc-24279e57-a682-44b6-9ab5-2a1f253f0480/result.json",
+      ".factory/runs/oc-33037964-68f6-4d87-b8eb-13ecf5f15fe9/result.json",
+      ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json",
+      ".factory/runs/oc-48e93284-608b-4d2f-9af7-7907caf08222/result.json",
+      ".factory/runs/oc-a87069f6-8ca3-4064-9aeb-a7f251bffe11/result.json",
+      ".factory/runs/oc-c0056d6f-4454-4e57-bac5-2c6aeb184389/result.json",
+      ".factory/runs/oc-c18e0874-ee82-4735-b242-956ee8f78c8b/result.json",
+      ".factory/runs/oc-c768aa8a-dfd3-41a8-8647-adff13efcf27/result.json",
+      ".factory/runs/oc-d887fc48-46b7-4246-802b-66419abfc2cb/result.json",
+      ".factory/runs/oc-eba92cbe-57e7-45e9-88f3-4828c48af587/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-83373587-dbd6-45c2-b6cb-e89bb54f9083",
+  "phase": "ARCHITECTURE_GATE",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-83373587-dbd6-45c2-b6cb-e89bb54f9083",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "Requirements and architecture are explicit, internally consistent, traceable to repository evidence, compliant with strict Clean Architecture and LikeC4 standards, and no unresolved high-risk contradiction remains before database validation."
+    ],
+    "expectedArtifacts": [],
+    "instructions": [],
+    "objective": "Establish the approved requirements and architecture baseline for party-registry-service as the pilot of the AI Software Factory, using only verified repository sources, the project manifest, existing documentation and the authoritative DBML, without inventing business requirements or modifying the database design."
+  },
+  "writePolicy": {
+    "allowedPaths": [],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "READ_ONLY"
+  }
+}

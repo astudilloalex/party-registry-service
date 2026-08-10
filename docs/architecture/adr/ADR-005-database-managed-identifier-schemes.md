@@ -4,6 +4,13 @@
 
 Proposed
 
+| Field | Value |
+|---|---|
+| Owner | `solution-architecture-agent` (proposal author; approval remains with the independent architecture gate) |
+| Decision date | 2026-08-10 |
+| Decision version | 0.6 |
+| Supersession | None; factory decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42` supersedes earlier requirements meaning, not an earlier ADR |
+
 ## Context
 
 Party Registry stores global Identifier Scheme records such as CÉDULA, RUC, PASAPORTE and other supported official-document types in `identifier_schemes`. Earlier generated requirements and architecture treated these records as runtime-administered resources with a dedicated actor and application capability.
@@ -27,7 +34,9 @@ The project owner clarified that this is incorrect for V1: Identifier Schemes ar
 
 ## Decision
 
-Identifier Schemes are **database-managed reference data**.
+**CONFIRMED REQUIREMENT:** Identifier Schemes are **database-managed reference data**.
+
+**TO-BE DECISION:** enforce that requirement through a query-only application output port, a PostgreSQL adapter with no Scheme mutation contract, and a runtime database role limited to `SELECT` on `identifier_schemes`.
 
 Party Registry V1 runtime:
 
@@ -42,6 +51,10 @@ Party Registry V1 runtime:
 New or changed Scheme data is introduced only through the governed database-management path: reviewed database migration and/or explicitly authorized database administration.
 
 The application runtime database role should enforce the boundary with `SELECT` access to `identifier_schemes` and no `INSERT`, `UPDATE`, or `DELETE` privilege on that table. Migration/administration credentials are separate and are not application runtime credentials.
+
+## Rationale
+
+A query-only Application-owned catalog port preserves strict Clean Architecture and supplies only the metadata Identifier use cases need. Enforcing read-only behavior both in the application contract and PostgreSQL runtime privileges provides defense in depth against unauthorized validation-policy changes. The governed database path matches the approved ownership decision and avoids recreating a prohibited runtime administration capability.
 
 ## Application Boundary
 
@@ -119,4 +132,4 @@ If a later version requires runtime Scheme administration, it requires a new exp
 
 ## Traceability
 
-`.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`; `docs/requirements/requirements-amendment-002.md`; `docs/database/v1-scheme.dbml`; `architecture/model.c4`; strict Clean Architecture and PostgreSQL governance profiles.
+`.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`; `docs/requirements/requirements-amendment-002.md`; `docs/database/v1-scheme.dbml`; `architecture/model.c4` relations `identifierCapability -> identifierPersistencePorts`, `postgresAdapter -> identifierPersistencePorts`, and `postgresAdapter -> database`; `docs/architecture/solution-architecture.md` sections 7 and 21.1; strict Clean Architecture and PostgreSQL governance profiles.

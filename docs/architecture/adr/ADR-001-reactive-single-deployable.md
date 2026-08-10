@@ -4,6 +4,13 @@
 
 Proposed
 
+| Field | Value |
+|---|---|
+| Owner | `solution-architecture-agent` (proposal author; approval remains with the independent architecture gate) |
+| Decision date | 2026-08-10 |
+| Decision version | 0.6 |
+| Supersession | None |
+
 ## Context
 
 **CONFIRMED REQUIREMENT:** NFR-006 requires a reactive REST API. The manifest selects Java 25/Quarkus, strict Clean Architecture and execution model `auto`; the stack profile requires blocking isolation. The bounded context owns one cohesive data/transaction boundary and includes API and outbox publication responsibilities.
@@ -24,6 +31,10 @@ Proposed
 ## Decision
 
 **TO-BE DECISION:** select option 1. REST, PostgreSQL access, Geographic client and RabbitMQ publication are non-blocking end to end. The publisher is a separately scheduled component, not a separate deployment unit. Unavoidable blocking or CPU-heavy adapter work must use explicit bounded isolation with context propagation and tests.
+
+## Rationale
+
+One deployable is the least complex boundary that satisfies the confirmed reactive API and local transaction requirements. API and publisher responsibilities share bounded-context ownership, release cadence, data authority and operational ownership, while no approved requirement justifies independent scaling or deployment. Reactive end-to-end I/O avoids consuming the pilot's bounded worker resources during dependency waits; explicit isolation keeps unavoidable blocking work from starving event loops.
 
 ## Consequences
 
@@ -60,4 +71,4 @@ Split the publisher only after measured independent scaling/failure-isolation ev
 
 ## Traceability
 
-`.factory/project.yaml:8-25`; requirements NFR-004..009, NFR-011, OR-006; supplied Quarkus profile; `docs/architecture/solution-architecture.md` sections 6, 8, 9 and 14.
+`.factory/project.yaml:8-25`; requirements NFR-004..009, NFR-011, OR-006; supplied Quarkus profile; `gradle.properties:3-7` (Quarkus 3.33.3 pin); `docs/architecture/solution-architecture.md` sections 5.1, 6, 9, 16 and 19; LikeC4 `partyRegistry.application` and `productionDeployment`.

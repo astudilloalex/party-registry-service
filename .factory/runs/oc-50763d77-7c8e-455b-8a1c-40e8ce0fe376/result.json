@@ -1,0 +1,40 @@
+{
+  "agent": "database-contract-agent",
+  "assumptions": [],
+  "decision": "FAIL",
+  "evidence": [
+    ".factory/project.yaml:21-25 declares database.required=true, engine=postgresql, sourceOfTruth=docs/database/v1-scheme.dbml, and allowAutomaticDesignChanges=false.",
+    ".factory/state.json:2 records DATABASE_VALIDATION; no workflow-state file was modified.",
+    ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json:4 records the independent requirements-gate PASS.",
+    ".factory/decisions.json:76-81 records human approval of Requirements Amendments 001 and 002.",
+    ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json:4 records the independent clean-architecture gate PASS for PRS-ARCH-001 version 0.6.",
+    "docs/database/v1-scheme.dbml was readable as a file at the manifest-declared repository-relative path; repository globbing found no competing DBML file.",
+    "Manual review covered all 8 enums, 7 tables, declared indexes/checks, normative notes, and 5 references in docs/database/v1-scheme.dbml:1-432.",
+    "Repository search found no unresolved merge markers, obvious placeholders, credentials, or identified secret-bearing content in the DBML.",
+    "Repository build/configuration search found Gradle files but no approved DBML parser or linter dependency; no package installation or external download was performed.",
+    "The validation remained read-only and created or modified no files."
+  ],
+  "findings": [
+    "[HIGH][DBML-CHECK][docs/database/v1-scheme.dbml:party_nationalities] The contract states that nationalities belong only to natural-person Parties but provides no constraint, trigger obligation, or other precise enforcement mechanism. Evidence: docs/database/v1-scheme.dbml:218-226 and requirements-specification.md:BR-005/FR-003. Impact: a legal-entity Party can acquire nationality rows, violating an approved business invariant.",
+    "[HIGH][DBML-DELETION][docs/database/v1-scheme.dbml:parties, natural_person_details, legal_entity_details, party_nationalities, party_identifiers, party_outbox_events] Foreign-key delete restrictions protect referenced parents, but the DBML does not prohibit direct physical deletion of business, audit, identifier, nationality, or outbox rows. Evidence: requirements-specification.md:BR-020, SR-007, AC-024 and OD-004 require exclusively logical deletion and no purge; DBML references at lines 424-432 specify only relationship-level RESTRICT behavior. Impact: downstream migrations and runtime privileges cannot deterministically preserve required history and audit evidence.",
+    "[HIGH][DBML-LIFECYCLE][docs/database/v1-scheme.dbml:parties.record_status and party_identifiers.status] Status defaults and enums are declared, but the exact approved transitions, terminal states, immutable Party type/ownership fields, and immutable Party-Identifier value/Party/Scheme associations are neither enforced nor precisely delegated to a named mechanism with tests. Evidence: .factory/decisions.json:RG-101 and requirements-specification.md:BR-022/BR-023. Impact: persistence implementation could permit forbidden reactivation or mutation of identity-defining data.",
+    "[MEDIUM][DBML-MIGRATION][docs/database/v1-scheme.dbml:natural_person_details.Note, party_nationalities.Note, party_identifiers.Note] Required PostgreSQL mechanisms are not migration-deterministic. The deferred detail trigger lacks an object name, covered operations, complete timing semantics, and test obligation; the nationality partial indexes lack names and exact predicates/columns; the verified-primary partial index lacks a name and explicit migration-test obligation. The nationality note also mentions tenant columns although party_nationalities has no tenant_id. Impact: independent migration generators can produce materially different constraints or fail to implement them.",
+    "[MEDIUM][DBML-TEMPORAL][docs/database/v1-scheme.dbml:party_nationalities.valid_from and party_nationalities.valid_until] The declared check enforces ordering only and permits future dates, while approved BR-018, VR-009 and OD-009 prohibit future validity dates and scheduled activation or termination. No precise database or application enforcement obligation is recorded in the DBML. Impact: invalid future-dated nationality state can be persisted.",
+    "[MEDIUM][DBML-QUALITY][docs/database/v1-scheme.dbml:parties.display_name] display_name is declared as a denormalized value maintained atomically with a corresponding detail row, but the derivation, normalization, and behavior for each Party type are unspecified. Evidence: docs/database/v1-scheme.dbml:109 and 128-134. Impact: downstream implementations must invent how to keep the denormalized value consistent.",
+    "[MEDIUM][DBML-CHECK][docs/database/v1-scheme.dbml:party_identifiers.normalized_value_hash] The field is fixed at CHAR(64) and described as a hexadecimal HMAC-SHA-256 fingerprint, but no format constraint or precise validation obligation ensures hexadecimal content. Evidence: docs/database/v1-scheme.dbml:295 and requirements-amendment-001.md:35-61. Impact: malformed fingerprints can weaken exact lookup, reconciliation, and permanent uniqueness semantics.",
+    "[MEDIUM][DBML-SYNTAX][docs/database/v1-scheme.dbml] No repository-approved DBML parser or linter dependency was found, so parser acceptance could not be mechanized without prohibited installation. Bounded manual review found balanced declarations and five resolving references, but manual review is insufficient evidence for mandatory syntax acceptance. Impact: unsupported DBML syntax may remain undiscovered before migration generation."
+  ],
+  "generatedFiles": [],
+  "nextPhase": null,
+  "phase": "DATABASE_VALIDATION",
+  "requiredActions": [
+    "Have the authorized database designer define a precise, testable enforcement mechanism preventing nationalities from referencing non-natural-person Parties.",
+    "Make the approved no-physical-delete policy deterministic for every business, identifier, audit-bearing, and outbox table, including explicit runtime privilege or integrity obligations and deletion tests.",
+    "Record precise enforcement or controlled-application obligations for Party and Party-Identifier lifecycle transitions and immutable fields, including named downstream tests.",
+    "Complete every deferred PostgreSQL obligation with deterministic object names, exact columns, exact predicates, timing/events where applicable, and migration-test requirements.",
+    "Resolve the party_nationalities note's tenant-column inconsistency and define enforcement for non-future validity dates.",
+    "Define the authoritative display_name derivation/normalization behavior and the normalized-value fingerprint format validation obligation without automatically modifying the DBML.",
+    "Validate the corrected authoritative DBML with an approved existing parser or linter before acceptance."
+  ],
+  "riskLevel": "HIGH"
+}

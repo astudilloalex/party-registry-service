@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:clean-architecture-gate-agent",
+  "destinationState": "WAITING_FOR_DBML",
+  "dryRun": false,
+  "effectiveEvent": "PASS",
+  "note": "Validated OpenCode invocation oc-bae96f91-74cb-4d6d-a506-f208f3dec005",
+  "occurredAt": "2026-08-10T20:54:56Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "PASS",
+  "riskLevel": "HIGH",
+  "sequence": 26,
+  "sourceState": "ARCHITECTURE_GATE",
+  "transitionId": "724da190-9969-4e48-8ca1-b0d9151f6fed",
+  "workflowId": "software-factory-default"
+}

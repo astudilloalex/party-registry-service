@@ -1,15 +1,17 @@
 {
-  "currentState": "BLOCKED_HIGH_RISK",
+  "currentState": "MANUAL_DATABASE_DECISION_REQUIRED",
   "initializedAt": "2026-08-09T19:08:42Z",
-  "lastEffectiveEvent": "BLOCKED",
-  "lastEvent": "BLOCKED",
-  "lastTransitionAt": "2026-08-10T16:20:22Z",
-  "lastTransitionId": "26f57585-2a94-4f2f-b090-39bc73a870b8",
-  "previousState": "ARCHITECTURE_GATE",
+  "lastEffectiveEvent": "FAIL",
+  "lastEvent": "FAIL",
+  "lastTransitionAt": "2026-08-10T20:59:40Z",
+  "lastTransitionId": "49f83cda-bbb0-472c-8728-04cf54080053",
+  "previousState": "DATABASE_VALIDATION",
   "project": "party-registry-service",
-  "repairCycles": {},
+  "repairCycles": {
+    "ARCHITECTURE_GATE": 2
+  },
   "schemaVersion": 1,
-  "sequence": 20,
-  "updatedAt": "2026-08-10T16:20:22Z",
+  "sequence": 28,
+  "updatedAt": "2026-08-10T20:59:40Z",
   "workflowId": "software-factory-default"
 }

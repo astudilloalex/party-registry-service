@@ -7,7 +7,7 @@
 | Status | Proposed |
 | Approval | Pending independent `clean-architecture-gate-agent` evaluation |
 | Architecture identifier | PRS-ARCH-001 |
-| Version | 0.4 |
+| Version | 0.6 |
 | Author | `solution-architecture-agent` |
 | Historical requirements baseline | PRS-REQ-001 v0.4 |
 | Effective requirements amendments | `requirements-amendment-001.md`, `requirements-amendment-002.md` |
@@ -16,6 +16,12 @@
 | Authoritative human decision | `.factory/decisions.json`, decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42` |
 
 This architecture preserves the independently gated PRS-REQ-001 v0.4 bytes as historical evidence. The factoryctl-recorded human decision above approves Amendments 001 and 002: Amendment 001 supersedes command-level idempotency and the assumed external logging platform, while Amendment 002 supersedes every runtime Identifier Scheme administration use case. This document is a proposal and does not approve those requirements, itself, or a workflow transition.
+
+### 1.1 Review identity and lifecycle
+
+The reviewable PRS-ARCH-001 v0.6 source set is this document, `architecture/model.c4`, and ADR-001 through ADR-005 listed in section 22. Its controlling inputs are the manifest, recorded human decision, effective requirements and authoritative DBML listed above. Version 0.6 supersedes PRS-ARCH-001 v0.5 as an architecture proposal; it does not supersede requirements or DBML.
+
+The independent `clean-architecture-gate-agent`, not this author, must bind the exact reviewed bytes and repository revision to cryptographic digests in its gate evidence. This author does not embed a self-referential digest or create a separate package manifest. Any later byte change requires a new independent binding.
 
 ## 2. Source Precedence
 
@@ -106,6 +112,25 @@ There is also no external logging platform and no remote V1 key-management servi
 
 The single deployable is selected because API, publisher, and persistence responsibilities share one bounded context, operational owner, release, and local transaction authority; no approved independent deployment/scaling/trust requirement justifies a second service. Clean Architecture areas remain logical dependency boundaries, not C4 containers.
 
+### 5.1 Canonical technology profile
+
+**ARCHITECTURE CONSTRAINT:** the supplied `quarkus-java25` profile remains the canonical technology checklist; this architecture does not replace or fork it. The repository pins Quarkus plugin/platform `3.33.3` in `gradle.properties:3-7` and Java 25 in `build.gradle.kts:24-27`. Feature work must retain those pins unless a separately governed profile/version decision authorises change.
+
+Profile responsibilities are placed as follows:
+
+| Profile capability | Architecture placement and required downstream evidence |
+|---|---|
+| Reactive Quarkus runtime | Bootstrap and inbound/outbound adapters; nonblocking path, blocking isolation, context propagation, transaction and performance evidence under ADR-001. |
+| OpenAPI | Inbound REST contract source of truth; API-contract gate verifies the effective V1 surface and compatibility. |
+| PostgreSQL and Flyway | PostgreSQL adapter and separately governed migration capability; Flyway is forward-only and cannot run before DBML/database-contract approval. Runtime code does not own migration execution. |
+| JUnit | Domain/application unit and adapter test execution mechanism selected by the profile. |
+| Testcontainers | PostgreSQL, RabbitMQ and relevant adapter integration evidence without replacing provider contract tests. |
+| ArchUnit | Automated strict dependency-direction and prohibited-import evidence. |
+| JaCoCo | Coverage evidence supporting, but never replacing, behavior and architecture assertions. |
+| OCI packaging | Bootstrap/runtime packaged once; one immutable digest is promoted without rebuild through development, staging and production. |
+
+The current scaffold does not yet declare every profile tool. This architecture records mandatory placement and validation responsibility, not a dependency change; build/dependency modification belongs to downstream planning and implementation within their authorised scope.
+
 ## 6. Strict Clean Architecture
 
 ### 6.1 Logical areas
@@ -134,6 +159,19 @@ The single deployable is selected because API, publisher, and persistence respon
 | Clock port | Outbound | Testable current time; no scheduler is implied. |
 
 There is intentionally **no Scheme Administration input port**, no Scheme mutation port and no Party-creation idempotency port.
+
+### 6.3 Explicit core ownership and dependency direction
+
+The LikeC4 component view represents the core boundaries as first-class elements rather than leaving them implicit in relationship text:
+
+- `partyDomain` is the framework-independent Domain component.
+- `partyCapability` and `identifierCapability` are Application-layer use-case components.
+- `partyInputPorts` and `identifierInputPorts` are Application-owned input-port components.
+- `partyPersistencePorts`, `identifierPersistencePorts`, `geographicReferencePort`, `identifierProtectionPort`, `securityLogPort`, `outboxStorePort`, `eventPublisherPort`, and `clockPort` are Application-owned output-port components.
+- REST, PostgreSQL, Geographic Reference, protection, local logging, and RabbitMQ components are adapters that depend inward on those core-owned contracts.
+- `runtimeComposition` is the Bootstrap boundary and alone selects and wires concrete adapters.
+
+The directional rules are: inbound adapter → input port → application use case → domain; application use cases invoke output-port contracts; outbound adapters → output ports because adapters implement core-owned contracts; bootstrap → concrete runtime elements for composition. No Domain or Application element depends on an adapter or framework. Runtime call direction through an output port does not reverse compile-time ownership: the port remains defined by the Application core and the adapter imports/implements it.
 
 ## 7. Database-Managed Identifier Scheme Catalog
 
@@ -219,18 +257,15 @@ Concurrent duplicates are resolved by the PostgreSQL unique constraint: at most 
 
 ## 9. Runtime Components
 
-Stable application components are:
+Stable component responsibilities are:
 
-- Reactive REST Adapter;
-- Party Application Capability;
-- Identifier Application Capability;
-- Outbox Publication Capability;
-- PostgreSQL Adapter;
-- Geographic Reference Adapter/cache;
-- Identifier Protection Adapter;
-- RabbitMQ Publisher Adapter;
-- Decryption Security Log Adapter;
-- Runtime Composition and Readiness.
+- **Domain:** Party Registry Domain.
+- **Application use cases:** Party Application Capability, Identifier Application Capability, and Outbox Publication Capability.
+- **Application-owned input ports:** Party Input Ports and Identifier Input Ports.
+- **Application-owned output ports:** Party Persistence and Unit-of-Work Ports, Identifier and Scheme Catalog Ports, Geographic Reference Port, Identifier Protection Port, Decryption Security Log Port, Outbox Store Port, Event Publisher Port, and Clock Port.
+- **Inbound adapter:** Reactive REST Adapter.
+- **Outbound adapters:** PostgreSQL Adapter, Geographic Reference Adapter/cache, Identifier Protection Adapter, RabbitMQ Publisher Adapter, Decryption Security Log Adapter, and System Clock Adapter.
+- **Bootstrap:** Runtime Composition and Readiness.
 
 There is no Scheme Administration Capability. Scheme reads occur as part of Identifier processing through the read-only catalog port implemented by the PostgreSQL adapter.
 
@@ -258,11 +293,13 @@ The OpenAPI document is the downstream source of truth for the detailed HTTPS/JS
 | Party/detail/nationality mutation | Local transaction updates component, Party version, audit facts and required outbox event. |
 | Party Identifier creation/mutation | Local transaction preserves tenant/Party/Scheme invariants, permanent uniqueness, version/audit state and required outbox event. |
 | Identifier Scheme access | Read-only query of database-managed reference data; no business mutation transaction exists. |
-| Outbox delivery | Publisher claims durable rows, publishes outside business transaction, then records delivery outcome. |
+| Outbox delivery | A short claim transaction reserves eligible rows using only DBML fields and commits before broker I/O; publication occurs with no open database transaction or row lock; a separate outcome transaction records confirmation/failure. |
 | Exact identifier search | Tenant+Scheme HMAC lookup; no decrypt/scan. |
 | Decryption | Tenant-qualified read -> ciphertext authentication/decrypt -> required local security log -> no-store plaintext response. |
 
 There is no Scheme mutation flow, no distributed transaction, no saga and no compensation design.
+
+For every country-dependent state change, Geographic Reference resolution (including cache lookup and any remote call) completes **before** the state-changing PostgreSQL transaction begins. The application first obtains usable country evidence or returns the approved unchanged 503 outcome. Only after evidence is available may it open the local mutation/outbox transaction; the evidence is then consumed without another remote call inside that transaction. Every other remote interaction likewise occurs outside state-changing PostgreSQL transactions. RabbitMQ follows the separately committed claim/broker/outcome boundaries in section 12.2. No database connection transaction or row lock is held while awaiting Geographic Reference, RabbitMQ, or any other remote system.
 
 ## 12. Transactional Outbox
 
@@ -286,12 +323,22 @@ Database-managed Identifier Scheme catalog changes produce **no tenant Party out
 | Integration | Contract / security | Timeout, retry, duplicates, ordering and recovery |
 |---|---|---|
 | Internal reactive REST | OpenAPI is source of truth; internal HTTPS/JSON is proposed; V1 trusts validated context and performs no authn/authz. Restricted plaintext is allowed only on approved request fields and the no-store decryption response. | Request deadlines are bounded operational configuration. Clients receive stable error categories. No command replay/idempotency is offered. Correlation uses `process-id`. |
-| Geographic Reference | Provider-owned country contract; Party Registry anti-corruption adapter maps only active ISO alpha-2 evidence. Data is internal. | Each call has a bounded timeout. The 24-hour cache and seven-day stale fallback are authoritative; no usable cache yields unchanged HTTP 503. Cache is non-durable and restart-safe by failing according to the cold-cache rule. |
+| Geographic Reference | Provider-owned country contract; Party Registry anti-corruption adapter maps only active ISO alpha-2 evidence. Data is internal. Country evidence is resolved before opening any state-changing PostgreSQL transaction. | Each call has a bounded timeout. The 24-hour cache and seven-day stale fallback are authoritative; no usable cache yields unchanged HTTP 503. Cache is non-durable and restart-safe by failing according to the cold-cache rule. No remote call occurs while a state-changing database transaction or lock is open. |
 | RabbitMQ publication | Party Registry owns immutable versioned event schemas and publisher behavior; persistent messages to the approved durable topic exchange use publisher confirms. Payload is minimized and excludes full identifiers. | Each publish attempt and concurrent claim batch are bounded; persistent eligibility is not attempt-limited because the approved policy forbids automatic discard. Unknown/transient outcomes retain the same ID and retry eligibility with backoff/jitter; delivery is at least once and ordered only by aggregate version evidence, not globally. Consumers deduplicate by event ID and own queues/DLQs. Non-recoverable failures remain operator-visible until authorised same-event recovery. |
 | PostgreSQL | DBML is physical source of truth; Party Registry owns runtime access and local ACID consistency. TLS is required when the connection crosses a trust boundary. | No distributed retry encloses an unknown commit. Safe transaction retries, if introduced, must be bounded and tested against unique/version conflicts. Recovery uses backups, restore evidence, and reconciliation of outbox/business state. |
 | Local security logging | Application-owned structured log contract; local logger only, containing approved identifiers, timestamp, action/outcome, and no plaintext. | Decryption invokes it once before disclosure. Synchronous rejection/failure returns no plaintext. No remote retry, external acknowledgement, or durable collection is claimed. |
 
 Detailed OpenAPI and event schemas are deliberately not generated in this phase. Published event schemas are immutable; incompatible evolution uses a new versioned event type. Event correlation/causation and aggregate version provide traceability; they do not guarantee global ordering.
+
+### 12.2 Outbox claim, publication and outcome boundaries
+
+The publisher uses three separate boundaries; RabbitMQ I/O is never performed while a PostgreSQL transaction or row lock is open:
+
+1. **Claim transaction:** select a bounded batch of currently eligible `PENDING` rows with `SELECT ... FOR UPDATE SKIP LOCKED`; for each selected row, set the existing `next_attempt_at` to a bounded future visibility deadline, set `last_attempt_at`, increment `publish_attempts` and `version`, then commit. The committed version is the claim token. All row locks are released at commit.
+2. **Broker operation:** only after the claim transaction commits, publish each persistent message and await its bounded publisher-confirm outcome. No database transaction is open during serialization, network I/O or confirmation wait.
+3. **Outcome transaction:** update the same event using its ID and claimed version. Positive confirmation sets `PUBLISHED` and `published_at`; a classified non-recoverable failure sets `FAILED` with non-sensitive evidence; transient, negative, timeout or unknown outcomes remain `PENDING` and become eligible according to bounded backoff through `next_attempt_at`. The optimistic version predicate prevents a stale publisher outcome from overwriting a later claim/outcome.
+
+If the process crashes after claim commit but before outcome recording, the row becomes eligible again after the committed `next_attempt_at`; this can duplicate publication after an unknown outcome, which is required at-least-once behavior and preserves the same event ID. The claim batch size, visibility deadline, publish timeout and concurrency are bounded operational configuration validated against event-lag targets. This design uses only DBML-supplied fields (`status`, `next_attempt_at`, `last_attempt_at`, `publish_attempts`, `version`) and does not invent claim-owner, lease, status, table or external store semantics. Database validation must confirm these fields and optimistic update semantics safely support the sequence; if not, it must report the exact DBML conflict rather than alter physical design.
 
 ## 13. Security and Privacy
 
@@ -336,6 +383,8 @@ Country-code validation uses Geographic Reference Service with the approved:
 - historical-code preservation.
 
 The cache is not a source of truth and is lost on process restart.
+
+The Geographic Reference output port returns boundary-neutral evidence or an explicit unavailable outcome. A country-dependent command resolves that outcome before transaction opening. A failed/absent resolution therefore cannot partially mutate business state or create an outbox event, and a successful resolution is passed into the local transaction without remote I/O. Adapter integration tests must instrument transaction state and prove that provider calls never overlap a state-changing PostgreSQL transaction.
 
 ## 15.1 Data architecture and lineage
 
@@ -418,7 +467,7 @@ No automatic DBML redesign is authorized.
 | Domain | Party/Identifier lifecycle, type/detail/date rules, masking and permanent identifier uniqueness. |
 | Application | Tenant propagation, Scheme read-only catalog use, If-Match, exact lookup, decryption log-before-return. |
 | Architecture | Domain/application dependency purity; no Scheme Administration input capability. |
-| LikeC4 | `likec4 validate`; no Identifier Scheme Administrator actor/capability. |
+| LikeC4 | Architecture phase documents a manual consistency review when repository tooling is unavailable; the independent quality gate must execute project-approved LikeC4 parse/validate/render tooling and verify no Identifier Scheme Administrator actor/capability. |
 | Database | PostgreSQL constraints plus runtime `identifier_schemes` SELECT-only privilege. |
 | Adapter integration | Scheme reads succeed; Scheme runtime writes are impossible; Geographic/crypto/logging/RabbitMQ faults behave as specified. |
 | Contract | No Scheme administration/discovery API in V1; approved Party/Identifier contracts remain versioned. |
@@ -447,7 +496,7 @@ Automated architecture dependency checks are mandatory: domain may depend on not
 15. Runtime secrets remain outside Git/image.
 16. V1 contains no login/authentication/authorization/roles.
 17. Structured logs propagate `processId`, `userId`, and `tenantId`; decryption logs include the additional approved fields and never plaintext.
-18. `likec4 validate` is mandatory architecture evidence.
+18. LikeC4 source is mandatory; this phase records `NOT_RUN` when no repository-controlled executable exists, and the independent quality gate must execute parse/validate/render before approval.
 19. Database-managed Scheme changes create no Party Registry tenant business event.
 20. A future runtime Scheme administration feature requires a new product/security/API/database decision and ADR.
 
@@ -463,22 +512,25 @@ Automated architecture dependency checks are mandatory: domain may depend on not
 | AR-007 Contract, PD | Exact pagination values in historical BR-029 trace to gate completion rather than product authority. | Requirements gate marked nonblocking. | API-contract authority confirms or defers exact values while preserving bounds, deterministic order, validation and tenant isolation. | Latest safe point: before API-contract gate approval. |
 | AR-008 Data | DBML constraints, PostgreSQL 18 compatibility, or Scheme privileges fail validation; persistence could violate invariants. | Unknown until database gate. | Database-contract validation; report conflict and never auto-edit DBML. | High if found; database work remains prohibited until gate. |
 | AR-009 Data/compatibility | Database-managed Scheme references unsupported application implementation key. | Credible configuration risk. | Coordinated release/migration validation, readiness and fail-unchanged operation; runtime never rewrites catalog. | Operational correction required. |
-| DA-001 Assumption | The project-provided LikeC4 grammar accepts the existing custom deployment-node types. If false, model validation fails but business boundaries do not change. | Low-risk syntax assumption because no repository validator/tool is present. | Validate with the project-approved LikeC4 command at the architecture gate or earliest tooling phase; correct syntax only, preserving semantics. | No runtime impact; blocks architecture evidence if validation is mandatory. |
+| DA-001 Assumption | The project-provided LikeC4 grammar accepts the existing custom deployment-node types. If false, model validation fails but business boundaries do not change. | Low-risk syntax assumption because no repository validator/tool is present. | The independent quality gate must execute repository-approved parse/validate/render tooling; correct syntax only, preserving semantics. | No runtime impact; executable quality-gate approval remains blocked until validation succeeds. |
 
 The former AR-001 command-idempotency conflict is resolved by the recorded approval of Amendment 001 and MUST NOT be reintroduced as an implementation mechanism. Runtime Scheme administration is likewise removed by Amendment 002. PD AR-007 does not alter the architecture topology; AR-003 requires human/compliance authority if its trigger occurs.
 
 ## 21.1 Requirements-to-architecture traceability
 
-| Effective source | Architecture concern / boundary | Decision or control | Verification |
-|---|---|---|---|
-| FR-001..003, FR-010..012, FR-016..033; BR-001..005, 011..023 as amended | Party capability, tenant boundary, aggregate/version transaction | Party application ports, tenant-qualified persistence, local ACID/outbox, If-Match, geographic port | Domain/application/API/database/concurrency tests |
-| FR-005..006, FR-013..014, FR-018, FR-034..039, FR-046..049 as amended | Identifier capability and restricted-data boundary | Read-only Scheme port, protection port, permanent DB uniqueness, mask, exact lookup, log-before-decrypt | Domain/security/API/database/readiness tests |
-| Amendment 002; effective FR-019/040..045 replacements | Scheme ownership | No Scheme actor/input port/API/mutation/event; SELECT-only runtime role | Architecture, API-surface and DB-privilege checks |
-| FR-008..009, FR-020/050; IR-002..004; VR-015..018 | Event consistency and integration ownership | Atomic outbox, internal publisher, confirmed at-least-once, same-ID recovery | Transaction, broker fault, crash/restart and event-contract tests |
-| FR-015; IR-001; BR-019 | Geographic integration | Anti-corruption adapter, bounded cache, fail-unchanged 503 | Provider contract and fault/cache tests |
-| SR-001..007; DR-004..007 | Security/privacy/audit | Explicit trust boundary, secret separation, plaintext minimisation, no authn/authz, no audit store | Security/privacy gate and telemetry inspection |
-| NFR-004..011; OR-001..009 as amended | Runtime, performance, recovery, observability, deployment | Reactive single deployable, bounded isolation, health/telemetry, rootless Quadlet, immutable digest, backup/restore | Architecture/performance/reliability/deployment gates |
-| CR-001..005; manifest/database profile | Compatibility and migration | Opaque IDs, versioned contracts, DBML authority, forward-only migration, no rebuild | Contract, database, migration and release gates |
+| Critical effective requirement | Controlling decision | LikeC4 element/relation | Component or port boundary | Planned validation |
+|---|---|---|---|---|
+| FR-001, SR-001 — tenant isolation and non-disclosure | Sections 4.1/13; accepted V1 trust posture in ADR-003 | `internalConsumer -> partyRegistry.application`; `reactiveApi -> partyInputPorts/identifierInputPorts`; capabilities → tenant-scoped persistence ports | Reactive REST Adapter, Application-owned input ports, and every tenant-scoped persistence port | Cross-tenant API/persistence negative tests; architecture review of tenant-qualified methods |
+| FR-008, BR-013, NFR-002 — mutation/outbox atomicity | ADR-002; sections 11/12 | capabilities → `partyPersistencePorts`/`identifierPersistencePorts`; `postgresAdapter` → those ports and `database` | Application-owned unit-of-work/output ports implemented by PostgreSQL Adapter | PostgreSQL rollback/commit integration tests proving both-or-neither |
+| VR-015..018, NFR-001/003/009 — safe at-least-once publication | ADR-002; section 12.2 three-boundary sequence | `eventPublication -> outboxStorePort/eventPublisherPort`; adapters → their implemented ports; `rabbitAdapter -> rabbitMq` | Application-owned Outbox Store and Event Publisher ports | Concurrent claim, lock-release-before-I/O instrumentation, confirm/timeout/crash/restart/same-ID tests and lag load test |
+| Amendment 001 FR-006/047 — permanent identifier uniqueness | ADR-004 | `identifierCapability`; `postgresAdapter -> database` | Identifier use-case port, protection port and tenant-scoped persistence port | DB unique-constraint, lifecycle, cross-tenant/scheme and concurrent-write tests |
+| FR-013, SR-002/003 — protected exact lookup | ADR-003/004 | `identifierCapability -> identifierProtectionPort/identifierPersistencePorts`; protection/PostgreSQL adapters → their implemented ports | Identifier Protection port plus read-only Scheme and identifier persistence ports | HMAC tenant-separation, no-decrypt scan, plaintext-leak and exact-match tests |
+| FR-014, BR-024, SR-005 — fail-closed decryption disclosure | ADR-003 | `reactiveApi -> identifierInputPorts`; `identifierCapability -> identifierProtectionPort/securityLogPort`; adapters → implemented ports | Decryption input port, protection port and Decryption Security Log port | Ordered log-before-response test, synchronous logger-failure denial, no-store and telemetry inspection |
+| Amendment 002 HD-004/FR-019/040..045 — Scheme ownership | ADR-005 | `identifierCapability -> identifierPersistencePorts`; `postgresAdapter -> identifierPersistencePorts`; `postgresAdapter -> database`; absence of Scheme actor/capability | Application-owned read-only Identifier Scheme Catalog output port; no mutation input port | ArchUnit/API inventory and PostgreSQL runtime privilege tests |
+| FR-015, BR-019, IR-001 — country authority/cache failure | Sections 11/12.1/15 pre-transaction resolution decision | `partyCapability -> geographicReferencePort`; `geographicAdapter -> geographicReferencePort`; `geographicAdapter -> geographicReference` | Application-owned Geographic Reference output port and anti-corruption adapter/cache | Provider contract, TTL/stale/cold-cache/timeout tests with unchanged business state plus instrumentation proving resolution completes before mutation transaction opening |
+| NFR-006/008/011 — reactive execution and bounded capacity | ADR-001 | `partyRegistry.application` and all reactive external relations | Bootstrap, Reactive REST Adapter and nonblocking outbound adapters | Blocking-call detection, context propagation, startup and pilot load/saturation tests |
+| OR-002..005 — rootless deployment and immutable promotion | ADR-001; sections 16/17 | `productionDeployment`, `rootlessPodman`, `reverseProxy`, `runtimeSecrets` | Bootstrap/runtime boundary; no domain/application dependency | Quadlet policy checks, digest equality, liveness/readiness/smoke and stabilization evidence |
+| DR-008/009, CR-005 — DBML authority and forward-only migration | Sections 15.1/16/18; canonical PostgreSQL profile | `partyRegistry.database`; `application -> database` | PostgreSQL Adapter; Flyway remains separate migration capability | Database-contract gate, DBML comparison, forward-only Flyway validation and restore/reconciliation test |
 
 ## 22. ADR Index
 
@@ -516,4 +568,9 @@ Persistence implementation/migrations remain subject to the database-contract ga
 - No external logging platform exists.
 - No V1 authentication/authorization exists.
 - DBML remains authoritative and no table is inferred into an API merely because it exists.
+- Every outbox claim transaction commits and releases locks before RabbitMQ I/O; outcome recording is a separate transaction.
+- Geographic Reference resolution and every other remote interaction complete outside state-changing PostgreSQL transactions; country evidence is available before the local mutation/outbox transaction begins.
+- LikeC4 explicitly models the Domain, Application use cases, core-owned input/output ports, adapters and Bootstrap with inward compile-time dependency direction.
+- Critical transaction, trust, ownership and restricted-data requirements identify ADR/decision, LikeC4, port/component and validation boundaries.
+- The architecture reflects the canonical supplied profiles and repository-pinned Quarkus 3.33.3 without changing build dependencies.
 - Architecture remains Proposed pending independent gate evaluation.

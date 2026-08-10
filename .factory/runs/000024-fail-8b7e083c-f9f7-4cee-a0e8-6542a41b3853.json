@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:clean-architecture-gate-agent",
+  "destinationState": "ARCHITECTURE",
+  "dryRun": false,
+  "effectiveEvent": "FAIL",
+  "note": "Validated OpenCode invocation oc-83373587-dbd6-45c2-b6cb-e89bb54f9083",
+  "occurredAt": "2026-08-10T20:46:50Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "ARCHITECTURE_GATE",
+  "repairCycleCount": 2,
+  "requestedEvent": "FAIL",
+  "riskLevel": "HIGH",
+  "sequence": 24,
+  "sourceState": "ARCHITECTURE_GATE",
+  "transitionId": "8b7e083c-f9f7-4cee-a0e8-6542a41b3853",
+  "workflowId": "software-factory-default"
+}

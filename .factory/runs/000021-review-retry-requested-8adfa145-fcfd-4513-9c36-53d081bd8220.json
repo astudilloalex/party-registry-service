@@ -1,0 +1,19 @@
+{
+  "actor": "Alex",
+  "destinationState": "ARCHITECTURE_GATE",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": "Re-evaluate ARCHITECTURE_GATE after AI Software Factory 0.4.4 architecture governance fix",
+  "occurredAt": "2026-08-10T20:34:31Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 21,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "8adfa145-fcfd-4513-9c36-53d081bd8220",
+  "workflowId": "software-factory-default"
+}

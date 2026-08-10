@@ -4,6 +4,13 @@
 
 Proposed
 
+| Field | Value |
+|---|---|
+| Owner | `solution-architecture-agent` (proposal author; approval remains with the independent architecture gate) |
+| Decision date | 2026-08-10 |
+| Decision version | 0.6 |
+| Supersession | None |
+
 ## Context
 
 **CONFIRMED REQUIREMENT:** complete identifiers are restricted, encrypted with authenticated encryption, exactly searched and permanently uniqueness-checked through tenant-effective HMAC, masked by BR-025, and returned in plaintext only by a separate no-store decryption operation. Decryption security-log emission through the local application logging path must succeed before plaintext return. Party Registry implements no V1 authentication/authorization, owns no audit store, and depends on no external logging platform.
@@ -42,6 +49,10 @@ Runtime secret resolution is configuration/deployment behavior, not a network in
 Operational and decryption-security logs carry the confirmed structured fields. The inbound request boundary owns context population/cleanup and propagates `processId`, `userId` and `tenantId`; it generates `process-id` when absent under the approved request-context rules. Logging helpers, MDC, SLF4J and Quarkus logging configuration remain in API/infrastructure/bootstrap concerns and are forbidden in the pure domain/application core.
 
 The decryption-security-log adapter considers emission successful when the required structured message has been accepted by the configured local application logger without synchronous failure. V1 does not claim remote delivery, centralized persistence, external acknowledgement or centralized retention.
+
+## Rationale
+
+Core-owned protection and logging ports make plaintext disclosure ordering testable while preventing crypto, secret-provider and logging APIs from contaminating Domain or Application code. Runtime-injected separate encryption/HMAC masters satisfy the approved V1 deployment boundary without inventing a network key service. A local fail-closed logging adapter exactly matches the amended requirement and avoids claiming durability or acknowledgement from a nonexistent external logging platform.
 
 ## Consequences
 
@@ -89,4 +100,4 @@ Any identity-provider integration, authorization, external key service, external
 
 ## Traceability
 
-DBML Party Identifier protection/uniqueness facts; BR-010/021/024/025/027 as amended by `docs/requirements/requirements-amendment-001.md`; FR-005/006/013/014/046/047/048/049; SR-001..007; DR-004/005/007; RG-102/103/105; `.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`.
+DBML Party Identifier protection/uniqueness facts; BR-010/021/024/025/027 as amended by `docs/requirements/requirements-amendment-001.md`; FR-005/006/013/014/046/047/048/049; SR-001..007; DR-004/005/007; RG-102/103/105; `.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`; `docs/architecture/solution-architecture.md` sections 13, 14 and 21.1; LikeC4 `identifierCapability`, `protectionAdapter`, `securityLogAdapter` and their directed relations.
