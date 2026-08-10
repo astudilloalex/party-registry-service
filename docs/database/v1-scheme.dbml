@@ -21,8 +21,9 @@ Project PartyRegistryServiceV1 {
     using ISO 3166-1 alpha-2 codes, without remote foreign keys.
 
     Complete identification values are encrypted with authenticated encryption.
-    Exact lookup and permanent identifier uniqueness use a tenant-isolated HMAC
-    fingerprint. Within one tenant and Identifier Scheme, the same normalized
+    Exact lookup and permanent identifier uniqueness use a tenant-isolated
+    HMAC-SHA-256 fingerprint encoded as exactly 64 uppercase hexadecimal
+    characters. Within one tenant and Identifier Scheme, the same normalized
     identifier value can never be registered more than once, regardless of
     lifecycle status.
 
@@ -106,7 +107,7 @@ Table parties {
   tenant_id UUID [not null, note: 'Opaque reference to the tenant that owns this Party representation.']
 
   type party_type [not null]
-  display_name VARCHAR(300) [not null, note: 'Denormalized search and presentation value maintained atomically with the corresponding detail row.']
+  display_name VARCHAR(300) [not null, note: 'Canonical denormalized Party display name derived by Domain/Application from the corresponding detail row and persisted atomically.']
   record_status party_record_status [not null, default: 'DRAFT']
 
   created_at TIMESTAMPTZ [not null, default: `now()`]
@@ -128,6 +129,17 @@ Table parties {
   Note: '''
     Root of the Party aggregate. A Party is either NATURAL_PERSON or LEGAL_ENTITY.
     It is never a Customer, Supplier, Employee, User, Tenant, or operating company.
+
+    display_name is derived deterministically by Domain/Application:
+    - NATURAL_PERSON: normalize given_names and family_names independently, then
+      join them with exactly one ASCII U+0020 SPACE.
+    - LEGAL_ENTITY: normalize legal_name.
+
+    Name normalization trims leading and trailing whitespace and collapses each
+    internal run of whitespace to exactly one ASCII U+0020 SPACE. Letter case and
+    diacritics are preserved. preferred_name and trade_name never replace the
+    canonical display_name in V1. A mutation to a source name field and its
+    resulting display_name update must commit atomically in the same transaction.
 
     Any mutation to natural_person_details, legal_entity_details or
     party_nationalities must increment parties.version in the same transaction.
@@ -157,10 +169,28 @@ Table natural_person_details {
   Note: '''
     One-to-one component of the Party aggregate for NATURAL_PERSON.
 
-    Flyway must implement a deferred constraint trigger that prevents:
-    - NATURAL_PERSON Parties from having legal_entity_details.
-    - LEGAL_ENTITY Parties from having natural_person_details.
-    - The same Party from having both detail rows.
+    Flyway must implement one deferred party/detail integrity mechanism using
+    function fn_enforce_party_detail_type and these constraint-trigger objects:
+    - ct_parties_detail_type on parties for INSERT and UPDATE of type.
+    - ct_natural_person_details_party_type on natural_person_details for INSERT,
+      UPDATE of party_id and DELETE.
+    - ct_legal_entity_details_party_type on legal_entity_details for INSERT,
+      UPDATE of party_id and DELETE.
+
+    Each constraint trigger executes AFTER the stated row event, FOR EACH ROW,
+    DEFERRABLE INITIALLY DEFERRED, so the invariant is evaluated at transaction
+    commit after Party and detail rows may have been written in either order.
+
+    At commit, each affected Party must satisfy exactly one detail invariant:
+    - NATURAL_PERSON has exactly one natural_person_details row and zero
+      legal_entity_details rows.
+    - LEGAL_ENTITY has exactly one legal_entity_details row and zero
+      natural_person_details rows.
+
+    The Flyway migration and PostgreSQL integration tests must prove both valid
+    insertion orderings in one transaction and must reject a missing required
+    detail, a type-incompatible detail, both detail types for one Party, and any
+    update/delete that would leave the committed invariant invalid.
   '''
 }
 
@@ -218,11 +248,20 @@ Table party_nationalities {
   Note: '''
     Nationalities known and maintained by the tenant for a natural-person Party.
 
-    Flyway must create:
-    - A partial unique index preventing more than one active row for the same
-      tenant, Party and country.
-    - A partial unique index preventing more than one active primary nationality
-      for the same tenant and Party.
+    party_nationalities intentionally does not duplicate tenant_id. party_id
+    references the globally unique parties.id, so the owning tenant is inherited
+    unambiguously through that Party relationship.
+
+    Flyway must create these exact partial unique indexes:
+    - uq_party_nationalities_active_country on (party_id, country_code)
+      WHERE valid_until IS NULL.
+    - uq_party_nationalities_active_primary on (party_id)
+      WHERE is_primary = true AND valid_until IS NULL.
+
+    The Flyway migration and PostgreSQL integration tests must prove that a Party
+    cannot have two active rows for the same country, cannot have two active
+    primary nationalities, may retain ended historical rows, and may create a new
+    active row after the previous matching nationality has been ended.
   '''
 }
 
@@ -292,7 +331,7 @@ Table party_identifiers {
 
   encrypted_value TEXT [not null, note: 'Authenticated encryption; never plain text.']
   encryption_key_version SMALLINT [not null, note: 'Version of the runtime-injected encryption key used for this ciphertext.']
-  normalized_value_hash CHAR(64) [not null, note: 'Tenant-isolated HMAC-SHA-256 hexadecimal fingerprint of the normalized value; used for exact lookup and permanent uniqueness within the tenant and Identifier Scheme.']
+  normalized_value_hash CHAR(64) [not null, note: 'Tenant-isolated HMAC-SHA-256 fingerprint encoded as exactly 64 uppercase hexadecimal characters; used for exact lookup and permanent uniqueness within the tenant and Identifier Scheme.']
   masked_value VARCHAR(64) [not null, note: 'Safe representation for UI and logs.']
   normalization_version SMALLINT [not null, default: 1]
 
@@ -320,6 +359,7 @@ Table party_identifiers {
     `expires_on IS NULL OR issued_on IS NULL OR expires_on >= issued_on` [name: 'ck_party_identifier_validity_dates']
     `(status = 'VERIFIED' AND verified_at IS NOT NULL AND verified_by IS NOT NULL) OR status <> 'VERIFIED'` [name: 'ck_party_identifier_verification']
     `(status = 'EXPIRED' AND expires_on IS NOT NULL) OR status <> 'EXPIRED'` [name: 'ck_party_identifier_expired_date']
+    `normalized_value_hash ~ '^[0-9A-F]{64}$'` [name: 'ck_party_identifier_hash_upper_hex']
     `normalization_version > 0` [name: 'ck_party_identifier_normalization_version']
     `encryption_key_version > 0` [name: 'ck_party_identifier_encryption_key_version']
     `version >= 0` [name: 'ck_party_identifier_nonnegative_version']
@@ -328,6 +368,10 @@ Table party_identifiers {
   Note: '''
     Aggregate for official identifiers such as national ID, RUC, passport,
     residence permit and legal registration number.
+
+    normalized_value_hash is the canonical uppercase hexadecimal encoding of the
+    HMAC-SHA-256 bytes. Lowercase hexadecimal, mixed case, prefixes and alternate
+    textual encodings are invalid persisted representations.
 
     The tuple (tenant_id, identifier_scheme_id, normalized_value_hash) is a
     permanent business uniqueness key. Once a normalized identifier value has
@@ -339,9 +383,17 @@ Table party_identifiers {
     different Identifier Scheme because either change produces a different
     uniqueness scope.
 
-    Flyway must create a partial unique index on
-      (tenant_id, party_id, identifier_scheme_id)
-      WHERE is_primary = true AND status = 'VERIFIED'.
+    Flyway must create the partial unique index
+      uq_party_identifiers_verified_primary_scheme
+    on (tenant_id, party_id, identifier_scheme_id)
+    WHERE is_primary = true AND status = 'VERIFIED'.
+
+    The Flyway migration and PostgreSQL integration tests must prove that the
+    permanent tenant+scheme+hash uniqueness rejects duplicate canonical hashes,
+    the uppercase-hash check rejects lowercase/mixed/non-hex representations,
+    and at most one VERIFIED primary identifier exists for the same
+    tenant+Party+Identifier Scheme while non-primary or non-VERIFIED history is
+    retained.
 
     The application must ensure that the Party type is compatible with the
     identifier scheme applicable_subject_type.
