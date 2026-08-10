@@ -6,8 +6,8 @@ Project PartyRegistryServiceV1 {
 
     It is the system of record for identity data registered and maintained within
     each tenant. It owns Parties, their natural-person or legal-entity details,
-    nationalities, official identifiers, and the identification schemes used to
-    normalize and validate those identifiers.
+    nationalities, official identifiers, and the database-managed identification
+    scheme reference catalog used to normalize and validate those identifiers.
 
     It does not own customers, suppliers, employees, user accounts, authentication,
     authorization, operating organizations, addresses, contacts, subscriptions,
@@ -26,6 +26,10 @@ Project PartyRegistryServiceV1 {
     identifier value can never be registered more than once, regardless of
     lifecycle status.
 
+    Identifier Schemes such as CEDULA, RUC and PASSPORT are database-managed
+    reference data. Party Registry runtime reads them but does not create, update,
+    delete or transition them through application use cases or REST endpoints.
+
     Keycloak authenticates accounts, but it is not the registry of persons.
     The relationship between an authenticated subject and party_id belongs to
     the Access Management Service.
@@ -36,7 +40,7 @@ Project PartyRegistryServiceV1 {
 
     party_outbox_events is infrastructure for reliable publication of tenant-scoped
     business events. It does not publish database-schema, Flyway, platform, or
-    identifier-scheme administration events.
+    database-managed identifier-scheme catalog changes.
   '''
 }
 
@@ -258,14 +262,23 @@ Table identifier_schemes {
   }
 
   Note: '''
-    Global catalog used internally by Party Registry to normalize and validate
-    official Party identifiers.
+    Global database-managed reference catalog used internally by Party Registry
+    to normalize and validate official Party identifiers, for example CEDULA,
+    RUC and PASSPORT schemes.
 
-    code, issuing_country_code, category and applicable_subject_type are immutable
-    after activation.
+    Party Registry runtime treats this table as read-only. The runtime database
+    role must not INSERT, UPDATE or DELETE identifier_schemes rows. Scheme rows
+    are introduced or changed only through the governed database migration and/or
+    explicitly authorized database-administration path using separate credentials.
 
-    Changes to this administrative catalog are not published through the tenant
-    Party outbox.
+    Persisted status, audit and version fields describe database-managed catalog
+    state; they do not imply a Party Registry REST lifecycle or Scheme
+    Administration application capability.
+
+    Database-managed Scheme changes are not published through the tenant Party
+    outbox. Persisted normalizer/validator keys must remain compatible with the
+    deployed Party Registry implementation catalog; the runtime fails closed on
+    unusable required configuration rather than rewriting this table.
   '''
 }
 
@@ -400,7 +413,7 @@ Table party_outbox_events {
     - PostgreSQL schema changes.
     - Flyway migrations.
     - Platform or infrastructure events.
-    - identifier_schemes administrative changes.
+    - database-managed identifier_schemes catalog changes.
 
     Delivery is at-least-once. Consumers must be idempotent using id as event_id.
   '''
