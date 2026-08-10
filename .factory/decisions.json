@@ -7,9 +7,57 @@
       "note": "OD-001 a OD-009 resueltas y aprobadas según docs/requirements/requirements-specification.md",
       "recordedAt": "2026-08-10T01:40:37Z",
       "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "f81e7ef8-e758-4732-b2be-b8de7c2cbbda",
+      "note": "RG-101 approved. Initial states are already authoritative DBML defaults: Party=DRAFT, Identifier Scheme=DRAFT, Party Identifier=PENDING_VERIFICATION. V1 lifecycle transitions are: Party DRAFT->ACTIVE|ARCHIVED, ACTIVE->INACTIVE|ARCHIVED, INACTIVE->ACTIVE|ARCHIVED, ARCHIVED terminal; Identifier Scheme DRAFT->ACTIVE|RETIRED, ACTIVE->DEPRECATED|RETIRED, DEPRECATED->ACTIVE|RETIRED, RETIRED terminal; Party Identifier PENDING_VERIFICATION->VERIFIED|REJECTED|REVOKED, VERIFIED->EXPIRED|REVOKED, REJECTED->REVOKED, EXPIRED->REVOKED, REVOKED terminal. V1 has no automatic clock-driven status transition. Resource identity, tenant ownership, Party type and ownership references are immutable. Party Identifier plaintext value, Party association and Identifier Scheme association are immutable after creation; correction requires revoke plus creation of a new identifier. Descriptive Party/detail fields may be updated subject to invariants and If-Match. Identifier Scheme mutability after activation remains governed by BR-006.",
+      "recordedAt": "2026-08-10T03:21:00Z",
+      "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "a5db79c7-8b9b-488c-9468-0b14310a2ddc",
+      "note": "RG-102 approved with V1 scope clarification. Decryption audit evidence exists only as structured application/security logs in V1. Party Registry V1 will not own or add an audit-storage table, audit database or separate audit persistence capability. Each decryption attempt must emit a structured log containing tenant-id, user-id, process-id, party_identifier_id, timestamp and outcome, and must never log plaintext. Log retention and centralized collection are platform/operations concerns outside the Party Registry persistence contract. The service must emit the required log event before returning plaintext; if the application logging path cannot emit the required event, the decryption operation fails and returns no plaintext. No DBML change is authorized for audit storage.",
+      "recordedAt": "2026-08-10T03:21:00Z",
+      "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "d4f22898-1afc-4783-838c-1401b7fb47bf",
+      "note": "RG-103 approved. V1 uses one objectively testable masking policy for Party Identifiers. Masking is applied to the normalized identifier. If normalized length is greater than four characters, masked_value is exactly four asterisks followed by the last four normalized characters. If normalized length is four characters or fewer, masked_value is exactly four asterisks. No prefix or original formatting is exposed and Identifier Schemes cannot override this policy in V1.",
+      "recordedAt": "2026-08-10T03:21:00Z",
+      "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "2b659492-72d5-4f6a-97d9-223a975f3dc1",
+      "note": "RG-104 approved with mandatory V1 idempotency. Party creation is idempotent per tenant: replaying the same creation command must never create a second Party for that tenant. Creation commands must carry an Idempotency-Key scoped by tenant and operation. Reuse of the same key with the same effective request returns the original successful result without creating another Party, aggregate mutation or outbox event. Concurrent requests with the same key must converge on one committed result. Reuse of the same key with a different effective request is rejected with HTTP 409 and a stable idempotency-conflict code. This decision defines command replay semantics; it does not invent a natural-person or legal-entity business deduplication key across distinct idempotency keys. The durable storage/implementation mechanism must be resolved by downstream architecture/database validation. If the current authoritative DBML cannot support the required durable semantics, the factory must raise a database-contract human decision and must not modify the DBML automatically.",
+      "recordedAt": "2026-08-10T03:21:00Z",
+      "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "1aebf50d-7ab9-4237-badd-a23a28392c7f",
+      "note": "RG-105 approved. Party Registry owns the supported normalizer/validator implementation catalog as versioned application code; the database stores only implementation keys and never executable code. Adding a new implementation requires a software release. Identifier Scheme administration may reference only keys supported by the running Party Registry version. Unknown, retired or unavailable keys are rejected with a stable validation error and must not activate a scheme or accept an identifier. A deployed version must not remove an implementation still referenced by an existing non-retired scheme. If persisted active configuration references an implementation unavailable in the running version, readiness fails and dependent identifier operations fail without changing business data.",
+      "recordedAt": "2026-08-10T03:21:00Z",
+      "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "0eae68e8-9656-425d-92d1-afc10e3106cf",
+      "note": "RG-106 approved. PENDING means an outbox event has not received positive publisher confirmation. Transient RabbitMQ/network failures keep the same event eligible for retry, increment publish_attempts and preserve the same event_id; backoff and jitter are technical architecture/operations configuration. A non-recoverable serialization or publication error moves the event to FAILED with stable non-sensitive error evidence. FAILED events remain stored and operator-visible. After the cause is corrected, an authorized internal operational recovery may make the same event eligible for publication again without changing event_id. V1 performs no automatic discard or purge of outbox events and the Party Registry publisher does not move its own failed events to a DLQ. Consumer-side queues and DLQs remain consumer-owned. A business transaction already committed is never rolled back because publication later fails.",
+      "recordedAt": "2026-08-10T03:21:00Z",
+      "state": "BLOCKED_HIGH_RISK"
     }
   ],
   "project": "party-registry-service",
   "schemaVersion": 1,
-  "updatedAt": "2026-08-10T01:40:37Z"
+  "updatedAt": "2026-08-10T03:21:00Z"
 }
