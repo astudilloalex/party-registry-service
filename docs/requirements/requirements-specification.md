@@ -6,13 +6,20 @@
 |---|---|
 | Project | party-registry-service |
 | Specification identifier | PRS-REQ-001 |
-| Version | 0.2 |
-| Status | Draft; stakeholder decisions recorded; pending independent requirements gate |
+| Version | 0.3 |
+| Status | Draft; unapproved; stakeholder decisions recorded; pending independent requirements gate |
+| Author | `requirements-specification-agent` |
+| Updated | 2026-08-09 |
 | Source intake result | `.factory/runs/oc-24279e57-a682-44b6-9ab5-2a1f253f0480/result.json` |
 | Factory attempt | SPECIFICATION attempt 1 of 3 |
 | Persistence authority | `docs/database/v1-scheme.dbml` |
+| Repository revision reviewed by the preceding requirements gate | `fea072f28f960f6bb5bdafd010c076cf1177f9c8` |
+| Supersedes | PRS-REQ-001 version 0.2, SHA-256 `1f15c54b4479dc8a8d41b09ac0ebab753eb601bb2ae1471404fce4d593be8c99` |
+| Included source manifest | `.factory/project.yaml`; `.factory/decisions.json`; `docs/database/v1-scheme.dbml`; intake result above; supplied Clean Architecture, Quarkus Java 25, PostgreSQL, and VPS Podman Quadlet profiles; requirements-gate result `.factory/runs/oc-a87069f6-8ca3-4064-9aeb-a7f251bffe11/result.json` |
+| Current artifact digest | To be calculated and recorded by the independent requirements gate against the exact reviewed bytes; a digest cannot be embedded in the file it authenticates without changing those bytes. |
+| Open decisions | None identified; failure policies below intentionally avoid unapproved numeric retry limits. |
 
-This document incorporates the human decisions recorded in `.factory/decisions.json`. It defines requirements-level API and integration constraints but does not create detailed OpenAPI or event schemas, provide architecture design, or approve its own contents.
+This document incorporates the human decisions recorded in `.factory/decisions.json`. It defines requirements-level API and integration constraints but does not create detailed OpenAPI or event schemas, provide architecture design, or approve its own contents. Version 0.3 repairs RG-001 through RG-006 from the preceding gate; an independent reviewer must bind the reviewed bytes to a newly calculated digest.
 
 ## 2. Problem Statement
 
@@ -109,11 +116,11 @@ Geographic Reference Service unavailability follows BR-019. RabbitMQ delivery fo
 | BR-008 | A tenant MUST NOT have more than one `PENDING_VERIFICATION` or `VERIFIED` Party Identifier with the same scheme and normalized-value fingerprint. A Party MUST NOT have more than one primary `VERIFIED` identifier for one scheme. | DBML lines 297-323 | FR-006, DR-004; AC-008 |
 | BR-009 | A `VERIFIED` identifier MUST record verifier and verification time; an `EXPIRED` identifier MUST record an expiry date; expiry MUST NOT precede issue date. | DBML lines 283-309 | VR-004; AC-009 |
 | BR-010 | Complete identifier values MUST be protected with authenticated encryption and MUST NOT be persisted in plaintext. Exact lookup and active uniqueness MUST use a tenant-isolated HMAC-SHA-256 fingerprint. | DBML lines 23-24, 277-281 | SR-002, SR-003; AC-010 |
-| BR-011 | Every mutable business record MUST record creation and update timestamps and the opaque `user-id` or service-principal identifier supplied by the caller. Aggregate roots MUST use non-negative optimistic-concurrency versions. For V1, the recorded actor identifier is trusted but not authenticated, as explicitly decided in OD-002 notwithstanding the DBML field note. | DBML lines 30-32 and mutable table definitions; OD-002 precedence | FR-007, DR-005; AC-011 |
-| BR-012 | A mutation to Party details or nationalities MUST increment the Party aggregate version in the same transaction. | DBML lines 121-127, 383-386 | FR-007; AC-011 |
+| BR-011 | Every mutable business record MUST record creation and update timestamps and the opaque `user-id` or service-principal identifier supplied by the caller. Aggregate roots MUST use non-negative optimistic-concurrency versions. For V1, the recorded actor identifier is trusted but not authenticated, as explicitly decided in OD-002 notwithstanding the DBML field note. | DBML lines 30-32 and mutable table definitions; OD-002 precedence | FR-007, FR-012, DR-005; AC-011, AC-020 |
+| BR-012 | A mutation to Party details or nationalities MUST increment the Party aggregate version in the same transaction. | DBML lines 121-127, 383-386 | FR-021; AC-031 |
 | BR-013 | An approved tenant business mutation requiring publication and its outbox record MUST commit in one PostgreSQL transaction. Publication MUST be at least once, and consumers MUST deduplicate using the outbox event ID. | DBML lines 331-397 | FR-008, IR-002; AC-012, AC-013 |
 | BR-014 | Public integration events MUST NOT contain complete decrypted identifiers and MUST contain no unnecessary personal data. | DBML lines 327-328, 339-342 | SR-004, IR-003; AC-014 |
-| BR-015 | V1 deletion MUST be logical: Party to `ARCHIVED`, Identifier Scheme to `RETIRED`, Party Identifier to `REVOKED`, and nationality by assigning `valid_until`. Party details MUST NOT be deleted independently. Archived Parties, retired schemes, and revoked identifiers MUST NOT be reactivated in V1. | OD-001 | FR-010; AC-018 |
+| BR-015 | V1 deletion MUST be logical: Party to `ARCHIVED`, Identifier Scheme to `RETIRED`, Party Identifier to `REVOKED`, and nationality by assigning `valid_until`. Party details MUST NOT be deleted independently. Archived Parties, retired schemes, and revoked identifiers MUST NOT be reactivated in V1. | OD-001 | FR-026, FR-029, FR-033, FR-039, FR-044; AC-043, AC-050, AC-056, AC-067, AC-068 |
 | BR-016 | Every business operation MUST receive a canonical UUID `tenant-id` and a non-empty `user-id` of at most 128 characters. `process-id` MUST be a canonical UUID when supplied and MUST be generated when absent. V1 MUST trust these values without authenticating them and MUST use `tenant-id` for isolation and `user-id` for record audit fields. | OD-002 | FR-011, SR-001; AC-019 |
 | BR-017 | Every modification of an existing versioned aggregate MUST require an `If-Match` value equal to the current aggregate version. Absence MUST produce HTTP 428; mismatch MUST produce HTTP 412 with a stable domain version-conflict code; neither case may change state. | OD-005 | FR-012; AC-020 |
 | BR-018 | `valid_from` and `valid_until` MUST NOT be future dates. `valid_until` MUST NOT precede `valid_from`; assigning it ends the nationality immediately. V1 MUST NOT schedule nationality activation or termination. | OD-009 | FR-003, VR-009; AC-005 |
@@ -133,20 +140,45 @@ These requirements define V1 observable obligations. Detailed transport schemas 
 - **FR-004 — Scheme immutability:** WHEN an approved administration operation attempts to change an activated scheme's immutable attributes, THE SYSTEM MUST reject the change without modifying the scheme. Source: BR-006.
 - **FR-005 — Identifier validation:** WHEN an approved operation submits an identifier, THE SYSTEM MUST apply the selected scheme's versioned normalization and validation rules and verify subject-type compatibility before accepting it. Source: BR-007.
 - **FR-006 — Identifier uniqueness:** WHEN an approved operation would violate either uniqueness rule in BR-008, THE SYSTEM MUST reject the operation without creating or changing an identifier into a conflicting state. Source: BR-008.
-- **FR-007 — Concurrency and audit:** WHEN a mutable record is changed, THE SYSTEM MUST record the responsible opaque subject or service principal and update time. WHEN an aggregate mutation supplies a stale version, THE SYSTEM MUST reject that mutation without overwriting the intervening change. Party component changes MUST increment the Party version atomically. Source: BR-011 and BR-012.
+- **FR-007 — Mutation audit:** WHEN a mutable record is changed, THE SYSTEM MUST record the caller-supplied actor identifier and update time. Source: BR-011.
 - **FR-008 — Reliable event recording:** WHEN a mutation represented in the approved V1 Party or Party Identifier event catalog succeeds, THE SYSTEM MUST either commit both the mutation and one corresponding outbox event or commit neither. Source: BR-013 and OD-005.
 - **FR-009 — Outbox delivery state:** WHEN an outbox event is processed, THE SYSTEM MUST preserve the DBML delivery-state invariants: a published event has a publication time, a non-published event has none, and a failed event has an error code. Source: DBML lines 331-374. Acceptance: AC-016.
-- **FR-010 — Party operations:** THE SYSTEM MUST provide internal operations to create, look up by ID, search with pagination, update, change the valid DBML Party status, and archive a Party. An archived Party MUST be terminal in V1. Source: OD-001. Acceptance: AC-018.
+- **FR-010 — Party creation:** WHEN a valid Party creation request is received, THE SYSTEM MUST create one tenant-scoped Party of the requested type. Source: OD-001. Acceptance: AC-030.
 - **FR-011 — Request context:** WHEN a business operation is requested, THE SYSTEM MUST validate and apply BR-016 before accessing business data. Source: OD-002. Acceptance: AC-019.
 - **FR-012 — Conditional modification:** WHEN an existing aggregate is modified, THE SYSTEM MUST enforce BR-017 against its current version and MUST return the updated quoted version as `ETag` after success. Source: OD-005. Acceptance: AC-020.
 - **FR-013 — Exact identifier search:** WHEN exact search receives a scheme and plaintext identifier, THE SYSTEM MUST normalize the input, compute the tenant-effective HMAC fingerprint, and return only matching references and masked values without scanning or decrypting stored records. Source: OD-003/005. Acceptance: AC-021.
 - **FR-014 — Identifier decryption:** WHEN decryption is requested by Party Identifier ID within the supplied tenant, THE SYSTEM MUST return the complete value only through that separate operation, set `Cache-Control: no-store`, and create the audit evidence in BR-021. Source: OD-003/005. Acceptance: AC-022.
 - **FR-015 — Country validation:** WHEN a write introduces a country reference, THE SYSTEM MUST apply BR-019; dependency failure MUST NOT invalidate historical stored codes. Source: OD-006. Acceptance: AC-023.
-- **FR-016 — Party-detail operations:** THE SYSTEM MUST provide internal operations to create, retrieve, and update the detail record matching a Party type. Details MUST NOT have an independent deletion or lifecycle operation and MUST follow their Party lifecycle. Source: OD-001. Acceptance: AC-018.
-- **FR-017 — Nationality operations:** THE SYSTEM MUST provide internal operations to add, retrieve, search with pagination, update, and end nationalities under BR-005 and BR-018. Source: OD-001/009. Acceptance: AC-005, AC-018.
-- **FR-018 — Party Identifier operations:** THE SYSTEM MUST provide internal operations to create, look up by ID, look up by Party and scheme, search with pagination, update, change to a valid DBML status, and revoke a Party Identifier. Lookup by Party and scheme MUST support returning all matches or the verified primary when explicitly requested. A revoked identifier MUST be terminal in V1. Source: OD-001/005. Acceptance: AC-018.
-- **FR-019 — Identifier Scheme operations:** THE SYSTEM MUST provide internal operations to create, look up by ID, search with pagination, update, change to a valid DBML status, and retire an Identifier Scheme. A retired scheme MUST be terminal in V1 and scheme administration MUST NOT create tenant Party outbox events. Source: OD-001/005. Acceptance: AC-006, AC-018.
-- **FR-020 — Outbox boundary:** THE SYSTEM MUST NOT expose public CRUD operations for outbox records; delivery-state processing is internal infrastructure. Source: OD-001/008. Acceptance: AC-018.
+- **FR-016 — Party-detail creation:** WHEN a valid detail-creation request is received for a Party without details, THE SYSTEM MUST create only the detail kind matching the Party type. Source: OD-001 and BR-002. Acceptance: AC-036.
+- **FR-017 — Nationality addition:** WHEN a valid nationality-addition request is received, THE SYSTEM MUST add it under BR-005 and BR-018. Source: OD-001/009. Acceptance: AC-039.
+- **FR-018 — Party Identifier creation:** WHEN a valid Party Identifier creation request is received, THE SYSTEM MUST create it under BR-007 through BR-010. Source: OD-001/005. Acceptance: AC-044.
+- **FR-019 — Identifier Scheme creation:** WHEN a valid Identifier Scheme creation request is received, THE SYSTEM MUST create it without creating a tenant Party outbox event. Source: OD-001/005. Acceptance: AC-051.
+- **FR-020 — Outbox boundary:** THE SYSTEM MUST NOT expose public CRUD operations for outbox records; delivery-state processing is internal infrastructure. Source: OD-001/008. Acceptance: AC-058.
+- **FR-021 — Party component versioning:** WHEN Party details or nationalities change, THE SYSTEM MUST increment the Party aggregate version in the same transaction. Source: BR-012. Acceptance: AC-031.
+- **FR-022 — Party lookup:** WHEN a Party ID is looked up, THE SYSTEM MUST return that Party only within the supplied tenant boundary. Source: OD-001/002. Acceptance: AC-032.
+- **FR-023 — Party search:** WHEN Party search is requested, THE SYSTEM MUST return a tenant-scoped paginated result. Source: OD-001/002. Acceptance: AC-033.
+- **FR-024 — Party update:** WHEN a valid conditional Party update is requested, THE SYSTEM MUST update the Party and preserve its type/detail invariant. Source: OD-001/005. Acceptance: AC-034.
+- **FR-025 — Party status transition:** WHEN a valid conditional Party status change is requested, THE SYSTEM MUST apply only a transition represented by the DBML status set and approved event catalog. Source: OD-001/005. Acceptance: AC-035.
+- **FR-026 — Party archive:** WHEN a valid conditional archive request is received, THE SYSTEM MUST set the Party to `ARCHIVED`; an archived Party MUST NOT be reactivated in V1. Source: OD-001. Acceptance: AC-067.
+- **FR-027 — Party-detail retrieval:** WHEN matching Party details are requested, THE SYSTEM MUST return them only within the Party's tenant boundary. Source: OD-001/002. Acceptance: AC-037.
+- **FR-028 — Party-detail update:** WHEN a valid conditional Party-detail update is requested, THE SYSTEM MUST update the matching detail and satisfy FR-021. Source: OD-001. Acceptance: AC-038.
+- **FR-029 — Party-detail lifecycle boundary:** THE SYSTEM MUST NOT expose independent deletion or lifecycle transitions for Party details. Source: OD-001. Acceptance: AC-068.
+- **FR-030 — Nationality retrieval:** WHEN a nationality is requested, THE SYSTEM MUST return it only under its tenant-scoped natural-person Party. Source: OD-001/002. Acceptance: AC-040.
+- **FR-031 — Nationality search:** WHEN nationality search is requested for a Party, THE SYSTEM MUST return a paginated tenant-scoped result. Source: OD-001/002. Acceptance: AC-041.
+- **FR-032 — Nationality update:** WHEN a valid conditional nationality update is requested, THE SYSTEM MUST preserve BR-005 and BR-018 and satisfy FR-021. Source: OD-001/009. Acceptance: AC-042.
+- **FR-033 — Nationality end:** WHEN a valid end request is received, THE SYSTEM MUST assign a non-future `valid_until` and immediately make the nationality inactive without physical deletion. Source: OD-001/009. Acceptance: AC-043.
+- **FR-034 — Party Identifier lookup by ID:** WHEN a Party Identifier ID is looked up, THE SYSTEM MUST return only its tenant-scoped masked representation unless FR-014 is invoked separately. Source: OD-003/005. Acceptance: AC-045.
+- **FR-035 — Party Identifier lookup by Party and scheme:** WHEN lookup by Party and scheme is requested, THE SYSTEM MUST return all matching masked identifiers or, when explicitly selected, the verified primary. Source: OD-005. Acceptance: AC-046.
+- **FR-036 — Party Identifier search:** WHEN Party Identifier search is requested, THE SYSTEM MUST return a tenant-scoped paginated result containing no plaintext identifier. Source: OD-001/003. Acceptance: AC-047.
+- **FR-037 — Party Identifier update:** WHEN a valid conditional Party Identifier update is requested, THE SYSTEM MUST preserve identifier invariants and update its aggregate version. Source: OD-001/005. Acceptance: AC-048.
+- **FR-038 — Party Identifier status transition:** WHEN a valid conditional identifier status change is requested, THE SYSTEM MUST apply only a DBML-defined status satisfying BR-008 and BR-009. Source: OD-001/005. Acceptance: AC-049.
+- **FR-039 — Party Identifier revoke:** WHEN a valid conditional revoke request is received, THE SYSTEM MUST set the identifier to `REVOKED`; a revoked identifier MUST NOT be reactivated in V1. Source: OD-001. Acceptance: AC-050.
+- **FR-040 — Identifier Scheme lookup:** WHEN an Identifier Scheme ID is looked up, THE SYSTEM MUST return the matching scheme. Source: OD-001. Acceptance: AC-052.
+- **FR-041 — Identifier Scheme search:** WHEN Identifier Scheme search is requested, THE SYSTEM MUST return a paginated result. Source: OD-001. Acceptance: AC-053.
+- **FR-042 — Identifier Scheme update:** WHEN a valid conditional Identifier Scheme update is requested, THE SYSTEM MUST preserve BR-006 and update its aggregate version. Source: OD-001/005. Acceptance: AC-054.
+- **FR-043 — Identifier Scheme status transition:** WHEN a valid conditional scheme status change is requested, THE SYSTEM MUST apply only a DBML-defined status and preserve activation immutability. Source: OD-001/005. Acceptance: AC-055.
+- **FR-044 — Identifier Scheme retire:** WHEN a valid conditional retire request is received, THE SYSTEM MUST set the scheme to `RETIRED`; a retired scheme MUST NOT be reactivated in V1. Source: OD-001. Acceptance: AC-056.
+- **FR-045 — Scheme event exclusion:** WHEN an Identifier Scheme changes, THE SYSTEM MUST NOT create a tenant Party outbox event. Source: DBML lines 34-36, 257-266; OD-005. Acceptance: AC-057.
 
 ## 9. Validation and Error Requirements
 
@@ -160,6 +192,14 @@ These requirements define V1 observable obligations. Detailed transport schemas 
 - **VR-008:** Duplicate event delivery is expected under at-least-once delivery. Consumers MUST treat repeated event IDs idempotently. No general client-command idempotency obligation is approved for V1.
 - **VR-009:** The system MUST reject future nationality validity dates and a `valid_until` earlier than `valid_from`. Assigning a current or past valid `valid_until` MUST immediately end the nationality.
 - **VR-010:** The system MUST reject a missing or non-canonical `tenant-id`, a missing, empty, or over-128-character `user-id`, and a supplied non-canonical `process-id` before business data is accessed.
+- **VR-011:** A Geographic Reference Service timeout, connection failure, or malformed response MUST be treated as dependency unavailability; the system MUST use only a BR-019-compliant cache or reject the write as specified by BR-019. The failed request MUST NOT change business state.
+- **VR-012:** When the geographic cache is empty after process start or unavailable after restart, country-dependent writes MUST follow the no-usable-cache branch of BR-019; the cache MUST NOT be treated as durable evidence.
+- **VR-013:** If the required encryption or HMAC key capability is absent, inaccessible, or has an unsupported version, the system MUST reject the key-dependent operation without persisting plaintext, ciphertext derived from an unintended key, a fingerprint, or an outbox event. Readiness MUST report unavailable while a mandatory active key capability is unusable.
+- **VR-014:** If stored ciphertext fails authenticated decryption, the system MUST return no plaintext, MUST record a non-sensitive operational error correlated by process ID, and MUST NOT alter the identifier. This condition is not client-retryable without operator remediation.
+- **VR-015:** An outbox publisher MUST mark an event `PUBLISHED` only after positive publisher confirmation. A timeout, connection loss, negative acknowledgement, or unknown publication outcome MUST leave the event eligible for redelivery with the same event ID and MUST NOT roll back the committed business mutation.
+- **VR-016:** An outbox event that cannot be serialized or accepted for publication MUST enter or remain in the DBML-defined failed state with a stable non-sensitive error code and operator-visible evidence; it MUST NOT be discarded or assigned a new event ID automatically.
+- **VR-017:** No numeric publication retry limit or automatic dead-letter/discard policy is approved for V1. Repeatedly failing events MUST remain recoverable and operator-visible until the cause is corrected and the same event is retried or an additional authoritative policy is approved.
+- **VR-018:** After publisher crash or restart, delivery processing MUST resume from durable non-published outbox state. Redelivery MAY occur, and the same event ID MUST be preserved for idempotent consumer handling.
 
 ## 10. Data Requirements
 
@@ -237,14 +277,13 @@ These requirements define V1 observable obligations. Detailed transport schemas 
 - **AC-008 (FR-006):** GIVEN an active tenant identifier fingerprint already exists for a scheme, WHEN a duplicate would enter pending or verified state, THEN it is rejected; GIVEN a verified primary exists for a Party and scheme, WHEN another would become verified primary, THEN it is rejected.
 - **AC-009 (VR-004):** GIVEN an identifier is moved to verified state without verifier/time, expired state without expiry, or has expiry before issue, WHEN the change is attempted, THEN it is rejected atomically.
 - **AC-010 (SR-002/SR-003):** GIVEN a complete identifier is accepted, WHEN persistence and observable telemetry/event outputs are inspected, THEN the complete plaintext is absent, ciphertext records a positive key version, exact lookup uses a tenant-isolated HMAC-SHA-256 fingerprint, and only an approved mask is externally observable.
-- **AC-011 (FR-007):** GIVEN two mutations use the same aggregate version, WHEN one commits first, THEN the second is rejected as stale without overwriting it; a committed Party component change updates audit facts and increments the Party version in that same transaction.
+- **AC-011 (FR-007):** GIVEN a mutable-record change succeeds, WHEN its audit facts are inspected, THEN the supplied actor identifier and update time are recorded; a failed change does not alter those facts.
 - **AC-012 (FR-008):** GIVEN an approved mutation requires an event, WHEN commit succeeds, THEN both business state and exactly one corresponding outbox record are committed; WHEN either write fails, THEN neither is committed.
 - **AC-013 (IR-002/NFR-003):** GIVEN the same event is delivered more than once, WHEN a conforming consumer processes it, THEN the event ID permits duplicate detection and no duplicate consumer business effect occurs.
 - **AC-014 (SR-004/IR-003):** GIVEN any public integration event, WHEN its payload is inspected, THEN it contains no complete decrypted identifier and no personal attributes beyond the approved versioned event contract.
 - **AC-015 (OR-003/OR-004):** GIVEN an artifact is promoted, WHEN environment evidence is reviewed, THEN each environment references the same immutable digest, readiness occurred within 60 seconds, and liveness/readiness, smoke, and the 10-minute stabilization window passed before further promotion.
 - **AC-016 (FR-009):** GIVEN an outbox event delivery-state change, WHEN the event becomes published, THEN it has a publication time; WHEN it is not published, THEN it has no publication time; and WHEN it becomes failed, THEN it has an error code. A state change violating any of these conditions is rejected without changing the event.
 - **AC-017 (VR-005):** GIVEN a mutation supplies a normalization version, encryption-key version, event-schema version, aggregate version, or publication-attempt count, WHEN a required-positive value is zero or negative or a required-non-negative value is negative, THEN the mutation is rejected without changing business or outbox state; the respective boundary values of one and zero satisfy this numeric rule.
-- **AC-018 (FR-010/016-020, BR-015):** GIVEN the V1 resource operations, WHEN contract scenarios are exercised, THEN Parties support create, ID lookup, paginated search, update, valid status change, and archive; matching details support create, retrieve, and update but no independent deletion; nationalities support add, retrieve, paginated search, update, and immediate end; Party Identifiers support create, ID lookup, Party-and-scheme lookup with all/verified-primary selection, paginated search, update, valid status change, and revoke; Identifier Schemes support create, ID lookup, paginated search, update, valid status change, and retire. Archived Parties, retired schemes, and revoked identifiers cannot reactivate, and no outbox CRUD operation is exposed.
 - **AC-019 (FR-011):** GIVEN a business request, WHEN `tenant-id` or `user-id` is missing or invalid or a supplied `process-id` is not a canonical UUID, THEN the request is rejected before business-data access; WHEN valid context is supplied and `process-id` is absent, THEN the system generates one and uses the supplied tenant and user values for isolation and audit.
 - **AC-020 (FR-012):** GIVEN an existing versioned aggregate, WHEN modification omits `If-Match`, THEN HTTP 428 is returned; WHEN it differs from the current version, THEN HTTP 412 and the stable version-conflict code are returned; in both cases state is unchanged. A successful matching modification returns the new quoted version as `ETag`.
 - **AC-021 (FR-013):** GIVEN a scheme and plaintext identifier for exact search, WHEN a match exists in the supplied tenant, THEN only references and masked values are returned and evidence confirms lookup used normalized tenant-effective HMAC without scanning or decrypting stored values; another tenant's equal plaintext produces no disclosed match.
@@ -256,6 +295,45 @@ These requirements define V1 observable obligations. Detailed transport schemas 
 - **AC-027 (SR-001/SR-006):** GIVEN an internal request with syntactically valid caller-supplied context and no authentication credential, WHEN any supported operation including decryption is invoked, THEN Party Registry applies no authentication or role decision and does not return HTTP 401/403; tenant scoping and all applicable business validation still apply.
 - **AC-028 (VR-007/IR-005):** GIVEN each success, pagination, validation, concurrency, not-found, and dependency-failure scenario, WHEN its REST response is inspected, THEN it uses the approved `ApiResponse` fields, uses pagination metadata when applicable, emits the required stable code/status semantics, and contains neither a stack trace nor complete identifier.
 - **AC-029 (IR-002/IR-003):** GIVEN a committed approved event, WHEN RabbitMQ publication evidence is inspected, THEN the message is persistent, uses the durable topic exchange, carries stable event ID, tenant, aggregate version, event type and schema version, and is acknowledged with publisher-confirm handling; redelivery retains the same event ID for consumer deduplication.
+- **AC-030 (FR-010):** GIVEN a valid tenant-scoped request for either Party type, WHEN creation succeeds, THEN one Party of that type is returned with matching initial state, audit facts, and version.
+- **AC-031 (FR-021):** GIVEN a Party detail or nationality mutation, WHEN it commits, THEN the Party version increments in the same transaction; WHEN the mutation fails, neither component nor Party version changes.
+- **AC-032 (FR-022):** GIVEN a Party ID, WHEN lookup occurs in its tenant, THEN that Party is returned; lookup under another tenant returns HTTP 404 without disclosure.
+- **AC-033 (FR-023):** GIVEN tenant-owned Parties exceed one page, WHEN search is requested, THEN only that tenant's requested page and pagination metadata are returned.
+- **AC-034 (FR-024):** GIVEN a matching `If-Match` and a valid Party update, WHEN it succeeds, THEN the update preserves Party type/detail consistency and returns the new version; an invalid or stale update changes nothing.
+- **AC-035 (FR-025):** GIVEN a Party, WHEN a valid status transition is requested, THEN only the requested DBML status is applied; an invalid transition is rejected without state change.
+- **AC-036 (FR-016):** GIVEN a Party without details, WHEN matching details are created, THEN exactly the matching detail exists; conflicting or second details are rejected.
+- **AC-037 (FR-027):** GIVEN matching Party details, WHEN retrieved in their tenant, THEN they are returned; another tenant receives HTTP 404.
+- **AC-038 (FR-028):** GIVEN matching details and a valid conditional update, WHEN it succeeds, THEN details and Party version change atomically; an invalid or stale update changes neither.
+- **AC-039 (FR-017):** GIVEN a natural-person Party and valid non-duplicate nationality, WHEN addition succeeds, THEN the nationality is active according to BR-005 and the Party version increments.
+- **AC-040 (FR-030):** GIVEN a nationality ID, WHEN retrieved under its Party's tenant, THEN it is returned; another tenant or a non-natural-person association yields no record.
+- **AC-041 (FR-031):** GIVEN a Party has multiple nationalities, WHEN paginated search is requested, THEN only that Party's tenant-scoped requested page is returned.
+- **AC-042 (FR-032):** GIVEN a valid conditional nationality update, WHEN it succeeds, THEN active uniqueness, date boundaries, and Party versioning remain satisfied; an invalid update changes nothing.
+- **AC-043 (FR-033):** GIVEN an active nationality, WHEN a valid end request assigns `valid_until`, THEN it immediately becomes inactive and remains stored; a future or pre-`valid_from` date is rejected.
+- **AC-044 (FR-018):** GIVEN a valid scheme-compatible identifier, WHEN creation succeeds, THEN only protected and masked forms are persisted and active uniqueness holds.
+- **AC-045 (FR-034):** GIVEN a Party Identifier ID, WHEN ordinary lookup succeeds, THEN only the tenant-scoped masked representation is returned and plaintext is absent.
+- **AC-046 (FR-035):** GIVEN a Party and scheme with multiple identifiers, WHEN all matches are selected, THEN all tenant-scoped masked matches are returned; WHEN verified-primary is selected, THEN at most that verified primary is returned.
+- **AC-047 (FR-036):** GIVEN Party Identifiers exceed one page, WHEN search is requested, THEN only the tenant's requested page of masked results is returned.
+- **AC-048 (FR-037):** GIVEN a matching version and valid Identifier update, WHEN it succeeds, THEN all identifier invariants hold and its version increments; failure changes nothing.
+- **AC-049 (FR-038):** GIVEN an Identifier status request, WHEN its target would violate verification, expiry, uniqueness, or terminal-state rules, THEN it is rejected; otherwise the requested DBML status is applied.
+- **AC-050 (FR-039):** GIVEN an Identifier, WHEN revoke succeeds, THEN it is `REVOKED`; any V1 reactivation request is rejected.
+- **AC-051 (FR-019):** GIVEN valid scheme metadata, WHEN scheme creation succeeds, THEN one versioned scheme is returned and no tenant Party outbox event is created.
+- **AC-052 (FR-040):** GIVEN a Scheme ID, WHEN lookup finds it, THEN that scheme is returned; an unknown ID returns the standard not-found envelope.
+- **AC-053 (FR-041):** GIVEN schemes exceed one page, WHEN search is requested, THEN the requested page and pagination metadata are returned.
+- **AC-054 (FR-042):** GIVEN a matching version and scheme update, WHEN an immutable activated attribute is included, THEN the request is rejected unchanged; otherwise a valid update increments version.
+- **AC-055 (FR-043):** GIVEN a Scheme status request, WHEN the transition is valid, THEN the requested DBML status is applied while activated immutable fields remain unchanged.
+- **AC-056 (FR-044):** GIVEN a Scheme, WHEN retire succeeds, THEN it is `RETIRED`; any V1 reactivation request is rejected.
+- **AC-057 (FR-045):** GIVEN any Identifier Scheme creation, update, status change, or retirement, WHEN committed, THEN no tenant Party outbox event represents that change.
+- **AC-058 (FR-020):** GIVEN the public API contract, WHEN operations are enumerated, THEN no create, read, update, delete, retry, or status operation exposes an outbox record.
+- **AC-059 (VR-011):** GIVEN a geographic timeout, connection failure, or malformed response, WHEN a country-dependent write occurs, THEN only a cache within BR-019's age limit permits it; otherwise HTTP 503 and a retryable code are returned with no write.
+- **AC-060 (VR-012):** GIVEN a process restart with an empty geographic cache, WHEN the dependency is unavailable, THEN a country-dependent write fails as no usable cache exists.
+- **AC-061 (VR-013):** GIVEN a mandatory key is missing, inaccessible, or unsupported, WHEN a key-dependent operation is requested, THEN no protected business or outbox data is written and readiness reports unavailable.
+- **AC-062 (VR-014):** GIVEN ciphertext fails authentication, WHEN decryption is attempted, THEN no plaintext or state change occurs and non-sensitive correlated operator evidence is emitted.
+- **AC-063 (VR-015):** GIVEN publication lacks positive confirmation, WHEN the attempt ends, THEN the event is not marked published, remains redeliverable with the same ID, and committed business state remains committed.
+- **AC-064 (VR-016):** GIVEN an event cannot be serialized or published, WHEN failure is recorded, THEN it remains recoverable in failed state with a stable non-sensitive error code and operator visibility.
+- **AC-065 (VR-017):** GIVEN an event repeatedly fails, WHEN no new policy has been approved, THEN it is neither discarded nor assigned a new ID and remains visible for operator recovery.
+- **AC-066 (VR-018):** GIVEN publisher crash or restart with non-published durable events, WHEN processing resumes, THEN those events remain eligible for delivery using their original event IDs.
+- **AC-067 (FR-026):** GIVEN a Party, WHEN archive succeeds, THEN its status is `ARCHIVED`; any V1 reactivation request is rejected without state change.
+- **AC-068 (FR-029):** GIVEN the public Party-detail contract, WHEN operations are enumerated, THEN no independent detail deletion or lifecycle transition is exposed.
 
 ## 17. Assumptions
 
@@ -281,31 +359,199 @@ The approved V1 posture intentionally provides no in-service authentication or a
 | OD-008 | **DBML confirmation**<br><br>Text required for human approval:<br><br>`docs/database/v1-scheme.dbml` is confirmed as the source of truth for Party Registry Service V1 and its independent validation against PostgreSQL 18 is authorized.<br><br>The approved complementary interpretations are:<br><br>- Exclusively logical deletion.<br>- Nationality is active when `valid_until IS NULL`.<br>- Future dates in `valid_from` and `valid_until` are prohibited.<br>- Decryption through a separate operation.<br>- Tenant-isolated HMAC with one active version in V1.<br>- Identifier Schemes outside the event catalog.<br>- Outbox managed exclusively as infrastructure.<br><br>No automatic design changes are authorized. Any contradiction discovered during validation must return to human decision. Flyway migrations may only be generated after contractual validation is satisfactory. | Alex | 2026-08-09 |
 | OD-009 | **Active nationality**<br><br>A nationality is active exclusively when `valid_until IS NULL`.<br><br>`valid_from` represents the first effective day and cannot be in the future. `valid_until` represents the effective termination date; when any value is assigned, the nationality immediately ceases to be active. `valid_until` cannot be in the future or earlier than `valid_from`.<br><br>V1 does not support scheduled activations or terminations.<br><br>PostgreSQL will implement:<br><br>- A partial unique index by Party and country where `valid_until IS NULL`.<br>- A partial unique index by Party for the primary nationality where `is_primary = true AND valid_until IS NULL`.<br><br>Ended records remain as history. If scheduled periods or overlapping intervals are later required, the temporal model must be explicitly reviewed. | Alex | 2026-08-09 |
 
-## 19. Traceability Matrix
+## 19. Purpose
 
-| Source | Requirements | Acceptance criteria | Decision/risk | Verification method |
-|---|---|---|---|---|
-| `.factory/project.yaml:8-25` | DR-008/009, NFR-004/005/006 | AC-000 | OD-008 | Manifest and artifact review |
-| `.factory/project.yaml:35-40`; supplied VPS profile | OR-001 to OR-006 | AC-015 | OD-007 | Deployment-contract review later |
-| DBML lines 4-37, 97-219 | BR-001 to BR-005, FR-001 to FR-003, DR-001 to DR-003 | AC-001 to AC-005 | OD-001/002/006/009 | Requirements tests and DB contract validation later |
-| DBML lines 222-329 | BR-006 to BR-010, FR-004 to FR-006, SR-002 to SR-004 | AC-006 to AC-010 | OD-001/003/004 | Security review, contract tests, DB validation later |
-| DBML lines 30-32 and 331-397 | BR-011 to BR-014, FR-007 to FR-009, VR-005, IR-002 to IR-004, NFR-001 to NFR-003 | AC-011 to AC-014, AC-016, AC-017 | OD-005/007 | Concurrency, transaction, contract, and reliability tests later |
-| Intake result findings 20-32 and actions 38-46 | Entire draft, especially unknowns and prohibitions | AC-000 | OD-001 to OD-009 | Independent requirements gate |
-| Supplied strict Clean Architecture profile | NFR-005 | AC-000 | Later architecture phase | LikeC4/ADR and architecture-gate review later |
-| Supplied quarkus-java25 profile | NFR-004/006/007 | AC-000 | OD-007; later architecture phase | Build/profile and quality-gate review later |
-| Supplied PostgreSQL profile | DR-008/009, CR-005 | AC-000 | OD-008/009 | Database-contract validation later |
-| `.factory/decisions.json:2-10`; approved OD-001 to OD-009 below | BR-015 to BR-021, FR-010 to FR-020, VR-007 to VR-010, DR-007/009, IR-001/003/005, SR-001 to SR-007, NFR-006/008-011, CR-002-004, OR-004/006/008 | AC-018 to AC-029 and applicable earlier criteria | Recorded human decision | Requirements gate, downstream contract, security, performance, and operational verification |
+The purpose of PRS-REQ-001 is to provide an independently reviewable statement of observable V1 behaviour and authoritative constraints so that architecture, database-contract validation, implementation planning, implementation, and verification do not invent material behaviour. It does not approve itself or design the solution.
 
-## 20. Risks
+## 20. Business Context
 
-- **Accepted V1 security exposure:** Party Registry performs no authentication or authorisation and permits any `internal-services` consumer to invoke decryption. The architecture and security gates MUST verify that the service is not publicly bound and that the approved internal ownership boundary is preserved; they MUST NOT silently add a different role model.
-- **Key-operation risk:** HMAC rotation requires a maintenance window and complete fingerprint recalculation before key activation. Downstream operational design MUST preserve lookup and uniqueness continuity without exposing key material.
-- **Retention governance risk:** V1 performs no purge and defines no legal retention period. Any later governance policy may require a new purge capability and an explicit requirements/database decision.
-- **Contract-detail risk:** Detailed OpenAPI and event payload schemas do not yet exist. Their downstream definition MUST remain compatible with this requirements-level contract and the complete approved event catalog in OD-005.
-- **Deployment remediation risk:** Current CI/deployment evidence conflicts with supplied deployment constraints. Remediation belongs to later phases and MUST occur before deployment approval.
-- No unresolved high-risk requirements contradiction was found. Physical DBML compatibility and architecture feasibility remain subject to their independent downstream agents.
+Party Registry is the tenant-scoped system of record for civil and legal identity data registered by internal systems. Internal consumers need stable Party references, protected official identifiers, lifecycle operations, and versioned integration events. The pilot deliberately trusts network-provided context and does not own commercial roles, accounts, access control, geographic reference data, or consumer-side idempotency effects.
 
-## 21. Evidence and Consistency Review
+## 21. Constraints
+
+- The project MUST use the manifest-selected Java 25, Quarkus, Gradle Kotlin DSL, PostgreSQL, strict Clean Architecture, and deployment profiles.
+- The physical persistence contract MUST remain the confirmed DBML; this specification MUST NOT alter it.
+- Architecture MUST later provide explicit ports, inward dependencies, a framework-independent domain, bounded-context ownership, and LikeC4 context, container, and deployment views.
+- The approved V1 reactive API, internal network boundary, no-authentication posture, logical deletion, protected identifier handling, forward-only migration, immutable artifact promotion, and no-database-rollback constraints MUST be preserved.
+- No breaking public V1 contract, automatic physical deletion, public outbox CRUD, or automatic DBML design change is authorised.
+
+## 22. Dependencies
+
+| Dependency | Required behaviour | Unavailability consequence | Owner |
+|---|---|---|---|
+| Geographic Reference Service | Supplies active ISO country references; cache governed by BR-019. | VR-011 and VR-012 apply. Historical stored codes remain valid. | External Geographic Reference Service owner. |
+| VPS key/secret capability | Supplies separate versioned encryption and HMAC master keys. | VR-013 and VR-014 apply; operator remediation is required. | VPS operator. |
+| PostgreSQL | Durably stores DBML-governed state and transactional outbox. | A failed transaction commits neither mutation nor required event; recovery must meet NFR-010. | Party Registry/VPS operations. |
+| RabbitMQ | Receives persistent, confirmed, at-least-once event publication. | VR-015 through VR-018 apply; business commits are not rolled back. | Messaging operator and Party Registry operations. |
+| Internal service consumer | Supplies trusted tenant, user, and optional process context and handles command responses. | Invalid context is rejected by VR-010. | Calling service owner. |
+| Event consumer | Deduplicates delivery by event ID. | Duplicate business effects are the consumer's responsibility. | Consumer owner. |
+
+## 23. Validation Strategy
+
+- Contract tests MUST verify every AC that concerns REST requests, responses, tenant boundaries, validation, conditional requests, and resource lifecycles.
+- Domain and application tests MUST verify BR-002 through BR-012 without depending on framework behaviour.
+- Database-contract validation MUST compare every DBML-derived invariant and OD-008/009 interpretation before persistence implementation or migration generation.
+- Integration tests MUST exercise PostgreSQL transaction atomicity, Geographic Reference failure branches, key-capability failure branches, RabbitMQ confirmation ambiguity, crash/restart recovery, and duplicate delivery.
+- Security validation MUST verify tenant predicates, plaintext exclusion, masking, key separation, no-store decryption responses, audit minimisation, and the explicitly approved absence of in-service authentication.
+- Architecture tests and LikeC4 review MUST verify NFR-005; performance and recovery evidence MUST verify NFR-008 through NFR-011.
+- Deployment evidence MUST verify immutable-digest promotion, health checks, smoke checks, stabilization, backup, and restore obligations. Detailed test implementation remains downstream work.
+
+## 24. Audit Considerations
+
+- Record-level creation and update evidence MUST satisfy BR-011 and DR-005.
+- Decryption evidence MUST satisfy BR-021 and MUST NOT contain plaintext.
+- Correlation MUST use process ID for requests and operational failures; event evidence MUST retain event, tenant, aggregate, and version identity.
+- Publication attempts and failures MUST preserve the DBML-defined attempt, time, status, and non-sensitive error evidence.
+- Because caller identity is trusted rather than authenticated, audit fields MUST be described as caller assertions, not proof of identity.
+- Audit evidence MUST follow DR-007 classifications and MUST NOT introduce additional personal or secret data.
+
+## 25. Failure and Recovery
+
+- Input, business-rule, duplicate, and optimistic-concurrency failures MUST leave affected aggregate and required outbox state unchanged.
+- Dependency timeouts, transport failures, malformed geographic responses, cold-cache behaviour, key unavailability, ciphertext-authentication failure, publication uncertainty, serialization failure, poison-event persistence, and crash/restart recovery MUST follow VR-011 through VR-018.
+- Retryable client outcomes are limited to the explicitly approved geographic 503 condition and transient service-capability failures represented as stable machine-readable errors. Invalid input, rule violations, version conflicts, and authenticated-decryption failures are not client-retryable without changed input, refreshed version, or operator correction.
+- No outbox event may be declared published without positive confirmation. Unknown publication outcomes favour safe redelivery with the same event ID; duplicate delivery is expected.
+- Party Registry operations own visibility and recovery of key and outbox failures. VPS or messaging operators own restoration of their capabilities. Consumer owners own event deduplication.
+- Numeric RabbitMQ timeout, backoff, maximum-attempt, and dead-letter values are intentionally not requirements because OD-001 through OD-009 approve none. Architecture and operations MAY select reversible values provided events remain durable, visible, and undiscarded; any policy that discards or changes business-event identity requires a new authoritative decision.
+
+## 26. Operational Monitoring
+
+OR-006 is mandatory. Operators MUST be able to distinguish geographic-cache staleness/unavailability, mandatory-key unavailability, authenticated-decryption failure, pending/aged/failed outbox records, publisher retries, unknown publication outcomes, and RabbitMQ connectivity failures without exposing protected values. Alerts and dashboards MUST support verification of NFR-009 through NFR-011. Exact alert thresholds other than approved NFR targets remain operational configuration, not new business commitments.
+
+## 27. Traceability Matrix
+
+Source keys: `M` = `.factory/project.yaml`; `D` = `docs/database/v1-scheme.dbml`; `Hn` = approved human decision OD-00n recorded by `.factory/decisions.json`; `P` = supplied profile; `I` = intake result. Every row identifies one requirement, its rule/source, acceptance evidence, and planned validation.
+
+| Requirement | Source / rule | Acceptance | Planned validation |
+|---|---|---|---|
+| FR-001 | D/BR-001; H2 | AC-001 | Tenant contract/integration test |
+| FR-002 | D/BR-002 | AC-002 | Domain and DB-contract test |
+| FR-003 | D/BR-005; H9/BR-018 | AC-005 | Domain and DB-contract test |
+| FR-004 | D/BR-006 | AC-006 | Domain contract test |
+| FR-005 | D/BR-007 | AC-007 | Validator contract test |
+| FR-006 | D/BR-008 | AC-008 | Domain and DB-contract test |
+| FR-007 | D/BR-011; H2 | AC-011 | Audit integration test |
+| FR-008 | D/BR-013; H5 | AC-012 | Transaction integration test |
+| FR-009 | D | AC-016 | DB-contract/integration test |
+| FR-010 | H1 | AC-030 | API contract test |
+| FR-011 | H2/BR-016 | AC-019 | API contract test |
+| FR-012 | H5/BR-017 | AC-020 | Concurrency contract test |
+| FR-013 | H3/H5 | AC-021 | Security/integration test |
+| FR-014 | H3/H5/BR-021 | AC-022 | Security/audit test |
+| FR-015 | H6/BR-019 | AC-023, AC-059, AC-060 | Dependency integration test |
+| FR-016 | H1/BR-002 | AC-036 | API/domain test |
+| FR-017 | H1/H9 | AC-039 | API/domain test |
+| FR-018 | H1/H5; D/BR-007, BR-008, BR-009, BR-010 | AC-044 | API/security test |
+| FR-019 | H1/H5 | AC-051 | API/event-absence test |
+| FR-020 | H1/H8 | AC-058 | API surface review |
+| FR-021 | D/BR-012 | AC-031 | Transaction/concurrency test |
+| FR-022 | H1/H2 | AC-032 | API tenant test |
+| FR-023 | H1/H2 | AC-033 | Pagination/tenant test |
+| FR-024 | H1/H5 | AC-034 | API/domain test |
+| FR-025 | H1/H5 | AC-035 | State-transition test |
+| FR-026 | H1/BR-015 | AC-067 | Terminal-state test |
+| FR-027 | H1/H2 | AC-037 | API tenant test |
+| FR-028 | H1; D/BR-012 | AC-038 | Transaction test |
+| FR-029 | H1/BR-015 | AC-068 | API surface test |
+| FR-030 | H1/H2 | AC-040 | API tenant/domain test |
+| FR-031 | H1/H2 | AC-041 | Pagination/tenant test |
+| FR-032 | H1/H9 | AC-042 | Domain/concurrency test |
+| FR-033 | H1/H9/BR-018 | AC-043 | Boundary/lifecycle test |
+| FR-034 | H3/H5 | AC-045 | Security contract test |
+| FR-035 | H5 | AC-046 | Lookup contract test |
+| FR-036 | H1/H3 | AC-047 | Pagination/security test |
+| FR-037 | H1/H5 | AC-048 | Domain/concurrency test |
+| FR-038 | H1/H5; D/BR-008, BR-009 | AC-049 | State-transition test |
+| FR-039 | H1/BR-015 | AC-050 | Terminal-state test |
+| FR-040 | H1 | AC-052 | API contract test |
+| FR-041 | H1 | AC-053 | Pagination contract test |
+| FR-042 | H1/H5; D/BR-006 | AC-054 | Domain/concurrency test |
+| FR-043 | H1/H5; D/BR-006 | AC-055 | State-transition test |
+| FR-044 | H1/BR-015 | AC-056 | Terminal-state test |
+| FR-045 | D; H5 | AC-057 | Event-absence integration test |
+| VR-001 | D/BR-003 | AC-003 | Boundary test |
+| VR-002 | D/BR-004; H6 | AC-004, AC-023 | Validation/dependency test |
+| VR-003 | D/BR-007 | AC-007 | Boundary/validator test |
+| VR-004 | D/BR-009 | AC-009 | State-validation test |
+| VR-005 | D | AC-017 | Numeric boundary test |
+| VR-006 | D/BR-013 | AC-012 | Transaction test |
+| VR-007 | H5 | AC-028 | API contract test |
+| VR-008 | D/BR-013; H5 | AC-013 | Consumer contract test |
+| VR-009 | H9/BR-018 | AC-005, AC-043 | Date boundary test |
+| VR-010 | H2/BR-016 | AC-019 | Header validation test |
+| VR-011 | H6/BR-019; RG-005 | AC-059 | Dependency fault test |
+| VR-012 | H6; RG-005 | AC-060 | Restart/cold-cache test |
+| VR-013 | H3; RG-005 | AC-061 | Key fault/readiness test |
+| VR-014 | H3; RG-005 | AC-062 | Authenticated-decryption fault test |
+| VR-015 | D/H5; RG-005 | AC-063 | Publisher ambiguity test |
+| VR-016 | D/H5; RG-005 | AC-064 | Serialization/publication fault test |
+| VR-017 | D/H5; RG-005 | AC-065 | Poison-event recovery review/test |
+| VR-018 | D/H5; RG-005 | AC-066 | Crash/restart integration test |
+| DR-001 | D/BR-001 | AC-001 | DB-contract/tenant test |
+| DR-002 | D/BR-002 | AC-002 | DB-contract test |
+| DR-003 | D/BR-005 | AC-005 | DB-contract test |
+| DR-004 | D/BR-007, BR-008, BR-009, BR-010 | AC-007, AC-008, AC-009, AC-010 | DB-contract/security test |
+| DR-005 | D/BR-011 | AC-011 | Audit data test |
+| DR-006 | D/BR-013 | AC-012, AC-016, AC-029 | DB/event integration test |
+| DR-007 | H4/BR-020 | AC-024 | Privacy/data review |
+| DR-008 | M/D | AC-000 | Artifact governance review |
+| DR-009 | M/P/H8 | AC-000 | Database-contract gate |
+| IR-001 | D/BR-004; H6 | AC-004, AC-023, AC-059 | Integration contract test |
+| IR-002 | D/H5 | AC-013, AC-029 | Event contract test |
+| IR-003 | D/BR-014; H5 | AC-014, AC-029 | Event security/contract test |
+| IR-004 | D/H5 | AC-057 | Event-absence test |
+| IR-005 | H5 | AC-028 | OpenAPI/API gate |
+| SR-001 | D/BR-001; H2 | AC-001, AC-027 | Tenant security test |
+| SR-002 | D/BR-010; H3 | AC-010 | Security test |
+| SR-003 | D/BR-010; H3 | AC-010, AC-061 | Cryptographic/key review |
+| SR-004 | D/BR-014; H4/H5 | AC-014 | Event privacy test |
+| SR-005 | H2/H3 | AC-022 | Audit security test |
+| SR-006 | H2 | AC-027 | Security boundary review |
+| SR-007 | H4 | AC-024 | Privacy/telemetry review |
+| NFR-001 | D | AC-011, AC-016 | Concurrency integration test |
+| NFR-002 | D/BR-013 | AC-012 | Transaction integration test |
+| NFR-003 | D/H5 | AC-013, AC-025, AC-029 | Reliability/performance test |
+| NFR-004 | M/P | AC-000 | Build/profile review |
+| NFR-005 | M/P | AC-000 | LikeC4/architecture gate |
+| NFR-006 | H5/P | AC-000 | Architecture/performance review |
+| NFR-007 | P/I | AC-000 | Downstream gate evidence review |
+| NFR-008 | H7 | AC-025 | Performance test |
+| NFR-009 | H7 | AC-025 | Event-lag performance test |
+| NFR-010 | H7/P | AC-026 | Backup/restore test |
+| NFR-011 | H7 | AC-015 | Startup/readiness test |
+| CR-001 | D | AC-000 | Contract/architecture review |
+| CR-002 | D/H5 | AC-029 | Event compatibility review |
+| CR-003 | D/H3 | AC-010, AC-061 | Data/key compatibility review |
+| CR-004 | H5 | AC-028, AC-029 | API/event gate |
+| CR-005 | M/P/H8 | AC-000 | DB/migration gate |
+| OR-001 | M | AC-015 | Deployment review |
+| OR-002 | M/P | AC-015 | Deployment security review |
+| OR-003 | P | AC-015 | Digest-promotion evidence |
+| OR-004 | P/H7 | AC-015 | Deployment verification |
+| OR-005 | P | AC-015, AC-026 | Rollback/recovery review |
+| OR-006 | H7 | AC-025, AC-059, AC-060, AC-061, AC-062, AC-063, AC-064, AC-065, AC-066 | Monitoring evidence review |
+| OR-007 | I/P | AC-015 | Deployment-contract review |
+| OR-008 | H7/P | AC-026 | Backup/restore evidence |
+
+## 28. Risks
+
+Likelihood and impact are qualitative because no approved quantitative risk scale exists.
+
+| ID | Cause and consequence | Likelihood / impact | Assets or requirements | Treatment and owner | Acceptance authority / residual risk / review trigger |
+|---|---|---|---|---|---|
+| R-001 | V1 trusts any `internal-services` consumer and permits decryption without authentication or role checks; a connected consumer could assert another tenant or obtain restricted plaintext. | Possible / High | Restricted identifiers; tenant data; SR-001, SR-006 | Preserve loopback/non-public binding, tenant scoping, no-store responses, minimised audit, and security-gate evidence. Owners: Party Registry architecture, deployment, and security reviewers. | The project-scope behaviour is explicitly approved by Alex/project owner through OD-002; no separate security/privacy risk-acceptance authority is asserted. Residual risk remains High by design. Review before any network-boundary expansion, production security approval, or authentication-policy change. |
+| R-002 | Missing, wrong, unavailable, or rotated key material can make exact search or decryption unavailable or corrupt continuity if activated prematurely. | Possible / High | Identifier confidentiality/integrity/availability; SR-002/003, VR-013/014, CR-003 | Fail closed, expose readiness/operational evidence, separate keys, preserve old encryption versions, and complete offline HMAC recalculation before activation. Owner: VPS operator with Party Registry operations. | OD-003 is the project-owner decision. Residual risk is Medium while operator procedure is unverified. Review before key provisioning, rotation, production, or any key-capability change. |
+| R-003 | V1 has no purge or legal retention period; stored personal data may later conflict with governance obligations. | Likely / High | Personal data; DR-007, SR-007, BR-020 | Minimise stored/observable data and require a new requirements/database decision before purge behaviour. Owner: registering organisations and future privacy governance owner. | OD-004 approves only technical no-purge behaviour, not legal risk acceptance. Residual legal/compliance risk remains unassessed. Review before production compliance approval or when jurisdiction/retention policy is supplied. |
+| R-004 | RabbitMQ uncertainty, poison events, or publisher restart can cause duplicate delivery or prolonged lag. | Possible / Medium | Event consumers; FR-008/009, VR-015..018, NFR-003/009 | Durable outbox, positive confirms, same-ID redelivery, operator visibility, no automatic discard, consumer deduplication. Owner: Party Registry and messaging operations; consumers own idempotency. | OD-005/007 approve semantics and targets. Residual risk is Medium until integration and performance evidence passes. Review on lag breach, repeated failed event, broker topology change, or retry-policy proposal. |
+| R-005 | Geographic dependency failure or malformed data can reject new country-dependent writes or accept stale references within the approved window. | Possible / Medium | Country data; BR-019, VR-011/012 | Validate active codes, limit normal cache to 24 hours and stale use to seven days, fail unchanged when no usable cache exists, monitor cache state. Owner: Party Registry operations and Geographic Reference Service owner. | OD-006 accepts the bounded stale-cache behaviour. Residual risk is Medium. Review after repeated 503 outcomes, source contract change, or requested cache-policy change. |
+| R-006 | Detailed OpenAPI and event schemas are absent; downstream design could unintentionally break or overexpose the requirements-level contract. | Possible / High | Public/internal contracts; IR-002..005, CR-002/004 | Require API/event contract gates, immutable published event versions, explicit minimisation, and traceability to this document. Owner: solution architecture and integration contract owners. | No breaking change is authorised. Residual risk is Medium until contracts pass independent gates. Review on any schema proposal or consumer compatibility finding. |
+| R-007 | Existing CI evidence uses mutable tags, direct SSH/SCP, cross-service references, and incomplete verification, conflicting with the deployment profile. | Likely / High | Production availability and supply chain; OR-002..007 | Remediate only in later authorised phases; require immutable digest promotion, restricted wrappers, service-specific assets, and deployment verification. Owner: deployment/release owners. | No conflicting behaviour is accepted. Residual risk remains High until deployment gates pass; it does not block requirements/architecture analysis. Review before any environment deployment. |
+| R-008 | The DBML or its PostgreSQL 18 interpretation may fail independent validation. | Possible / High | Data integrity and migrations; DR-008/009, CR-005 | Keep persistence and migrations blocked; report contradictions without automatic design changes. Owner: database-contract agent and human database authority. | OD-008/009 authorise validation, not automatic correction. Residual risk remains High until database-contract validation passes. Review on every DBML finding. |
+| R-009 | Architecture artifacts do not yet exist, so feasibility and strict dependency compliance are not evidenced. | Possible / High | Architecture boundaries; NFR-005/006 | Later architecture agent must create LikeC4 context/container/deployment views, explicit ports, bounded-context ownership, and relevant ADRs; independent gate reviews them. Owner: solution architecture agent. | No architecture is approved by this specification. Residual risk remains High until architecture gate passes. Review before database validation or implementation planning as workflow requires. |
+
+No contradiction between authoritative requirements sources remains unresolved. R-001, R-003, R-007, R-008, and R-009 preserve material residual risk for their designated independent authorities and downstream gates; this specification does not accept those risks on their behalf.
+
+## 29. Evidence and Consistency Review
 
 Evidence reviewed:
 
@@ -315,14 +561,17 @@ Evidence reviewed:
 - `docs/database/v1-scheme.dbml:1-410` — authoritative bounded context, persistence facts, invariants, security notes, and outbox semantics.
 - `.factory/runs/oc-24279e57-a682-44b6-9ab5-2a1f253f0480/result.json:1-49` — verified intake baseline and original findings addressed by OD-001 through OD-009.
 - `.factory/runs/oc-20d0d5d6-bfb6-4dc2-b774-ae5a0ab86cef/result.json:15-33` — prior specification findings and actions traced to the now-recorded decisions.
+- `.factory/runs/oc-a87069f6-8ca3-4064-9aeb-a7f251bffe11/result.json:15-32` — RG-001 through RG-006 repaired in version 0.3 through package metadata, explicit mandatory sections, per-requirement traceability, atomic functional obligations, failure/recovery rules, and a complete risk register.
 - Supplied strict Clean Architecture, quarkus-java25, PostgreSQL, and VPS Podman Quadlet profile constraints in the current invocation.
 
 Consistency review performed:
 
 - Requirements remain within the DBML, manifest, and recorded human-decision scope; no additional use case was inferred from table structure.
 - Normative requirements use stable identifiers and trace to exact sources.
-- Principal functional constraints have success, failure, boundary, or concurrency acceptance scenarios where testable.
+- Every functional and supporting requirement has an explicit source, acceptance mapping, and planned validation in section 27; principal functional obligations have success, failure, boundary, or concurrency scenarios.
 - The prior high-risk security, privacy, contract, product, service-target, DBML-confirmation, and nationality questions are preserved verbatim as resolved human decisions and translated into normative requirements.
+- Independently decidable Party, detail, nationality, Party Identifier, and Identifier Scheme operations are split into atomic FR-010 and FR-016 through FR-045 with scenario-level AC-030 through AC-058.
+- Geographic, key, RabbitMQ, poison-event, unknown-outcome, and crash/restart failures are defined by VR-011 through VR-018 and AC-059 through AC-066 without inventing numeric retry or discard policy.
 - No physical database change, detailed API/event schema, architecture design, LikeC4 model, ADR, implementation, test, migration, or deployment work is included. The reactive execution model appears only as the recorded V1 requirement and architecture input.
 - Persistence and migration implementation remains explicitly prohibited pending satisfactory independent database-contract validation.
 

@@ -1,0 +1,35 @@
+{
+  "agent": "requirements-gate-agent",
+  "assumptions": [],
+  "decision": "FAIL",
+  "evidence": [
+    "Reviewed PRS-REQ-001 version 0.2 at docs/requirements/requirements-specification.md with SHA-256 1f15c54b4479dc8a8d41b09ac0ebab753eb601bb2ae1471404fce4d593be8c99 and repository revision fea072f28f960f6bb5bdafd010c076cf1177f9c8.",
+    "git status --short reported only the factoryctl-created current run directory as untracked; git diff --check passed and the reviewed specification digest remained unchanged at final verification.",
+    ".factory/runs/oc-113161e8-5f32-4bcd-a470-5f35b3145311/result.json identifies requirements-specification-agent as the authoring actor; the current requirements-gate-agent is independent.",
+    ".factory/decisions.json:2-10 records Alex's authoritative approval of OD-001 through OD-009 for their exact stated scope. No duplicate security, privacy, or risk-acceptance authority was invented.",
+    "docs/requirements/requirements-specification.md contains exactly 75 identified requirements: 20 FR, 10 VR, 9 DR, 5 IR, 7 SR, 11 NFR, 5 CR, and 8 OR.",
+    "docs/requirements/requirements-specification.md:227-258 contains exactly 30 acceptance criteria, AC-000 through AC-029.",
+    "No LikeC4 artifacts exist yet; their absence is not treated as a primary requirements-gate defect because architecture design belongs to the later ARCHITECTURE phase.",
+    "Authority boundary: this decision applies only to the reviewed version, digest, and revision. It does not approve requirements, architecture, implementation, code, tests, security, database design or migrations, dependencies, performance, deployment, production, residual risk, or external or financial mutation; it does not replace human approval, and changed bytes require a new review."
+  ],
+  "findings": [
+    "RG-001 HIGH PACKAGE_INTEGRITY — docs/requirements/requirements-specification.md:3-15 identifies PRS-REQ-001 version 0.2 and Draft status but omits its digest, repository revision, author, update time, and explicit included-source manifest. Read-only verification established the reviewed bytes, so this is a remediable specification defect rather than a review blocker. Affected: entire package. Required action: bind the package metadata to the verified artifact and source set. Owner: requirements specification author. Disposition: prevents PASS.",
+    "RG-002 HIGH MISSING_SECTION — The package lacks explicit mandatory sections for Purpose, Business context, Constraints, Dependencies, Validation strategy, Audit considerations, Failure and recovery, and Operational monitoring. Related statements scattered across sections 2-15 do not satisfy the mandatory-section rule. Affected: entire package. Required action: add each section or explicitly mark it not applicable with objective justification. Owner: requirements specification author. Disposition: prevents architecture readiness.",
+    "RG-003 HIGH MISSING_TRACEABILITY — docs/requirements/requirements-specification.md:284-297 maps broad requirement ranges rather than each source through business rule, requirement, acceptance criterion, and planned validation. Only 41 of 75 requirement identifiers appear explicitly in acceptance-criterion labels; requirements such as VR-003, VR-006, VR-008, OR-001, OR-002, OR-005, OR-006, and OR-007 lack precise criterion-level mapping. Required action: provide per-requirement traceability and classify missing or partial links. Owner: requirements specification author. Disposition: prevents PASS.",
+    "RG-004 HIGH NON_ATOMIC_REQUIREMENT — FR-007, FR-010, FR-018, and FR-019 combine independently verifiable obligations. AC-018 combines operations, lifecycle transitions, terminal-state rules, and outbox exposure across five resource categories, so independent obligations cannot receive precise pass/fail evidence. Required action: split independently decidable obligations and their acceptance criteria while preserving indivisible invariants. Owner: requirements specification author. Disposition: prevents PASS.",
+    "RG-005 HIGH MISSING_FAILURE_RULE — Sections 5, 8-15, and 16 do not comprehensively define timeout, malformed dependency response, crash/restart, retry classification and limits, poison-event handling, unknown publication outcome, key-capability failure, recovery ownership, and operator visibility. RabbitMQ publication and key-dependent identifier operations remain materially incomplete. Required action: specify observable failure and recovery behavior without inventing unapproved business policy. Owner: requirements specification author; escalate only if remediation exposes a genuinely new material choice. Disposition: prevents safe architecture work.",
+    "RG-006 HIGH MISSING_RISK — docs/requirements/requirements-specification.md:299-306 lists risks but omits required cause, consequence, likelihood, impact, affected assets or requirements, mitigation owner, acceptance authority, residual risk, and review trigger. Required action: complete the risk records while preserving the exact human decisions already recorded by factoryctl. Owner: requirements specification author. Disposition: prevents PASS."
+  ],
+  "generatedFiles": [],
+  "nextPhase": "SPECIFICATION",
+  "phase": "REQUIREMENTS_GATE",
+  "requiredActions": [
+    "Bind PRS-REQ-001 version 0.2 to its exact digest, repository revision, author, timestamp, included sources, approval status, supersession state, and open-decision state.",
+    "Add or explicitly disposition every mandatory specification section.",
+    "Create requirement-by-requirement source-to-rule-to-requirement-to-acceptance-to-validation traceability.",
+    "Split non-atomic requirements and replace bundled AC-018 coverage with independently verifiable criteria.",
+    "Complete material failure and recovery requirements for external dependencies, key operations, and RabbitMQ delivery.",
+    "Complete the risk register with all required ownership, treatment, residual-risk, and review fields."
+  ],
+  "riskLevel": "HIGH"
+}
