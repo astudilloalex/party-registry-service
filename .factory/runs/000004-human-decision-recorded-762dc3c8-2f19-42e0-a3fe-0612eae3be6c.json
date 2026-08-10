@@ -1,0 +1,19 @@
+{
+  "actor": "Alex / responsable del proyecto",
+  "destinationState": "SPECIFICATION",
+  "dryRun": false,
+  "effectiveEvent": "HUMAN_DECISION_RECORDED",
+  "note": "OD-001 a OD-009 resueltas y aprobadas según docs/requirements/requirements-specification.md",
+  "occurredAt": "2026-08-10T01:40:37Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "HUMAN_DECISION_RECORDED",
+  "riskLevel": null,
+  "sequence": 4,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "762dc3c8-2f19-42e0-a3fe-0612eae3be6c",
+  "workflowId": "software-factory-default"
+}

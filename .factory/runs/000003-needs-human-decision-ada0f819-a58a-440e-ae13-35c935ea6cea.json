@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:requirements-specification-agent",
+  "destinationState": "BLOCKED_HIGH_RISK",
+  "dryRun": false,
+  "effectiveEvent": "NEEDS_HUMAN_DECISION",
+  "note": "Validated OpenCode invocation oc-20d0d5d6-bfb6-4dc2-b774-ae5a0ab86cef",
+  "occurredAt": "2026-08-09T23:11:07Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "NEEDS_HUMAN_DECISION",
+  "riskLevel": "HIGH",
+  "sequence": 3,
+  "sourceState": "SPECIFICATION",
+  "transitionId": "ada0f819-a58a-440e-ae13-35c935ea6cea",
+  "workflowId": "software-factory-default"
+}

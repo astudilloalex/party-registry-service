@@ -1,6 +1,15 @@
 {
-  "decisions": [],
+  "decisions": [
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "762dc3c8-2f19-42e0-a3fe-0612eae3be6c",
+      "note": "OD-001 a OD-009 resueltas y aprobadas según docs/requirements/requirements-specification.md",
+      "recordedAt": "2026-08-10T01:40:37Z",
+      "state": "BLOCKED_HIGH_RISK"
+    }
+  ],
   "project": "party-registry-service",
   "schemaVersion": 1,
-  "updatedAt": "2026-08-09T19:08:42Z"
+  "updatedAt": "2026-08-10T01:40:37Z"
 }
