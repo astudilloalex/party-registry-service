@@ -7,88 +7,70 @@
 | Status | Proposed |
 | Approval | Pending `clean-architecture-gate-agent` after human decision recording |
 | Architecture identifier | PRS-ARCH-001 |
-| Version | 0.3 |
+| Version | 0.4 |
 | Author | `solution-architecture-agent`, corrected by architecture review |
-| Historical requirements baseline | PRS-REQ-001 v0.4, independently gated by `.factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json` |
-| Effective requirements amendment | `docs/requirements/requirements-amendment-001.md` |
+| Historical requirements baseline | PRS-REQ-001 v0.4 |
+| Effective requirements amendments | `requirements-amendment-001.md`, `requirements-amendment-002.md` |
 | Persistence authority | `docs/database/v1-scheme.dbml` |
 | Architecture model | `architecture/model.c4` |
-| Human change record | GitHub Issue #4; must be recorded through `factoryctl` after merge |
+| Human change records | GitHub Issues #4 and #6 |
 
-This architecture preserves the already-gated PRS-REQ-001 v0.4 bytes as historical evidence. Amendment 001 supersedes only the former command-idempotency behavior and the assumed external logging-platform dependency. It does not silently rewrite the prior Requirements Gate artifact.
+This architecture preserves the already-gated PRS-REQ-001 v0.4 bytes as historical evidence. Amendment 001 supersedes command-level idempotency and the assumed external logging platform. Amendment 002 supersedes every runtime Identifier Scheme administration use case. The project-owner decisions have precedence over older generated statements once recorded through the governed factory decision flow.
 
-## 2. Classification and Source Precedence
+## 2. Source Precedence
 
-| Classification | Meaning |
-|---|---|
-| **CR — Confirmed Requirement** | Manifest, approved human decision, effective requirements/amendment, or confirmed contract. |
-| **EF — Existing Fact** | Verified repository evidence; not automatically TO-BE behavior. |
-| **AC — Architecture Constraint** | Mandatory boundary derived from confirmed authority. |
-| **TD — TO-BE Decision** | Architecture choice pending independent gate approval. |
-| **PD — Pending Decision** | Material choice requiring a later authorized decision. |
-| **OS — Out of Scope** | Explicit exclusion. |
+1. Recorded human decisions and the explicit project-owner clarifications represented by Issues #4/#6 and their amendments.
+2. `.factory/project.yaml`.
+3. Effective requirements: PRS-REQ-001 v0.4 plus Amendments 001 and 002.
+4. `docs/database/v1-scheme.dbml` for physical persistence facts.
+5. Architecture, stack, persistence and deployment profiles.
+6. Verified repository facts.
 
-Human project-owner decisions have precedence over older generated requirements. After this PR is merged, the Issue #4 clarification must be persisted through `factoryctl transition HUMAN_DECISION_RECORDED`; until that occurs the factory state remains correctly blocked.
+No architecture statement may infer a runtime CRUD/use case solely because a DBML table exists.
 
-## 3. Authoritative Sources and Traceability
-
-| Source | Architecture use |
-|---|---|
-| `.factory/project.yaml` | Strict Clean Architecture, LikeC4, Java 25/Quarkus, PostgreSQL DBML authority, VPS/Podman/Quadlet, no automatic DB design changes. |
-| `.factory/decisions.json` | Existing approved lifecycle, trust posture, masking, rule-catalog and outbox decisions. The previous RG-104 command-idempotency decision is superseded by Issue #4/Amendment 001 once recorded through factoryctl. |
-| `docs/requirements/requirements-specification.md` v0.4 | Historical gated baseline; clauses superseded by Amendment 001 are not effective. |
-| `docs/requirements/requirements-amendment-001.md` | No command idempotency, permanent tenant+scheme+normalized-number uniqueness, no external logging platform. |
-| `docs/database/v1-scheme.dbml` | Exclusive physical persistence authority, including unconditional identifier uniqueness. |
-| `docs/architecture/adr/ADR-001-reactive-single-deployable.md` | Reactive single deployable. |
-| `docs/architecture/adr/ADR-002-transactional-outbox.md` | Local transaction + at-least-once confirmed publication. |
-| `docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md` | Runtime-secret crypto and local fail-closed security logging. |
-| `docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md` | Permanent identifier uniqueness without command idempotency. |
-| `astudilloalex/geographic-reference-service` main | AlexAstudillo logging-format baseline adapted from `companyId` to `tenantId`. |
-
-## 4. Scope and System Boundary
-
-### 4.1 Owned capability
+## 3. System Scope
 
 Party Registry is the tenant-scoped system of record for:
 
 - Parties;
-- natural-person and legal-entity details;
+- natural-person details;
+- legal-entity details;
 - natural-person nationalities;
 - official Party Identifiers;
-- the global Identifier Scheme catalog;
+- the database-managed global Identifier Scheme reference catalog;
 - tenant business-event outbox state.
 
-Other services keep `party_id` as an opaque reference and never access the Party Registry database directly.
+The service owns Party and Party Identifier business behavior. `identifier_schemes` is service-owned reference data in PostgreSQL but **not an application-administered business resource**.
 
-### 4.2 Actors and real external systems
+Other services retain `party_id` as an opaque reference and never read/write the Party Registry database directly.
 
-| Element | Responsibility / relationship |
+## 4. Actors and External Systems
+
+| Element | Relationship |
 |---|---|
-| Internal service consumer | Supplies trusted `tenant-id`, `user-id`, optional `process-id`, and invokes V1 REST operations. |
-| Identifier Scheme administrator consumer | Maintains the global scheme catalog through the same internal API; Party Registry performs no role check. |
-| Geographic Reference Service | Owns active ISO country reference data. |
-| RabbitMQ | Receives persistent Party Registry events using publisher confirms. |
-| Event consumer | Owns its queues and deduplicates at-least-once deliveries by event ID. |
+| Internal service consumer | Calls approved Party and Party Identifier REST operations and supplies trusted tenant/user/process context. |
+| Geographic Reference Service | Owns country reference data used by Party Registry validation. |
+| RabbitMQ | Receives persistent Party Registry business events with publisher confirms. |
+| Event consumer | Owns queues and deduplicates at-least-once delivery by event ID. |
 
-There is **no `Platform Logging Capability` external system** in Party Registry V1. Logging is internal application behavior. There is also no V1 remote key-management system; encryption/HMAC masters are runtime deployment secrets.
+There is **no Identifier Scheme Administrator Consumer** in V1.
 
-### 4.3 Explicit exclusions
-
-**OS:** customers, suppliers, employees, user accounts, login, authentication, authorization, roles, permissions, operating organizations, addresses, contacts, subscriptions, tax configuration, ownership structures, beneficial ownership, corporate relationships, audit persistence, an external logging platform, a remote V1 key-management service, public outbox CRUD, consumer queues/DLQs, and Geographic Reference ownership.
+There is also no external logging platform and no remote V1 key-management service. Logging is local application behavior; encryption/HMAC master keys are runtime-injected deployment secrets.
 
 ## 5. Selected Architecture
 
-1. **TD:** one cohesive Quarkus Java 25 deployable.
-2. **CR:** reactive REST and non-blocking external I/O; unavoidable CPU/blocking work uses bounded isolation.
-3. **AC:** strict Clean Architecture with inward dependencies.
-4. **CR:** PostgreSQL is service-owned persistence and final business-uniqueness authority.
-5. **CR:** mutation plus required outbox insertion is one local PostgreSQL atomic boundary.
-6. **CR:** RabbitMQ publication is asynchronous, persistent, publisher-confirmed and at least once.
-7. **CR:** complete identifier values are authenticated-encrypted; exact lookup and permanent identifier uniqueness use tenant-isolated HMAC.
-8. **CR:** no command-level `Idempotency-Key`, replay-result store, idempotency cache, or idempotency port exists in V1.
-9. **CR:** encryption/HMAC masters are supplied through `.env`/Podman secret mechanisms; no network KMS is invented.
-10. **CR:** operational and decryption-security logs are emitted through the local application logging path; no external logging software system is invented.
-11. **TD:** no CQRS, event sourcing, distributed transaction, saga, additional microservice, or durable cache is introduced without measured need and a new ADR.
+1. One cohesive Quarkus Java 25 deployable.
+2. Reactive REST and reactive external I/O; unavoidable blocking/CPU work uses bounded isolation.
+3. Strict Clean Architecture with dependencies pointing inward.
+4. PostgreSQL is service-owned persistence and final business-uniqueness authority.
+5. `identifier_schemes` is a database-managed read-only catalog from the application runtime perspective.
+6. Mutation plus required outbox insertion is one local PostgreSQL atomic boundary.
+7. RabbitMQ publication is asynchronous, persistent, publisher-confirmed and at least once.
+8. Complete identifiers are authenticated-encrypted; exact lookup and permanent identifier uniqueness use tenant-isolated HMAC.
+9. No client-command `Idempotency-Key`, replay store, request fingerprint, idempotency cache or idempotency port exists in V1.
+10. Encryption/HMAC masters are supplied through approved `.env`/Podman-secret mechanisms.
+11. Operational and decryption-security logs are emitted through the local application logging path using the AlexAstudillo standard.
+12. No CQRS, event sourcing, distributed transaction, saga, extra microservice or durable cache is introduced without a new approved decision/ADR.
 
 ## 6. Strict Clean Architecture
 
@@ -96,74 +78,118 @@ There is **no `Platform Logging Capability` external system** in Party Registry 
 
 | Area | Responsibilities | Forbidden dependencies |
 |---|---|---|
-| Domain | Entities/value objects, lifecycle policies, identifier/business invariants, domain errors. | Quarkus, Jakarta, CDI, REST, JSON, logging, ORM/Panache, database, messaging, configuration, crypto providers. |
-| Application | Commands/queries, input ports, use cases, transaction intent, tenant scoping, output ports, boundary-neutral outcomes. | Concrete adapters, REST/persistence/provider DTOs, Quarkus APIs, MDC/SLF4J. |
-| Inbound adapters | Reactive REST parsing, headers, transport validation, DTO mapping, ETag/error/envelope mapping. | Business-rule ownership or direct DB/client access. |
-| Outbound adapters | PostgreSQL, Geographic cache/client, runtime-secret crypto, RabbitMQ, local structured security logging, clock. | Redefining domain rules or exposing adapter models inward. |
-| Bootstrap | Quarkus wiring/configuration, adapter selection, startup/readiness, telemetry setup. | Business decisions. |
+| Domain | Entities/value objects, Party/Identifier lifecycle policies, invariants, masking and business errors. | Quarkus, Jakarta, CDI, REST, JSON, logging, ORM/Panache, database, messaging, configuration, crypto-provider APIs. |
+| Application | Party and Identifier commands/queries, input ports, use cases, transaction intent, tenant scoping, read-only Scheme catalog contract, output ports and boundary-neutral outcomes. | Concrete adapters, REST/persistence/provider DTOs, Quarkus APIs, MDC/SLF4J. |
+| Inbound adapters | Reactive REST parsing, request context, DTO mapping, ETag/If-Match, ApiResponse/error mapping. | Business-rule ownership, direct DB/client access, Scheme catalog administration. |
+| Outbound adapters | PostgreSQL, Geographic client/cache, runtime-secret crypto, RabbitMQ, local structured security logging, clock. | Redefining domain rules or exposing adapter models inward. |
+| Bootstrap | Quarkus wiring/configuration, adapter selection, runtime privilege/config validation, startup/readiness and telemetry setup. | Business decisions. |
 
-Dependency direction remains `inbound -> application -> domain`; outbound adapters implement application output ports. One Gradle module is sufficient initially; architecture tests enforce boundaries.
-
-### 6.2 Port families
+### 6.2 Application ports
 
 | Port | Direction | Responsibility |
 |---|---|---|
-| Party use-case ports | Inbound | Party/detail/nationality commands and queries. |
-| Identifier use-case ports | Inbound | Identifier lifecycle, exact lookup and decryption operations. |
-| Scheme use-case ports | Inbound | Scheme administration. |
-| Tenant-scoped persistence ports | Outbound | Tenant-qualified reads/mutations; no persistence rows leak inward. |
-| Unit-of-work/outbox port | Outbound | Commit business mutation and required outbox row atomically. |
+| Party use-case ports | Inbound | Party/detail/nationality approved commands and queries. |
+| Party Identifier use-case ports | Inbound | Identifier lifecycle, lookup, exact search and decryption. |
+| Identifier Scheme catalog port | Outbound, read-only | Read database-managed Scheme metadata needed by Party Identifier processing. It exposes queries only. |
+| Tenant-scoped persistence ports | Outbound | Tenant-qualified Party/Identifier reads and mutations; no persistence model leakage. |
+| Unit-of-work/outbox port | Outbound | Commit represented business mutation and required outbox row atomically. |
 | Geographic reference port | Outbound | Resolve active country references with explicit availability outcomes. |
 | Identifier protection port | Outbound | Authenticated encryption/decryption and tenant-effective HMAC using runtime secrets. |
-| Integration event publisher port | Outbound | Publish persistent versioned messages and classify confirms. |
-| Decryption security-log port | Outbound | Emit mandatory non-plaintext structured log through the local application logger before plaintext return. |
-| Clock port | Outbound | Testable current time; no automatic lifecycle scheduler. |
+| Integration event publisher port | Outbound | Publish persistent versioned messages and classify publisher confirms. |
+| Decryption security-log port | Outbound | Emit required non-plaintext local structured log before plaintext return. |
+| Clock port | Outbound | Testable current time; no scheduler is implied. |
 
-**There is intentionally no Party-creation idempotency port.**
+There is intentionally **no Scheme Administration input port**, no Scheme mutation port and no Party-creation idempotency port.
 
-## 7. Identifier Uniqueness Architecture
+## 7. Database-Managed Identifier Scheme Catalog
 
-### 7.1 Business key
+### 7.1 Ownership
 
-The permanent uniqueness scope for one Party Identifier is:
+`identifier_schemes` contains global reference metadata for supported official-document schemes such as CÉDULA, RUC and PASAPORTE.
 
-`tenant + Identifier Scheme + normalized identifier value`
+The application runtime uses this table only to read the metadata required for Party Identifier processing:
 
-Example:
+- scheme identity/code;
+- issuing country/category;
+- applicable subject type;
+- normalizer implementation key;
+- validator implementation key;
+- minimum/maximum length;
+- expiration requirement;
+- persisted status/usable-state metadata;
+- version/audit metadata where required for diagnostics/contract validation.
 
-`Tenant A + EC_CEDULA + 0123456789`
+### 7.2 No runtime administration
 
-may exist at most once for the entire retained history of Tenant A under `EC_CEDULA`.
+Party Registry V1 exposes no REST/application operation to:
 
-Because plaintext is forbidden in persistence, the physical enforcement key is:
+- create schemes;
+- update schemes;
+- activate/deprecate/retire schemes;
+- delete schemes;
+- search/browse schemes as an administration resource.
 
-`(tenant_id, identifier_scheme_id, normalized_value_hash)`
+The presence of the DBML table does not imply CRUD.
 
-where `normalized_value_hash` is the tenant-effective HMAC-SHA-256 of the normalized value.
+New or changed Scheme data is delivered only through the governed database-management path: reviewed database migrations and/or explicitly authorized database administration.
 
-### 7.2 Lifecycle semantics
+### 7.3 Runtime database privilege boundary
 
-The uniqueness key is status-independent. `PENDING_VERIFICATION`, `VERIFIED`, `REJECTED`, `EXPIRED`, and `REVOKED` all occupy the key permanently. Revoke/expire/reject never makes the same normalized value reusable in the same tenant and scheme.
+The runtime PostgreSQL role should enforce:
 
-The same normalized value may exist:
+```text
+identifier_schemes
+  SELECT: allowed
+  INSERT: denied
+  UPDATE: denied
+  DELETE: denied
+```
 
-- under another tenant; or
-- under another Identifier Scheme.
+Migration/database-administration credentials are separate from runtime credentials.
 
-### 7.3 Concurrency
+This privilege separation is mandatory architecture/database validation evidence. Application repositories/adapters must not expose Scheme mutation methods even if a broader development database account could technically execute them.
 
-Concurrent requests can calculate the same fingerprint, but PostgreSQL is the final concurrency authority. The unconditional unique constraint permits at most one matching row to commit. The losing operation returns the API `CONFLICT` category and commits no duplicate identifier/outbox side effect.
+### 7.4 Rule implementation compatibility
 
-This is a **business uniqueness invariant**, not HTTP command idempotency. The service does not replay the winning request's response.
+Normalizer/validator implementations remain versioned application code. A database-managed Scheme can reference only keys supported by the released application version.
 
-## 8. Runtime Components
+If required persisted Scheme configuration references an unavailable implementation:
+
+- dependent Party Identifier operations fail unchanged;
+- readiness reflects unusable required configuration where applicable;
+- the application does not mutate/repair the Scheme row.
+
+A new Scheme that requires a new normalizer/validator therefore requires coordinated software release plus governed database change.
+
+## 8. Permanent Party Identifier Uniqueness
+
+The business uniqueness scope is:
+
+```text
+tenant + Identifier Scheme + normalized identifier value
+```
+
+Since plaintext cannot be persisted, PostgreSQL enforces:
+
+```text
+UNIQUE (tenant_id, identifier_scheme_id, normalized_value_hash)
+```
+
+`normalized_value_hash` is the tenant-effective HMAC-SHA-256 of the normalized identifier.
+
+The key is permanent across `PENDING_VERIFICATION`, `VERIFIED`, `REJECTED`, `EXPIRED` and `REVOKED`. Status never releases a document number for reuse inside the same tenant and Scheme.
+
+The same normalized value may exist under another tenant or another Identifier Scheme.
+
+Concurrent duplicates are resolved by the PostgreSQL unique constraint: at most one Party Identifier row commits. The losing operation returns the API `CONFLICT` category and creates no duplicate identifier/outbox side effect. This is business uniqueness, not command-response idempotency.
+
+## 9. Runtime Components
 
 Stable application components are:
 
 - Reactive REST Adapter;
 - Party Application Capability;
 - Identifier Application Capability;
-- Scheme Administration Capability;
 - Outbox Publication Capability;
 - PostgreSQL Adapter;
 - Geographic Reference Adapter/cache;
@@ -172,76 +198,67 @@ Stable application components are:
 - Decryption Security Log Adapter;
 - Runtime Composition and Readiness.
 
-The Decryption Security Log Adapter is an internal application adapter, not an external C4 system.
+There is no Scheme Administration Capability. Scheme reads occur as part of Identifier processing through the read-only catalog port implemented by the PostgreSQL adapter.
 
-## 9. Integration Architecture
+## 10. API Surface
 
-| Integration | Contract / failure semantics |
+The V1 REST API is rooted under `/api/v1` and follows the approved ApiResponse/ETag/If-Match conventions.
+
+Runtime REST surface includes approved Party, Party-detail, nationality and Party Identifier operations.
+
+The API MUST NOT expose Identifier Scheme administration. Amendment 002 also removes the previously generated Scheme lookup/search resources from V1; runtime Scheme access is internal reference-data access unless a later explicit requirement introduces a read-only public/internal discovery contract.
+
+No `Idempotency-Key` is accepted or interpreted by V1 commands.
+
+RG-401 remains a nonblocking downstream API-contract authority issue for exact pagination/filter/sort defaults. Architecture does not manufacture those values.
+
+## 11. Transaction Boundaries
+
+| Flow | Atomicity / behavior |
 |---|---|
-| Internal REST | `/api/v1`, trusted context, ApiResponse envelope, ETag/If-Match, no V1 auth/authz, no `Idempotency-Key`. |
-| Geographic Reference | Reactive provider boundary, 24-hour normal cache, approved stale branch, fail-unchanged dependency error. |
-| RabbitMQ | Persistent messages, durable topic exchange, publisher confirms, at-least-once, stable event ID, consumer dedupe. |
-| Runtime secrets | Deployment configuration, not network integration; separate encryption/HMAC masters via `.env`/Podman secrets. |
-| Application logging | Local Quarkus/SLF4J logging path, not an external integration; fail-closed synchronous emission for decryption security evidence. |
-
-RG-401 remains a **nonblocking API-contract authority issue**: exact pagination defaults/limits/filters/order must be authorized or explicitly deferred before API-contract approval. This architecture does not treat the old gate finding as product authority.
-
-## 10. Data Architecture and DBML Authority
-
-`docs/database/v1-scheme.dbml` is the exclusive source of physical tables, columns, relationships, constraints and indexes.
-
-The updated DBML explicitly defines:
-
-```text
-UNIQUE (tenant_id, identifier_scheme_id, normalized_value_hash)
-```
-
-for Party Identifiers. Database-contract validation must verify that this unconditional uniqueness behaves correctly on PostgreSQL 18, including concurrency and all lifecycle statuses.
-
-Other mandatory validations remain:
-
-- tenant-qualified Party/Identifier references;
-- Party type/detail invariants;
-- active-nationality uniqueness;
-- verified-primary Identifier uniqueness;
-- optimistic versions;
-- outbox checks/concurrency;
-- PostgreSQL 18 compatibility;
-- no plaintext identifier persistence.
-
-No idempotency table, request-fingerprint store, replay-result store, or extra datastore is authorized.
-
-## 11. Transaction and Consistency Boundaries
-
-| Flow | Boundary |
-|---|---|
-| Party creation | Local transaction creates Party/approved initial state and required Party outbox event. No command-idempotency state participates. |
+| Party creation | Local transaction creates Party/approved initial data and required Party outbox event. |
 | Party/detail/nationality mutation | Local transaction updates component, Party version, audit facts and required outbox event. |
-| Identifier creation/mutation | Local transaction preserves tenant/scheme/Party invariants, permanent uniqueness, version, audit and required outbox event. |
-| Scheme mutation | Local transaction changes global scheme; no tenant Party outbox event. |
+| Party Identifier creation/mutation | Local transaction preserves tenant/Party/Scheme invariants, permanent uniqueness, version/audit state and required outbox event. |
+| Identifier Scheme access | Read-only query of database-managed reference data; no business mutation transaction exists. |
 | Outbox delivery | Publisher claims durable rows, publishes outside business transaction, then records delivery outcome. |
-| Exact identifier search | Tenant+scheme HMAC lookup; no decrypt/scan. |
+| Exact identifier search | Tenant+Scheme HMAC lookup; no decrypt/scan. |
 | Decryption | Tenant-qualified read -> ciphertext authentication/decrypt -> required local security log -> no-store plaintext response. |
 
-No distributed transaction, saga or compensation is needed.
+There is no Scheme mutation flow, no distributed transaction, no saga and no compensation design.
 
-## 12. Security and Privacy Architecture
+## 12. Transactional Outbox
 
-- V1 has no login, authentication, authorization, roles, permissions, JWT/OIDC/Keycloak processing, or 401/403 behavior.
-- `tenant-id` and `user-id` are trusted caller assertions; tenant scoping is mandatory on every tenant-owned operation.
-- Complete identifier plaintext is transient only for approved submission/exact-search/decryption operations.
+Approved Party and Party Identifier mutations that require events commit the business mutation and outbox insertion in the same PostgreSQL transaction.
+
+Publisher semantics remain:
+
+- persistent RabbitMQ messages;
+- publisher confirms;
+- at-least-once delivery;
+- same event ID on retry/recovery;
+- transient/unknown outcomes remain retryable;
+- non-recoverable failures become operator-visible `FAILED`;
+- no Party Registry publisher DLQ/discard/purge;
+- consumers deduplicate by event ID.
+
+Database-managed Identifier Scheme catalog changes produce **no tenant Party outbox event**.
+
+## 13. Security and Privacy
+
+- No login, authentication, authorization, roles, JWT/OIDC/Keycloak request processing or 401/403 behavior in V1.
+- `tenant-id` and `user-id` are trusted caller assertions.
+- Every tenant-owned Party/Identifier operation is tenant-qualified.
+- Complete identifier plaintext is transient only for approved submission/exact-search/decryption paths.
 - Plaintext never enters PostgreSQL, RabbitMQ, logs, traces or metrics.
 - Encryption and HMAC master keys are separate and runtime-injected.
-- `normalized_value_hash` is never used as a user-visible identifier and must not be logged.
-- Ordinary queries return masks only; plaintext return is isolated to the separate no-store decryption operation.
-- Decryption emits tenant ID, user ID, process ID, Party Identifier ID, timestamp and action/outcome through the local structured logging adapter before plaintext return.
-- Party Registry owns no audit database or audit table.
+- Ordinary queries expose masks only.
+- Decryption emits tenant ID, user ID, process ID, Party Identifier ID, timestamp and action/outcome through the local structured logger before plaintext return.
+- Party Registry owns no audit table/database.
+- Runtime DB permissions deny Scheme catalog mutation, reducing validation-policy tampering risk through the application account.
 
-The approved V1 trust posture leaves residual risk: any internal consumer with network connectivity can assert context and invoke decryption. This remains explicit scope rather than an implicit authentication claim.
+## 14. Enterprise Logging
 
-## 13. Enterprise Logging Baseline
-
-Party Registry uses the AlexAstudillo logging pattern derived from `geographic-reference-service`, replacing that service's `companyId` context with Party Registry's `tenantId`:
+Party Registry follows the AlexAstudillo pattern established by Geographic Reference Service, adapted to `tenantId`:
 
 ```properties
 quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3}] (%t) [pid=%X{processId}] [user=%X{userId}] [tenantId=%X{tenantId}] %s%e%n
@@ -255,122 +272,157 @@ MDC keys:
 
 Message convention:
 
-`[LOCATION] message`
+```text
+[LOCATION] message
+```
 
-The request logging boundary owns MDC creation, propagation and cleanup. Logging framework classes remain outside domain/application core.
+MDC/SLF4J/Quarkus logging remains in API/infrastructure/bootstrap concerns, not domain/application core.
 
-There is no `Platform Logging Capability` software system, no remote log acknowledgement, and no centralized-retention requirement in Party Registry V1. The application considers its decryption-log obligation satisfied only after successful synchronous emission through its configured local logger. A synchronous local logging failure withholds plaintext.
+No `Platform Logging Capability` exists in C4. Decryption is fail-closed on synchronous local log-emission failure; V1 does not claim remote log delivery or centralized persistence/retention.
 
-## 14. Resilience, Performance and Recovery
+## 15. Geographic Reference
 
-- Geographic dependency behavior follows the approved cache/503 rules.
-- RabbitMQ attempts use bounded timeout/concurrency and backoff/jitter while preserving same-event retry and no publisher-owned DLQ/discard policy.
-- Connection pools, request concurrency and outbox batches are bounded and tuned from performance evidence.
-- Readiness fails on unusable mandatory secrets, unsupported active rule configuration, unavailable mandatory persistence, or startup failure.
-- Transient RabbitMQ failure is represented through lag/dependency signals rather than restart loops.
-- PostgreSQL backup/RPO/RTO obligations remain unchanged.
-- No premature HA/multi-region/distributed-cache topology is introduced.
+Country-code validation uses Geographic Reference Service with the approved:
 
-## 15. Deployment Architecture
+- 24-hour normal in-memory cache;
+- up-to-seven-day stale fallback during dependency unavailability;
+- 503/fail-unchanged behavior when no usable cache exists;
+- historical-code preservation.
+
+The cache is not a source of truth and is lost on process restart.
+
+## 16. Deployment
 
 - rootless Podman + Quadlet on the approved VPS;
 - application bound to loopback behind internal nginx;
-- local/development may use an uncommitted `.env` file;
-- VPS may use Podman secrets or a protected host-only env file;
+- local/development secrets may use uncommitted `.env`;
+- VPS secrets may use Podman secrets or protected host-only env files;
 - secret values never enter Git or the OCI image;
 - PostgreSQL, RabbitMQ and Geographic Reference are the actual external/dependency boundaries shown in LikeC4;
-- no logging platform appears in the C4 model;
 - same immutable OCI digest is promoted across environments;
 - production promotion does not rebuild;
-- restricted deployment interfaces are used; database changes are forward-only.
+- database changes are forward-only and governed;
+- runtime DB credentials are distinct from migration/administration credentials and must not mutate `identifier_schemes`.
 
-`architecture/model.c4` represents system context, containers, components and deployment using LikeC4 `deployment {}` / `instanceOf` semantics.
+## 17. Readiness and Resilience
 
-## 16. Verification Strategy
+Readiness must fail or report unavailable when required capabilities/configuration are unusable, including:
+
+- mandatory PostgreSQL access unavailable;
+- required encryption/HMAC secret unavailable or invalid;
+- persisted Scheme configuration references required normalizer/validator implementation unavailable in the running version;
+- startup cannot establish mandatory configuration.
+
+Transient RabbitMQ failure is represented through dependency/lag signals rather than restart loops. Geographic unavailability follows the approved cache semantics.
+
+No automatic failover, multi-region topology, distributed cache or premature horizontal-scaling architecture is introduced.
+
+## 18. Database Contract Handoff
+
+`docs/database/v1-scheme.dbml` remains the exclusive physical source of truth.
+
+Database-contract validation must verify:
+
+1. PostgreSQL 18 compatibility.
+2. Party type/detail constraints.
+3. nationality uniqueness/date invariants.
+4. permanent `(tenant_id, identifier_scheme_id, normalized_value_hash)` uniqueness.
+5. verified-primary Identifier uniqueness.
+6. tenant-qualified references and optimistic versions.
+7. outbox checks and `SKIP LOCKED` delivery semantics.
+8. no plaintext identifier persistence.
+9. `identifier_schemes` runtime read-only privilege separation.
+10. Scheme data changes remain migration/DB-administration governed and produce no tenant Party outbox event.
+
+No automatic DBML redesign is authorized.
+
+## 19. Verification Strategy
 
 | Layer | Mandatory evidence |
 |---|---|
-| Domain | Lifecycle, type/detail/date, mask, rule-catalog and identifier-uniqueness semantics. |
-| Application | Tenant propagation, transaction intent, If-Match, exact lookup, decryption log-before-return. |
-| Architecture | Domain/application dependency purity and adapter direction. |
-| LikeC4 | `likec4 validate`; `likec4 format --check` where CLI supports it. |
-| Database | PostgreSQL 18 schema validation including unconditional tenant+scheme+hash uniqueness and concurrent duplicate attempts. |
-| Integration | Geographic failures, runtime-secret failures, RabbitMQ confirms/restart, transactional outbox. |
-| Security | No plaintext leakage, HMAC separation, encryption secret separation, no-store, no auth/authz behavior. |
-| Logging | MDC process/user/tenant context, `[LOCATION]` format, local decryption-security emission, no external platform dependency. |
-| Performance | Approved pilot load/latency/error/event-lag targets. |
-| Deployment | Digest identity, rootless/loopback posture, secret injection, health/smoke/stabilization, backup/restore. |
+| Domain | Party/Identifier lifecycle, type/detail/date rules, masking and permanent identifier uniqueness. |
+| Application | Tenant propagation, Scheme read-only catalog use, If-Match, exact lookup, decryption log-before-return. |
+| Architecture | Domain/application dependency purity; no Scheme Administration input capability. |
+| LikeC4 | `likec4 validate`; no Identifier Scheme Administrator actor/capability. |
+| Database | PostgreSQL constraints plus runtime `identifier_schemes` SELECT-only privilege. |
+| Adapter integration | Scheme reads succeed; Scheme runtime writes are impossible; Geographic/crypto/logging/RabbitMQ faults behave as specified. |
+| Contract | No Scheme administration/discovery API in V1; approved Party/Identifier contracts remain versioned. |
+| Security/privacy | Tenant isolation, plaintext exclusion, runtime secret separation, no-auth posture, Scheme write privilege denial. |
+| Performance/reliability | Approved load/latency/error/lag targets and publisher recovery. |
+| Deployment | Digest identity, rootless/loopback posture, runtime-secret injection, DB role separation, health/smoke/stabilization and backup/restore. |
 
-Identifier-specific tests must prove:
+## 20. Architecture Guardrails
 
-1. same tenant + same scheme + same normalized value is rejected;
-2. it remains rejected when the old row is rejected, expired or revoked;
-3. another tenant may use the same normalized value;
-4. another scheme may use the same normalized value;
-5. concurrent duplicates yield at most one committed Party Identifier and one corresponding committed side effect;
-6. no `Idempotency-Key` or idempotency storage exists.
+1. Domain imports no Quarkus/Jakarta/REST/JSON/logging/ORM/database/messaging/configuration/crypto-provider APIs.
+2. Application imports no concrete adapter implementation.
+3. Inbound adapters call application input ports only.
+4. Outbound adapters implement application output ports.
+5. No Scheme Administration input port, REST resource, service or background mutation exists.
+6. Identifier Scheme catalog contracts exposed inward are query-only.
+7. Runtime DB role has no `INSERT`/`UPDATE`/`DELETE` privilege on `identifier_schemes`.
+8. Every tenant-owned persistence operation is tenant-qualified.
+9. Business mutation and required outbox insertion commit atomically.
+10. Plaintext identifiers and keys never enter logs/traces/metrics/events/ordinary responses/persistence.
+11. Blocking work on reactive paths requires bounded isolation and tests.
+12. No public outbox CRUD or cross-service database access/FK.
+13. No command-level idempotency mechanism is introduced.
+14. Identifier uniqueness remains permanent per tenant+Scheme+normalized value.
+15. Runtime secrets remain outside Git/image.
+16. V1 contains no login/authentication/authorization/roles.
+17. Enterprise logs use `processId`, `userId`, `tenantId` and `[LOCATION] message`.
+18. `likec4 validate` is mandatory architecture evidence.
+19. Database-managed Scheme changes create no Party Registry tenant business event.
+20. A future runtime Scheme administration feature requires a new product/security/API/database decision and ADR.
 
-## 17. Architecture Guardrails
+## 21. Risks and Pending Decisions
 
-1. Domain imports no framework, persistence, messaging, logging, configuration or crypto-provider APIs.
-2. Application core imports no concrete adapters, MDC/SLF4J or Quarkus APIs.
-3. Inbound adapters call input ports; outbound adapters implement output ports.
-4. Every tenant-owned persistence operation is tenant-qualified.
-5. Models remain separated by boundary.
-6. Business logic does not live in REST resources, repositories, mappers or publisher loops.
-7. Business mutation + required outbox insertion commit atomically.
-8. Plaintext identifiers and secrets never enter persistence or telemetry.
-9. Blocking work on reactive paths requires bounded isolation.
-10. No public outbox CRUD, shared DB write, cross-service FK or frontend DB access.
-11. Public contracts are versioned and contract-first.
-12. DBML changes require human authority; implementation never silently redesigns persistence.
-13. V1 implements no command-level idempotency mechanism.
-14. Party Identifier uniqueness is permanent per tenant + scheme + normalized value.
-15. V1 has no external logging platform/system dependency.
-16. V1 has no login/authentication/authorization request dependency.
-17. Runtime keys are injected via approved `.env`/Podman secret mechanisms.
-18. LikeC4 validation is required before architecture approval.
-
-## 18. Risks and Pending Decisions
-
-| ID | Classification | Treatment |
+| ID | Risk | Treatment |
 |---|---|---|
-| AR-001 | **RESOLVED** — former command-idempotency persistence conflict | Requirement was superseded by human authority. Do not implement a substitute idempotency mechanism. Identifier duplicate prevention is now the DBML unconditional uniqueness rule. |
-| AR-002 | High security/privacy — trusted internal caller can assert tenant/user and decrypt | Internal-only network, tenant predicates, no-store, local security logging, security/production gates. |
-| AR-003 | High compliance — no purge/legal retention policy | Data minimisation; future compliance decision required before policy change. |
-| AR-004 | High deployment — existing CI predates approved restricted/immutable promotion | Later deployment/release remediation and gates. |
-| AR-005 | Medium integration — RabbitMQ uncertainty/backlog | Same-ID retry, confirms, metrics, operator recovery, consumer dedupe. |
-| AR-006 | Medium availability — missing secrets/local logging/geographic failure can deny affected operations | Fail closed, readiness/cache rules and operational visibility. |
-| AR-007 | Medium contract — exact pagination parameters lack authoritative product source | Authorized API-contract decision or explicit deferral before API approval. |
-| AR-008 | High database — updated DBML still requires PostgreSQL 18 validation | Database-contract gate; no automatic correction. |
+| AR-002 | Internal callers can assert tenant/user and invoke decryption. | Preserve approved internal-only V1 posture; security/production gates evaluate residual risk. |
+| AR-003 | No legal purge/retention policy. | Preserve no-purge technical behavior; future governance decision required. |
+| AR-004 | Existing CI/deployment may conflict with approved immutable/restricted promotion. | Later release/deployment remediation and gates. |
+| AR-005 | RabbitMQ outage/unknown outcomes cause backlog/duplicates. | Same-ID retry, confirms, metrics, recovery, consumer dedupe. |
+| AR-006 | Mandatory secret/logging/Geographic failures deny affected operations. | Fail closed, readiness/cache rules and operational evidence. |
+| AR-007 | Exact pagination contract parameters lack authoritative source per RG-401. | Resolve/defer at API-contract gate. |
+| AR-008 | DBML/PostgreSQL constraints or privileges may fail validation. | Database-contract gate; no automatic DBML changes. |
+| AR-009 | Database-managed Scheme data could reference unsupported application rule keys. | Migration/release validation + startup/readiness fail closed; runtime never rewrites catalog. |
 
-The architecture has no remaining high-risk contradiction caused by command idempotency. Database validation remains responsible for proving the updated physical uniqueness contract.
+The former AR-001 command-idempotency conflict remains resolved by Amendment 001. No new high-risk Scheme-administration conflict remains because Amendment 002 removes that runtime capability.
 
-## 19. ADR Index
+## 22. ADR Index
 
-| ADR | Status | Decision |
-|---|---|---|
-| ADR-001 | Proposed | Reactive execution in one cohesive deployable. |
-| ADR-002 | Proposed | Transactional outbox and confirmed at-least-once publication. |
-| ADR-003 | Proposed | Runtime-secret identifier protection and local fail-closed decryption logging. |
-| ADR-004 | Proposed | Permanent tenant-and-scheme identifier uniqueness without command idempotency. |
+| ADR | Decision |
+|---|---|
+| ADR-001 | Reactive execution in one cohesive deployable. |
+| ADR-002 | Local PostgreSQL transaction + transactional outbox + confirmed at-least-once publication. |
+| ADR-003 | Runtime-secret-backed identifier protection and fail-closed local security logging. |
+| ADR-004 | Permanent tenant+Scheme+normalized-value identifier uniqueness. |
+| ADR-005 | Identifier Schemes are database-managed, runtime read-only reference data. |
 
-## 20. Factory Handoff
+## 23. Implementation Planning Handoff
 
-After Issue #4 changes are merged into `1-ft-1`, the project owner must record the new human decision with `factoryctl`. The factory will then return from `BLOCKED_HIGH_RISK` to its previous `ARCHITECTURE` state and reevaluate the architecture using the new authoritative decision and amended DBML.
+Implementation planning may create work for Party, Party Identifier, outbox, Geographic Reference, crypto, local logging and cross-cutting runtime concerns.
 
-The architecture agent/gate must not recreate `Idempotency-Key`, an idempotency store, or `Platform Logging Capability`. If architecture passes, the normal workflow can proceed to `ARCHITECTURE_GATE`, `WAITING_FOR_DBML`, and then database validation after explicit DBML confirmation.
+It MUST NOT create tasks for a Scheme Administration REST resource/use case. Instead it must include:
 
-## 21. Internal Consistency Review
+- a read-only Identifier Scheme catalog output port;
+- PostgreSQL read mapping for Scheme metadata;
+- runtime DB privilege validation prohibiting Scheme writes;
+- readiness tests for unsupported persisted Scheme implementation keys;
+- migration/database-governance tests for Scheme catalog changes.
 
-- One deployable and strict Clean Architecture remain intact.
-- No authentication/authorization dependency was introduced.
-- No external logging platform exists in narrative or LikeC4.
-- Runtime secrets remain deployment configuration, not a network key service.
-- Command idempotency is explicitly removed rather than replaced.
-- Permanent identifier uniqueness is represented consistently in Amendment 001, ADR-004, DBML, narrative architecture and LikeC4 component descriptions.
-- Exact lookup and uniqueness use the same protected tenant-effective HMAC fingerprint without persisting plaintext.
-- AR-001 is resolved by superseding its source requirement, not by inventing persistence.
-- Transactional outbox/RabbitMQ consumer idempotency remains unchanged and is not confused with client-command idempotency.
-- DBML remains the exclusive physical source and must pass independent PostgreSQL 18 validation.
-- Architecture remains Proposed until independent gate approval.
+Persistence implementation/migrations remain subject to the database-contract gate and human DBML governance.
+
+## 24. Internal Consistency Review
+
+- LikeC4 has no Identifier Scheme Administrator actor.
+- LikeC4 has no Scheme Administration Capability.
+- Party Registry runtime has read-only Scheme catalog access only.
+- Scheme changes belong to database migration/administration governance.
+- Database Scheme changes are not tenant Party business events.
+- Permanent identifier uniqueness remains tenant+Scheme+normalized value.
+- No command-level idempotency exists.
+- No external logging platform exists.
+- No V1 authentication/authorization exists.
+- DBML remains authoritative and no table is inferred into an API merely because it exists.
+- Architecture remains Proposed pending independent gate evaluation.
