@@ -1,0 +1,19 @@
+{
+  "actor": "Alex / responsable del proyecto",
+  "destinationState": "REQUIREMENTS_GATE",
+  "dryRun": false,
+  "effectiveEvent": "HUMAN_DECISION_RECORDED",
+  "note": "RG-101 through RG-106 reviewed and approved as recorded in .factory/decisions.json",
+  "occurredAt": "2026-08-10T03:27:39Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "HUMAN_DECISION_RECORDED",
+  "riskLevel": null,
+  "sequence": 11,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "f305e0b8-24a7-45f6-9606-f698121d8ff6",
+  "workflowId": "software-factory-default"
+}

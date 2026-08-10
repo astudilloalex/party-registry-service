@@ -55,9 +55,17 @@
       "note": "RG-106 approved. PENDING means an outbox event has not received positive publisher confirmation. Transient RabbitMQ/network failures keep the same event eligible for retry, increment publish_attempts and preserve the same event_id; backoff and jitter are technical architecture/operations configuration. A non-recoverable serialization or publication error moves the event to FAILED with stable non-sensitive error evidence. FAILED events remain stored and operator-visible. After the cause is corrected, an authorized internal operational recovery may make the same event eligible for publication again without changing event_id. V1 performs no automatic discard or purge of outbox events and the Party Registry publisher does not move its own failed events to a DLQ. Consumer-side queues and DLQs remain consumer-owned. A business transaction already committed is never rolled back because publication later fails.",
       "recordedAt": "2026-08-10T03:21:00Z",
       "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_DECISION_RECORDED",
+      "id": "f305e0b8-24a7-45f6-9606-f698121d8ff6",
+      "note": "RG-101 through RG-106 reviewed and approved as recorded in .factory/decisions.json",
+      "recordedAt": "2026-08-10T03:27:39Z",
+      "state": "BLOCKED_HIGH_RISK"
     }
   ],
   "project": "party-registry-service",
   "schemaVersion": 1,
-  "updatedAt": "2026-08-10T03:21:00Z"
+  "updatedAt": "2026-08-10T03:27:39Z"
 }

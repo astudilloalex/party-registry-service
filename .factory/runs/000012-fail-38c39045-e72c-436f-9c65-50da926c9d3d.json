@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:requirements-gate-agent",
+  "destinationState": "SPECIFICATION",
+  "dryRun": false,
+  "effectiveEvent": "FAIL",
+  "note": "Validated OpenCode invocation oc-48e93284-608b-4d2f-9af7-7907caf08222",
+  "occurredAt": "2026-08-10T03:30:37Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "REQUIREMENTS_GATE",
+  "repairCycleCount": 2,
+  "requestedEvent": "FAIL",
+  "riskLevel": "HIGH",
+  "sequence": 12,
+  "sourceState": "REQUIREMENTS_GATE",
+  "transitionId": "38c39045-e72c-436f-9c65-50da926c9d3d",
+  "workflowId": "software-factory-default"
+}
