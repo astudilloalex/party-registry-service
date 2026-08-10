@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:solution-architecture-agent",
+  "destinationState": "BLOCKED_HIGH_RISK",
+  "dryRun": false,
+  "effectiveEvent": "NEEDS_HUMAN_DECISION",
+  "note": "Validated OpenCode invocation oc-33037964-68f6-4d87-b8eb-13ecf5f15fe9",
+  "occurredAt": "2026-08-10T04:26:19Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "NEEDS_HUMAN_DECISION",
+  "riskLevel": "HIGH",
+  "sequence": 17,
+  "sourceState": "ARCHITECTURE",
+  "transitionId": "3fd34958-4996-4b3f-a4d2-9edfdf8afad9",
+  "workflowId": "software-factory-default"
+}
