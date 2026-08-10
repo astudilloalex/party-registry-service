@@ -1,0 +1,19 @@
+{
+  "actor": "Alex",
+  "destinationState": "REQUIREMENTS_GATE",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": "Re-evaluate REQUIREMENTS_GATE after AI Software Factory 0.4.2 governance fix",
+  "occurredAt": "2026-08-10T02:38:08Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 7,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "14f68fd1-ec74-4e3d-a7de-d2685d2da827",
+  "workflowId": "software-factory-default"
+}
