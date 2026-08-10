@@ -17,10 +17,6 @@ model {
     description 'Submits trusted tenant-scoped Party Registry commands and queries.'
   }
 
-  schemeAdministrator = person 'Identifier Scheme Administrator Consumer' {
-    description 'Maintains the global identifier-scheme catalog through the internal API.'
-  }
-
   eventConsumer = softwareSystem 'Event Consumer' {
     description 'Consumes versioned Party Registry events and deduplicates by event ID.'
   }
@@ -38,25 +34,22 @@ model {
 
     application = container 'Party Registry Application' {
       technology 'Java 25, Quarkus, reactive execution'
-      description 'Provides the internal reactive REST API, orchestrates use cases and publishes committed outbox events.'
+      description 'Provides the internal reactive REST API, orchestrates Party and Identifier use cases, reads the database-managed Identifier Scheme catalog, and publishes committed outbox events.'
 
       reactiveApi = component 'Reactive REST Adapter' {
-        description 'Validates transport and trusted request context, maps commands/results, ETags and stable response envelopes.'
+        description 'Validates transport and trusted request context, maps Party and Identifier commands/results, ETags and stable response envelopes. It exposes no Identifier Scheme administration API.'
       }
       partyCapability = component 'Party Application Capability' {
         description 'Orchestrates Party, detail and nationality use cases and aggregate consistency.'
       }
       identifierCapability = component 'Identifier Application Capability' {
-        description 'Orchestrates protected identifier lifecycle, permanent tenant-and-scheme identifier uniqueness, exact lookup and fail-closed decryption.'
-      }
-      schemeCapability = component 'Scheme Administration Capability' {
-        description 'Orchestrates global identifier-scheme lifecycle and supported implementation-key policy.'
+        description 'Orchestrates protected identifier lifecycle, reads database-managed scheme metadata, enforces permanent tenant-and-scheme identifier uniqueness, exact lookup and fail-closed decryption.'
       }
       eventPublication = component 'Outbox Publication Capability' {
         description 'Claims committed events and preserves confirmation, retry, failure and same-event recovery semantics.'
       }
       postgresAdapter = component 'PostgreSQL Adapter' {
-        description 'Implements tenant-scoped persistence, permanent identifier uniqueness and DBML-governed local transaction ports.'
+        description 'Implements tenant-scoped persistence, permanent identifier uniqueness, DBML-governed local transactions, and read-only runtime access to identifier_schemes.'
       }
       geographicAdapter = component 'Geographic Reference Adapter' {
         description 'Validates active country codes through a bounded non-durable cache and reactive provider client.'
@@ -71,45 +64,40 @@ model {
         description 'Emits the mandatory non-plaintext structured security log through the local application logging path and reports successful emission before plaintext return.'
       }
       runtimeComposition = component 'Runtime Composition and Readiness' {
-        description 'Wires ports/adapters and reports startup, liveness, readiness and non-sensitive telemetry.'
+        description 'Wires ports/adapters, validates required database-managed scheme/rule compatibility, and reports startup, liveness, readiness and non-sensitive telemetry.'
       }
     }
 
     database = container 'Party Registry PostgreSQL Database' {
       technology 'PostgreSQL 18 contract target'
-      description 'Stores DBML-governed Party Registry business state and transactional outbox state, including permanent tenant-and-scheme identifier uniqueness.'
+      description 'Stores DBML-governed Party Registry state, the database-managed Identifier Scheme reference catalog, transactional outbox state, and permanent tenant-and-scheme identifier uniqueness.'
     }
   }
 
-  internalConsumer -> partyRegistry 'Submits trusted tenant-scoped V1 commands and queries using the internal reactive REST contract.'
-  schemeAdministrator -> partyRegistry 'Maintains versioned identifier schemes using the internal REST contract.'
+  internalConsumer -> partyRegistry 'Submits trusted tenant-scoped V1 Party and Identifier commands and queries using the internal reactive REST contract.'
   partyRegistry -> geographicReference 'Validates new active country references through the approved bounded cache policy.'
   partyRegistry -> rabbitMq 'Publishes persistent committed business events with publisher confirms and stable event IDs.'
   rabbitMq -> eventConsumer 'Delivers Party Registry events at least once to consumer-owned queues.'
 
-  internalConsumer -> partyRegistry.application 'Submits V1 HTTPS/JSON commands and queries with tenant, user and process context.'
-  schemeAdministrator -> partyRegistry.application 'Submits global scheme administration commands and queries.'
-  partyRegistry.application -> partyRegistry.database 'Stores and queries DBML-governed state using tenant-scoped reactive PostgreSQL access.'
+  internalConsumer -> partyRegistry.application 'Submits V1 HTTPS/JSON Party and Identifier commands and queries with tenant, user and process context.'
+  partyRegistry.application -> partyRegistry.database 'Stores and queries DBML-governed state and reads database-managed Identifier Scheme metadata.'
   partyRegistry.application -> geographicReference 'Retrieves active country-reference evidence through a reactive bounded-cache adapter.'
   partyRegistry.application -> rabbitMq 'Publishes committed versioned outbox events using persistent messages and confirms.'
 
   partyRegistry.application.reactiveApi -> partyRegistry.application.partyCapability 'Invokes Party use cases with validated trusted context.'
   partyRegistry.application.reactiveApi -> partyRegistry.application.identifierCapability 'Invokes identifier use cases and maps protected outcomes.'
-  partyRegistry.application.reactiveApi -> partyRegistry.application.schemeCapability 'Invokes scheme administration use cases.'
   partyRegistry.application.partyCapability -> partyRegistry.application.postgresAdapter 'Loads and commits tenant-scoped Party aggregates and required outbox records.'
   partyRegistry.application.partyCapability -> partyRegistry.application.geographicAdapter 'Validates new country references.'
-  partyRegistry.application.identifierCapability -> partyRegistry.application.postgresAdapter 'Loads and commits tenant-scoped identifier state while enforcing permanent tenant-and-scheme uniqueness.'
+  partyRegistry.application.identifierCapability -> partyRegistry.application.postgresAdapter 'Reads database-managed Identifier Schemes and loads/commits tenant-scoped identifier state while enforcing permanent tenant-and-scheme uniqueness.'
   partyRegistry.application.identifierCapability -> partyRegistry.application.protectionAdapter 'Protects, fingerprints and decrypts identifier values through explicit outcomes.'
   partyRegistry.application.identifierCapability -> partyRegistry.application.securityLogAdapter 'Requires acknowledged non-plaintext local security-log emission before plaintext return.'
-  partyRegistry.application.schemeCapability -> partyRegistry.application.postgresAdapter 'Loads and commits global scheme state without tenant outbox events.'
   partyRegistry.application.eventPublication -> partyRegistry.application.postgresAdapter 'Claims and updates durable outbox delivery state.'
   partyRegistry.application.eventPublication -> partyRegistry.application.rabbitAdapter 'Publishes the same versioned event and classifies confirmation outcome.'
-  partyRegistry.application.postgresAdapter -> partyRegistry.database 'Executes DBML-governed reactive queries, uniqueness constraints and local transactions.'
+  partyRegistry.application.postgresAdapter -> partyRegistry.database 'Executes DBML-governed reactive queries, uniqueness constraints and local transactions; runtime writes to identifier_schemes are forbidden.'
   partyRegistry.application.geographicAdapter -> geographicReference 'Retrieves active ISO country references.'
   partyRegistry.application.rabbitAdapter -> rabbitMq 'Publishes persistent messages to the approved durable topic exchange.'
   partyRegistry.application.runtimeComposition -> partyRegistry.application.partyCapability 'Wires application ports and health instrumentation.'
-  partyRegistry.application.runtimeComposition -> partyRegistry.application.identifierCapability 'Wires protection and local security-log ports and readiness checks.'
-  partyRegistry.application.runtimeComposition -> partyRegistry.application.schemeCapability 'Wires scheme ports and implementation-catalog readiness.'
+  partyRegistry.application.runtimeComposition -> partyRegistry.application.identifierCapability 'Wires scheme-read, protection and local security-log ports and readiness checks.'
   partyRegistry.application.runtimeComposition -> partyRegistry.application.eventPublication 'Starts bounded outbox publication and exposes lag/failure signals.'
 }
 
@@ -143,9 +131,8 @@ deployment {
 views {
   view systemContext of partyRegistry {
     title 'Party Registry Service — System Context'
-    description 'People, target system and actual external systems only.'
+    description 'People, target system and actual external systems only. Identifier Scheme maintenance is database governance, not a Party Registry actor interaction.'
     include internalConsumer
-    include schemeAdministrator
     include partyRegistry
     include geographicReference
     include rabbitMq
@@ -154,9 +141,8 @@ views {
 
   view containers of partyRegistry {
     title 'Party Registry Service — Containers'
-    description 'One application deployable and its service-owned PostgreSQL data container.'
+    description 'One application deployable and its service-owned PostgreSQL data container; Identifier Schemes are database-managed reference data read by the application.'
     include internalConsumer
-    include schemeAdministrator
     include partyRegistry.application
     include partyRegistry.database
     include geographicReference
@@ -166,7 +152,7 @@ views {
 
   view applicationComponents of partyRegistry.application {
     title 'Party Registry Application — Components'
-    description 'Stable Clean Architecture, transaction, identifier-uniqueness and sensitive-data responsibilities.'
+    description 'Strict Clean Architecture with Party and Identifier use cases only; no Scheme Administration capability.'
     include *
   }
 
