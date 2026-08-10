@@ -1,17 +1,15 @@
 {
-  "currentState": "FAILED_AFTER_THREE_ATTEMPTS",
+  "currentState": "REQUIREMENTS_GATE",
   "initializedAt": "2026-08-09T19:08:42Z",
-  "lastEffectiveEvent": "REPAIR_LIMIT_REACHED",
-  "lastEvent": "FAIL",
-  "lastTransitionAt": "2026-08-10T03:40:05Z",
-  "lastTransitionId": "a42d124f-fbc5-4fa7-a113-fe3202eaebe5",
-  "previousState": "REQUIREMENTS_GATE",
+  "lastEffectiveEvent": "HUMAN_REPAIR_RETRY_APPROVED",
+  "lastEvent": "HUMAN_REPAIR_RETRY_APPROVED",
+  "lastTransitionAt": "2026-08-10T04:14:56Z",
+  "lastTransitionId": "b79777f7-6c41-4998-a4c9-0edb9f721bbd",
+  "previousState": "FAILED_AFTER_THREE_ATTEMPTS",
   "project": "party-registry-service",
-  "repairCycles": {
-    "REQUIREMENTS_GATE": 3
-  },
+  "repairCycles": {},
   "schemaVersion": 1,
-  "sequence": 14,
-  "updatedAt": "2026-08-10T03:40:05Z",
+  "sequence": 15,
+  "updatedAt": "2026-08-10T04:14:56Z",
   "workflowId": "software-factory-default"
 }

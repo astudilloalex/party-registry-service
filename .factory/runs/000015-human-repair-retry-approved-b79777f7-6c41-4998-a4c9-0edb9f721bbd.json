@@ -1,0 +1,19 @@
+{
+  "actor": "Alex / responsable del proyecto",
+  "destinationState": "REQUIREMENTS_GATE",
+  "dryRun": false,
+  "effectiveEvent": "HUMAN_REPAIR_RETRY_APPROVED",
+  "note": "Reviewed exhausted requirements repair episode after factory governance fix",
+  "occurredAt": "2026-08-10T04:14:56Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "REQUIREMENTS_GATE",
+  "repairCycleCount": 0,
+  "requestedEvent": "HUMAN_REPAIR_RETRY_APPROVED",
+  "riskLevel": null,
+  "sequence": 15,
+  "sourceState": "FAILED_AFTER_THREE_ATTEMPTS",
+  "transitionId": "b79777f7-6c41-4998-a4c9-0edb9f721bbd",
+  "workflowId": "software-factory-default"
+}

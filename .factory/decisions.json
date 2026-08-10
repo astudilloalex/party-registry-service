@@ -63,9 +63,17 @@
       "note": "RG-101 through RG-106 reviewed and approved as recorded in .factory/decisions.json",
       "recordedAt": "2026-08-10T03:27:39Z",
       "state": "BLOCKED_HIGH_RISK"
+    },
+    {
+      "actor": "Alex / responsable del proyecto",
+      "event": "HUMAN_REPAIR_RETRY_APPROVED",
+      "id": "b79777f7-6c41-4998-a4c9-0edb9f721bbd",
+      "note": "Reviewed exhausted requirements repair episode after factory governance fix",
+      "recordedAt": "2026-08-10T04:14:56Z",
+      "state": "FAILED_AFTER_THREE_ATTEMPTS"
     }
   ],
   "project": "party-registry-service",
   "schemaVersion": 1,
-  "updatedAt": "2026-08-10T03:27:39Z"
+  "updatedAt": "2026-08-10T04:14:56Z"
 }
