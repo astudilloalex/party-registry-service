@@ -21,7 +21,10 @@ Project PartyRegistryServiceV1 {
     using ISO 3166-1 alpha-2 codes, without remote foreign keys.
 
     Complete identification values are encrypted with authenticated encryption.
-    Exact lookup and active uniqueness use a tenant-isolated HMAC fingerprint.
+    Exact lookup and permanent identifier uniqueness use a tenant-isolated HMAC
+    fingerprint. Within one tenant and Identifier Scheme, the same normalized
+    identifier value can never be registered more than once, regardless of
+    lifecycle status.
 
     Keycloak authenticates accounts, but it is not the registry of persons.
     The relationship between an authenticated subject and party_id belongs to
@@ -275,8 +278,8 @@ Table party_identifiers {
   issuer_code VARCHAR(64) [note: 'Issuing authority, for example SRI or REGISTRO_CIVIL.']
 
   encrypted_value TEXT [not null, note: 'Authenticated encryption; never plain text.']
-  encryption_key_version SMALLINT [not null, note: 'Version of the external KMS or secret-managed encryption key.']
-  normalized_value_hash CHAR(64) [not null, note: 'Tenant-isolated HMAC-SHA-256 hexadecimal fingerprint of the normalized value.']
+  encryption_key_version SMALLINT [not null, note: 'Version of the runtime-injected encryption key used for this ciphertext.']
+  normalized_value_hash CHAR(64) [not null, note: 'Tenant-isolated HMAC-SHA-256 hexadecimal fingerprint of the normalized value; used for exact lookup and permanent uniqueness within the tenant and Identifier Scheme.']
   masked_value VARCHAR(64) [not null, note: 'Safe representation for UI and logs.']
   normalization_version SMALLINT [not null, default: 1]
 
@@ -295,7 +298,7 @@ Table party_identifiers {
   version BIGINT [not null, default: 0, note: 'Optimistic concurrency version of the Party Identifier aggregate.']
 
   indexes {
-    (tenant_id, identifier_scheme_id, normalized_value_hash, status) [name: 'ix_party_identifier_tenant_hash_status']
+    (tenant_id, identifier_scheme_id, normalized_value_hash) [unique, name: 'uq_party_identifier_tenant_scheme_hash']
     (tenant_id, party_id, identifier_scheme_id, status) [name: 'ix_party_identifiers_party_scheme_status']
     (tenant_id, party_id, is_primary) [name: 'ix_party_identifiers_primary']
   }
@@ -313,11 +316,17 @@ Table party_identifiers {
     Aggregate for official identifiers such as national ID, RUC, passport,
     residence permit and legal registration number.
 
-    Flyway must create:
-    - A partial unique index on
-      (tenant_id, identifier_scheme_id, normalized_value_hash)
-      WHERE status IN ('PENDING_VERIFICATION', 'VERIFIED').
-    - A partial unique index on
+    The tuple (tenant_id, identifier_scheme_id, normalized_value_hash) is a
+    permanent business uniqueness key. Once a normalized identifier value has
+    existed for a given tenant and Identifier Scheme, no second row may reuse
+    that value, even when the previous row is REJECTED, EXPIRED or REVOKED.
+    Lifecycle status never releases the identifier for reuse.
+
+    The same normalized identifier value may exist in another tenant or under a
+    different Identifier Scheme because either change produces a different
+    uniqueness scope.
+
+    Flyway must create a partial unique index on
       (tenant_id, party_id, identifier_scheme_id)
       WHERE is_primary = true AND status = 'VERIFIED'.
 
