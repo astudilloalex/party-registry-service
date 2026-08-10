@@ -5,21 +5,21 @@
 | Field | Value |
 |---|---|
 | Status | Proposed |
-| Approval | Pending `clean-architecture-gate-agent` after human decision recording |
+| Approval | Pending independent `clean-architecture-gate-agent` evaluation |
 | Architecture identifier | PRS-ARCH-001 |
 | Version | 0.4 |
-| Author | `solution-architecture-agent`, corrected by architecture review |
+| Author | `solution-architecture-agent` |
 | Historical requirements baseline | PRS-REQ-001 v0.4 |
 | Effective requirements amendments | `requirements-amendment-001.md`, `requirements-amendment-002.md` |
 | Persistence authority | `docs/database/v1-scheme.dbml` |
 | Architecture model | `architecture/model.c4` |
-| Human change records | GitHub Issues #4 and #6 |
+| Authoritative human decision | `.factory/decisions.json`, decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42` |
 
-This architecture preserves the already-gated PRS-REQ-001 v0.4 bytes as historical evidence. Amendment 001 supersedes command-level idempotency and the assumed external logging platform. Amendment 002 supersedes every runtime Identifier Scheme administration use case. The project-owner decisions have precedence over older generated statements once recorded through the governed factory decision flow.
+This architecture preserves the independently gated PRS-REQ-001 v0.4 bytes as historical evidence. The factoryctl-recorded human decision above approves Amendments 001 and 002: Amendment 001 supersedes command-level idempotency and the assumed external logging platform, while Amendment 002 supersedes every runtime Identifier Scheme administration use case. This document is a proposal and does not approve those requirements, itself, or a workflow transition.
 
 ## 2. Source Precedence
 
-1. Recorded human decisions and the explicit project-owner clarifications represented by Issues #4/#6 and their amendments.
+1. Recorded human decisions in `.factory/decisions.json`, including approval of Amendments 001 and 002.
 2. `.factory/project.yaml`.
 3. Effective requirements: PRS-REQ-001 v0.4 plus Amendments 001 and 002.
 4. `docs/database/v1-scheme.dbml` for physical persistence facts.
@@ -27,6 +27,27 @@ This architecture preserves the already-gated PRS-REQ-001 v0.4 bytes as historic
 6. Verified repository facts.
 
 No architecture statement may infer a runtime CRUD/use case solely because a DBML table exists.
+
+### 2.1 Statement classification
+
+The labels below apply throughout this document and its ADRs:
+
+- **CONFIRMED REQUIREMENT (CRQ):** effective PRS-REQ-001 v0.4 behavior after the factoryctl-recorded Amendments 001 and 002.
+- **EXISTING FACT (EF):** repository evidence verified during architecture analysis; it is not automatically TO-BE authority.
+- **ARCHITECTURE CONSTRAINT (ACN):** mandatory manifest, profile, DBML-authority, or effective-requirement boundary.
+- **TO-BE DECISION (TBD):** proposed architecture pending the independent architecture gate.
+- **DESIGN ASSUMPTION (DA):** a low-risk temporary assumption with explicit validation and false-case consequence.
+- **PENDING DECISION (PD):** an unresolved choice requiring the named later authority.
+- **OUT OF SCOPE (OOS):** explicitly excluded V1 responsibility.
+
+Unless a paragraph is prefixed otherwise, sections 3–4 state **CRQ/OOS**, sections 5–17 and 19–20 state **TBD** implementing cited **CRQ/ACN**, section 18 is a downstream handoff constrained by **ACN**, and section 21 explicitly classifies risks and pending decisions. Physical structures quoted from DBML are **EF** and remain governed exclusively by DBML.
+
+### 2.2 Baseline evidence and known supersession
+
+- **EF:** `.factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json` records an independent requirements-gate `PASS` for PRS-REQ-001 v0.4.
+- **CRQ:** `.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42` subsequently approves Amendments 001 and 002 and explicitly supersedes RG-104 and runtime Scheme administration.
+- **EF:** each amendment's document-control status still says decision recording is pending. The later factoryctl decision is higher-precedence authority; this architecture does not edit requirements artifacts.
+- **ACN:** `docs/database/v1-scheme.dbml` is the exclusive physical PostgreSQL design authority and was not modified.
 
 ## 3. System Scope
 
@@ -57,6 +78,17 @@ There is **no Identifier Scheme Administrator Consumer** in V1.
 
 There is also no external logging platform and no remote V1 key-management service. Logging is local application behavior; encryption/HMAC master keys are runtime-injected deployment secrets.
 
+### 4.1 Ownership and trust boundaries
+
+| Boundary | Classification | Ownership and trust rule |
+|---|---|---|
+| Internal consumer → REST entry point | CRQ | Callers supply trusted `tenant-id`, `user-id`, and optional `process-id`; V1 authenticates and authorises none of them. Network access control is external, and tenant-qualified application/persistence behavior remains mandatory. |
+| Application → PostgreSQL | ACN/TBD | Party Registry owns its data contract; the runtime role is least privileged and cannot mutate `identifier_schemes`; migration/administration credentials are separate. |
+| Application → Geographic Reference | CRQ/TBD | Geographic Reference owns country truth; Party Registry owns cache/failure translation and stores logical codes only. |
+| Application → RabbitMQ | CRQ/TBD | Party Registry owns publication through broker confirmation; consumers own queues, DLQs, and event-ID deduplication. |
+| Runtime → injected secrets | CRQ/ACN | VPS operations owns provision/protection; application receives versioned encryption/HMAC masters without logging or embedding them. |
+| Local application logging path | CRQ/TBD | Party Registry owns synchronous emission attempt only; no external logging system, audit store, centralized durability, or retention dependency is claimed. |
+
 ## 5. Selected Architecture
 
 1. One cohesive Quarkus Java 25 deployable.
@@ -69,8 +101,10 @@ There is also no external logging platform and no remote V1 key-management servi
 8. Complete identifiers are authenticated-encrypted; exact lookup and permanent identifier uniqueness use tenant-isolated HMAC.
 9. No client-command `Idempotency-Key`, replay store, request fingerprint, idempotency cache or idempotency port exists in V1.
 10. Encryption/HMAC masters are supplied through approved `.env`/Podman-secret mechanisms.
-11. Operational and decryption-security logs are emitted through the local application logging path using the AlexAstudillo standard.
+11. Operational and decryption-security logs are emitted through the local application logging path and carry the effective requirements' structured fields; no unverified external logging format is made normative here.
 12. No CQRS, event sourcing, distributed transaction, saga, extra microservice or durable cache is introduced without a new approved decision/ADR.
+
+The single deployable is selected because API, publisher, and persistence responsibilities share one bounded context, operational owner, release, and local transaction authority; no approved independent deployment/scaling/trust requirement justifies a second service. Clean Architecture areas remain logical dependency boundaries, not C4 containers.
 
 ## 6. Strict Clean Architecture
 
@@ -212,6 +246,10 @@ No `Idempotency-Key` is accepted or interpreted by V1 commands.
 
 RG-401 remains a nonblocking downstream API-contract authority issue for exact pagination/filter/sort defaults. Architecture does not manufacture those values.
 
+### 10.1 Contract-first rule
+
+The OpenAPI document is the downstream source of truth for the detailed HTTPS/JSON contract and is owned by Party Registry; internal consumers are its consumers. It must version the `/api/v1` surface, preserve `ApiResponse`, context, ETag/If-Match, error, masking, no-store, and tenant non-disclosure semantics, and exclude Scheme administration, outbox CRUD, command idempotency, stack traces, and plaintext outside the decryption response. Published V1 meanings are backward compatible; an incompatible change requires a new approved contract version. Transport DTOs remain inside the inbound adapter and are mapped to boundary-neutral application inputs/results.
+
 ## 11. Transaction Boundaries
 
 | Flow | Atomicity / behavior |
@@ -243,6 +281,18 @@ Publisher semantics remain:
 
 Database-managed Identifier Scheme catalog changes produce **no tenant Party outbox event**.
 
+### 12.1 Integration contracts and failure ownership
+
+| Integration | Contract / security | Timeout, retry, duplicates, ordering and recovery |
+|---|---|---|
+| Internal reactive REST | OpenAPI is source of truth; internal HTTPS/JSON is proposed; V1 trusts validated context and performs no authn/authz. Restricted plaintext is allowed only on approved request fields and the no-store decryption response. | Request deadlines are bounded operational configuration. Clients receive stable error categories. No command replay/idempotency is offered. Correlation uses `process-id`. |
+| Geographic Reference | Provider-owned country contract; Party Registry anti-corruption adapter maps only active ISO alpha-2 evidence. Data is internal. | Each call has a bounded timeout. The 24-hour cache and seven-day stale fallback are authoritative; no usable cache yields unchanged HTTP 503. Cache is non-durable and restart-safe by failing according to the cold-cache rule. |
+| RabbitMQ publication | Party Registry owns immutable versioned event schemas and publisher behavior; persistent messages to the approved durable topic exchange use publisher confirms. Payload is minimized and excludes full identifiers. | Each publish attempt and concurrent claim batch are bounded; persistent eligibility is not attempt-limited because the approved policy forbids automatic discard. Unknown/transient outcomes retain the same ID and retry eligibility with backoff/jitter; delivery is at least once and ordered only by aggregate version evidence, not globally. Consumers deduplicate by event ID and own queues/DLQs. Non-recoverable failures remain operator-visible until authorised same-event recovery. |
+| PostgreSQL | DBML is physical source of truth; Party Registry owns runtime access and local ACID consistency. TLS is required when the connection crosses a trust boundary. | No distributed retry encloses an unknown commit. Safe transaction retries, if introduced, must be bounded and tested against unique/version conflicts. Recovery uses backups, restore evidence, and reconciliation of outbox/business state. |
+| Local security logging | Application-owned structured log contract; local logger only, containing approved identifiers, timestamp, action/outcome, and no plaintext. | Decryption invokes it once before disclosure. Synchronous rejection/failure returns no plaintext. No remote retry, external acknowledgement, or durable collection is claimed. |
+
+Detailed OpenAPI and event schemas are deliberately not generated in this phase. Published event schemas are immutable; incompatible evolution uses a new versioned event type. Event correlation/causation and aggregate version provide traceability; they do not guarantee global ordering.
+
 ## 13. Security and Privacy
 
 - No login, authentication, authorization, roles, JWT/OIDC/Keycloak request processing or 401/403 behavior in V1.
@@ -256,29 +306,25 @@ Database-managed Identifier Scheme catalog changes produce **no tenant Party out
 - Party Registry owns no audit table/database.
 - Runtime DB permissions deny Scheme catalog mutation, reducing validation-policy tampering risk through the application account.
 
-## 14. Enterprise Logging
+### 13.1 Threat controls and security evidence
 
-Party Registry follows the AlexAstudillo pattern established by Geographic Reference Service, adapted to `tenantId`:
+| Threat / abuse case | Architectural control | Required evidence |
+|---|---|---|
+| Cross-tenant enumeration or mutation | Validate canonical context before business access; tenant-qualify every repository operation; return non-disclosing 404 across tenants. | API, persistence integration, and negative tenant-isolation tests. |
+| Caller impersonation / unauthorised decrypt | **CRQ accepted residual boundary:** no V1 authn/authz; bind only to internal loopback/nginx path and never describe caller assertions as identity proof. | Security gate verifies no accidental public binding, the explicit residual risk, and no invented 401/403 behavior. |
+| Plaintext, ciphertext, fingerprint, or key leakage | Minimise plaintext lifetime; separate transport/application/domain/persistence/provider/audit models; prohibit sensitive telemetry/events; mask exactly; inject secrets outside image/repository. | Security tests and telemetry/event inspection. |
+| Replay of state change | If-Match protects aggregate modifications; permanent DB uniqueness protects official identifiers; no command-idempotency promise exists. | Concurrency, uniqueness, and contract tests. |
+| Injection / malformed input | Typed transport validation, parameterised persistence adapter, strict external DTO parsing, stable non-sensitive errors. | API fuzz/negative tests and database adapter review. |
+| Scheme validation-policy tampering | Query-only application port and PostgreSQL runtime privilege denial for catalog writes. | Architecture test plus database privilege integration evidence. |
+| Denial of service / reactive starvation | Bounded request/publisher concurrency, bounded timeouts, connection-pool/resource limits, blocking-call isolation, payload/page bounds. | Performance, saturation, and blocking-path evidence. |
 
-```properties
-quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3}] (%t) [pid=%X{processId}] [user=%X{userId}] [tenantId=%X{tenantId}] %s%e%n
-```
+Personal-data minimisation is limited to DBML-authorised attributes. Restricted identifiers are excluded from non-production fixtures unless irreversibly synthetic; production copies are not an approved test-data source. V1 performs logical retention with no purge and makes no legal-retention claim. A later retention/disposal or data-subject process requires privacy/compliance authority and a requirements/DBML decision.
 
-MDC keys:
+## 14. Local Structured Logging
 
-- `processId`;
-- `userId`;
-- `tenantId`.
+The effective requirements refer to the AlexAstudillo logging convention but do not supply that standard as an independently verifiable repository artifact. This proposal therefore makes only the confirmed fields and behavior normative: request correlation propagates `processId`, `userId`, and `tenantId`; decryption evidence additionally carries Party Identifier ID, timestamp, action and outcome; and no plaintext or other prohibited sensitive value is emitted. The later implementation plan must use a supplied, approved logging standard if one becomes available and must not invent a conflicting format.
 
-Message convention:
-
-```text
-[LOCATION] message
-```
-
-MDC/SLF4J/Quarkus logging remains in API/infrastructure/bootstrap concerns, not domain/application core.
-
-No `Platform Logging Capability` exists in C4. Decryption is fail-closed on synchronous local log-emission failure; V1 does not claim remote log delivery or centralized persistence/retention.
+MDC/SLF4J/Quarkus logging remains in inbound/infrastructure/bootstrap concerns, not domain/application core. No `Platform Logging Capability` exists in C4. Decryption is fail-closed on synchronous local log-emission failure; V1 does not claim remote log delivery or centralized persistence/retention.
 
 ## 15. Geographic Reference
 
@@ -290,6 +336,19 @@ Country-code validation uses Geographic Reference Service with the approved:
 - historical-code preservation.
 
 The cache is not a source of truth and is lost on process restart.
+
+## 15.1 Data architecture and lineage
+
+| Data concept | Owner / system of record | Classification, lineage and lifecycle |
+|---|---|---|
+| Party, matching details and nationalities | Party Registry / PostgreSQL | Names, dates and nationalities are confidential. Internal REST command → domain/application validation → local ACID state → minimal event when required. Logical end/archive only; no V1 purge. |
+| Party Identifier | Party Registry / PostgreSQL | Full value is restricted; ciphertext, protected fingerprint and mask follow DBML. Input → Scheme normalization/validation → encryption/HMAC/mask → local ACID row/outbox. Plaintext is transient and only separately decrypted. |
+| Identifier Scheme catalog | Party Registry database-managed reference data / PostgreSQL | Runtime reads only; governed migration/administration writes. It is not tenant event data and no runtime API owns its lifecycle. |
+| Country reference | Geographic Reference Service | Party Registry stores logical ISO codes and bounded non-durable cache evidence; it does not replicate the authoritative catalog. |
+| Outbox | Party Registry / PostgreSQL | Minimal internal integration state. Retained with business history in V1; no automatic purge/DLQ. |
+| Decryption log | Local application logging output | Approved internal identifiers and outcome only; no Party Registry audit persistence or retention guarantee. |
+
+The database-contract phase must validate physical constraints, cardinality, privileges, PostgreSQL compatibility, and data-quality enforcement directly against DBML. Architecture does not invent tables, columns, indexes, retention periods, replication, reporting exports, or a cache beyond the approved geographic cache.
 
 ## 16. Deployment
 
@@ -304,6 +363,10 @@ The cache is not a source of truth and is lost on process restart.
 - database changes are forward-only and governed;
 - runtime DB credentials are distinct from migration/administration credentials and must not mutate `identifier_schemes`.
 
+The same logical topology applies to development, staging, and production: environment-specific configuration and secrets remain outside the OCI artifact; the candidate is built once, identified by immutable digest, verified in staging, and promoted unchanged to production. Local development may use profile-approved local mechanisms but does not redefine production trust boundaries. Each Quadlet unit runs rootless and non-privileged with explicit CPU/memory, restart, and connection/concurrency limits; exact values are operational configuration validated against NFR-008 rather than invented here. The service binds to loopback and is reached only through nginx; public binding is prohibited. Persistent database storage and backup ownership remain operations-managed.
+
+Database rollout is forward-only. When DBML-authorised changes are later required, use an expand-and-contract compatibility window where needed: apply backward-compatible migration, validate, promote the same compatible application digest, backfill/reconcile if authorised, and contract only after old compatibility is no longer required. Rollback means application roll-forward/re-promotion under approval and must never assume database reversal.
+
 ## 17. Readiness and Resilience
 
 Readiness must fail or report unavailable when required capabilities/configuration are unusable, including:
@@ -316,6 +379,18 @@ Readiness must fail or report unavailable when required capabilities/configurati
 Transient RabbitMQ failure is represented through dependency/lag signals rather than restart loops. Geographic unavailability follows the approved cache semantics.
 
 No automatic failover, multi-region topology, distributed cache or premature horizontal-scaling architecture is introduced.
+
+Liveness reports process viability and must not fail merely because RabbitMQ or Geographic Reference is transiently unavailable. Readiness covers mandatory PostgreSQL, secrets, and usable required Scheme/rule configuration; dependency-specific degradation is exposed separately where the approved cache/outbox semantics permit continued service. All synchronous dependency calls and individual publication attempts use bounded deadlines; retries use backoff/jitter and bounded concurrency. Outbox retry eligibility may persist indefinitely because that is an explicit requirement, but no single retry loop or request may be unbounded.
+
+Recovery uses daily PostgreSQL backups, recurring restore tests, RPO ≤24 hours and RTO ≤8 hours. After restore, operators reconcile aggregate/outbox state, preserve event IDs, and allow at-least-once redelivery; no automated compensation or database rollback is assumed. Runbook ownership is operations-owned where stated in requirements; exact alert thresholds and restore-test recurrence remain operational configuration.
+
+## 17.1 Observability and auditability
+
+- Structured logs carry `processId`, `userId`, and `tenantId`; business transaction/resource/event IDs are added only where needed and never include plaintext, ciphertext, fingerprints, secret values, or confidential payloads.
+- Metrics cover request rate/latency/error class, event-loop or worker saturation, PostgreSQL pool saturation, dependency latency/failures, geographic cache age/status, outbox status/oldest age/attempts/lag, publisher confirmations, and readiness reasons.
+- Traces propagate process/correlation context across reactive boundaries and external calls with sensitive fields filtered; event correlation and causation continue across asynchronous publication.
+- Startup, readiness, and liveness checks are distinct. Alerts support approved latency, publication lag, startup, RPO/RTO and backlog indicators; alert ownership is operations, while exact unapproved thresholds remain configuration.
+- Record audit metadata and operational logs are not interchangeable. DBML audit fields prove stored mutation facts using caller assertions. The decryption security log records actor assertion, action, timestamp, source/process correlation, identifier ID, and outcome before disclosure; no before/after plaintext is allowed and no tamper-resistant audit store is claimed.
 
 ## 18. Database Contract Handoff
 
@@ -351,6 +426,8 @@ No automatic DBML redesign is authorized.
 | Performance/reliability | Approved load/latency/error/lag targets and publisher recovery. |
 | Deployment | Digest identity, rootless/loopback posture, runtime-secret injection, DB role separation, health/smoke/stabilization and backup/restore. |
 
+Automated architecture dependency checks are mandatory: domain may depend on nothing outward; application may depend only on domain; adapters may depend on application/domain contracts; bootstrap alone wires concrete implementations. A project-approved architecture-test mechanism may be selected later without this document adding a build dependency. Reactive verification must detect/block hidden critical-path blocking, verify context propagation, bounded concurrency, transaction behavior and adapter fault handling.
+
 ## 20. Architecture Guardrails
 
 1. Domain imports no Quarkus/Jakarta/REST/JSON/logging/ORM/database/messaging/configuration/crypto-provider APIs.
@@ -369,25 +446,39 @@ No automatic DBML redesign is authorized.
 14. Identifier uniqueness remains permanent per tenant+Scheme+normalized value.
 15. Runtime secrets remain outside Git/image.
 16. V1 contains no login/authentication/authorization/roles.
-17. Enterprise logs use `processId`, `userId`, `tenantId` and `[LOCATION] message`.
+17. Structured logs propagate `processId`, `userId`, and `tenantId`; decryption logs include the additional approved fields and never plaintext.
 18. `likec4 validate` is mandatory architecture evidence.
 19. Database-managed Scheme changes create no Party Registry tenant business event.
 20. A future runtime Scheme administration feature requires a new product/security/API/database decision and ADR.
 
-## 21. Risks and Pending Decisions
+## 21. Risks, Assumptions and Pending Decisions
 
-| ID | Risk | Treatment |
-|---|---|---|
-| AR-002 | Internal callers can assert tenant/user and invoke decryption. | Preserve approved internal-only V1 posture; security/production gates evaluate residual risk. |
-| AR-003 | No legal purge/retention policy. | Preserve no-purge technical behavior; future governance decision required. |
-| AR-004 | Existing CI/deployment may conflict with approved immutable/restricted promotion. | Later release/deployment remediation and gates. |
-| AR-005 | RabbitMQ outage/unknown outcomes cause backlog/duplicates. | Same-ID retry, confirms, metrics, recovery, consumer dedupe. |
-| AR-006 | Mandatory secret/logging/Geographic failures deny affected operations. | Fail closed, readiness/cache rules and operational evidence. |
-| AR-007 | Exact pagination contract parameters lack authoritative source per RG-401. | Resolve/defer at API-contract gate. |
-| AR-008 | DBML/PostgreSQL constraints or privileges may fail validation. | Database-contract gate; no automatic DBML changes. |
-| AR-009 | Database-managed Scheme data could reference unsupported application rule keys. | Migration/release validation + startup/readiness fail closed; runtime never rewrites catalog. |
+| ID / class | Trigger and impact | Confidence | Mitigation / validation gate | Residual disposition |
+|---|---|---|---|---|
+| AR-002 Security, CRQ residual risk | Any internally connected caller can assert tenant/user and decrypt; compromise can disclose restricted identifiers. | High confidence; explicitly approved posture. | Internal-only loopback/nginx boundary, tenant scoping, no-store, fail-closed log, security and production gates. | HIGH residual risk remains accepted only for the approved V1 scope; architecture does not re-accept it. |
+| AR-003 Privacy, PD | A retention/disposal obligation arises; no V1 purge can cause non-compliance or excess retention. | Policy evidence absent. | Preserve records without claiming legal retention; privacy/compliance authority decides before such obligation is implemented. | Latest safe point: before production use subject to such policy. |
+| AR-004 Operational, EF | Existing CI uses direct SSH/SCP, mutable tags or cross-service references; release could violate deployment controls. | Verified by intake, implementation may change later. | Release/deployment phases remediate; immutable-digest, restricted-wrapper, health and stabilization gates. | Must be closed before deployment approval. |
+| AR-005 Integration | RabbitMQ outage/unknown outcome creates backlog or duplicate delivery. | High confidence inherent to at-least-once delivery. | Same event ID, confirms, bounded attempts/concurrency, backlog metrics, recovery, consumer dedupe. | Duplicate delivery remains expected. |
+| AR-006 Availability | Secrets/logging/geography failures deny affected operations. | High confidence by fail-closed requirements. | Readiness, bounded cache, local logging outcome, safe errors, operational runbooks and fault tests. | Intentional consistency/security-over-availability trade-off. |
+| AR-007 Contract, PD | Exact pagination values in historical BR-029 trace to gate completion rather than product authority. | Requirements gate marked nonblocking. | API-contract authority confirms or defers exact values while preserving bounds, deterministic order, validation and tenant isolation. | Latest safe point: before API-contract gate approval. |
+| AR-008 Data | DBML constraints, PostgreSQL 18 compatibility, or Scheme privileges fail validation; persistence could violate invariants. | Unknown until database gate. | Database-contract validation; report conflict and never auto-edit DBML. | High if found; database work remains prohibited until gate. |
+| AR-009 Data/compatibility | Database-managed Scheme references unsupported application implementation key. | Credible configuration risk. | Coordinated release/migration validation, readiness and fail-unchanged operation; runtime never rewrites catalog. | Operational correction required. |
+| DA-001 Assumption | The project-provided LikeC4 grammar accepts the existing custom deployment-node types. If false, model validation fails but business boundaries do not change. | Low-risk syntax assumption because no repository validator/tool is present. | Validate with the project-approved LikeC4 command at the architecture gate or earliest tooling phase; correct syntax only, preserving semantics. | No runtime impact; blocks architecture evidence if validation is mandatory. |
 
-The former AR-001 command-idempotency conflict remains resolved by Amendment 001. No new high-risk Scheme-administration conflict remains because Amendment 002 removes that runtime capability.
+The former AR-001 command-idempotency conflict is resolved by the recorded approval of Amendment 001 and MUST NOT be reintroduced as an implementation mechanism. Runtime Scheme administration is likewise removed by Amendment 002. PD AR-007 does not alter the architecture topology; AR-003 requires human/compliance authority if its trigger occurs.
+
+## 21.1 Requirements-to-architecture traceability
+
+| Effective source | Architecture concern / boundary | Decision or control | Verification |
+|---|---|---|---|
+| FR-001..003, FR-010..012, FR-016..033; BR-001..005, 011..023 as amended | Party capability, tenant boundary, aggregate/version transaction | Party application ports, tenant-qualified persistence, local ACID/outbox, If-Match, geographic port | Domain/application/API/database/concurrency tests |
+| FR-005..006, FR-013..014, FR-018, FR-034..039, FR-046..049 as amended | Identifier capability and restricted-data boundary | Read-only Scheme port, protection port, permanent DB uniqueness, mask, exact lookup, log-before-decrypt | Domain/security/API/database/readiness tests |
+| Amendment 002; effective FR-019/040..045 replacements | Scheme ownership | No Scheme actor/input port/API/mutation/event; SELECT-only runtime role | Architecture, API-surface and DB-privilege checks |
+| FR-008..009, FR-020/050; IR-002..004; VR-015..018 | Event consistency and integration ownership | Atomic outbox, internal publisher, confirmed at-least-once, same-ID recovery | Transaction, broker fault, crash/restart and event-contract tests |
+| FR-015; IR-001; BR-019 | Geographic integration | Anti-corruption adapter, bounded cache, fail-unchanged 503 | Provider contract and fault/cache tests |
+| SR-001..007; DR-004..007 | Security/privacy/audit | Explicit trust boundary, secret separation, plaintext minimisation, no authn/authz, no audit store | Security/privacy gate and telemetry inspection |
+| NFR-004..011; OR-001..009 as amended | Runtime, performance, recovery, observability, deployment | Reactive single deployable, bounded isolation, health/telemetry, rootless Quadlet, immutable digest, backup/restore | Architecture/performance/reliability/deployment gates |
+| CR-001..005; manifest/database profile | Compatibility and migration | Opaque IDs, versioned contracts, DBML authority, forward-only migration, no rebuild | Contract, database, migration and release gates |
 
 ## 22. ADR Index
 

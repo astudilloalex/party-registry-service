@@ -1,0 +1,19 @@
+{
+  "actor": "Alex / responsable del proyecto",
+  "destinationState": "ARCHITECTURE",
+  "dryRun": false,
+  "effectiveEvent": "HUMAN_DECISION_RECORDED",
+  "note": "Approved Amendments 001 and 002. Amendment 001 supersedes RG-104: Party Registry V1 has no Idempotency-Key and no command-level idempotency store. Official identifier uniqueness is permanent per tenant + Identifier Scheme + normalized identifier value, enforced by tenant_id + identifier_scheme_id + normalized_value_hash regardless of lifecycle status. The same normalized value may exist under another tenant or another Identifier Scheme. Party Registry V1 has no external Platform Logging Capability; required structured application/security logs are emitted through the local application logging path following the AlexAstudillo standard, with no audit database or remote logging dependency. Amendment 002 supersedes runtime Identifier Scheme administration: Identifier Schemes such as CEDULA, RUC and PASSPORT are database-managed reference data. Party Registry runtime may read identifier_schemes but must not create, update, delete, activate, deprecate or retire Schemes through REST, application use cases, messaging or background jobs. Scheme changes are performed only through governed database migrations or explicitly authorized database administration with credentials separate from the runtime.",
+  "occurredAt": "2026-08-10T16:11:29Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "HUMAN_DECISION_RECORDED",
+  "riskLevel": null,
+  "sequence": 18,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42",
+  "workflowId": "software-factory-default"
+}

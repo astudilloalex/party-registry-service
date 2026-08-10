@@ -10,7 +10,7 @@ Proposed
 
 For V1, encryption and HMAC master keys are runtime secrets, not a remote key-service dependency. Approved secret-injection mechanisms are unversioned `.env` files for local/development use and protected VPS runtime injection through Podman secrets or a host-only protected environment file. Secret values never belong in Git, the OCI image, logs, traces, metrics or generated architecture artifacts.
 
-The service preserves the AlexAstudillo enterprise logging convention established by `geographic-reference-service`: request correlation is carried in MDC, messages use a stable `[LOCATION]` prefix convention, and the console format includes process and caller context. Party Registry adapts the business-context field from `companyId` to the bounded-context term `tenantId`.
+The effective amendment names the AlexAstudillo enterprise logging convention but no independently verifiable copy of that standard is supplied in this repository or invocation. This ADR therefore standardises only the confirmed structured fields and behavior and leaves concrete console formatting subject to a later supplied, approved logging standard.
 
 There is no `Platform Logging Capability` software system in Party Registry V1. Structured operational and decryption-security messages are emitted by the application through its configured local logging path. Whether the container runtime or host later captures stdout/stderr is an operations detail, not a Party Registry software-system dependency and not part of the C4 model.
 
@@ -20,7 +20,7 @@ There is no `Platform Logging Capability` software system in Party Registry V1. 
 - Keep secret/configuration mechanisms and logging technology outside domain/application layers.
 - Make exact lookup and permanent tenant-and-scheme uniqueness possible without record scanning/decryption.
 - Make security-log-before-disclosure ordering testable and fail closed.
-- Preserve the enterprise logging format without inventing an external logging service.
+- Preserve the confirmed structured logging fields without inventing an external logging service or an unverified concrete format.
 - Avoid inventing an external KMS/key service for V1 when runtime secret injection is the approved mechanism.
 
 ## Considered Options
@@ -39,7 +39,7 @@ Authenticated encryption refers to ciphertext integrity/authentication, such as 
 
 Runtime secret resolution is configuration/deployment behavior, not a network integration. Local/development environments may resolve the versioned masters from an uncommitted `.env` file. VPS environments may resolve them from Podman secrets or a protected host-only environment file with least-privilege filesystem permissions. The application consumes only configured secret values and versions; it does not call a V1 key-management service.
 
-Operational and decryption-security logs follow the enterprise logging baseline. The inbound request filter owns MDC population/cleanup and propagates `processId`, `userId` and `tenantId`; it generates `process-id` when absent under the approved request-context rules. The message convention remains `[LOCATION] message`. Logging helpers, MDC, SLF4J and Quarkus logging configuration remain in API/infrastructure/bootstrap concerns and are forbidden in the pure domain/application core.
+Operational and decryption-security logs carry the confirmed structured fields. The inbound request boundary owns context population/cleanup and propagates `processId`, `userId` and `tenantId`; it generates `process-id` when absent under the approved request-context rules. Logging helpers, MDC, SLF4J and Quarkus logging configuration remain in API/infrastructure/bootstrap concerns and are forbidden in the pure domain/application core.
 
 The decryption-security-log adapter considers emission successful when the required structured message has been accepted by the configured local application logger without synchronous failure. V1 does not claim remote delivery, centralized persistence, external acknowledgement or centralized retention.
 
@@ -51,7 +51,7 @@ The decryption-security-log adapter considers emission successful when the requi
 - Plaintext exposure paths are explicit and testable.
 - Exact search does not scan/decrypt records.
 - Production secrets remain outside repository and OCI artifacts.
-- Logging is consistent with the enterprise service baseline while using Party Registry terminology.
+- Logging has a stable requirements-backed field contract while using Party Registry terminology.
 - The C4 model contains only real external systems.
 
 ### Negative
@@ -75,11 +75,7 @@ Decryption security logs contain tenant ID, user ID, process ID, Party Identifie
 
 Readiness reports missing, invalid or unusable mandatory runtime secrets without revealing values. Operators can inspect application/container logs and non-sensitive decrypt/security-log-emission failures. No external logging platform is required or modeled by Party Registry V1.
 
-The baseline console pattern is the enterprise pattern used by `geographic-reference-service`, adapted to Party Registry context:
-
-```properties
-quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3}] (%t) [pid=%X{processId}] [user=%X{userId}] [tenantId=%X{tenantId}] %s%e%n
-```
+No concrete console-format string is selected by this ADR because the named external convention was not supplied as architecture evidence. Implementation must conform to an approved supplied standard when available while preserving the mandatory structured fields and sensitive-data exclusions.
 
 ## Validation
 
@@ -93,4 +89,4 @@ Any identity-provider integration, authorization, external key service, external
 
 ## Traceability
 
-DBML Party Identifier protection/uniqueness facts; BR-010/021/024/025/027 as amended by `docs/requirements/requirements-amendment-001.md`; FR-005/006/013/014/046/047/048/049; SR-001..007; DR-004/005/007; RG-102/103/105; Issue #4 human clarification; approved enterprise logging baseline in `astudilloalex/geographic-reference-service` (`MDCRequestFilter`, `LogUtil`, `application.properties`).
+DBML Party Identifier protection/uniqueness facts; BR-010/021/024/025/027 as amended by `docs/requirements/requirements-amendment-001.md`; FR-005/006/013/014/046/047/048/049; SR-001..007; DR-004/005/007; RG-102/103/105; `.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`.

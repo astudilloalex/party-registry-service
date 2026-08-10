@@ -1,15 +1,15 @@
 {
   "currentState": "BLOCKED_HIGH_RISK",
   "initializedAt": "2026-08-09T19:08:42Z",
-  "lastEffectiveEvent": "NEEDS_HUMAN_DECISION",
-  "lastEvent": "NEEDS_HUMAN_DECISION",
-  "lastTransitionAt": "2026-08-10T04:26:19Z",
-  "lastTransitionId": "3fd34958-4996-4b3f-a4d2-9edfdf8afad9",
-  "previousState": "ARCHITECTURE",
+  "lastEffectiveEvent": "BLOCKED",
+  "lastEvent": "BLOCKED",
+  "lastTransitionAt": "2026-08-10T16:20:22Z",
+  "lastTransitionId": "26f57585-2a94-4f2f-b090-39bc73a870b8",
+  "previousState": "ARCHITECTURE_GATE",
   "project": "party-registry-service",
   "repairCycles": {},
   "schemaVersion": 1,
-  "sequence": 17,
-  "updatedAt": "2026-08-10T04:26:19Z",
+  "sequence": 20,
+  "updatedAt": "2026-08-10T16:20:22Z",
   "workflowId": "software-factory-default"
 }

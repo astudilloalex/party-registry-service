@@ -19,6 +19,12 @@ The project owner clarified that this is incorrect for V1: Identifier Schemes ar
 - Preserve strict Clean Architecture: identifier use cases depend on a read-only catalog port, not on database tables directly.
 - Keep catalog changes governed by database review/migration controls and outside tenant business events.
 
+## Considered Options
+
+1. Database-managed reference catalog with query-only runtime application port and least-privilege runtime role.
+2. Runtime Scheme Administration REST/application capability.
+3. Hard-code every Scheme record in application code with no database catalog.
+
 ## Decision
 
 Identifier Schemes are **database-managed reference data**.
@@ -81,6 +87,11 @@ If persisted required Scheme configuration references a normalizer/validator imp
 - Adding or changing a document scheme requires the database-management delivery path rather than a runtime API call.
 - Application and database release coordination is required when a new Scheme references a newly introduced normalizer/validator implementation.
 
+### Risks
+
+- A governed database change can reference a rule key unavailable in the deployed application, making readiness and dependent identifier operations fail closed.
+- Excess runtime database privileges could bypass the intended application boundary even when no mutation use case exists.
+
 ## Security and Data Impact
 
 The runtime role restriction reduces the impact of application compromise or misuse by preventing mutation of validation reference data. Scheme data contains configuration/reference metadata rather than identifier plaintext, but unauthorized modification could change validation behavior and therefore data integrity.
@@ -108,4 +119,4 @@ If a later version requires runtime Scheme administration, it requires a new exp
 
 ## Traceability
 
-GitHub Issue #6; `docs/requirements/requirements-amendment-002.md`; `docs/database/v1-scheme.dbml`; `architecture/model.c4`; strict Clean Architecture and PostgreSQL governance profiles.
+`.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`; `docs/requirements/requirements-amendment-002.md`; `docs/database/v1-scheme.dbml`; `architecture/model.c4`; strict Clean Architecture and PostgreSQL governance profiles.

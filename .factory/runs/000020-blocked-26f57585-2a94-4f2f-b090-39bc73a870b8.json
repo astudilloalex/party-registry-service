@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:clean-architecture-gate-agent",
+  "destinationState": "BLOCKED_HIGH_RISK",
+  "dryRun": false,
+  "effectiveEvent": "BLOCKED",
+  "note": "Validated OpenCode invocation oc-1c47291c-d538-4e76-ad5b-ce502c2bc2f7",
+  "occurredAt": "2026-08-10T16:20:22Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "BLOCKED",
+  "riskLevel": "HIGH",
+  "sequence": 20,
+  "sourceState": "ARCHITECTURE_GATE",
+  "transitionId": "26f57585-2a94-4f2f-b090-39bc73a870b8",
+  "workflowId": "software-factory-default"
+}

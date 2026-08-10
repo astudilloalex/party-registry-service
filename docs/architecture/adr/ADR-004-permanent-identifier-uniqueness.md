@@ -12,7 +12,7 @@ The actual business invariant is uniqueness of an official identifier within one
 
 Complete identifier values are restricted and are never persisted in plaintext. The existing design already computes `normalized_value_hash` as a tenant-isolated HMAC-SHA-256 fingerprint of the normalized identifier. This gives PostgreSQL a safe deterministic key for exact lookup and uniqueness enforcement.
 
-The previous RG-104 command-idempotency decision and architecture risk AR-001 are superseded by the human-authority clarification documented by Issue #4 and `docs/requirements/requirements-amendment-001.md`.
+The previous RG-104 command-idempotency decision and architecture risk AR-001 are superseded by the factoryctl-recorded human decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`, which approves `docs/requirements/requirements-amendment-001.md`.
 
 ## Decision Drivers
 
@@ -111,4 +111,4 @@ Changing this rule to allow identifier reuse, status-scoped uniqueness, global u
 
 ## Traceability
 
-Issue #4; `docs/requirements/requirements-amendment-001.md`; `docs/database/v1-scheme.dbml`; identifier protection decisions OD-003/RG-103/RG-105; strict DBML governance in `.factory/project.yaml`.
+`.factory/decisions.json` decision `5bceb7ac-7c81-4dcc-af56-c6f87c7e7d42`; `docs/requirements/requirements-amendment-001.md`; `docs/database/v1-scheme.dbml`; identifier protection decisions OD-003/RG-103/RG-105; strict DBML governance in `.factory/project.yaml`.
