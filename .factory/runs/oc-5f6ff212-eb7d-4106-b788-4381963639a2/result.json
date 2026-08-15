@@ -1,0 +1,28 @@
+{
+  "agent": "software-factory-orchestrator",
+  "assumptions": [],
+  "decision": "NEEDS_HUMAN_DECISION",
+  "evidence": [
+    ".factory/state.json:2 records IMPLEMENTATION, consistent with the declared phase.",
+    ".factory/project.yaml:8-25 requires strict Clean Architecture, Quarkus Java 25, PostgreSQL, and DBML-controlled persistence.",
+    ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json records the independent architecture-gate PASS.",
+    ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json records the database-contract PASS for docs/database/v1-scheme.dbml.",
+    ".factory/runs/oc-1540c9f4-340e-4cb9-83c3-aca94637223f/result.json records the approved implementation-planning PASS and a 35-task plan.",
+    ".factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json records successful GitHub preparation of feature/10-party-registry-v1.",
+    "The invocation objective and acceptance criterion explicitly concern requirements and architecture before database validation, conflicting with the current IMPLEMENTATION responsibility."
+  ],
+  "findings": [
+    "The invocation is internally contradictory: phase IMPLEMENTATION and implementation artifact paths are supplied, but the objective and sole acceptance criterion request establishment of requirements and architecture before database validation. That work belongs to earlier phases already completed by independent gates.",
+    "The declared context omits the approved requirements, architecture, ADR, LikeC4, and implementation-planning artifacts needed to bound implementation safely. Previous-result summaries cannot replace those authoritative source files.",
+    "No specialized implementation agent was delegated because preserving the supplied objective and acceptance criterion would assign architecture/specification work to implementation agents, while interpreting them as a full service implementation would invent acceptance scope and create architecture, public-contract, security, and persistence risk."
+  ],
+  "generatedFiles": [],
+  "nextPhase": null,
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "Have factoryctl issue a corrected IMPLEMENTATION invocation with a concrete implementation objective and acceptance criteria traceable to the approved implementation plan.",
+    "Include the exact approved requirements, amendments, architecture overview, ADRs, LikeC4 model, implementation plan, and task list in context.files.",
+    "Explicitly identify which planned workstreams are in scope for this invocation, including whether Quarkus production code, Flyway migrations, build configuration, and implementation documentation are all required."
+  ],
+  "riskLevel": "HIGH"
+}

@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:software-factory-orchestrator",
+  "destinationState": "BLOCKED_HIGH_RISK",
+  "dryRun": false,
+  "effectiveEvent": "NEEDS_HUMAN_DECISION",
+  "note": "Validated OpenCode invocation oc-5f6ff212-eb7d-4106-b788-4381963639a2",
+  "occurredAt": "2026-08-15T20:14:52Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "NEEDS_HUMAN_DECISION",
+  "riskLevel": "HIGH",
+  "sequence": 41,
+  "sourceState": "IMPLEMENTATION",
+  "transitionId": "8fc540b3-927c-495a-9c81-7a0b784edc96",
+  "workflowId": "software-factory-default"
+}

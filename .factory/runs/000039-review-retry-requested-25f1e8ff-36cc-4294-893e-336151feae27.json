@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:github-preparation-autonomy-guard",
+  "destinationState": "GITHUB_PREPARATION",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": "Automatically retry GITHUB_PREPARATION after deterministic rejection of a technically resolvable branch-base human escalation.",
+  "occurredAt": "2026-08-15T20:12:07Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 39,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "25f1e8ff-36cc-4294-893e-336151feae27",
+  "workflowId": "software-factory-default"
+}

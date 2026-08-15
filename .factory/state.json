@@ -3,15 +3,15 @@
   "initializedAt": "2026-08-09T19:08:42Z",
   "lastEffectiveEvent": "NEEDS_HUMAN_DECISION",
   "lastEvent": "NEEDS_HUMAN_DECISION",
-  "lastTransitionAt": "2026-08-15T19:37:11Z",
-  "lastTransitionId": "cfd59048-7de7-42fd-a92c-f3491d8f6068",
-  "previousState": "GITHUB_PREPARATION",
+  "lastTransitionAt": "2026-08-15T20:14:52Z",
+  "lastTransitionId": "8fc540b3-927c-495a-9c81-7a0b784edc96",
+  "previousState": "IMPLEMENTATION",
   "project": "party-registry-service",
   "repairCycles": {
     "ARCHITECTURE_GATE": 2
   },
   "schemaVersion": 1,
-  "sequence": 38,
-  "updatedAt": "2026-08-15T19:37:11Z",
+  "sequence": 41,
+  "updatedAt": "2026-08-15T20:14:52Z",
   "workflowId": "software-factory-default"
 }

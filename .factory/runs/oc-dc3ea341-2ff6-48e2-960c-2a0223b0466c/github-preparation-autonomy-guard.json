@@ -1,0 +1,7 @@
+{
+  "action": "AUTO_REVIEW_RETRY_REQUESTED",
+  "humanDecisionAccepted": false,
+  "phase": "GITHUB_PREPARATION",
+  "reason": "default-vs-integration branch ambiguity carrying an approved baseline is a repairable GitHub-preparation decision unless genuine conflicting authority is evidenced",
+  "schemaVersion": 1
+}
