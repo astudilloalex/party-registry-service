@@ -1,0 +1,34 @@
+{
+  "agent": "implementation-planning-agent",
+  "assumptions": [
+    "The exact Java base package and contract-directory placement remain bounded implementation decisions because the scaffold establishes no package convention.",
+    "No applied Flyway migration exists at planning time; the migration agent must re-inventory before selecting the next immutable version.",
+    "Unapproved operational values such as publisher batch size, timeout, backoff, jitter, pool limits, and alert thresholds remain bounded external configuration validated against approved targets."
+  ],
+  "decision": "NEEDS_HUMAN_DECISION",
+  "evidence": [
+    ".factory/project.yaml:3-44 establishes strict Clean Architecture, Java 25, Gradle Kotlin DSL, PostgreSQL DBML authority, GitHub Flow controls, and immutable VPS Podman/Quadlet deployment.",
+    ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json records the requirements-gate PASS and inherited RG-401 pagination-authority finding.",
+    ".factory/decisions.json:76-97 records approval of Requirements Amendments 001 and 002 and final database-contract clarifications.",
+    ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json records the independent Clean Architecture gate PASS for PRS-ARCH-001 v0.6.",
+    ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json records the database-contract PASS for docs/database/v1-scheme.dbml.",
+    "Repository inspection found a scaffold-only implementation with no Java sources, tests, migrations, OpenAPI artifacts, or GitHub workflows; build.gradle.kts and gradle.properties preserve Java 25 and Quarkus 3.33.3.",
+    "docs/planning/implementation-plan.md records scope, governance checks, issue requirement, branch intent, boundaries, workstreams, phases, gates, evidence, traceability, risks, and HD-PLAN-001.",
+    "docs/planning/tasks.md defines 33 stable task contracts with owners, paths, dependencies, verification, risks, and stop conditions.",
+    "git diff --check completed successfully; git status showed only factory run directories and docs/planning as untracked."
+  ],
+  "findings": [
+    "HD-PLAN-001 remains unresolved: exact pagination defaults, limits, ordering, and filters in BR-029/AC-081 trace to requirements-gate finding RG-208 rather than authorized product authority. Selecting these public-contract semantics during planning would exceed this agent's authority and risk API incompatibility."
+  ],
+  "generatedFiles": [
+    "docs/planning/implementation-plan.md",
+    "docs/planning/tasks.md"
+  ],
+  "nextPhase": null,
+  "phase": "PLANNING",
+  "requiredActions": [
+    "Through factoryctl, record whether BR-029/AC-081 values are authoritative or provide explicit replacement or deferral instructions while preserving bounded pagination, deterministic ordering, validation, and tenant isolation.",
+    "Keep contract tasks T003, T004, T017, T018, and API gate T027 blocked until HD-PLAN-001 evidence is available."
+  ],
+  "riskLevel": "HIGH"
+}
