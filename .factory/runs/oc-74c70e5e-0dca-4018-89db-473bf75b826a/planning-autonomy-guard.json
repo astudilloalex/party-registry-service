@@ -1,0 +1,7 @@
+{
+  "action": "AUTO_REVIEW_RETRY_REQUESTED",
+  "humanDecisionAccepted": false,
+  "phase": "PLANNING",
+  "reason": "an inherited LOW/MEDIUM deferred PASS finding cannot be promoted without material new evidence",
+  "schemaVersion": 1
+}

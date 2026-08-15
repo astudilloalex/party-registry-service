@@ -1,0 +1,22 @@
+{
+  "agent": "github-flow-agent",
+  "assumptions": [],
+  "decision": "NOT_APPLICABLE",
+  "evidence": [
+    "Invocation oc-8a6ee680-9000-4533-9c02-d1bb40c0c1e9 assigns agent github-flow-agent in phase GITHUB_PREPARATION.",
+    "The invocation uses READ_ONLY mode with no allowed paths and provides no Git or GitHub preparation instructions.",
+    "No repository, Git metadata, workflow state, or GitHub remote state was modified."
+  ],
+  "findings": [
+    "GITHUB_PREPARATION is not a supported factory phase for github-flow-agent; supported phases are PLANNING, PR_READY, and AWAITING_HUMAN_MERGE.",
+    "The objective concerns requirements and architecture baselining, which is outside the github-flow-agent responsibility."
+  ],
+  "generatedFiles": [],
+  "nextPhase": null,
+  "phase": "GITHUB_PREPARATION",
+  "requiredActions": [
+    "Invoke the agent assigned by the workflow to establish or validate requirements and architecture.",
+    "Invoke github-flow-agent only in a supported phase with an explicit phase-appropriate GitHub operation."
+  ],
+  "riskLevel": "LOW"
+}

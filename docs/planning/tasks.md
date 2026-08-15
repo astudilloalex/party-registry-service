@@ -4,24 +4,24 @@
 
 Status: proposed tasks only. `factoryctl` controls execution. All paths are repository-relative. `<base-package>` is resolved and recorded by T003/T004. Every task prohibits `.factory/**`, `orchestrator/**`, requirements, architecture, DBML, Git metadata, unrelated files, and test weakening unless its explicit allowed paths say otherwise. `Hard:` means execution cannot begin; `Soft:` means coordinate to avoid conflicts.
 
-### T001 — Record pagination contract authority
+### T001 — Record delegated pagination technical-contract decision
 
-Owner agent: none; human product/API authority through `factoryctl`  
-Purpose: Resolve HD-PLAN-001 without editing historical approved artifacts.  
+Owner agent: `implementation-planning-agent` (planning disposition complete; not a downstream executable task)
+Purpose: Resolve inherited RG-401 using the bounded downstream authority explicitly delegated by the requirements-gate PASS, without editing historical approved artifacts.
 Requirements: FR-023/031/036; VR-007; AC-028/033/041/047/081.  
 Architecture: PRS-ARCH-001 sections 10/21 AR-007. DBML: none.  
-Inputs: RG-401, BR-029, HD-PLAN-001. Allowed paths: none. Prohibited paths: entire repository.  
-Expected artifacts: factoryctl-recorded decision evidence (not authored by this agent). Dependencies: none. Parallelizable: false; public contract blocker.  
-Instructions: Confirm exact values/listed filters or supply/authorize explicit deferral/replacement while preserving bounded deterministic tenant-safe search.  
-Acceptance/verification: authoritative decision identifies effective contract and supersession; T003 can cite it.  
-Risks/stop: HIGH public compatibility risk; stop if authority is absent or contradictory.
+Inputs: requirements-gate RG-401 delegation, BR-029, AC-081, Amendment 002. Allowed paths: `docs/planning/implementation-plan.md`, `docs/planning/tasks.md`. Prohibited paths: requirements, architecture, DBML, runtime source, tests and factory state.
+Expected artifacts: TC-001 in `implementation-plan.md`. Dependencies: none. Parallelizable: false; completed during planning.
+Instructions: Adopt zero-based page default 0, size default 20/range 1..100, ascending UUID-only V1 order, and effective Party/nationality/Party-Identifier filter semantics; exclude superseded Scheme search and classify invalid bounds/filter/sort as `VALIDATION_ERROR`. Leave reversible parameter spelling/serialization to T003 and API-gate validation.
+Acceptance/verification: TC-001 distinguishes delegated technical authority from product authority, preserves controlling invariants, and T003/T027 cite it.
+Risks/stop: stop if implementation changes business search scope or restores Scheme API behavior; that exceeds TC-001.
 
 ### T002 — Create issue and implementation branch
 
 Owner agent: `github-flow-agent`  
 Purpose: Establish governed GitHub Flow container for the functional change.  
 Requirements: manifest GitHub policy; all implementation obligations. Architecture: scope/non-goals. DBML: reference only.  
-Inputs: this plan, T001 decision. Allowed paths: Git/GitHub metadata only under agent authority. Prohibited paths: product artifact edits.  
+Inputs: this plan and completed TC-001/T001. Allowed paths: Git/GitHub metadata only under agent authority. Prohibited paths: product artifact edits.
 Expected artifacts: issue and `feature/<issue-number>-party-registry-v1` branch from verified default branch. Dependencies: Hard T001. Parallelizable: false.  
 Instructions: Use suggested title/scope; include no-auth risk, DBML authority, exclusions, gates and human merge controls.  
 Acceptance/verification: issue/branch URLs/names and base evidence; no commit, PR, merge or automerge yet.  
@@ -33,11 +33,11 @@ Owner agent: `quarkus-engineer-agent`
 Purpose: Define contract-first OpenAPI/event artifacts and record minimal package/path placement before adapters.  
 Requirements: effective FR-001..050, VR-001..018, IR-001..005, CR-002/004; Amendments 001/002.  
 Architecture: sections 6/10/12; ADR-002/003/005. DBML: names only where contract semantics require them; no physical leakage.  
-Inputs: T001 decision, approved sources. Allowed paths: `api/openapi/**`, `api/events/**`, `docs/implementation/contract-placement.md`. Prohibited paths: source, tests, build, DBML, Scheme administration/idempotency contracts.  
+Inputs: TC-001/T001 and approved sources. Allowed paths: `api/openapi/**`, `api/events/**`, `docs/implementation/contract-placement.md`. Prohibited paths: source, tests, build, DBML, Scheme administration/idempotency contracts.
 Expected artifacts: versioned OpenAPI and event schemas; synthetic examples; placement record. Dependencies: Hard T001/T002. Parallelizable: false; stabilizes shared contracts.  
-Instructions: Define approved operations/context/ETag/errors/pagination/decryption no-store and event catalog/security/versioning; exclude Scheme/outbox administration, 401/403, `Idempotency-Key`, plaintext events, and stack traces. Choose repository paths/base package only as bounded implementation decisions.  
+Instructions: Define approved operations/context/ETag/errors/TC-001 pagination/decryption no-store and event catalog/security/versioning; choose and document reversible query-parameter names/serialization; exclude Scheme/outbox administration, 401/403, `Idempotency-Key`, plaintext events, and stack traces. Choose repository paths/base package only as bounded implementation decisions.
 Acceptance/verification: every operation maps to requirement/AC; schemas parse with repository-approved tooling; compatibility and exclusion inventory exists.  
-Risks/stop: stop on unresolved HD-PLAN-001, invented endpoint behavior, sensitive example, or contract/requirement conflict.
+Risks/stop: stop on TC-001 semantic drift, invented business behavior, sensitive example, or contract/requirement conflict.
 
 ### T004 — Implement contract tests before REST/event adapters
 
@@ -245,13 +245,24 @@ Instructions: Verify no cycles/leaks, no Scheme administration/idempotency, revi
 Acceptance/verification: executable checks pass with exact commands/exit codes and artifact digest; manual-only evidence is insufficient for final quality approval.  
 Risks/stop: stop if tooling requires unapproved dependency/network installation or semantic model edit.
 
+### T035 — Discover the approved restricted deployment interface
+
+Owner agent: `infrastructure-discovery-agent`
+Purpose: Identify the existing authorised VPS/Podman wrapper or deployment interface needed by T022/T034 without changing infrastructure or exposing credentials.
+Requirements: OR-001..006; deployment profile prohibition on direct SSH/unrestricted shell and requirement for rootless Podman/Quadlet. Architecture: sections 16/21 AR-004. DBML: not applicable.
+Inputs: approved deployment profile, repository deployment inventory, authorised environment metadata supplied by `factoryctl`. Allowed paths: none (read-only discovery). Prohibited paths: repository writes, remote mutation, unrestricted shell, credential/secret output, provisioning and deployment.
+Expected artifacts: discovery result naming only the approved interface contract, supported environments, required non-secret inputs, digest handoff, and observed constraints; no secret values. Dependencies: Hard T023 and authorised discovery-phase invocation. Parallelizable: true with independent read-only quality gates after frozen inputs.
+Instructions: Verify rather than invent the restricted interface; distinguish observed facts from unavailable details; do not test by deploying.
+Acceptance/verification: reproducible repository/environment references establish a usable restricted interface for rootless Quadlet promotion, or the result returns a precise blocker to `factoryctl`.
+Risks/stop: stop on missing authorisation, direct-SSH-only access, secret exposure, public binding, privileged execution, or a need to modify infrastructure.
+
 ### T022 — Prepare OCI and Quadlet deployment artifacts in later deployment phase
 
 Owner agent: `deployment-engineer-agent`  
 Purpose: Implement approved rootless, non-public runtime descriptors without deploying during implementation.  
 Requirements: OR-001..006; NFR-008/010/011; AC-015/026. Architecture: section 16; deployment profile. DBML: forward-only startup/migration separation.  
-Inputs: validated packaged application and docs. Allowed paths: `src/main/docker/**`, `deploy/quadlet/**`, `deploy/environments/**`, `docs/operations/**`. Prohibited paths: secrets, public binding, privileged containers, direct SSH scripts, production execution, environment-specific values in image.  
-Expected artifacts: non-root OCI definition, health check, loopback port, rootless Quadlet, external config/secret references, limits/restart/logging/runbook. Dependencies: Hard T023 and workflow entry to authorised deployment phase. Parallelizable: false with deployment execution.  
+Inputs: validated packaged application, docs and T035 restricted-interface discovery. Allowed paths: `src/main/docker/**`, `deploy/quadlet/**`, `deploy/environments/**`, `docs/operations/**`. Prohibited paths: secrets, public binding, privileged containers, direct SSH scripts, production execution, environment-specific values in image.
+Expected artifacts: non-root OCI definition, health check, loopback port, rootless Quadlet, external config/secret references, limits/restart/logging/runbook. Dependencies: Hard T023/T035 and workflow entry to authorised deployment phase. Parallelizable: false with deployment execution.
 Instructions: Preserve nginx/internal boundary, separate runtime/migration DB credentials, same digest promotion and rollback image retention; exact resource values must be approved/measured config.  
 Acceptance/verification: policy/lint/container smoke evidence in authorised phase; no deployment claimed here.  
 Risks/stop: stop on public/privileged exposure, embedded secret, direct unrestricted shell or database reversal assumption.
@@ -283,7 +294,7 @@ Risks/stop: any DBML divergence, destructive migration, edited applied migration
 Owner agent: `code-quality-gate-agent`  
 Purpose: Independently review implementation quality and Clean Architecture.  
 Requirements: NFR-004..007. Architecture: all guardrails. DBML: no drift.  
-Inputs: frozen implementation/evidence. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: gate result. Dependencies: Hard T023. Parallelizable: true with T024/T026-T030/T032.  
+Inputs: frozen implementation/evidence. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: gate result. Dependencies: Hard T023. Parallelizable: true with T024/T026-T029/T032.
 Instructions/acceptance: review full diff, build/static/ArchUnit/LikeC4 evidence, reactive safety and maintainability; PASS only with no material defect.  
 Risks/stop: implementation agent may repair findings but gate remains independent.
 
@@ -302,7 +313,7 @@ Risks/stop: missing material AC coverage, trivial assertions, unsafe fixtures or
 Owner agent: `security-gate-agent`  
 Purpose: Independently approve restricted-data, tenant, secret, trust-boundary and runtime-privilege controls.  
 Requirements: SR-001..007; privacy/security ACs; approved no-auth posture. Architecture: sections 13/19 and ADR-003/005. DBML: tenant/privilege/protection facts.  
-Inputs: T023 evidence. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: security gate result. Dependencies: Hard T023. Parallelizable: true with T024-T030.  
+Inputs: T023 evidence. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: security gate result. Dependencies: Hard T023. Parallelizable: true with T024-T029.
 Instructions: Verify no-auth residual boundary and loopback intent, tenant isolation, plaintext/ciphertext/fingerprint/key exclusion, secret injection, no-store/log-before-return, redaction, and Scheme runtime write denial.  
 Acceptance/verification: independent PASS with reproducible security evidence.  
 Risks/stop: cross-tenant access, public exposure, secret/plaintext leak, Scheme write ability, or invented auth behavior is HIGH and blocks release.
@@ -310,11 +321,11 @@ Risks/stop: cross-tenant access, public exposure, secret/plaintext leak, Scheme 
 ### T027 — Run API contract gate
 
 Owner agent: `api-contract-gate-agent`  
-Purpose: Independently approve OpenAPI and event contracts after HD-PLAN-001.  
+Purpose: Independently approve OpenAPI and event contracts against TC-001.
 Requirements: IR-002..005; CR-002/004; API/event ACs. Architecture: section 10/12. DBML: no physical leakage.  
-Inputs: T001/T003/T004/T017/T023. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: gate result. Dependencies: Hard T023 and T001. Parallelizable: true with other gates.  
+Inputs: TC-001/T001/T003/T004/T017/T023. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: gate result. Dependencies: Hard T023 and T001. Parallelizable: true with other gates.
 Instructions/acceptance: validate parsing, operation/exclusion inventory, pagination authority, errors/security/versioning/examples and implementation conformance; independent PASS required.  
-Risks/stop: unresolved authority, Scheme/outbox/idempotency surface, breaking meaning or plaintext fails gate.
+Risks/stop: TC-001 drift, Scheme/outbox/idempotency surface, breaking meaning or plaintext fails gate.
 
 ### T028 — Run performance and reliability gate
 
@@ -347,12 +358,23 @@ Instructions: Build once, bind digest to exact source and gate evidence, and kee
 Acceptance/verification: reproducible candidate digest exists and no source bytes changed during build.  
 Risks/stop: non-reproducibility, secret inclusion, mutable-only identity, source drift or request to deploy.
 
+### T034 — Replace the noncompliant product delivery workflow
+
+Owner agent: `build-release-agent` (coordinate restricted deployment steps with `deployment-engineer-agent`)
+Purpose: Replace the existing cross-service/direct-SSH workflow with Party Registry build-once and same-digest promotion orchestration; do not execute a deployment in this task.
+Requirements: OR-001..006; NFR-004/007/010/011; immutable artifact and restricted-wrapper deployment profiles. Architecture: sections 16/21 AR-004. DBML: forward-only migration identity only.
+Inputs: T020/T022/T035, approved environments, repository `.github/workflows/ci.yml`. Allowed paths: `.github/workflows/ci.yml`, `.github/workflows/**`, `docs/operations/**` only when inseparable from pipeline usage. Prohibited paths: source/tests/contracts/DBML, secret values, direct SSH/SCP, mutable-only deployment identity, production rebuild, Geographic Reference paths, merge/automerge.
+Expected artifacts: Party Registry workflow using source commit and immutable OCI digest, staged development/staging promotion and later production promotion of the same digest through approved restricted interfaces, with health/smoke/stabilization evidence hooks and external environment configuration. Dependencies: Hard T020/T022/T035; Soft serialize with T033 artifact conventions. Parallelizable: false; shared release-policy bottleneck.
+Instructions: Remove direct SSH/SCP and stale cross-service references; do not publish `latest` as deployment authority; separate build from promotion; require staging verification and workflow-authorized post-merge production promotion without rebuild; reference secrets by names only.
+Acceptance/verification: workflow syntax/policy checks show no direct SSH/SCP, no Geographic Reference artifact, no public binding, and one digest flows through environments; dry-run/static validation only until authorised phases.
+Risks/stop: stop if no approved restricted deployment interface exists, if the workflow would expose secrets/public ports, or if production would rebuild or consume a mutable tag.
+
 ### T030 — Run production-readiness gate
 
 Owner agent: `production-readiness-gate-agent`  
 Purpose: Review release/deployment/recovery package before any promotion.  
 Requirements: OR-001..009; NFR-010/011; AC-015/026. Architecture: sections 16/17. DBML: forward-only and restore/reconciliation.  
-Inputs: T020/T022/T033 and all gates. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: gate result. Dependencies: Hard T022/T033 and all mandatory gates. Parallelizable: false; final pre-PR readiness review.  
+Inputs: T020/T022/T033/T034 and all gates. Allowed paths: none. Prohibited paths: all repository and Git metadata writes. Expected artifacts: gate result. Dependencies: Hard T022/T033/T034 and all mandatory gates. Parallelizable: false; final pre-PR readiness review.
 Instructions/acceptance: verify rootless/loopback/non-public posture, config/secret separation, same digest plan, health/smoke/stabilization, backup/restore/RPO/RTO, rollback and residual risk; PASS required before release handoff.  
 Risks/stop: missing restore evidence, public exposure, database rollback assumption or digest rebuild blocks readiness.
 
@@ -371,6 +393,6 @@ Risks/stop: dirty unrelated files, missing gate, absent human-merge control or r
 
 The grouped requirement-to-task-to-gate matrix is in `implementation-plan.md` section 13. No executable task lacks a source obligation. Test tasks T004/T006/T008/T011/T013/T015/T017 precede corresponding production tasks. Migration T010 and persistence T012 are separate. Implementers and gate agents are independent.
 
-Critical path: T001 -> T002 -> T003 -> T004/T005 -> T006 -> T007 -> T008 -> T009 -> T011 -> T012 -> T013/T015/T017 -> T014/T016 -> T018 -> T019 -> T021 -> T023 -> T024..T029/T032 -> T033 -> T030 -> T031.
+Critical path: T001 -> T002 -> T003 -> T004/T005 -> T006 -> T007 -> T008 -> T009 -> T011 -> T012 -> T013/T015/T017 -> T014/T016 -> T018 -> T019 -> T021 -> T023 -> T024..T029/T032 and T035 -> T022 -> T034 -> T033 -> T030 -> T031.
 
-All agents must stop on authoritative-source conflict, unresolved HD-PLAN-001, DBML divergence, secret/plaintext/personal-data exposure, cross-tenant access, Scheme mutation, destructive migration, public binding, remote I/O under mutation transaction, unbounded retry/concurrency, contract incompatibility, missing rollback/recovery, mandatory test/gate failure, unapproved dependency or request to modify protected factory state, merge, or deploy outside the authorised phase.
+All agents must stop on authoritative-source conflict, TC-001 semantic drift, DBML divergence, secret/plaintext/personal-data exposure, cross-tenant access, Scheme mutation, destructive migration, public binding, use of the existing direct-SSH/cross-service deployment behavior, remote I/O under mutation transaction, unbounded retry/concurrency, contract incompatibility, missing rollback/recovery, mandatory test/gate failure, unapproved dependency or request to modify protected factory state, merge, or deploy outside the authorised phase.

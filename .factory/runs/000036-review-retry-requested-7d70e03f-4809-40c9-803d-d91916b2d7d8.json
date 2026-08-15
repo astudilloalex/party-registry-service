@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:planning-autonomy-guard",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": "Automatically retry PLANNING after deterministic rejection of a non-authoritative human escalation.",
+  "occurredAt": "2026-08-15T18:09:23Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 36,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "7d70e03f-4809-40c9-803d-d91916b2d7d8",
+  "workflowId": "software-factory-default"
+}

@@ -38,7 +38,7 @@ The gate PASS results approve their own reviewed responsibilities only. The effe
 
 **DATABASE CONTRACT.** Implement PostgreSQL physical design exactly from `docs/database/v1-scheme.dbml`, including the database-managed read-only Identifier Scheme catalog and all named Flyway obligations.
 
-User-visible outcomes are the approved `/api/v1` Party/detail/nationality/Party Identifier operations, masked ordinary identifier responses, separate no-store decryption, optimistic concurrency, stable errors, and deterministic bounded search after HD-PLAN-001 is resolved.
+User-visible outcomes are the approved `/api/v1` Party/detail/nationality/Party Identifier operations, masked ordinary identifier responses, separate no-store decryption, optimistic concurrency, stable errors, and deterministic bounded search governed by technical contract decision TC-001 below.
 
 Operational outcomes are health signals, protected telemetry, outbox recovery, daily-backup/restore evidence, immutable OCI digest promotion, rootless Podman/Quadlet operation, loopback binding, smoke checks, and a 10-minute stabilization window.
 
@@ -72,7 +72,7 @@ suggestedIssueTitle: Implement Party Registry Service V1 approved baseline
 suggestedIssueScope: Implement PRS-REQ-001 as amended, PRS-ARCH-001 v0.6, and the validated DBML without Scheme administration or command idempotency.
 ```
 
-The issue must be created only by `github-flow-agent`. Recommended branch intent is `feature/<issue-number>-party-registry-v1`, based on the repository default branch determined by that agent. Scope is limited to the tasks in `docs/planning/tasks.md`. Prohibited changes include DBML/architecture/requirements edits, unrelated upgrades, generated Scheme APIs, idempotency mechanisms, public exposure, and factory state.
+The issue must be created only by `github-flow-agent`. Recommended branch intent is `feature/<issue-number>-party-registry-v1`, based on the repository default branch determined by that agent. Scope is limited to the tasks in `docs/planning/tasks.md`, including replacement of the noncompliant existing deployment workflow. Prohibited changes include DBML/architecture/requirements edits, unrelated upgrades, generated Scheme APIs, idempotency mechanisms, public exposure, and factory state.
 
 ## 6. Technical and Repository Baseline
 
@@ -90,7 +90,7 @@ The issue must be created only by `github-flow-agent`. Recommended branch intent
 | Integrations | Geographic Reference Service, RabbitMQ; no external logger/KMS |
 | Performance | NFR-008..011 quantified pilot targets |
 
-**EXISTING REPOSITORY FACT.** The project is scaffold-only: no `src/main/java`, `src/test`, migration, OpenAPI, or `.github` implementation files exist. `build.gradle.kts` contains only Quarkus ARC and Quarkus JUnit; `application.properties` is empty. Package paths below therefore use `<base-package>` until T003 records the bounded implementation placement. The Gradle group `com.alexastudillo` is evidence but does not by itself establish the final package.
+**EXISTING REPOSITORY FACT.** The application is scaffold-only: no `src/main/java`, `src/test`, migration, or OpenAPI artifacts exist. `build.gradle.kts` contains only Quarkus ARC and Quarkus JUnit; `application.properties` is empty. An existing `.github/workflows/ci.yml` is present, but it rebuilds on `main`, publishes a mutable `latest` tag, performs direct SSH/SCP, and references Geographic Reference deployment paths; this conflicts with the approved restricted-wrapper, same-digest Party Registry deployment and must be replaced by T034 before publication or deployment. Package paths below therefore use `<base-package>` until T003 records the bounded implementation placement. The Gradle group `com.alexastudillo` is evidence but does not by itself establish the final package.
 
 ### Proposed path status
 
@@ -105,7 +105,7 @@ The issue must be created only by `github-flow-agent`. Recommended branch intent
 | Architecture source | `architecture/model.c4` | `existing`, read-only for implementation |
 | Deployment | `src/main/docker/**`; `deploy/**` | Docker path `existing`; Quadlet path `new-approved` for later deployment phase |
 | Documentation | `README.md`, `docs/**` | `existing`; only assigned docs may change |
-| CI/CD | `.github/**` | `new-pending`; exact pipeline scope belongs to authorised build/release planning/execution |
+| CI/CD | `.github/workflows/ci.yml` | `existing`; noncompliant cross-service/direct-SSH workflow, replacement bounded by T034 |
 
 ## 7. Constitution and Governance Check
 
@@ -122,23 +122,24 @@ The issue must be created only by `github-flow-agent`. Recommended branch intent
 | Tenant isolation | PASS | T007-T009/T011/T016/T017/T026 |
 | Idempotency and concurrency | PASS | No command idempotency; permanent uniqueness, If-Match, consumer event-ID dedupe and outbox claim semantics planned |
 | Security/privacy/audit | PASS | T012-T013/T018-T019/T026; local log is not audit storage |
-| Bounded pagination/query limits | PASS, blocked detail | Bounds are mandatory; exact values/sort/filter authority awaits HD-PLAN-001 before contract approval |
+| Bounded pagination/query limits | PASS | TC-001 adopts the downstream-owned technical values delegated by requirements-gate PASS; T003 encodes them and T027 independently validates them |
 | Observability and resilience | PASS | T018-T019/T023/T028 |
 | No speculative infrastructure/dependency | PASS | Tasks forbid caches/stores/services beyond approved boundaries |
 | Rootless Podman, Quadlet, loopback | PASS | T022/T030 |
 | Same immutable artifact promotion | PASS | T029-T030; no production rebuild |
+| Direct SSH prohibited and product pipeline bounded | PASS | Existing conflict is explicitly quarantined; T034 replaces `.github/workflows/ci.yml` with restricted-wrapper, same-digest behavior before T030/T031 |
 | PR, no automerge, human merge | PASS | Manifest; T031 |
 | Independent gates | PASS | Section 13 and T025-T030 |
 | Rollback/recovery | PASS | Forward-only DB, application digest rollback approval, backup/restore and reconciliation planned |
 | Documentation | PASS | T020 |
 
-There is no approved exception. HD-PLAN-001 is a pending public-contract decision, not an exception.
+There is no approved exception and no unresolved human decision. TC-001 is a bounded technical-contract decision delegated by the upstream requirements-gate PASS; it does not change business scope, DBML, architecture, security, or deployment policy.
 
 ## 8. Implementation Boundaries and Workstreams
 
 | Workstream | Boundary / outputs | Owner | Dependencies | Completion evidence |
 |---|---|---|---|---|
-| Governance/contracts | HD-PLAN-001, OpenAPI and immutable event schemas | Human authority, Quarkus, test | Upstream baseline | Decision evidence; API/event gate |
+| Governance/contracts | TC-001, OpenAPI and immutable event schemas | Planning, Quarkus, test | Upstream baseline | TC-001 record; API/event gate |
 | Foundation | Minimal BOM-aligned capabilities and package placement | Quarkus | Stable contract direction | Reproducible build metadata; dependency gate |
 | Domain | Pure entities, values, policies, masks, lifecycle/errors | Test then Quarkus | Effective requirements | Pure deterministic tests; ArchUnit |
 | Application | Ports/use cases, tenant/context, transactions, concurrency | Test then Quarkus | Domain and contracts | Use-case tests without adapters |
@@ -147,7 +148,7 @@ There is no approved exception. HD-PLAN-001 is a pending public-contract decisio
 | Integrations | Geography/cache, crypto/secrets, local security log, RabbitMQ | Test, Quarkus, integration | Ports/contracts | Provider/fault/ordering tests |
 | Inbound API | Reactive REST DTOs/resources/context/errors | Test then Quarkus | OpenAPI/application | Contract tests and API gate |
 | Cross-cutting | Health, readiness, telemetry, architecture checks | Test then Quarkus | Adapters | Security/performance/architecture evidence |
-| Docs/deployment | Guides, runbooks, OCI/Quadlet future artifacts | Documentation/deployment/build-release | Validated implementation | Production-readiness evidence |
+| Docs/deployment | Guides, restricted-interface discovery, runbooks, OCI/Quadlet and compliant product workflow artifacts | Documentation/infrastructure-discovery/deployment/build-release | Validated implementation | Discovery, workflow policy and production-readiness evidence |
 
 Business logic is prohibited in REST resources, persistence entities/repositories, mappers, configuration, deployment files, and database triggers except DBML-mandated database invariants. Domain imports no framework/library infrastructure. Application depends only on domain and its own ports.
 
@@ -155,7 +156,9 @@ Business logic is prohibited in REST resources, persistence entities/repositorie
 
 ### Contract-first
 
-T003 must resolve HD-PLAN-001 and define every approved operation, context header, request/response, mask, no-store response, ETag/If-Match behavior, validation/error category, tenant non-disclosure rule, payload bound, and examples containing synthetic data only. It must exclude Scheme/outbox administration and idempotency. Versioned event schemas must cover only the approved Party/Identifier catalog, stable event identity, tenant/aggregate/version/correlation data, minimum payload, and no plaintext. T004 writes failing contract tests before T017.
+T003 must apply TC-001 and define every approved operation, context header, request/response, mask, no-store response, ETag/If-Match behavior, validation/error category, tenant non-disclosure rule, payload bound, and examples containing synthetic data only. It must exclude Scheme/outbox administration and idempotency. Versioned event schemas must cover only the approved Party/Identifier catalog, stable event identity, tenant/aggregate/version/correlation data, minimum payload, and no plaintext. T004 writes failing contract tests before T017.
+
+**TECHNICAL CONTRACT DECISION TC-001.** Acting under the bounded authority explicitly delegated by requirements-gate PASS finding RG-401, V1 uses zero-based `page` with default `0`, `size` with default `20` and inclusive range `1..100`, and ascending resource UUID as the sole V1 order (and deterministic tie-breaker). Effective supported filter semantics are Party type/status, nationality country/primary/active within one Party, and Party Identifier Party/Scheme/status/primary; Amendment 002 removes all Identifier Scheme browse/search parameters with that endpoint. Negative pages, out-of-range sizes, unsupported filters, and unsupported sort fields/directions produce `VALIDATION_ERROR`. T003 may choose non-normative query-parameter spelling and serialization consistent with these semantics as a reversible technical contract decision, and T027 must independently validate it. TC-001 adopts downstream-resolvable technical values; it does not present RG-208 as original product authority.
 
 ### Domain and application
 
@@ -187,30 +190,31 @@ No test may use production data, real identifiers, secrets, trivial assertions, 
 
 ### Phases and critical path
 
-1. Governance: T001 -> T002.
+1. Governance: TC-001/T001 -> T002.
 2. Contract/foundation: T003 -> T004.
 3. Test-first core: T005 -> T006 -> T007 -> T008.
 4. Data: T010 -> T011 -> T012.
 5. Integrations/API: T013 -> T014; T015 -> T016; T017 -> T018.
-6. Cross-cutting/docs: T019 -> T020/T021/T022.
-7. Validation: T023/T024 -> T025..T030 plus T032, then immutable build T033.
+6. Cross-cutting/docs: T019 -> T020/T021.
+7. Validation and release preparation: T023 -> T024..T029/T032; after T023 and T035, T022 -> T034; then immutable build T033 and readiness T030.
 8. GitHub handoff: T031.
 
-Critical path is HD-PLAN-001 -> contracts -> application ports -> persistence/integrations -> inbound API -> integration validation -> independent gates -> PR handoff.
+Critical path is TC-001 -> contracts -> application ports -> persistence/integrations -> inbound API -> integration validation -> independent gates -> immutable candidate/readiness -> PR handoff.
 
 ### Parallel waves
 
 | Wave | Tasks safe to run after dependencies | Checkpoint |
 |---|---|---|
-| 0 | T001 | Pagination authority is recorded through `factoryctl`; no source file is silently changed. |
-| 1 | T002, then T003 | Issue/branch intent exists and public/event contracts are stable. |
+| 0 | T001 | TC-001 is recorded in this proposed plan as a delegated technical-contract decision; approved source files remain unchanged. |
+| 1 | T002, then T003 | Issue/branch intent exists and public/event contracts apply TC-001. |
 | 2 | T004; T005 and T007 after foundation | Minimal dependencies are fixed; failing core/contract tests express approved behavior. |
 | 3 | T006 and T008 sequentially; T010 may run in parallel after T004 | Pure core and DB migration independently match approved sources. |
 | 4 | T011, T013, T015, T017 test tasks where write scopes do not overlap | Adapter verification harnesses fail for the intended missing behavior. |
 | 5 | T012, T014, T016, T018 after corresponding tests/ports | Adapters satisfy stable ports/contracts without transaction or boundary leakage. |
-| 6 | T019, T020, T021; T022 only in its authorised later phase | Cross-cutting evidence and documentation/deployment artifacts are aligned. |
-| 7 | T023 and T024, then independent T025-T030/T032, followed by T033 | Full reproducible evidence package exists; no mandatory gate failure remains and one immutable candidate is identified. |
-| 8 | T031 | PR handoff contains issue, scope, evidence, risks, rollout and rollback; no merge occurs. |
+| 6 | T019, T020, T021 | Cross-cutting evidence and documentation are aligned; full integration validation may begin. |
+| 7 | T023, then independent T024-T029/T032; T035 -> T022 -> T034 may proceed in authorised later phases alongside frozen-input gates | Full validation and compliant deployment/release artifacts exist; direct SSH/cross-service references are absent. |
+| 8 | T033, then T030 | One immutable candidate is identified and readiness-reviewed with all mandatory gates and deployment evidence. |
+| 9 | T031 | PR handoff contains issue, scope, evidence, risks, rollout and rollback; no merge occurs. |
 
 Shared bottlenecks are `build.gradle.kts`, `application.properties`, OpenAPI, migration ordering, and bootstrap wiring. Tasks touching those files are non-parallel or must be serialized by `factoryctl`.
 
@@ -222,7 +226,7 @@ Shared bottlenecks are `build.gradle.kts`, `application.properties`, OpenAPI, mi
 | `test-quality-gate-agent` | Tests/behavior | Requirement-to-test coverage and non-trivial passing suites | `test-implementation-agent` |
 | `security-gate-agent` | Releasable change | Tenant isolation, no-auth boundary, secret/plaintext/redaction/no-store/DB privilege evidence | Quarkus/test/deployment owner by finding |
 | `dependency-supply-chain-gate-agent` | Build/dependencies | BOM alignment, vulnerability/license/secret scan, SBOM, reproducibility | Quarkus or build/release |
-| `api-contract-gate-agent` | OpenAPI/events | HD-PLAN-001, operation inventory, compatibility, examples and contract tests | Contract author |
+| `api-contract-gate-agent` | OpenAPI/events | TC-001, operation inventory, compatibility, examples and contract tests | Contract author |
 | `database-migration-gate-agent` | Flyway/persistence | DBML mapping, clean/upgrade/representative tests, privileges, immutability | Database migration agent |
 | `performance-reliability-gate-agent` | NFR-001..011 | Load/lag/startup/fault/recovery results under approved pilot profile | Test/integration owner |
 | `production-readiness-gate-agent` | Candidate release | Same digest, rootless/loopback, health/smoke/stabilization, backup/restore/runbook | Build/deployment/docs owners |
@@ -240,9 +244,9 @@ Completion evidence must be reproducible and include source commit, issue/branch
 | Amendment 001; FR-005/006/013/014/018/034..039/046..049; VR-003..005/007/008/013/014; DR-004; SR-001..007; CR-003 | T006, T008, T012, T014, T018, T019 | T005, T007, T011, T013, T017, T023 | Security, API, migration, test; AC-007..010, 017, 021/022, 028, 044..050, 061/062, 071..079 |
 | Amendment 002; effective FR-019/040..045/048/049; IR-004 | T008, T010, T012, T018 | T007, T011, T017, T021, T023/T024 | Architecture/API/security/migration evidence proving query-only catalog and no Scheme API/event |
 | FR-008/009/020/050; VR-015..018; DR-006; IR-002..004; NFR-001..003/009; CR-002/004 | T003, T008, T010, T016 | T004, T007, T011, T015, T023 | API, migration, reliability, security; AC-012..014, 016, 025, 029, 058, 063..066, 080 |
-| FR-023/031/036 and VR-007 pagination portions | T001, T003, T008, T012, T018 | T004, T007, T011, T017, T023 | API/test/performance; AC-028/033/041/047/081 after HD-PLAN-001 |
+| FR-023/031/036 and VR-007 pagination portions | TC-001; T003, T008, T012, T018 | T004, T007, T011, T017, T023 | API/test/performance; AC-028/033/041/047/081 and T027 |
 | IR-001/005; Geographic behavior | T003, T008, T014, T018 | T004, T007, T013, T017, T023 | API/security/reliability; AC-004/023/028/059/060 |
-| NFR-008..011; OR-001..009; CR-001 | T019, T020, T022, T033 | T023, T028-T030 | Performance/reliability and production-readiness; AC-015/025/026 |
+| NFR-008..011; OR-001..009; CR-001 | T019, T020, T022, T033, T034 | T023, T028-T030, T035 | Performance/reliability, restricted-interface discovery, workflow-policy and production-readiness; AC-015/025/026 |
 | Every DBML enum/table/reference/check/index/trigger/grant obligation | T010, T012 | T011, T024 | Database migration gate and DBML mapping artifact |
 
 Superseded v0.4 statements are traceable to exclusion tests: no command idempotency (T004/T007/T017/T021), no Scheme runtime surface (T004/T007/T011/T017/T021), and no external logging platform (T013/T021/T026).
@@ -264,7 +268,7 @@ No new runtime container, broker, cache service, module, external logger, KMS, o
 
 | ID | Risk / trigger / impact | Mitigation and verification | Authority / stop condition |
 |---|---|---|---|
-| R-001 HIGH | HD-PLAN-001 unresolved; API contract could rely on non-authoritative pagination values and become incompatible | Block T003 onward contract approval; record decision via `factoryctl` | Product/API human authority; stop before contract authorship |
+| R-001 MEDIUM | Contract implementation drifts from delegated TC-001 or accidentally restores removed Scheme search | Contract/exclusion tests and independent API gate | Contract author/API gate; stop on semantic drift |
 | R-002 HIGH | Approved unauthenticated internal decryption is exposed beyond loopback/internal nginx | Security and deployment negative tests; no public binding; no invented auth | Security/operations gates; stop on public exposure |
 | R-003 HIGH | Plaintext, fingerprint, ciphertext or key reaches telemetry/event/repository | Model separation, redaction inspection, secret scans, fail closed | Security gate; stop on any exposure |
 | R-004 HIGH | Migration diverges from DBML or risks destructive/irreversible data change | Exact mapping, representative upgrade, lock analysis, roll-forward recovery | Database gate/human DB authority; stop on conflict/destructive remediation |
@@ -274,12 +278,11 @@ No new runtime container, broker, cache service, module, external logger, KMS, o
 | R-008 MEDIUM | LikeC4 executable validation remains unavailable | Add/use repository-controlled approved validator before quality approval | Code/architecture quality gate; stop before final gate approval |
 | R-009 MEDIUM | Unsupported Scheme rule key makes readiness unavailable | Release/migration coordination and readiness integration tests | Build/database owners |
 | R-010 MEDIUM | Restore recurrence and operational alert details are absent | Document before production; verify RPO/RTO with restore evidence | Operations authority; stop before production readiness |
+| R-011 HIGH | Existing `.github/workflows/ci.yml` can rebuild on `main`, use direct SSH/SCP, mutable `latest`, and Geographic Reference paths | Quarantine from use; T034 replaces it; T030 verifies restricted wrapper and same digest | Build/release and deployment owners; stop publication, merge readiness, or deployment while conflict remains |
 
-### Human decision
+### Human decisions
 
-| ID | Question and options | Recommendation | Latest safe point / blocked tasks / evidence |
-|---|---|---|---|
-| HD-PLAN-001 | Are BR-029/AC-081 values authoritative (page default 0, size default 20, range 1..100, ascending UUID and listed filters), or must exact values be deferred/replaced by another approved contract? | Confirm them if they reflect product intent; otherwise supply explicit replacement values without weakening bounds, deterministic order, validation or tenant isolation. | Before T003 and API-contract approval; blocks T003/T004/T017/T018/T027. Evidence must be a factoryctl-recorded human decision identifying exact effective values or explicit deferral disposition. |
+None unresolved. A later change to business search scope, a breaking published contract, security/privacy risk acceptance, DBML, architecture, destructive operations, or production exposure still requires its designated authority; TC-001 does not grant such authority.
 
 ## 15. Pull Request and Release Handoff
 
@@ -289,7 +292,7 @@ After authorised merge, `build-release-agent` records source commit, reproducibl
 
 ## 16. Global Stop Conditions and Assumptions
 
-Stop and return control rather than improvise on any requirement/architecture/DBML conflict, missing authoritative contract decision, public-contract incompatibility, secret or personal-data exposure, cross-tenant access, destructive migration, Scheme runtime mutation, unbounded retry/concurrency, remote I/O inside a state-changing transaction, production access, missing rollback/recovery evidence, mandatory test/gate failure, unapproved dependency/version drift, or protected factory-state change.
+Stop and return control rather than improvise on any requirement/architecture/DBML conflict, TC-001 semantic drift, public-contract incompatibility, secret or personal-data exposure, cross-tenant access, destructive migration, Scheme runtime mutation, unbounded retry/concurrency, remote I/O inside a state-changing transaction, use of the existing direct-SSH/cross-service workflow, production access, missing rollback/recovery evidence, mandatory test/gate failure, unapproved dependency/version drift, or protected factory-state change.
 
 Low-risk planning assumptions:
 
