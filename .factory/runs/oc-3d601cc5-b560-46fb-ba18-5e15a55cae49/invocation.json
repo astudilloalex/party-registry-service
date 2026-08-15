@@ -1,0 +1,126 @@
+{
+  "agent": "software-factory-orchestrator",
+  "attempt": {
+    "current": 1,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "docs/planning/tasks.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-48e93284-608b-4d2f-9af7-7907caf08222/result.json",
+      ".factory/runs/oc-eba92cbe-57e7-45e9-88f3-4828c48af587/result.json",
+      ".factory/runs/oc-d887fc48-46b7-4246-802b-66419abfc2cb/result.json",
+      ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json",
+      ".factory/runs/oc-33037964-68f6-4d87-b8eb-13ecf5f15fe9/result.json",
+      ".factory/runs/oc-c18e0874-ee82-4735-b242-956ee8f78c8b/result.json",
+      ".factory/runs/oc-1c47291c-d538-4e76-ad5b-ce502c2bc2f7/result.json",
+      ".factory/runs/oc-0b493fdf-5bec-4daf-8e5a-0b9eba202ff5/result.json",
+      ".factory/runs/oc-072ebe71-097a-403c-b2f6-0980cb0c3641/result.json",
+      ".factory/runs/oc-83373587-dbd6-45c2-b6cb-e89bb54f9083/result.json",
+      ".factory/runs/oc-4cb8f673-3179-4281-a2a6-4482889a2f31/result.json",
+      ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json",
+      ".factory/runs/oc-50763d77-7c8e-455b-8a1c-40e8ce0fe376/result.json",
+      ".factory/runs/oc-618baa10-4125-44b6-99f0-4e89eb55f27e/result.json",
+      ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json",
+      ".factory/runs/oc-74c70e5e-0dca-4018-89db-473bf75b826a/result.json",
+      ".factory/runs/oc-1540c9f4-340e-4cb9-83c3-aca94637223f/result.json",
+      ".factory/runs/oc-dc3ea341-2ff6-48e2-960c-2a0223b0466c/result.json",
+      ".factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json",
+      ".factory/runs/oc-5f6ff212-eb7d-4106-b788-4381963639a2/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-3d601cc5-b560-46fb-ba18-5e15a55cae49",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-3d601cc5-b560-46fb-ba18-5e15a55cae49",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "Implementation work assigned before TEST_IMPLEMENTATION is completed or reduced to concrete repairable defects with no invented product, architecture, security, or database authority.",
+      "Production code, migrations, build configuration, contracts, and implementation documentation remain within the current write policy and validated plan/task scope.",
+      "The resulting candidate and evidence are sufficient for TEST_IMPLEMENTATION without modifying approved requirements, architecture, or authoritative DBML."
+    ],
+    "expectedArtifacts": [
+      "src/main/**",
+      "lib/**",
+      "apps/**/lib/**",
+      "packages/**/lib/**",
+      "src/main/resources/db/migration/**",
+      "src/main/resources/db/migrations/**",
+      "migrations/**",
+      "database/migrations/**",
+      "db/migration/**",
+      "db/migrations/**",
+      "docs/implementation/**",
+      "specs/**/implementation-evidence/**"
+    ],
+    "instructions": [
+      "GLOBAL_FACTORY_INTENT (context only; not current-phase acceptance): Establish the approved requirements and architecture baseline for party-registry-service as the pilot of the AI Software Factory, using only verified repository sources, the project manifest, existing documentation and the authoritative DBML, without inventing business requirements or modifying the database design.",
+      "GLOBAL_FACTORY_ACCEPTANCE_INTENT (context only; not current-phase acceptance): Requirements and architecture are explicit, internally consistent, traceable to repository evidence, compliant with strict Clean Architecture and LikeC4 standards, and no unresolved high-risk contradiction remains before database validation.",
+      "PHASE_TASK_AUTHORITY: The current workflow state, passed upstream results, and authoritative repository artifacts define this phase scope. Do not reinterpret global intent as a request to repeat completed earlier phases."
+    ],
+    "objective": "Implement the work explicitly authorized by the latest validated implementation-planning PASS and its plan/tasks, treating approved requirements, architecture, and DBML as immutable constraints and excluding work reserved for later workflow phases."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "src/main/**",
+      "lib/**",
+      "apps/**/lib/**",
+      "packages/**/lib/**",
+      "build.gradle",
+      "build.gradle.kts",
+      "pom.xml",
+      "gradle.properties",
+      "gradle/**",
+      "src/main/resources/**",
+      "src/main/resources/db/migration/**",
+      "src/main/resources/db/migrations/**",
+      "migrations/**",
+      "database/migrations/**",
+      "db/migration/**",
+      "db/migrations/**",
+      "docs/implementation/**",
+      "specs/**/implementation-evidence/**"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

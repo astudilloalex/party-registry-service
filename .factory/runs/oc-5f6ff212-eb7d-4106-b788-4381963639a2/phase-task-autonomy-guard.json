@@ -1,0 +1,7 @@
+{
+  "action": "AUTO_REVIEW_RETRY_REQUESTED",
+  "humanDecisionAccepted": false,
+  "phase": "IMPLEMENTATION",
+  "reason": "a factory-generated phase invocation envelope conflict is repairable by phase-task resolution and does not require human product authority",
+  "schemaVersion": 1
+}

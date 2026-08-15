@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:phase-task-autonomy-guard",
+  "destinationState": "IMPLEMENTATION",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": "Automatically retry the previous phase after deterministic correction of a factory-generated phase task/context envelope conflict.",
+  "occurredAt": "2026-08-15T21:11:01Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 42,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "2fdf85a8-32d8-4058-9308-e4ed3b0f3f40",
+  "workflowId": "software-factory-default"
+}
