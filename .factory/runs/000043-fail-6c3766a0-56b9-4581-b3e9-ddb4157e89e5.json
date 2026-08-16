@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:quarkus-engineer-agent",
+  "destinationState": "IMPLEMENTATION",
+  "dryRun": false,
+  "effectiveEvent": "FAIL",
+  "note": "Validated OpenCode invocation oc-ee06eb70-e2ae-47a0-84cd-6567f727b9be",
+  "occurredAt": "2026-08-16T02:29:00Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "IMPLEMENTATION",
+  "repairCycleCount": 1,
+  "requestedEvent": "FAIL",
+  "riskLevel": "MEDIUM",
+  "sequence": 43,
+  "sourceState": "IMPLEMENTATION",
+  "transitionId": "6c3766a0-56b9-4581-b3e9-ddb4157e89e5",
+  "workflowId": "software-factory-default"
+}

@@ -1,0 +1,30 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "assumptions": [],
+  "decision": "FAIL",
+  "evidence": [
+    "Validated requirements-gate PASS at .factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json, architecture-gate PASS at .factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json, and database-contract PASS at .factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json.",
+    "Validated T002 completion at .factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json; `git branch --show-current` returned `feature/10-party-registry-v1`.",
+    "OpenAPI inspection found 20 operationId entries and corresponding operation-level requirement and acceptance-criteria extensions.",
+    "Event-schema inspection found exactly 14 approved versioned event-type constants and no Scheme event type.",
+    "Content searches found no Idempotency-Key, IDEMPOTENCY_CONFLICT, Scheme/outbox endpoint, HTTP 401/403 response, or stack-trace field in api/**; event payload schemas contain no protected identifier representation.",
+    "`./gradlew test` completed successfully twice; final run reported BUILD SUCCESSFUL, five actionable tasks, and `test NO-SOURCE`.",
+    "`git diff --check` completed with no output. `git status --short` showed the new api/ and docs/implementation/ paths plus factory-managed run artifacts; no protected factory file was modified by this agent."
+  ],
+  "findings": [
+    "T003 artifacts were created within scope, but the repository has no approved OpenAPI 3.1 or JSON Schema parser configured. `./gradlew test` succeeded with `NO-SOURCE` and did not parse or validate the contract files, so the mandatory schema-parsing acceptance criterion lacks executable evidence."
+  ],
+  "generatedFiles": [
+    "api/openapi/v1/party-registry.openapi.yaml",
+    "api/events/v1/party-registry-events.schema.json",
+    "api/events/v1/examples/party-created.v1.json",
+    "api/events/v1/examples/party-identifier-verified.v1.json",
+    "docs/implementation/contract-placement.md"
+  ],
+  "nextPhase": null,
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "Provide or authorize repository-controlled offline OpenAPI 3.1 and JSON Schema validation tooling, then parse the OpenAPI document, resolve all references, validate the event schema, and validate both event examples before retrying T003."
+  ],
+  "riskLevel": "MEDIUM"
+}

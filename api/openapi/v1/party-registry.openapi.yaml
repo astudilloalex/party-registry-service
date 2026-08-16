@@ -1,0 +1,849 @@
+openapi: 3.1.0
+info:
+  title: Party Registry Service API
+  version: 1.0.0
+  description: |
+    Internal V1 API for tenant-scoped Parties, details, nationalities and protected
+    Party Identifiers. Callers supply trusted context; V1 performs no authentication
+    or authorization. Complete identifier values appear only in identifier submission,
+    exact-search input, and the separate no-store decryption response.
+  x-requirements: [IR-005, CR-004]
+servers:
+  - url: /api/v1
+    description: Internal service base path
+security: []
+tags:
+  - name: Parties
+  - name: Party details
+  - name: Nationalities
+  - name: Party identifiers
+paths:
+  /parties:
+    post:
+      tags: [Parties]
+      operationId: createParty
+      summary: Create a Party with its matching details
+      x-requirements: [FR-001, FR-002, FR-007, FR-008, FR-010, FR-011, FR-015, FR-016]
+      x-acceptance-criteria: [AC-001, AC-002, AC-011, AC-012, AC-019, AC-023, AC-030, AC-036]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PartyCreateRequest'}
+            examples:
+              naturalPerson: {$ref: '#/components/examples/NaturalPartyCreate'}
+      responses:
+        '201': {$ref: '#/components/responses/PartyCreated'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailableError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    get:
+      tags: [Parties]
+      operationId: searchParties
+      summary: Search Parties in the supplied tenant
+      x-requirements: [FR-001, FR-011, FR-023, VR-007]
+      x-acceptance-criteria: [AC-001, AC-019, AC-028, AC-033, AC-081]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+        - {$ref: '#/components/parameters/PartyTypeFilter'}
+        - {$ref: '#/components/parameters/PartyStatusFilter'}
+      responses:
+        '200': {$ref: '#/components/responses/PartyPage'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /parties/{partyId}:
+    parameters:
+      - {$ref: '#/components/parameters/PartyId'}
+      - {$ref: '#/components/parameters/TenantId'}
+      - {$ref: '#/components/parameters/UserId'}
+      - {$ref: '#/components/parameters/ProcessId'}
+    get:
+      tags: [Parties]
+      operationId: getParty
+      x-requirements: [FR-001, FR-011, FR-022]
+      x-acceptance-criteria: [AC-001, AC-019, AC-032]
+      responses:
+        '200': {$ref: '#/components/responses/PartyFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    patch:
+      tags: [Parties]
+      operationId: updateParty
+      summary: Update mutable Party descriptive data
+      x-requirements: [FR-001, FR-007, FR-008, FR-011, FR-012, FR-024]
+      x-acceptance-criteria: [AC-001, AC-011, AC-012, AC-019, AC-020, AC-034, AC-070]
+      parameters:
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PartyUpdateRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/PartyFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /parties/{partyId}/status-transitions:
+    post:
+      tags: [Parties]
+      operationId: transitionPartyStatus
+      summary: Apply an approved Party lifecycle transition, including archive
+      x-requirements: [FR-001, FR-007, FR-008, FR-011, FR-012, FR-025, FR-026]
+      x-acceptance-criteria: [AC-001, AC-011, AC-012, AC-019, AC-020, AC-035, AC-067, AC-069]
+      parameters:
+        - {$ref: '#/components/parameters/PartyId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PartyStatusTransitionRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/PartyFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /parties/{partyId}/details:
+    parameters:
+      - {$ref: '#/components/parameters/PartyId'}
+      - {$ref: '#/components/parameters/TenantId'}
+      - {$ref: '#/components/parameters/UserId'}
+      - {$ref: '#/components/parameters/ProcessId'}
+    get:
+      tags: [Party details]
+      operationId: getPartyDetails
+      x-requirements: [FR-001, FR-011, FR-027]
+      x-acceptance-criteria: [AC-001, AC-019, AC-037]
+      responses:
+        '200': {$ref: '#/components/responses/PartyDetailsFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    patch:
+      tags: [Party details]
+      operationId: updatePartyDetails
+      summary: Update the existing type-matching details; details have no independent delete or lifecycle
+      x-requirements: [FR-001, FR-007, FR-008, FR-011, FR-012, FR-021, FR-028, FR-029]
+      x-acceptance-criteria: [AC-001, AC-011, AC-012, AC-019, AC-020, AC-031, AC-038, AC-068, AC-070]
+      parameters:
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PartyDetailsUpdateRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/PartyDetailsFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailableError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /parties/{partyId}/nationalities:
+    post:
+      tags: [Nationalities]
+      operationId: addNationality
+      x-requirements: [FR-001, FR-003, FR-007, FR-008, FR-011, FR-012, FR-015, FR-017, FR-021]
+      x-acceptance-criteria: [AC-001, AC-005, AC-011, AC-012, AC-019, AC-020, AC-023, AC-031, AC-039]
+      parameters:
+        - {$ref: '#/components/parameters/PartyId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NationalityWriteRequest'}
+      responses:
+        '201': {$ref: '#/components/responses/NationalityCreated'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailableError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    get:
+      tags: [Nationalities]
+      operationId: searchNationalities
+      x-requirements: [FR-001, FR-011, FR-031, VR-007]
+      x-acceptance-criteria: [AC-001, AC-019, AC-028, AC-041, AC-081]
+      parameters:
+        - {$ref: '#/components/parameters/PartyId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+        - {$ref: '#/components/parameters/CountryCodeFilter'}
+        - {$ref: '#/components/parameters/PrimaryFilter'}
+        - {$ref: '#/components/parameters/ActiveFilter'}
+      responses:
+        '200': {$ref: '#/components/responses/NationalityPage'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /parties/{partyId}/nationalities/{nationalityId}:
+    parameters:
+      - {$ref: '#/components/parameters/PartyId'}
+      - {$ref: '#/components/parameters/NationalityId'}
+      - {$ref: '#/components/parameters/TenantId'}
+      - {$ref: '#/components/parameters/UserId'}
+      - {$ref: '#/components/parameters/ProcessId'}
+    get:
+      tags: [Nationalities]
+      operationId: getNationality
+      x-requirements: [FR-001, FR-011, FR-030]
+      x-acceptance-criteria: [AC-001, AC-019, AC-040]
+      responses:
+        '200': {$ref: '#/components/responses/NationalityFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    patch:
+      tags: [Nationalities]
+      operationId: updateNationality
+      x-requirements: [FR-001, FR-003, FR-007, FR-008, FR-011, FR-012, FR-015, FR-021, FR-032]
+      x-acceptance-criteria: [AC-001, AC-005, AC-011, AC-012, AC-019, AC-020, AC-023, AC-031, AC-042, AC-070]
+      parameters:
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NationalityWriteRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/NationalityFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailableError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /parties/{partyId}/nationalities/{nationalityId}/end:
+    post:
+      tags: [Nationalities]
+      operationId: endNationality
+      summary: Logically end a nationality; no row is deleted
+      x-requirements: [FR-001, FR-007, FR-008, FR-011, FR-012, FR-021, FR-033]
+      x-acceptance-criteria: [AC-001, AC-011, AC-012, AC-019, AC-020, AC-031, AC-043]
+      parameters:
+        - {$ref: '#/components/parameters/PartyId'}
+        - {$ref: '#/components/parameters/NationalityId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NationalityEndRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/NationalityFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /party-identifiers:
+    post:
+      tags: [Party identifiers]
+      operationId: createPartyIdentifier
+      x-requirements: [FR-001, FR-005, FR-006, FR-007, FR-008, FR-011, FR-018, FR-046, FR-047, FR-048]
+      x-acceptance-criteria: [AC-001, AC-007, AC-008, AC-010, AC-011, AC-012, AC-019, AC-044, AC-072, AC-073, AC-074, AC-076, AC-077]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PartyIdentifierCreateRequest'}
+            examples:
+              synthetic: {$ref: '#/components/examples/IdentifierCreate'}
+      responses:
+        '201': {$ref: '#/components/responses/IdentifierCreated'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailableError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    get:
+      tags: [Party identifiers]
+      operationId: searchPartyIdentifiers
+      summary: Search masked Party Identifiers in the supplied tenant
+      x-requirements: [FR-001, FR-011, FR-036, FR-046, VR-007]
+      x-acceptance-criteria: [AC-001, AC-019, AC-028, AC-047, AC-072, AC-073, AC-081]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/Size'}
+        - {$ref: '#/components/parameters/PartyFilter'}
+        - {$ref: '#/components/parameters/SchemeFilter'}
+        - {$ref: '#/components/parameters/IdentifierStatusFilter'}
+        - {$ref: '#/components/parameters/PrimaryFilter'}
+      responses:
+        '200': {$ref: '#/components/responses/IdentifierPage'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /party-identifiers/exact-search:
+    post:
+      tags: [Party identifiers]
+      operationId: exactSearchPartyIdentifiers
+      summary: Normalize and HMAC-search one supplied value without scanning or decrypting records
+      x-requirements: [FR-001, FR-005, FR-011, FR-013, FR-046, FR-048]
+      x-acceptance-criteria: [AC-001, AC-007, AC-019, AC-021, AC-072, AC-073, AC-077]
+      parameters:
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ExactIdentifierSearchRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/IdentifierList'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '503': {$ref: '#/components/responses/DependencyUnavailableError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /party-identifiers/by-party/{partyId}/by-scheme/{identifierSchemeId}:
+    get:
+      tags: [Party identifiers]
+      operationId: findPartyIdentifiersByPartyAndScheme
+      summary: Return all masked matches or explicitly select the verified primary
+      x-requirements: [FR-001, FR-011, FR-035, FR-046]
+      x-acceptance-criteria: [AC-001, AC-019, AC-046, AC-072, AC-073]
+      parameters:
+        - {$ref: '#/components/parameters/PartyId'}
+        - {$ref: '#/components/parameters/IdentifierSchemeId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - name: selection
+          in: query
+          required: false
+          description: Omit for all matches; VERIFIED_PRIMARY explicitly selects at most the verified primary.
+          schema: {type: string, enum: [ALL, VERIFIED_PRIMARY], default: ALL}
+      responses:
+        '200': {$ref: '#/components/responses/IdentifierList'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /party-identifiers/{partyIdentifierId}:
+    parameters:
+      - {$ref: '#/components/parameters/PartyIdentifierId'}
+      - {$ref: '#/components/parameters/TenantId'}
+      - {$ref: '#/components/parameters/UserId'}
+      - {$ref: '#/components/parameters/ProcessId'}
+    get:
+      tags: [Party identifiers]
+      operationId: getPartyIdentifier
+      x-requirements: [FR-001, FR-011, FR-034, FR-046]
+      x-acceptance-criteria: [AC-001, AC-019, AC-045, AC-072, AC-073]
+      responses:
+        '200': {$ref: '#/components/responses/IdentifierFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    patch:
+      tags: [Party identifiers]
+      operationId: updatePartyIdentifier
+      summary: Update mutable identifier attributes; value, Party and Scheme are immutable
+      x-requirements: [FR-001, FR-006, FR-007, FR-008, FR-011, FR-012, FR-037]
+      x-acceptance-criteria: [AC-001, AC-008, AC-011, AC-012, AC-019, AC-020, AC-048, AC-070]
+      parameters:
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PartyIdentifierUpdateRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/IdentifierFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /party-identifiers/{partyIdentifierId}/status-transitions:
+    post:
+      tags: [Party identifiers]
+      operationId: transitionPartyIdentifierStatus
+      summary: Apply an approved Identifier lifecycle transition, including revoke
+      x-requirements: [FR-001, FR-006, FR-007, FR-008, FR-011, FR-012, FR-038, FR-039]
+      x-acceptance-criteria: [AC-001, AC-008, AC-009, AC-011, AC-012, AC-019, AC-020, AC-049, AC-050, AC-069]
+      parameters:
+        - {$ref: '#/components/parameters/PartyIdentifierId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+        - {$ref: '#/components/parameters/IfMatch'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/IdentifierStatusTransitionRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/IdentifierFound'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '404': {$ref: '#/components/responses/NotFoundError'}
+        '409': {$ref: '#/components/responses/ConflictError'}
+        '412': {$ref: '#/components/responses/VersionConflictError'}
+        '428': {$ref: '#/components/responses/PreconditionRequiredError'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /party-identifiers/{partyIdentifierId}/decryption:
+    post:
+      tags: [Party identifiers]
+      operationId: decryptPartyIdentifier
+      summary: Return plaintext only after required local security-log emission succeeds
+      x-requirements: [FR-001, FR-011, FR-014, SR-002, SR-005]
+      x-acceptance-criteria: [AC-001, AC-019, AC-022, AC-027, AC-062, AC-071]
+      parameters:
+        - {$ref: '#/components/parameters/PartyIdentifierId'}
+        - {$ref: '#/components/parameters/TenantId'}
+        - {$ref: '#/components/parameters/UserId'}
+        - {$ref: '#/components/parameters/ProcessId'}
+      responses:
+        '200': {$ref: '#/components/responses/DecryptedIdentifier'}
+        '400': {$ref: '#/components/responses/ValidationErrorNoStore'}
+        '404': {$ref: '#/components/responses/NotFoundErrorNoStore'}
+        '500': {$ref: '#/components/responses/InternalErrorNoStore'}
+components:
+  parameters:
+    TenantId:
+      name: tenant-id
+      in: header
+      required: true
+      description: Trusted tenant scope. A tenant identifier is never accepted in a request body.
+      schema: {$ref: '#/components/schemas/CanonicalUuid'}
+    UserId:
+      name: user-id
+      in: header
+      required: true
+      description: Trusted caller assertion used for record audit fields; not proof of identity.
+      schema: {type: string, minLength: 1, maxLength: 128}
+    ProcessId:
+      name: process-id
+      in: header
+      required: false
+      description: Correlation UUID. The service generates one when omitted.
+      schema: {$ref: '#/components/schemas/CanonicalUuid'}
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Current aggregate version as a quoted decimal entity tag, for example "0".
+      schema: {type: string, pattern: '^"(0|[1-9][0-9]*)"$'}
+    PartyId: {name: partyId, in: path, required: true, schema: {$ref: '#/components/schemas/CanonicalUuid'}}
+    NationalityId: {name: nationalityId, in: path, required: true, schema: {$ref: '#/components/schemas/CanonicalUuid'}}
+    PartyIdentifierId: {name: partyIdentifierId, in: path, required: true, schema: {$ref: '#/components/schemas/CanonicalUuid'}}
+    IdentifierSchemeId: {name: identifierSchemeId, in: path, required: true, schema: {$ref: '#/components/schemas/CanonicalUuid'}}
+    Page:
+      name: page
+      in: query
+      required: false
+      description: TC-001 zero-based page number.
+      schema: {type: integer, format: int32, minimum: 0, default: 0}
+    Size:
+      name: size
+      in: query
+      required: false
+      description: TC-001 page size.
+      schema: {type: integer, format: int32, minimum: 1, maximum: 100, default: 20}
+    PartyTypeFilter: {name: type, in: query, required: false, schema: {$ref: '#/components/schemas/PartyType'}}
+    PartyStatusFilter: {name: status, in: query, required: false, schema: {$ref: '#/components/schemas/PartyStatus'}}
+    CountryCodeFilter: {name: countryCode, in: query, required: false, schema: {$ref: '#/components/schemas/CountryCode'}}
+    PrimaryFilter: {name: primary, in: query, required: false, schema: {type: boolean}}
+    ActiveFilter: {name: active, in: query, required: false, schema: {type: boolean}}
+    PartyFilter: {name: partyId, in: query, required: false, schema: {$ref: '#/components/schemas/CanonicalUuid'}}
+    SchemeFilter: {name: identifierSchemeId, in: query, required: false, schema: {$ref: '#/components/schemas/CanonicalUuid'}}
+    IdentifierStatusFilter: {name: status, in: query, required: false, schema: {$ref: '#/components/schemas/IdentifierStatus'}}
+  headers:
+    ProcessId:
+      description: Effective request correlation UUID, including a service-generated value when the request omitted process-id.
+      schema: {$ref: '#/components/schemas/CanonicalUuid'}
+    ETag:
+      description: Updated or current aggregate version as a quoted decimal entity tag.
+      schema: {type: string, pattern: '^"(0|[1-9][0-9]*)"$'}
+    CacheControlNoStore:
+      description: Prohibits storage of the plaintext decryption response.
+      schema: {type: string, const: no-store}
+  responses:
+    PartyCreated:
+      description: Party and matching details created atomically in DRAFT state.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, ETag: {$ref: '#/components/headers/ETag'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/PartyResponse'}}}
+    PartyFound:
+      description: Party result.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, ETag: {$ref: '#/components/headers/ETag'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/PartyResponse'}}}
+    PartyPage:
+      description: UUID-ascending Party page.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/PartyPageResponse'}}}
+    PartyDetailsFound:
+      description: Type-matching Party details; ETag is the owning Party version.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, ETag: {$ref: '#/components/headers/ETag'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/PartyDetailsResponse'}}}
+    NationalityCreated:
+      description: Nationality created; ETag is the updated owning Party version.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, ETag: {$ref: '#/components/headers/ETag'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/NationalityResponse'}}}
+    NationalityFound:
+      description: Nationality result; ETag is the owning Party version.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, ETag: {$ref: '#/components/headers/ETag'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/NationalityResponse'}}}
+    NationalityPage:
+      description: UUID-ascending nationality page within one Party.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/NationalityPageResponse'}}}
+    IdentifierCreated:
+      description: Protected Party Identifier created in PENDING_VERIFICATION state.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, ETag: {$ref: '#/components/headers/ETag'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/IdentifierResponse'}}}
+    IdentifierFound:
+      description: Masked Party Identifier result.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, ETag: {$ref: '#/components/headers/ETag'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/IdentifierResponse'}}}
+    IdentifierList:
+      description: Bounded masked Identifier matches.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/IdentifierListResponse'}}}
+    IdentifierPage:
+      description: UUID-ascending masked Identifier page.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/IdentifierPageResponse'}}}
+    DecryptedIdentifier:
+      description: Synthetic plaintext shape; emitted only after the required local log succeeds.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, Cache-Control: {$ref: '#/components/headers/CacheControlNoStore'}}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/DecryptedIdentifierResponse'}
+          example: {status: success, code: PARTY_IDENTIFIER_DECRYPTED, data: {partyIdentifierId: 018f0c72-4a7b-7c91-8b2a-1234567890ab, value: TEST_IDENTIFIER_VALUE}}
+    ValidationError: {$ref: '#/components/responses/ValidationErrorBody'}
+    ValidationErrorBody:
+      description: Invalid context, body, pagination, filter, selection or path value.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: VALIDATION_ERROR, data: {message: Request validation failed, retryable: false}}}}
+    ValidationErrorNoStore:
+      description: Invalid decryption request; no plaintext is returned or cached.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, Cache-Control: {$ref: '#/components/headers/CacheControlNoStore'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: VALIDATION_ERROR, data: {message: Request validation failed, retryable: false}}}}
+    NotFoundError:
+      description: Tenant-scoped resource not found; does not disclose another tenant's record.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: NOT_FOUND, data: {message: Resource not found, retryable: false}}}}
+    NotFoundErrorNoStore:
+      description: Tenant-scoped identifier not found; no plaintext is returned or cached.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, Cache-Control: {$ref: '#/components/headers/CacheControlNoStore'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: NOT_FOUND, data: {message: Resource not found, retryable: false}}}}
+    ConflictError:
+      description: Business invariant or permanent uniqueness conflict.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: CONFLICT, data: {message: Request conflicts with current state, retryable: false}}}}
+    VersionConflictError:
+      description: If-Match does not equal the current aggregate version.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: VERSION_CONFLICT, data: {message: Aggregate version does not match, retryable: false}}}}
+    PreconditionRequiredError:
+      description: If-Match is required for modification of an existing aggregate.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: PRECONDITION_REQUIRED, data: {message: If-Match is required, retryable: false}}}}
+    DependencyUnavailableError:
+      description: Required capability is unavailable; only explicitly classified outcomes are retryable.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: DEPENDENCY_UNAVAILABLE, data: {message: Required dependency is unavailable, retryable: true}}}}
+    InternalError:
+      description: Non-sensitive internal failure without stack trace, SQL or protected values.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: INTERNAL_ERROR, data: {message: Internal processing failed, retryable: false}}}}
+    InternalErrorNoStore:
+      description: Decryption failed and no plaintext is returned.
+      headers: {process-id: {$ref: '#/components/headers/ProcessId'}, Cache-Control: {$ref: '#/components/headers/CacheControlNoStore'}}
+      content: {application/json: {schema: {$ref: '#/components/schemas/ErrorResponse'}, example: {status: error, code: INTERNAL_ERROR, data: {message: Decryption could not be completed, retryable: false}}}}
+  schemas:
+    CanonicalUuid: {type: string, format: uuid, pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'}
+    CountryCode: {type: string, pattern: '^[A-Z]{2}$'}
+    PartyType: {type: string, enum: [NATURAL_PERSON, LEGAL_ENTITY]}
+    PartyStatus: {type: string, enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]}
+    IdentifierStatus: {type: string, enum: [PENDING_VERIFICATION, VERIFIED, REJECTED, EXPIRED, REVOKED]}
+    AuditFacts:
+      type: object
+      additionalProperties: false
+      required: [createdAt, createdBy, updatedAt, updatedBy]
+      properties:
+        createdAt: {type: string, format: date-time}
+        createdBy: {type: string, maxLength: 128}
+        updatedAt: {type: string, format: date-time}
+        updatedBy: {type: string, maxLength: 128}
+    NaturalPersonDetailsWrite:
+      type: object
+      additionalProperties: false
+      required: [kind, givenNames, familyNames]
+      properties:
+        kind: {type: string, const: NATURAL_PERSON}
+        givenNames: {type: string, minLength: 1, maxLength: 200}
+        familyNames: {type: string, minLength: 1, maxLength: 200}
+        preferredName: {type: [string, 'null'], maxLength: 200}
+        birthDate: {type: [string, 'null'], format: date}
+        dateOfDeath: {type: [string, 'null'], format: date}
+        birthCountryCode: {oneOf: [{$ref: '#/components/schemas/CountryCode'}, {type: 'null'}]}
+    LegalEntityDetailsWrite:
+      type: object
+      additionalProperties: false
+      required: [kind, legalName, incorporationCountryCode]
+      properties:
+        kind: {type: string, const: LEGAL_ENTITY}
+        legalName: {type: string, minLength: 1, maxLength: 300}
+        tradeName: {type: [string, 'null'], maxLength: 300}
+        legalFormCode: {type: [string, 'null'], maxLength: 64}
+        incorporationCountryCode: {$ref: '#/components/schemas/CountryCode'}
+        incorporatedOn: {type: [string, 'null'], format: date}
+        dissolvedOn: {type: [string, 'null'], format: date}
+    PartyDetailsWrite:
+      oneOf:
+        - {$ref: '#/components/schemas/NaturalPersonDetailsWrite'}
+        - {$ref: '#/components/schemas/LegalEntityDetailsWrite'}
+      discriminator: {propertyName: kind}
+    PartyCreateRequest:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [type, details]
+          properties:
+            type: {type: string, const: NATURAL_PERSON}
+            details: {$ref: '#/components/schemas/NaturalPersonDetailsWrite'}
+        - type: object
+          additionalProperties: false
+          required: [type, details]
+          properties:
+            type: {type: string, const: LEGAL_ENTITY}
+            details: {$ref: '#/components/schemas/LegalEntityDetailsWrite'}
+      discriminator: {propertyName: type}
+    PartyUpdateRequest:
+      type: object
+      description: Updates matching descriptive detail fields and the derived Party display name atomically. Party identity, tenant, type and version are intentionally absent and immutable.
+      additionalProperties: false
+      required: [details]
+      properties:
+        details: {$ref: '#/components/schemas/PartyDetailsWrite'}
+    PartyStatusTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [targetStatus]
+      properties: {targetStatus: {$ref: '#/components/schemas/PartyStatus'}}
+    PartyDetailsUpdateRequest: {$ref: '#/components/schemas/PartyDetailsWrite'}
+    PartyData:
+      type: object
+      additionalProperties: false
+      required: [id, type, displayName, status, audit]
+      properties:
+        id: {$ref: '#/components/schemas/CanonicalUuid'}
+        type: {$ref: '#/components/schemas/PartyType'}
+        displayName: {type: string, maxLength: 300}
+        status: {$ref: '#/components/schemas/PartyStatus'}
+        audit: {$ref: '#/components/schemas/AuditFacts'}
+    PartyDetailsData:
+      oneOf:
+        - {$ref: '#/components/schemas/NaturalPersonDetailsData'}
+        - {$ref: '#/components/schemas/LegalEntityDetailsData'}
+      discriminator: {propertyName: kind}
+    NaturalPersonDetailsData:
+      type: object
+      additionalProperties: false
+      required: [partyId, kind, givenNames, familyNames, audit]
+      properties:
+        partyId: {$ref: '#/components/schemas/CanonicalUuid'}
+        kind: {type: string, const: NATURAL_PERSON}
+        givenNames: {type: string, minLength: 1, maxLength: 200}
+        familyNames: {type: string, minLength: 1, maxLength: 200}
+        preferredName: {type: [string, 'null'], maxLength: 200}
+        birthDate: {type: [string, 'null'], format: date}
+        dateOfDeath: {type: [string, 'null'], format: date}
+        birthCountryCode: {oneOf: [{$ref: '#/components/schemas/CountryCode'}, {type: 'null'}]}
+        audit: {$ref: '#/components/schemas/AuditFacts'}
+    LegalEntityDetailsData:
+      type: object
+      additionalProperties: false
+      required: [partyId, kind, legalName, incorporationCountryCode, audit]
+      properties:
+        partyId: {$ref: '#/components/schemas/CanonicalUuid'}
+        kind: {type: string, const: LEGAL_ENTITY}
+        legalName: {type: string, minLength: 1, maxLength: 300}
+        tradeName: {type: [string, 'null'], maxLength: 300}
+        legalFormCode: {type: [string, 'null'], maxLength: 64}
+        incorporationCountryCode: {$ref: '#/components/schemas/CountryCode'}
+        incorporatedOn: {type: [string, 'null'], format: date}
+        dissolvedOn: {type: [string, 'null'], format: date}
+        audit: {$ref: '#/components/schemas/AuditFacts'}
+    NationalityWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [countryCode, primary]
+      properties:
+        countryCode: {$ref: '#/components/schemas/CountryCode'}
+        primary: {type: boolean}
+        validFrom: {type: [string, 'null'], format: date}
+        validUntil: {type: [string, 'null'], format: date}
+    NationalityEndRequest:
+      type: object
+      additionalProperties: false
+      required: [validUntil]
+      properties: {validUntil: {type: string, format: date}}
+    NationalityData:
+      type: object
+      additionalProperties: false
+      required: [id, partyId, countryCode, primary, active, audit]
+      properties:
+        id: {$ref: '#/components/schemas/CanonicalUuid'}
+        partyId: {$ref: '#/components/schemas/CanonicalUuid'}
+        countryCode: {$ref: '#/components/schemas/CountryCode'}
+        primary: {type: boolean}
+        active: {type: boolean}
+        validFrom: {type: [string, 'null'], format: date}
+        validUntil: {type: [string, 'null'], format: date}
+        audit: {$ref: '#/components/schemas/AuditFacts'}
+    PartyIdentifierCreateRequest:
+      type: object
+      description: The value is transient restricted input and is never returned by ordinary operations.
+      additionalProperties: false
+      required: [partyId, identifierSchemeId, value, primary]
+      properties:
+        partyId: {$ref: '#/components/schemas/CanonicalUuid'}
+        identifierSchemeId: {$ref: '#/components/schemas/CanonicalUuid'}
+        value: {type: string, minLength: 1, maxLength: 1024, writeOnly: true}
+        issuerCode: {type: [string, 'null'], maxLength: 64}
+        primary: {type: boolean}
+        issuedOn: {type: [string, 'null'], format: date}
+        expiresOn: {type: [string, 'null'], format: date}
+    PartyIdentifierUpdateRequest:
+      type: object
+      description: Identifier identity, tenant, Party, Scheme, plaintext value and version are intentionally absent and immutable.
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        issuerCode: {type: [string, 'null'], maxLength: 64}
+        primary: {type: boolean}
+        issuedOn: {type: [string, 'null'], format: date}
+        expiresOn: {type: [string, 'null'], format: date}
+    IdentifierStatusTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [targetStatus]
+      properties:
+        targetStatus: {$ref: '#/components/schemas/IdentifierStatus'}
+        verifiedAt: {type: [string, 'null'], format: date-time}
+        verifiedBy: {type: [string, 'null'], maxLength: 128}
+        expiresOn: {type: [string, 'null'], format: date}
+    ExactIdentifierSearchRequest:
+      type: object
+      additionalProperties: false
+      required: [identifierSchemeId, value]
+      properties:
+        identifierSchemeId: {$ref: '#/components/schemas/CanonicalUuid'}
+        value: {type: string, minLength: 1, maxLength: 1024, writeOnly: true, example: TEST_IDENTIFIER_VALUE}
+    IdentifierData:
+      type: object
+      additionalProperties: false
+      required: [id, partyId, identifierSchemeId, maskedValue, primary, status, audit]
+      properties:
+        id: {$ref: '#/components/schemas/CanonicalUuid'}
+        partyId: {$ref: '#/components/schemas/CanonicalUuid'}
+        identifierSchemeId: {$ref: '#/components/schemas/CanonicalUuid'}
+        issuerCode: {type: [string, 'null'], maxLength: 64}
+        maskedValue: {type: string, pattern: '^\*\*\*\*(?:.{4})?$'}
+        primary: {type: boolean}
+        status: {$ref: '#/components/schemas/IdentifierStatus'}
+        issuedOn: {type: [string, 'null'], format: date}
+        expiresOn: {type: [string, 'null'], format: date}
+        verifiedAt: {type: [string, 'null'], format: date-time}
+        verifiedBy: {type: [string, 'null'], maxLength: 128}
+        audit: {$ref: '#/components/schemas/AuditFacts'}
+    DecryptedIdentifierData:
+      type: object
+      additionalProperties: false
+      required: [partyIdentifierId, value]
+      properties:
+        partyIdentifierId: {$ref: '#/components/schemas/CanonicalUuid'}
+        value: {type: string, minLength: 1, maxLength: 1024}
+    Pagination:
+      type: object
+      additionalProperties: false
+      required: [page, size, totalElements, totalPages]
+      properties:
+        page: {type: integer, minimum: 0}
+        size: {type: integer, minimum: 1, maximum: 100}
+        totalElements: {type: integer, format: int64, minimum: 0}
+        totalPages: {type: integer, format: int64, minimum: 0}
+    ErrorData:
+      type: object
+      additionalProperties: false
+      required: [message, retryable]
+      properties:
+        message: {type: string, maxLength: 500, description: Safe text without stack traces, SQL/provider details or complete identifiers.}
+        retryable: {type: boolean}
+        violations:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, reason]
+            properties: {field: {type: string, maxLength: 128}, reason: {type: string, maxLength: 256}}
+    PartyResponse: {$ref: '#/components/schemas/ApiPartyResponse'}
+    ApiPartyResponse: {type: object, additionalProperties: false, required: [status, code, data], properties: {status: {type: string, const: success}, code: {type: string, example: PARTY_FOUND}, data: {$ref: '#/components/schemas/PartyData'}}}
+    PartyDetailsResponse: {type: object, additionalProperties: false, required: [status, code, data], properties: {status: {type: string, const: success}, code: {type: string, example: PARTY_DETAILS_FOUND}, data: {$ref: '#/components/schemas/PartyDetailsData'}}}
+    NationalityResponse: {type: object, additionalProperties: false, required: [status, code, data], properties: {status: {type: string, const: success}, code: {type: string, example: NATIONALITY_FOUND}, data: {$ref: '#/components/schemas/NationalityData'}}}
+    IdentifierResponse: {type: object, additionalProperties: false, required: [status, code, data], properties: {status: {type: string, const: success}, code: {type: string, example: PARTY_IDENTIFIER_FOUND}, data: {$ref: '#/components/schemas/IdentifierData'}}}
+    DecryptedIdentifierResponse: {type: object, additionalProperties: false, required: [status, code, data], properties: {status: {type: string, const: success}, code: {type: string, const: PARTY_IDENTIFIER_DECRYPTED}, data: {$ref: '#/components/schemas/DecryptedIdentifierData'}}}
+    PartyPageResponse: {type: object, additionalProperties: false, required: [status, code, data, pagination], properties: {status: {type: string, const: success}, code: {type: string, const: PARTIES_FOUND}, data: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/PartyData'}}, pagination: {$ref: '#/components/schemas/Pagination'}}}
+    NationalityPageResponse: {type: object, additionalProperties: false, required: [status, code, data, pagination], properties: {status: {type: string, const: success}, code: {type: string, const: NATIONALITIES_FOUND}, data: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/NationalityData'}}, pagination: {$ref: '#/components/schemas/Pagination'}}}
+    IdentifierPageResponse: {type: object, additionalProperties: false, required: [status, code, data, pagination], properties: {status: {type: string, const: success}, code: {type: string, const: PARTY_IDENTIFIERS_FOUND}, data: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/IdentifierData'}}, pagination: {$ref: '#/components/schemas/Pagination'}}}
+    IdentifierListResponse: {type: object, additionalProperties: false, required: [status, code, data], properties: {status: {type: string, const: success}, code: {type: string, const: PARTY_IDENTIFIERS_FOUND}, data: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/IdentifierData'}}}}
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [status, code, data]
+      properties:
+        status: {type: string, const: error}
+        code: {type: string, enum: [VALIDATION_ERROR, NOT_FOUND, CONFLICT, PRECONDITION_REQUIRED, VERSION_CONFLICT, DEPENDENCY_UNAVAILABLE, INTERNAL_ERROR]}
+        data: {$ref: '#/components/schemas/ErrorData'}
+  examples:
+    NaturalPartyCreate:
+      summary: Wholly synthetic natural-person input
+      value: {type: NATURAL_PERSON, details: {kind: NATURAL_PERSON, givenNames: Test, familyNames: Subject, preferredName: null, birthDate: '2000-01-01', dateOfDeath: null, birthCountryCode: EC}}
+    IdentifierCreate:
+      summary: Wholly synthetic identifier input; not a real document number
+      value: {partyId: 018f0c72-4a7b-7c91-8b2a-1234567890ab, identifierSchemeId: 018f0c72-4a7b-7c91-8b2a-1234567890ac, value: TEST_IDENTIFIER_VALUE, issuerCode: TEST_ISSUER, primary: false, issuedOn: null, expiresOn: null}

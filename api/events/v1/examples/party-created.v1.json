@@ -1,0 +1,13 @@
+{
+  "eventId": "018f0c72-4a7b-7c91-8b2a-1234567890ad",
+  "eventType": "party.created.v1",
+  "schemaVersion": 1,
+  "tenantId": "018f0c72-4a7b-7c91-8b2a-1234567890aa",
+  "aggregateType": "PARTY",
+  "aggregateId": "018f0c72-4a7b-7c91-8b2a-1234567890ab",
+  "aggregateVersion": 0,
+  "occurredAt": "2026-01-15T12:00:00Z",
+  "correlationId": "018f0c72-4a7b-7c91-8b2a-1234567890ae",
+  "causationId": null,
+  "payload": {"partyId": "018f0c72-4a7b-7c91-8b2a-1234567890ab"}
+}

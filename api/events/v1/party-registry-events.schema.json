@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://party-registry.internal/api/events/v1/party-registry-events.schema.json",
+  "title": "Party Registry V1 Integration Events",
+  "description": "Immutable V1 Party and Party Identifier event catalog. Delivery is at least once and consumers deduplicate by eventId. Payloads contain no identifier plaintext, ciphertext, fingerprint, key material, names, dates, or other unnecessary personal data.",
+  "oneOf": [
+    {"$ref": "#/$defs/partyCreated"},
+    {"$ref": "#/$defs/partyUpdated"},
+    {"$ref": "#/$defs/partyActivated"},
+    {"$ref": "#/$defs/partyInactivated"},
+    {"$ref": "#/$defs/partyArchived"},
+    {"$ref": "#/$defs/nationalityAdded"},
+    {"$ref": "#/$defs/nationalityUpdated"},
+    {"$ref": "#/$defs/nationalityRemoved"},
+    {"$ref": "#/$defs/identifierCreated"},
+    {"$ref": "#/$defs/identifierUpdated"},
+    {"$ref": "#/$defs/identifierVerified"},
+    {"$ref": "#/$defs/identifierRejected"},
+    {"$ref": "#/$defs/identifierExpired"},
+    {"$ref": "#/$defs/identifierRevoked"}
+  ],
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eventId", "eventType", "schemaVersion", "tenantId", "aggregateType", "aggregateId", "aggregateVersion", "occurredAt", "payload"],
+      "properties": {
+        "eventId": {"$ref": "#/$defs/uuid"},
+        "eventType": {"type": "string"},
+        "schemaVersion": {"const": 1},
+        "tenantId": {"$ref": "#/$defs/uuid"},
+        "aggregateType": {"enum": ["PARTY", "PARTY_IDENTIFIER"]},
+        "aggregateId": {"$ref": "#/$defs/uuid"},
+        "aggregateVersion": {"type": "integer", "minimum": 0},
+        "occurredAt": {"type": "string", "format": "date-time"},
+        "correlationId": {"type": ["string", "null"], "maxLength": 128},
+        "causationId": {"type": ["string", "null"], "maxLength": 128},
+        "payload": {"type": "object"}
+      }
+    },
+    "partyPayload": {
+      "type": "object", "additionalProperties": false, "required": ["partyId"],
+      "properties": {"partyId": {"$ref": "#/$defs/uuid"}}
+    },
+    "partyStatusPayload": {
+      "type": "object", "additionalProperties": false, "required": ["partyId", "status"],
+      "properties": {"partyId": {"$ref": "#/$defs/uuid"}, "status": {"enum": ["ACTIVE", "INACTIVE", "ARCHIVED"]}}
+    },
+    "nationalityPayload": {
+      "type": "object", "additionalProperties": false, "required": ["partyId", "nationalityId"],
+      "properties": {"partyId": {"$ref": "#/$defs/uuid"}, "nationalityId": {"$ref": "#/$defs/uuid"}}
+    },
+    "identifierPayload": {
+      "type": "object", "additionalProperties": false, "required": ["partyIdentifierId", "partyId", "identifierSchemeId"],
+      "properties": {
+        "partyIdentifierId": {"$ref": "#/$defs/uuid"},
+        "partyId": {"$ref": "#/$defs/uuid"},
+        "identifierSchemeId": {"$ref": "#/$defs/uuid"}
+      }
+    },
+    "identifierStatusPayload": {
+      "type": "object", "additionalProperties": false, "required": ["partyIdentifierId", "partyId", "identifierSchemeId", "status"],
+      "properties": {
+        "partyIdentifierId": {"$ref": "#/$defs/uuid"},
+        "partyId": {"$ref": "#/$defs/uuid"},
+        "identifierSchemeId": {"$ref": "#/$defs/uuid"},
+        "status": {"enum": ["VERIFIED", "REJECTED", "EXPIRED", "REVOKED"]}
+      }
+    },
+    "partyCreated": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.created.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"$ref": "#/$defs/partyPayload"}}},
+    "partyUpdated": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.updated.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"$ref": "#/$defs/partyPayload"}}},
+    "partyActivated": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.activated.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"allOf": [{"$ref": "#/$defs/partyStatusPayload"}, {"properties": {"status": {"const": "ACTIVE"}}}]}}},
+    "partyInactivated": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.inactivated.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"allOf": [{"$ref": "#/$defs/partyStatusPayload"}, {"properties": {"status": {"const": "INACTIVE"}}}]}}},
+    "partyArchived": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.archived.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"allOf": [{"$ref": "#/$defs/partyStatusPayload"}, {"properties": {"status": {"const": "ARCHIVED"}}}]}}},
+    "nationalityAdded": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.nationality-added.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"$ref": "#/$defs/nationalityPayload"}}},
+    "nationalityUpdated": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.nationality-updated.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"$ref": "#/$defs/nationalityPayload"}}},
+    "nationalityRemoved": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.nationality-removed.v1"}, "aggregateType": {"const": "PARTY"}, "payload": {"$ref": "#/$defs/nationalityPayload"}}},
+    "identifierCreated": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.identifier-created.v1"}, "aggregateType": {"const": "PARTY_IDENTIFIER"}, "payload": {"$ref": "#/$defs/identifierPayload"}}},
+    "identifierUpdated": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.identifier-updated.v1"}, "aggregateType": {"const": "PARTY_IDENTIFIER"}, "payload": {"$ref": "#/$defs/identifierPayload"}}},
+    "identifierVerified": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.identifier-verified.v1"}, "aggregateType": {"const": "PARTY_IDENTIFIER"}, "payload": {"allOf": [{"$ref": "#/$defs/identifierStatusPayload"}, {"properties": {"status": {"const": "VERIFIED"}}}]}}},
+    "identifierRejected": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.identifier-rejected.v1"}, "aggregateType": {"const": "PARTY_IDENTIFIER"}, "payload": {"allOf": [{"$ref": "#/$defs/identifierStatusPayload"}, {"properties": {"status": {"const": "REJECTED"}}}]}}},
+    "identifierExpired": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.identifier-expired.v1"}, "aggregateType": {"const": "PARTY_IDENTIFIER"}, "payload": {"allOf": [{"$ref": "#/$defs/identifierStatusPayload"}, {"properties": {"status": {"const": "EXPIRED"}}}]}}},
+    "identifierRevoked": {"$ref": "#/$defs/base", "properties": {"eventType": {"const": "party.identifier-revoked.v1"}, "aggregateType": {"const": "PARTY_IDENTIFIER"}, "payload": {"allOf": [{"$ref": "#/$defs/identifierStatusPayload"}, {"properties": {"status": {"const": "REVOKED"}}}]}}}
+  }
+}

@@ -1,17 +1,18 @@
 {
-  "currentState": "IMPLEMENTATION",
+  "currentState": "FAILED_AFTER_THREE_ATTEMPTS",
   "initializedAt": "2026-08-09T19:08:42Z",
-  "lastEffectiveEvent": "REVIEW_RETRY_REQUESTED",
-  "lastEvent": "REVIEW_RETRY_REQUESTED",
-  "lastTransitionAt": "2026-08-15T21:11:01Z",
-  "lastTransitionId": "2fdf85a8-32d8-4058-9308-e4ed3b0f3f40",
-  "previousState": "BLOCKED_HIGH_RISK",
+  "lastEffectiveEvent": "REPAIR_LIMIT_REACHED",
+  "lastEvent": "FAIL",
+  "lastTransitionAt": "2026-08-16T02:32:12Z",
+  "lastTransitionId": "ac170793-7c39-4a27-b221-7fbfc90ac0d8",
+  "previousState": "IMPLEMENTATION",
   "project": "party-registry-service",
   "repairCycles": {
-    "ARCHITECTURE_GATE": 2
+    "ARCHITECTURE_GATE": 2,
+    "IMPLEMENTATION": 3
   },
   "schemaVersion": 1,
-  "sequence": 42,
-  "updatedAt": "2026-08-15T21:11:01Z",
+  "sequence": 45,
+  "updatedAt": "2026-08-16T02:32:12Z",
   "workflowId": "software-factory-default"
 }

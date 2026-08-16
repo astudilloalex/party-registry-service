@@ -1,0 +1,18 @@
+{
+  "eventId": "018f0c72-4a7b-7c91-8b2a-1234567890af",
+  "eventType": "party.identifier-verified.v1",
+  "schemaVersion": 1,
+  "tenantId": "018f0c72-4a7b-7c91-8b2a-1234567890aa",
+  "aggregateType": "PARTY_IDENTIFIER",
+  "aggregateId": "018f0c72-4a7b-7c91-8b2a-1234567890b0",
+  "aggregateVersion": 1,
+  "occurredAt": "2026-01-15T12:05:00Z",
+  "correlationId": "018f0c72-4a7b-7c91-8b2a-1234567890ae",
+  "causationId": "018f0c72-4a7b-7c91-8b2a-1234567890b1",
+  "payload": {
+    "partyIdentifierId": "018f0c72-4a7b-7c91-8b2a-1234567890b0",
+    "partyId": "018f0c72-4a7b-7c91-8b2a-1234567890ab",
+    "identifierSchemeId": "018f0c72-4a7b-7c91-8b2a-1234567890ac",
+    "status": "VERIFIED"
+  }
+}

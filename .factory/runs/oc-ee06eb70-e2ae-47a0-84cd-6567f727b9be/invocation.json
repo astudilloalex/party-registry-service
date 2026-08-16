@@ -1,0 +1,99 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "attempt": {
+    "current": 1,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/planning/tasks.md",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-48e93284-608b-4d2f-9af7-7907caf08222/result.json",
+      ".factory/runs/oc-eba92cbe-57e7-45e9-88f3-4828c48af587/result.json",
+      ".factory/runs/oc-d887fc48-46b7-4246-802b-66419abfc2cb/result.json",
+      ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json",
+      ".factory/runs/oc-33037964-68f6-4d87-b8eb-13ecf5f15fe9/result.json",
+      ".factory/runs/oc-c18e0874-ee82-4735-b242-956ee8f78c8b/result.json",
+      ".factory/runs/oc-1c47291c-d538-4e76-ad5b-ce502c2bc2f7/result.json",
+      ".factory/runs/oc-0b493fdf-5bec-4daf-8e5a-0b9eba202ff5/result.json",
+      ".factory/runs/oc-072ebe71-097a-403c-b2f6-0980cb0c3641/result.json",
+      ".factory/runs/oc-83373587-dbd6-45c2-b6cb-e89bb54f9083/result.json",
+      ".factory/runs/oc-4cb8f673-3179-4281-a2a6-4482889a2f31/result.json",
+      ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json",
+      ".factory/runs/oc-50763d77-7c8e-455b-8a1c-40e8ce0fe376/result.json",
+      ".factory/runs/oc-618baa10-4125-44b6-99f0-4e89eb55f27e/result.json",
+      ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json",
+      ".factory/runs/oc-74c70e5e-0dca-4018-89db-473bf75b826a/result.json",
+      ".factory/runs/oc-1540c9f4-340e-4cb9-83c3-aca94637223f/result.json",
+      ".factory/runs/oc-dc3ea341-2ff6-48e2-960c-2a0223b0466c/result.json",
+      ".factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json",
+      ".factory/runs/oc-5f6ff212-eb7d-4106-b788-4381963639a2/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-ee06eb70-e2ae-47a0-84cd-6567f727b9be",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-ee06eb70-e2ae-47a0-84cd-6567f727b9be",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "every operation maps to requirement/AC; schemas parse with repository-approved tooling; compatibility and exclusion inventory exists."
+    ],
+    "expectedArtifacts": [
+      "versioned OpenAPI and event schemas; synthetic examples; placement record."
+    ],
+    "instructions": [
+      "IMPLEMENTATION_TASK_ID: T003",
+      "IMPLEMENTATION_TASK_SOURCE: docs/planning/tasks.md",
+      "IMPLEMENTATION_TASK_CONTRACT:\nOwner agent: `quarkus-engineer-agent`  \nPurpose: Define contract-first OpenAPI/event artifacts and record minimal package/path placement before adapters.  \nRequirements: effective FR-001..050, VR-001..018, IR-001..005, CR-002/004; Amendments 001/002.  \nArchitecture: sections 6/10/12; ADR-002/003/005. DBML: names only where contract semantics require them; no physical leakage.  \nInputs: TC-001/T001 and approved sources. Allowed paths: `api/openapi/**`, `api/events/**`, `docs/implementation/contract-placement.md`. Prohibited paths: source, tests, build, DBML, Scheme administration/idempotency contracts.\nExpected artifacts: versioned OpenAPI and event schemas; synthetic examples; placement record. Dependencies: Hard T001/T002. Parallelizable: false; stabilizes shared contracts.  \nInstructions: Define approved operations/context/ETag/errors/TC-001 pagination/decryption no-store and event catalog/security/versioning; choose and document reversible query-parameter names/serialization; exclude Scheme/outbox administration, 401/403, `Idempotency-Key`, plaintext events, and stack traces. Choose repository paths/base package only as bounded implementation decisions.\nAcceptance/verification: every operation maps to requirement/AC; schemas parse with repository-approved tooling; compatibility and exclusion inventory exists.  \nRisks/stop: stop on TC-001 semantic drift, invented business behavior, sensitive example, or contract/requirement conflict.",
+      "Define approved operations/context/ETag/errors/TC-001 pagination/decryption no-store and event catalog/security/versioning; choose and document reversible query-parameter names/serialization; exclude Scheme/outbox administration, 401/403, `Idempotency-Key`, plaintext events, and stack traces. Choose repository paths/base package only as bounded implementation decisions."
+    ],
+    "objective": "Execute T003 — Establish contract and foundation placement: Define contract-first OpenAPI/event artifacts and record minimal package/path placement before adapters."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "api/openapi/**",
+      "api/events/**",
+      "docs/implementation/contract-placement.md"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}
