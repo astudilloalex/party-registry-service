@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:implementation-block-routing",
+  "destinationState": "IMPLEMENTATION",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": "Re-evaluate misrouted technical block from .factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json.",
+  "occurredAt": "2026-08-16T21:31:20Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 51,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "0418b602-5f29-4e02-b03c-7748e11edaed",
+  "workflowId": "software-factory-default"
+}

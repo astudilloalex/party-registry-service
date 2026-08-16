@@ -1,0 +1,10 @@
+{
+  "action": "RECOVER_FALSE_HUMAN_BLOCK_TO_PLANNING",
+  "detection": "EXPLICIT_BLOCKED_AGENT_MARKERS",
+  "humanDecisionAccepted": false,
+  "phase": "IMPLEMENTATION",
+  "reason": "ENVIRONMENT_BLOCKER: Testcontainers cannot access the configured Docker socket; PostgreSQL 18 migration, schema, privilege, transaction, and concurrency tests could not execute.",
+  "resultPath": ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+  "schemaVersion": 1,
+  "taskId": "T011"
+}

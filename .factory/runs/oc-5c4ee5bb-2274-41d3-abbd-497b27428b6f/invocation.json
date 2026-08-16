@@ -1,0 +1,87 @@
+{
+  "agent": "implementation-planning-agent",
+  "attempt": {
+    "current": 1,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "docs/planning/tasks.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-eba92cbe-57e7-45e9-88f3-4828c48af587/result.json",
+      ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json",
+      ".factory/runs/oc-4cb8f673-3179-4281-a2a6-4482889a2f31/result.json",
+      ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json",
+      ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f",
+  "phase": "PLANNING",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "The plan is implementation-ready, traceable to approved authority, dependency-sequenced, and does not reopen passed upstream gates without material new evidence."
+    ],
+    "expectedArtifacts": [
+      "docs/planning/**",
+      "specs/**/plan.md",
+      "specs/**/tasks.md"
+    ],
+    "instructions": [
+      "GLOBAL_FACTORY_INTENT (context only; not current-phase acceptance): Establish the approved requirements and architecture baseline for party-registry-service as the pilot of the AI Software Factory, using only verified repository sources, the project manifest, existing documentation and the authoritative DBML, without inventing business requirements or modifying the database design.",
+      "GLOBAL_FACTORY_ACCEPTANCE_INTENT (context only; not current-phase acceptance): Requirements and architecture are explicit, internally consistent, traceable to repository evidence, compliant with strict Clean Architecture and LikeC4 standards, and no unresolved high-risk contradiction remains before database validation.",
+      "PHASE_TASK_AUTHORITY: The current workflow state, passed upstream results, and authoritative repository artifacts define this phase scope. Do not reinterpret global intent as a request to repeat completed earlier phases."
+    ],
+    "objective": "Produce or repair an executable implementation plan and stable task breakdown from approved requirements, architecture, database contract, profiles, and downstream gate needs."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "docs/planning/**",
+      "specs/**/plan.md",
+      "specs/**/tasks.md"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:implementation-block-routing",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "note": "Recover T011 blocked plan-task defect from .factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json.",
+  "occurredAt": "2026-08-16T21:31:20Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "IMPLEMENTATION",
+  "repairCycleCount": 1,
+  "requestedEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "riskLevel": "HIGH",
+  "sequence": 52,
+  "sourceState": "IMPLEMENTATION",
+  "transitionId": "ea696237-3561-4d52-8c33-caacb466736e",
+  "workflowId": "software-factory-default"
+}

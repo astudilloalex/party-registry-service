@@ -1,0 +1,9 @@
+{
+  "action": "CORRECT_PREREQUISITE_AND_REVIEW_RETRY",
+  "classification": "ENVIRONMENT_BLOCKER",
+  "humanDecisionAccepted": false,
+  "phase": "IMPLEMENTATION",
+  "reason": "ENVIRONMENT_BLOCKER: Testcontainers cannot connect to unix:///var/run/docker.sock because socket access is denied, so PostgreSQL 18 migration, schema, integrity, privilege, transaction, and concurrency evidence cannot be executed reliably.",
+  "resultPath": ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84/result.json",
+  "schemaVersion": 1
+}

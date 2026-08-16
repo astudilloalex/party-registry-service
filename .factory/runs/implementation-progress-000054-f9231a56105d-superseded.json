@@ -1,24 +1,22 @@
 {
   "phase": "IMPLEMENTATION",
   "phaseComplete": false,
-  "planDigest": "9c9c1c612f72dea585325b70c0cf94d65f47794c3ffb3aa37d2f67f156c08834",
-  "replannedFrom": {
-    "archive": ".factory/runs/implementation-progress-000054-f9231a56105d-superseded.json",
-    "planDigest": "f9231a56105d2b761f8f6a726672d7483a302987e1b5b09375cb49b75679dd00",
-    "preservedCheckpoints": [
-      "T036",
-      "T003",
-      "T004",
-      "T005",
-      "T006",
-      "T007",
-      "T008",
-      "T009",
-      "T010"
-    ],
+  "planDigest": "f9231a56105d2b761f8f6a726672d7483a302987e1b5b09375cb49b75679dd00",
+  "replanRequired": {
+    "detection": "EXPLICIT_BLOCKED_AGENT_MARKERS",
+    "invocationId": "oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308",
     "reason": "ENVIRONMENT_BLOCKER: Testcontainers cannot access the configured Docker socket; PostgreSQL 18 migration, schema, privilege, transaction, and concurrency tests could not execute.",
+    "recordedAt": "2026-08-16T21:31:20Z",
     "resultPath": ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
     "taskId": "T011"
+  },
+  "replannedFrom": {
+    "archive": ".factory/runs/implementation-progress-000048-3774aca5f465-superseded.json",
+    "planDigest": "3774aca5f465f66ab75ba84189ca5a3cf7c1824c2f19eed591c6dd5d8ad05f47",
+    "preservedCheckpoints": [],
+    "reason": "The prior T003 finding remains unresolved: no repository-approved OpenAPI 3.1 or JSON Schema validator is configured, so reference resolution, event-schema validation, and validation of both event examples cannot be demonstrated. The current write scope excludes build and test tooling.",
+    "resultPath": ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+    "taskId": "T003"
   },
   "schemaVersion": 1,
   "tasks": {
@@ -355,16 +353,16 @@
       "generatedFiles": [],
       "lastAttempt": {
         "decision": "BLOCKED",
-        "resultSha256": "f552fa8ef04d2be4d1abe6a15f1b5980abc43b060e23dcf00b43a5b0e017747a",
+        "resultSha256": "19261027651ad75b225820df8bedf6d0284dc64723ea91ae5195a8fba84fce06",
         "riskLevel": "HIGH",
-        "runDirectory": ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84"
+        "runDirectory": ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308"
       },
       "owner": "test-implementation-agent",
       "resultSha256": null,
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "bd732397a9cca63fabbc1142f0792550cd4c7e054bb66a045536480ca7863861"
+      "taskDigest": "428040b69b55e605ee16fe36d089f5e9c227f0da21589661f700bda93e4869ee"
     },
     "T012": {
       "changedFiles": [],
@@ -374,7 +372,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "833c01004370cb6545e645079a57dd3419e710968b8a484e6f434c7088dc2ef9"
+      "taskDigest": "48f5edcd8d362bb9d7f7ec6cfe961c92518c3c3daec888cbb29d2c52048cbfcb"
     },
     "T013": {
       "changedFiles": [],
@@ -414,7 +412,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "675e146d58ef8c0a64e131c6d9918d35e37ed6e71cbd539959449ad50e3dd985"
+      "taskDigest": "4bc31ebdf621303559816a7f0825c33bf4ccf9da7a0431d8a968320f922ce2a2"
     },
     "T017": {
       "changedFiles": [],
@@ -503,17 +501,7 @@
       "runDirectory": ".factory/runs/oc-e013c0bc-cb6e-4e21-a20f-08a160345aa9",
       "status": "PASS",
       "taskDigest": "1ef55fbaf8d3296b7a5181a18e3ca105b17bafa1642ac0e2999bfe180aff7059"
-    },
-    "T037": {
-      "changedFiles": [],
-      "generatedFiles": [],
-      "owner": "test-implementation-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "ac93d132fdb7ecece4093d515aff448908d17cb90fd1da2f6e8ca9ea4654fcfd"
     }
   },
-  "workflowSequence": 55
+  "workflowSequence": 50
 }

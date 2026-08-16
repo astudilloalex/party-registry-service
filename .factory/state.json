@@ -3,16 +3,15 @@
   "initializedAt": "2026-08-09T19:08:42Z",
   "lastEffectiveEvent": "BLOCKED",
   "lastEvent": "BLOCKED",
-  "lastTransitionAt": "2026-08-16T19:47:49Z",
-  "lastTransitionId": "b4780814-facb-4b34-a927-386d5163778a",
+  "lastTransitionAt": "2026-08-16T21:41:08Z",
+  "lastTransitionId": "3f258f90-3e8d-43e5-bc75-eb77b3c44823",
   "previousState": "IMPLEMENTATION",
   "project": "party-registry-service",
   "repairCycles": {
-    "ARCHITECTURE_GATE": 2,
-    "IMPLEMENTATION": 1
+    "ARCHITECTURE_GATE": 2
   },
   "schemaVersion": 1,
-  "sequence": 50,
-  "updatedAt": "2026-08-16T19:47:49Z",
+  "sequence": 55,
+  "updatedAt": "2026-08-16T21:41:08Z",
   "workflowId": "software-factory-default"
 }

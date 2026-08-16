@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:implementation-planning-agent",
+  "destinationState": "GITHUB_PREPARATION",
+  "dryRun": false,
+  "effectiveEvent": "PASS",
+  "note": "Validated OpenCode invocation oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f",
+  "occurredAt": "2026-08-16T21:36:58Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "PASS",
+  "riskLevel": "HIGH",
+  "sequence": 53,
+  "sourceState": "PLANNING",
+  "transitionId": "9f62d9de-2a7f-40a4-9fce-fd8269ddc11d",
+  "workflowId": "software-factory-default"
+}

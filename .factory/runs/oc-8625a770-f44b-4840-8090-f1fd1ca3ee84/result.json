@@ -1,0 +1,31 @@
+{
+  "agent": "test-implementation-agent",
+  "assumptions": [],
+  "decision": "BLOCKED",
+  "evidence": [
+    "Candidate revision 30aa8ca contains PostgreSql18TestSupport.java, PostgreSqlMigrationSchemaTest.java, PostgreSqlIntegrityAndPrivilegeTest.java, PostgreSqlAdapterPresenceTest.java, and constraint-error-mapping.csv; no scoped files were changed during this invocation.",
+    "PostgreSqlMigrationSchemaTest statically covers PostgreSQL 18 pinning, Flyway clean-chain and no-op rerun, V1-to-V2 upgrade preservation, migration failure atomicity, eight enums, seven tables, 104 columns, named constraints, indexes, deferred triggers, enforcement function, UUIDv7 defaults, audit defaults, JSONB, and TIMESTAMPTZ.",
+    "PostgreSqlIntegrityAndPrivilegeTest statically covers both detail insertion orders, invalid committed detail states, lifecycle and country checks, partial nationality uniqueness/history, uppercase hashes, permanent/cross-scope/concurrent identifier uniqueness, tenant foreign keys, verified-primary uniqueness, numeric/version boundaries, atomic outbox behavior, optimistic stale writes, SKIP LOCKED, runtime Scheme SELECT and denied writes, and the 31-entry constraint mapping fixture.",
+    "./gradlew test --offline --tests 'com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlMigrationSchemaTest' --tests 'com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlIntegrityAndPrivilegeTest' --rerun-tasks exited 1: two class initialization failures, both caused by Docker socket permission denial before PostgreSQL tests could execute.",
+    "./gradlew test --offline --tests 'com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlAdapterPresenceTest' --rerun-tasks exited 1: one test executed, zero skipped, with the expected absent PartyQueryPort implementation assertion.",
+    "build/test-results/test/TEST-com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlAdapterPresenceTest.xml records tests=1, failures=1, errors=0, skipped=0.",
+    "git diff --check -- src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql src/test/resources/database exited 0.",
+    "git status --short -- src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql src/test/resources/database produced no output.",
+    "No @Disabled, assumptions, arbitrary sleeps, or TODO markers were found in the scoped PostgreSQL Java tests.",
+    "The broader regression suite was NOT_RUN because the task explicitly requires stopping when the pinned PostgreSQL container cannot start."
+  ],
+  "findings": [
+    "ENVIRONMENT_BLOCKER: Testcontainers cannot connect to unix:///var/run/docker.sock because socket access is denied, so PostgreSQL 18 migration, schema, integrity, privilege, transaction, and concurrency evidence cannot be executed reliably.",
+    "The deterministic adapter-presence test fails solely on the expected pre-T012 condition: no PostgreSQL implementation of PartyQueryPort is present; no production PostgreSQL adapter classes currently exist.",
+    "The required testcontainers-postgresql skill is unavailable; existing repository conventions and pinned Testcontainers dependencies were inspected instead."
+  ],
+  "generatedFiles": [],
+  "nextPhase": "BLOCKED_HIGH_RISK",
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "Provide an authorised isolated container runtime with permission to start postgres:18.0, then rerun the targeted PostgreSQL tests without disabling or skipping them.",
+    "After successful PostgreSQL execution, run the broader relevant regression suite and record exact passed, failed, and skipped counts.",
+    "T012 must implement assignable PostgreSQL adapters for PartyQueryPort, PartyUnitOfWorkPort, IdentifierQueryPort, IdentifierUnitOfWorkPort, IdentifierSchemeCatalogPort, and OutboxStorePort."
+  ],
+  "riskLevel": "HIGH"
+}

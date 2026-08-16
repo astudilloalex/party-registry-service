@@ -2,7 +2,7 @@
 
 ## Rules and Dependency Legend
 
-Status: proposed tasks only. `factoryctl` controls execution. All paths are repository-relative. T003 has recorded the bounded base package as `com.alexastudillo.partyregistry`, and every Java path below uses its exact filesystem form. Every task prohibits `.factory/**`, `orchestrator/**`, requirements, architecture, DBML, Git metadata, unrelated files, and test weakening unless its explicit allowed paths say otherwise. `Hard:` means execution cannot begin; `Soft:` means coordinate to avoid conflicts. T036 is the stable repair prerequisite added after the T003 implementation failure; existing task IDs are not renumbered.
+Status: proposed tasks only. `factoryctl` controls execution. All paths are repository-relative. T003 has recorded the bounded base package as `com.alexastudillo.partyregistry`, and every Java path below uses its exact filesystem form. Every task prohibits `.factory/**`, `orchestrator/**`, requirements, architecture, DBML, Git metadata, unrelated files, and test weakening unless its explicit allowed paths say otherwise. `Hard:` means execution cannot begin; `Soft:` means coordinate to avoid conflicts. T036 is the stable repair prerequisite added after the T003 implementation failure. T037 is the current repair task added after T011 established that concrete persistence-port behavior needs a T012-produced construction contract. Existing task IDs are not renumbered.
 
 ### T001 — Record delegated pagination technical-contract decision
 
@@ -132,17 +132,17 @@ Instructions: Include UUIDv7 mechanism compatibility, exact objects/checks/defau
 Acceptance/verification: clean PostgreSQL 18 and supported prior-schema validation plan, representative integrity cases, DBML mapping with zero omissions, no runtime auto-DDL.  
 Risks/stop: stop on DBML ambiguity/conflict, extension requirement not authorized, existing violating data, destructive remediation, or uncertain applied version.
 
-### T011 — Write PostgreSQL migration and persistence tests
+### T011 — Write PostgreSQL migration, integrity and adapter-presence tests
 
 Owner agent: `test-implementation-agent`  
-Purpose: Prove every DBML/Flyway obligation and persistence port behavior independently.  
+Purpose: Prove every DBML/Flyway obligation, PostgreSQL integrity/privilege/concurrency behavior, and the presence of implementations for all six persistence ports without guessing a not-yet-defined concrete adapter constructor.
 Requirements: DR-001..009; NFR-001/002; effective AC-001..012, 016/017, 031, 061, 074..079. Architecture: persistence and transaction guardrails.  
 DBML: every physical object and normative integration-test note.  
 Inputs: T009/T010. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/test/resources/database/**`. Prohibited paths: production/migrations/build.
-Expected artifacts: PostgreSQL 18 Testcontainers migration/schema/privilege/transaction/concurrency tests. Dependencies: Hard T009/T010. Parallelizable: true with T013/T015/T017 after ports stable.  
-Instructions: Cover both detail insertion orders and all invalid commit states; partial uniqueness/history; uppercase hash check; permanent/cross-scope/concurrent identifier uniqueness; verified primary; tenant FKs; versions; atomic outbox; runtime Scheme SELECT and denied writes; constraint error mapping fixtures.  
-Acceptance/verification: tests fail only for absent adapter/privilege behavior; DBML object coverage inventory complete.  
-Risks/stop: stop if fixture requires real personal data or test alters DBML/migration.
+Expected artifacts: PostgreSQL 18 Testcontainers migration/schema/privilege/transaction/concurrency tests, constraint-error mapping fixture, and a deterministic implementation-presence check. Dependencies: Hard T009/T010. Parallelizable: true with T013/T015/T017 after ports stable.
+Instructions: Cover both detail insertion orders and all invalid commit states; partial uniqueness/history; uppercase hash check; permanent/cross-scope/concurrent identifier uniqueness; verified primary; tenant FKs; versions; atomic outbox; `SKIP LOCKED`; runtime Scheme SELECT and denied writes; constraint error mapping fixtures. Keep the presence check limited to assignability to PartyQueryPort, PartyUnitOfWorkPort, IdentifierQueryPort, IdentifierUnitOfWorkPort, IdentifierSchemeCatalogPort and OutboxStorePort. Do not invent constructor/factory expectations or claim black-box port behavior; T037 owns that evidence after T012.
+Acceptance/verification: before T012, schema/integrity tests pass in an authorised environment able to start the pinned PostgreSQL 18 Testcontainers image and the presence check fails only because the adapter is absent; after T012, the presence check passes. Exact commands/exit codes and DBML object coverage are recorded. Socket permission denial is an environment blocker and never grounds for disabling/skipping tests.
+Risks/stop: stop if the container runtime cannot start the pinned image, a fixture requires real personal data, a test alters DBML/migration, or the task would infer a concrete construction API before T012.
 
 ### T012 — Implement reactive PostgreSQL adapter
 
@@ -150,11 +150,23 @@ Owner agent: `quarkus-engineer-agent`
 Purpose: Implement application persistence/unit-of-work/outbox-store/query-only Scheme ports.  
 Requirements: FR-001/006..009/012/013/021..039/047..050; DR-001..006. Architecture: sections 6/7/11/12; ADR-002/004/005.  
 DBML: exact tables/constraints/queries; no redesign. Inputs: T009-T011.  
-Allowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/main/resources/application.properties` (database/Flyway keys only). Prohibited paths: domain/application edits, blocking ORM/JDBC, runtime auto-DDL, Scheme mutation methods.
-Expected artifacts: persistence records/mappers/reactive queries/transactions/error mapping and bounded pages/claims. Dependencies: Hard T009/T010/T011. Parallelizable: false with tasks changing `application.properties`; otherwise isolated.  
-Instructions: Tenant-qualify reads/mutations; map domain separately; enforce optimistic versions; atomically update aggregate/outbox; use parameterized SQL; implement claim commit before broker I/O and optimistic outcome; bound page/batch; expose Scheme queries only.  
-Acceptance/verification: T011 passes; transaction-overlap instrumentation available; no persistence model leaks inward.  
-Risks/stop: stop on SQL/DBML mismatch, cross-tenant result, blocking access, unbounded query, Scheme write or stale-outcome overwrite.
+Allowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/main/resources/application.properties` (database/Flyway keys only), `docs/implementation/postgresql-adapter.md`. Prohibited paths: domain/application edits, test edits, blocking ORM/JDBC, runtime auto-DDL, Scheme mutation methods.
+Expected artifacts: persistence records/mappers/reactive queries/transactions/error mapping and bounded pages/claims; implementations of all six ports named by T011; and a concise construction/test-fixture contract documenting the concrete constructor or factory, required synthetic non-secret configuration, lifecycle and cleanup needed by T037. Dependencies: Hard T009/T010/T011. Parallelizable: false with tasks changing `application.properties`; otherwise isolated.
+Instructions: Tenant-qualify reads/mutations; map domain separately; enforce optimistic versions; atomically update aggregate/outbox; use parameterized SQL; implement claim commit before broker I/O and optimistic outcome; bound page/batch; expose Scheme queries only. Define the narrowest stable construction seam needed for independent black-box testing without adding a production-only test abstraction, leaking persistence models, or requiring T037 to use reflection into private internals.
+Acceptance/verification: T011 migration/integrity and presence checks pass in the approved PostgreSQL environment; construction contract is sufficient for T037; transaction-overlap instrumentation is available; no persistence model leaks inward. Full black-box persistence-port behavior is accepted only after T037.
+Risks/stop: stop on SQL/DBML mismatch, cross-tenant result, blocking access, unbounded query, Scheme write, stale-outcome overwrite, inaccessible mandatory database tests, or inability to expose a bounded construction seam within this adapter scope.
+
+### T037 — Verify PostgreSQL persistence ports through the concrete adapter
+
+Owner agent: `test-implementation-agent`
+Purpose: Restore the mandatory independent persistence-port behavioral coverage that T011 could not author before a concrete adapter construction contract existed.
+Requirements: FR-001/006..009/012/013/021..039/047..050; DR-001..006; NFR-001/002; effective AC-001/008/011/012/016/020/021/031/032/040/045/046/074..080.
+Architecture: sections 6/7/11/12 and ADR-002/004/005; tenant-qualified reactive ports, query-only Scheme catalog and three-boundary outbox flow. DBML: exact tables, named constraints, indexes, privileges and optimistic versions.
+Inputs: completed T011 artifacts, T012 concrete implementation and `docs/implementation/postgresql-adapter.md`. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/test/resources/database/**`. Prohibited paths: production, migrations, build, application ports, approved sources, factory/Git metadata and test weakening.
+Expected artifacts: black-box PostgreSQL 18 Testcontainers tests that instantiate the T012 adapter only through its documented construction seam and exercise all six persistence ports; requirement/port-to-test mapping. Dependencies: Hard T011/T012. Parallelizable: true with T014 after T012, but false with any task editing the same PostgreSQL test files or shared database fixture.
+Instructions: Verify tenant-qualified not-found/non-disclosure, deterministic bounded pages and filters, domain/persistence mapping separation, atomic aggregate-version/audit/outbox mutations, permanent identifier uniqueness and safe named-constraint/SQLSTATE mapping, read-only Scheme lookup and denied mutation capability, exact HMAC lookup without scan/decrypt, bounded `SKIP LOCKED` claim commit before broker I/O, optimistic stale-outcome rejection and same-event recovery. Exercise the public application port interfaces; do not assert private class layout, duplicate T011's full schema inventory, add reflection-only access, or modify production to make assertions pass.
+Acceptance/verification: every method of PartyQueryPort, PartyUnitOfWorkPort, IdentifierQueryPort, IdentifierUnitOfWorkPort, IdentifierSchemeCatalogPort and OutboxStorePort has meaningful success, boundary and applicable failure coverage; all targeted tests pass against the pinned PostgreSQL 18 image with exact commands/exit codes; no disabled tests, real personal data, blocking implementation assumption, cross-tenant leakage or Scheme mutation method exists.
+Risks/stop: stop if T012 lacks the documented construction seam, Testcontainers cannot access an authorised container runtime, observed behavior conflicts with application ports/DBML, a test would require production redesign outside T012, or sensitive data could be exposed. Return the finding to T012 or the execution environment; do not weaken acceptance.
 
 ### T013 — Write protection, logging and geography adapter tests
 
@@ -195,9 +207,9 @@ Risks/stop: stop on irreversible retry, new event ID, open DB transaction during
 
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Satisfy T015 using application event publisher/outbox ports.  
-Requirements/architecture/DBML: same as T015. Inputs: T012/T015.  
+Requirements/architecture/DBML: same as T015. Inputs: T012/T015/T037.
 Allowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/out/messaging/**`, `src/main/resources/application.properties` (bounded non-secret settings only). Prohibited paths: consumer queue/DLQ management, public outbox endpoints, new persistence fields.
-Expected artifacts: reactive publisher adapter and internal authorised recovery wiring boundary. Dependencies: Hard T012/T015. Parallelizable: false with shared config/bootstrap tasks.  
+Expected artifacts: reactive publisher adapter and internal authorised recovery wiring boundary. Dependencies: Hard T012/T015/T037. Parallelizable: false with shared config/bootstrap tasks.
 Instructions: Preserve persistent messages, confirms, timeouts, bounded batch/concurrency, configurable backoff/jitter, same-event identity and safe errors; never cap durable eligibility with an unapproved discard limit.  
 Acceptance/verification: T015 passes; lag/backlog metrics hooks exist; no manual subscription/event-loop blocking.  
 Risks/stop: stop on missing confirm, automatic discard/purge/DLQ, duplicate replacement event or transaction overlap.
@@ -284,8 +296,8 @@ Risks/stop: stop on public/privileged exposure, embedded secret, direct unrestri
 Owner agent: `integration-engineer-agent`  
 Purpose: Validate assembled behavior without redefining contracts.  
 Requirements: all effective ACs; NFR-001..011; OR-004/006/008. Architecture: all validation obligations. DBML: validated migration/persistence contract.  
-Inputs: T019-T021 and implementation test suites. Allowed paths: `src/test/**/integration/**`, `src/test/resources/performance/**`, `docs/implementation/evidence/**`. Prohibited paths: production behavior/contracts/DBML/migrations.  
-Expected artifacts: end-to-end, fault, concurrency, security inspection, load/lag/startup, packaged smoke and recovery evidence. Dependencies: Hard T019/T020/T021; migration/persistence/integration suites. Parallelizable: false for shared environment; scenarios may run independently when isolated.  
+Inputs: T019-T021, T037 and implementation test suites. Allowed paths: `src/test/**/integration/**`, `src/test/resources/performance/**`, `docs/implementation/evidence/**`. Prohibited paths: production behavior/contracts/DBML/migrations.
+Expected artifacts: end-to-end, fault, concurrency, security inspection, load/lag/startup, packaged smoke and recovery evidence. Dependencies: Hard T019/T020/T021/T037; migration/persistence/integration suites. Parallelizable: false for shared environment; scenarios may run independently when isolated.
 Instructions: Use approved 1 CPU/512 MiB dataset/load profile; verify transaction non-overlap, tenant negatives, no sensitive output, outbox recovery, readiness, and exact contract. Record commands/exit codes; do not modify implementation to make tests pass.  
 Acceptance/verification: all applicable ACs map to passing reproducible evidence; failures return to owning implementation task.  
 Risks/stop: stop on secret/personal-data exposure, environment mismatch, flaky/unbounded test, or unavailable mandatory dependency evidence.
@@ -403,8 +415,8 @@ Risks/stop: dirty unrelated files, missing gate, absent human-merge control or r
 
 ## Traceability Summary, Critical Path, and Global Stop Conditions
 
-The grouped requirement-to-task-to-gate matrix is in `implementation-plan.md` section 13. No executable task lacks a source obligation. Test tasks T004/T006/T008/T011/T013/T015/T017 precede corresponding production tasks. Migration T010 and persistence T012 are separate. Implementers and gate agents are independent.
+The grouped requirement-to-task-to-gate matrix is in `implementation-plan.md` section 13. No executable task lacks a source obligation. Test tasks T004/T006/T008/T011/T013/T015/T017 precede corresponding production tasks; T037 is the documented bounded post-construction exception backed by T008 port contracts and T011 database-first evidence. Migration T010 and persistence T012 are separate. Implementers and gate agents are independent.
 
-Critical path: T001 -> T002 -> T036 -> T003 -> T004/T005 -> T006 -> T007 -> T008 -> T009 -> T011 -> T012 -> T013/T015/T017 -> T014/T016 -> T018 -> T019 -> T021 -> T023 -> T024..T029/T032 and T035 -> T022 -> T034 -> T033 -> T030 -> T031.
+Critical path: T001 -> T002 -> T036 -> T003 -> T004/T005 -> T006 -> T007 -> T008 -> T009 -> T011 -> T012 -> T037 -> T016 -> T018 -> T019 -> T021 -> T023 -> T024..T029/T032 and T035 -> T022 -> T034 -> T033 -> T030 -> T031. T013/T014, T015 and T017 join this path at their declared adapter dependencies and may run earlier where their write scopes do not overlap.
 
-All agents must stop on authoritative-source conflict, TC-001 semantic drift, DBML divergence, secret/plaintext/personal-data exposure, cross-tenant access, Scheme mutation, destructive migration, public binding, use of the existing direct-SSH/cross-service deployment behavior, remote I/O under mutation transaction, unbounded retry/concurrency, contract incompatibility, missing rollback/recovery, mandatory test/gate failure, unapproved dependency or request to modify protected factory state, merge, or deploy outside the authorised phase.
+All agents must stop on authoritative-source conflict, TC-001 semantic drift, DBML divergence, secret/plaintext/personal-data exposure, cross-tenant access, Scheme mutation, destructive migration, inaccessible mandatory PostgreSQL test execution, absent T012 adapter construction contract, public binding, use of the existing direct-SSH/cross-service deployment behavior, remote I/O under mutation transaction, unbounded retry/concurrency, contract incompatibility, missing rollback/recovery, mandatory test/gate failure, unapproved dependency or request to modify protected factory state, merge, or deploy outside the authorised phase.
