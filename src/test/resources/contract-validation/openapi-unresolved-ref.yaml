@@ -1,0 +1,15 @@
+openapi: 3.1.0
+info:
+  title: Synthetic unresolved-reference self-test
+  version: 1.0.0
+paths:
+  /widgets:
+    get:
+      operationId: listWidgets
+      responses:
+        '200':
+          description: Synthetic response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MissingWidget'

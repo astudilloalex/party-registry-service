@@ -26,6 +26,7 @@ This plan does not authorize implementation, create an issue or branch, approve 
 | Architecture | PASS | `docs/architecture/solution-architecture.md`; `architecture/model.c4`; ADR-001..005; clean-architecture-gate PASS in `.factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json` |
 | Database contract | PASS | Database-contract PASS in `.factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json`; final DBML at manifest path |
 | Profiles | PASS | Supplied Clean Architecture, Quarkus Java 25, PostgreSQL, and VPS Podman Quadlet profiles |
+| Plan-task repair input | PASS | `.factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json` proves T003 cannot satisfy contract parsing/reference/example validation because its dependencies and write scope provide no repository-controlled OpenAPI 3.1/JSON Schema 2020-12 validator. This plan adds prerequisite T036 without weakening T003. |
 | Planning write boundary | PASS | Only `docs/planning/**` is written |
 
 The gate PASS results approve their own reviewed responsibilities only. The effective requirements baseline applies recorded human amendments over historical v0.4 text. Superseded idempotency and runtime Identifier Scheme administration clauses must not be implemented.
@@ -84,21 +85,21 @@ The issue must be created only by `github-flow-agent`. Recommended branch intent
 | Execution | Reactive end-to-end; bounded isolation for unavoidable blocking/CPU work (ADR-001) |
 | Persistence | PostgreSQL 18 contract target; reactive client preferred; Flyway only |
 | API | OpenAPI; `/api/v1`; `ApiResponse`; ETag/If-Match |
-| Tests | JUnit, Testcontainers, ArchUnit, JaCoCo per profile; current dependencies not yet present |
+| Tests | JUnit, Testcontainers, ArchUnit, JaCoCo per profile; current dependencies not yet present. Repository-controlled OpenAPI 3.1 and JSON Schema 2020-12 validation tooling is also absent and is introduced by prerequisite T036. |
 | Packaging | OCI; current generic Quarkus JVM/native Dockerfiles exist |
 | Deployment | Rootless Podman/Quadlet on VPS; loopback behind internal nginx; same digest promotion |
 | Integrations | Geographic Reference Service, RabbitMQ; no external logger/KMS |
 | Performance | NFR-008..011 quantified pilot targets |
 
-**EXISTING REPOSITORY FACT.** The application is scaffold-only: no `src/main/java`, `src/test`, migration, or OpenAPI artifacts exist. `build.gradle.kts` contains only Quarkus ARC and Quarkus JUnit; `application.properties` is empty. An existing `.github/workflows/ci.yml` is present, but it rebuilds on `main`, publishes a mutable `latest` tag, performs direct SSH/SCP, and references Geographic Reference deployment paths; this conflicts with the approved restricted-wrapper, same-digest Party Registry deployment and must be replaced by T034 before publication or deployment. Package paths below therefore use `<base-package>` until T003 records the bounded implementation placement. The Gradle group `com.alexastudillo` is evidence but does not by itself establish the final package.
+**EXISTING REPOSITORY FACT.** The production application remains scaffold-only: no `src/main/java`, `src/test`, or migration artifacts exist. T003 has produced unvalidated OpenAPI/event contract artifacts under `api/**` and recorded `com.alexastudillo.partyregistry` as the bounded implementation package in `docs/implementation/contract-placement.md`; these generated artifacts are preserved while T036 supplies the missing validation prerequisite. `build.gradle.kts` still contains only Quarkus ARC and Quarkus JUnit, and `application.properties` is empty. An existing `.github/workflows/ci.yml` is present, but it rebuilds on `main`, publishes a mutable `latest` tag, performs direct SSH/SCP, and references Geographic Reference deployment paths; this conflicts with the approved restricted-wrapper, same-digest Party Registry deployment and must be replaced by T034 before publication or deployment.
 
 ### Proposed path status
 
 | Area | Path | Status |
 |---|---|---|
-| Domain/application/adapters/bootstrap | `src/main/java/<base-package>/partyregistry/{domain,application,adapter,bootstrap}/**` | `new-approved` logical areas; exact package is an implementation decision |
-| Tests | `src/test/java/<base-package>/partyregistry/**` | `new-approved` |
-| API/event contracts | `api/openapi/**`, `api/events/**` | `new-approved`; repository placement decision in T003 |
+| Domain/application/adapters/bootstrap | `src/main/java/com/alexastudillo/partyregistry/{domain,application,adapter,bootstrap}/**` | `new-approved`; bounded placement recorded by T003 |
+| Tests | `src/test/java/com/alexastudillo/partyregistry/**` | `new-approved` |
+| API/event contracts | `api/openapi/**`, `api/events/**` | `existing generated T003 artifacts pending T036-backed validation` |
 | Migrations | `src/main/resources/db/migration/**` | `new-approved` |
 | Runtime config | `src/main/resources/application.properties` | `existing` |
 | Build | `build.gradle.kts`, `gradle.properties`, wrapper files | `existing` |
@@ -115,7 +116,7 @@ The issue must be created only by `github-flow-agent`. Recommended branch intent
 | Java 25, Gradle Kotlin DSL, pinned Quarkus | PASS | Manifest, profile, repository pins; T004 prohibits drift |
 | Strict Clean Architecture and inward dependencies | PASS | Architecture sections 6/20; T005-T009/T021 |
 | Reactive execution and event-loop safety | PASS | ADR-001; T008/T013/T015/T018/T023 |
-| Contract before adapters | PASS | T003-T004 precede T017 |
+| Contract before adapters | PASS | T036 enables validation; T003-T004 precede T017 |
 | DBML physical match and Flyway-only evolution | PASS | Database-contract PASS; T010 and T024; DBML immutable |
 | Applied migrations immutable | PASS | T010 prohibits edits and requires inventory check |
 | PostgreSQL checks/triggers/indexes/grants | PASS | DBML normative notes; T010/T011/T024 |
@@ -139,8 +140,8 @@ There is no approved exception and no unresolved human decision. TC-001 is a bou
 
 | Workstream | Boundary / outputs | Owner | Dependencies | Completion evidence |
 |---|---|---|---|---|
-| Governance/contracts | TC-001, OpenAPI and immutable event schemas | Planning, Quarkus, test | Upstream baseline | TC-001 record; API/event gate |
-| Foundation | Minimal BOM-aligned capabilities and package placement | Quarkus | Stable contract direction | Reproducible build metadata; dependency gate |
+| Governance/contracts | TC-001, repository-controlled contract validation, OpenAPI and immutable event schemas | Planning, Quarkus, test | Upstream baseline | TC-001 record; executable OpenAPI/event validation; API/event gate |
+| Foundation | Minimal BOM-aligned capabilities, validation harness, and package placement | Quarkus | Stable contract direction | Reproducible build metadata; dependency gate |
 | Domain | Pure entities, values, policies, masks, lifecycle/errors | Test then Quarkus | Effective requirements | Pure deterministic tests; ArchUnit |
 | Application | Ports/use cases, tenant/context, transactions, concurrency | Test then Quarkus | Domain and contracts | Use-case tests without adapters |
 | Database migration | Forward-only SQL derived only from DBML | Database migration | DB contract PASS | Migration gate; empty/upgrade/data evidence |
@@ -156,7 +157,7 @@ Business logic is prohibited in REST resources, persistence entities/repositorie
 
 ### Contract-first
 
-T003 must apply TC-001 and define every approved operation, context header, request/response, mask, no-store response, ETag/If-Match behavior, validation/error category, tenant non-disclosure rule, payload bound, and examples containing synthetic data only. It must exclude Scheme/outbox administration and idempotency. Versioned event schemas must cover only the approved Party/Identifier catalog, stable event identity, tenant/aggregate/version/correlation data, minimum payload, and no plaintext. T004 writes failing contract tests before T017.
+T036 first adds the minimum repository-controlled OpenAPI 3.1 and JSON Schema 2020-12 validation harness needed by T003, including reference resolution and example validation. This is a build-time verification capability only: it introduces no runtime dependency or contract meaning, and its dependency choice remains subject to the independent supply-chain gate. T003 then applies TC-001 and defines every approved operation, context header, request/response, mask, no-store response, ETag/If-Match behavior, validation/error category, tenant non-disclosure rule, payload bound, and examples containing synthetic data only. It must exclude Scheme/outbox administration and idempotency. Versioned event schemas must cover only the approved Party/Identifier catalog, stable event identity, tenant/aggregate/version/correlation data, minimum payload, and no plaintext. T003 must execute the T036 harness over the OpenAPI document, all resolved references, the event schema, and every event example. T004 writes failing behavioral contract tests before T017.
 
 **TECHNICAL CONTRACT DECISION TC-001.** Acting under the bounded authority explicitly delegated by requirements-gate PASS finding RG-401, V1 uses zero-based `page` with default `0`, `size` with default `20` and inclusive range `1..100`, and ascending resource UUID as the sole V1 order (and deterministic tie-breaker). Effective supported filter semantics are Party type/status, nationality country/primary/active within one Party, and Party Identifier Party/Scheme/status/primary; Amendment 002 removes all Identifier Scheme browse/search parameters with that endpoint. Negative pages, out-of-range sizes, unsupported filters, and unsupported sort fields/directions produce `VALIDATION_ERROR`. T003 may choose non-normative query-parameter spelling and serialization consistent with these semantics as a reversible technical contract decision, and T027 must independently validate it. TC-001 adopts downstream-resolvable technical values; it does not present RG-208 as original product authority.
 
@@ -180,7 +181,7 @@ T011/T012 keep persistence models separate from domain, use reactive PostgreSQL 
 
 ## 10. Testing Strategy and Architecture Enforcement
 
-Tests precede or accompany production tasks as defined in `tasks.md`. Required layers are pure domain tests, application tests with port fakes, OpenAPI/event contract tests, reactive API tests, PostgreSQL migration/persistence tests, provider integration tests, concurrency/fault/restart tests, security/redaction tests, architecture tests, pilot load/lag tests, packaged-runtime smoke tests, and deployment/recovery checks.
+Tests precede or accompany production tasks as defined in `tasks.md`. T036 provides schema-validator self-tests before T003 relies on the harness. Required layers are pure domain tests, application tests with port fakes, OpenAPI/event contract tests, reactive API tests, PostgreSQL migration/persistence tests, provider integration tests, concurrency/fault/restart tests, security/redaction tests, architecture tests, pilot load/lag tests, packaged-runtime smoke tests, and deployment/recovery checks.
 
 ArchUnit must mechanically prohibit framework imports in domain, concrete adapters in application, REST-to-persistence access, persistence model exposure, direct repository injection into use cases, Scheme mutation capability, package cycles, and unapproved dependencies. LikeC4 parse/validate/render remains a mandatory independent quality-gate check; it was previously `NOT_RUN` because repository-controlled tooling was absent. T021 may add the minimum justified validation mechanism only through the governed build task; it must not alter reviewed architecture semantics.
 
@@ -191,7 +192,7 @@ No test may use production data, real identifiers, secrets, trivial assertions, 
 ### Phases and critical path
 
 1. Governance: TC-001/T001 -> T002.
-2. Contract/foundation: T003 -> T004.
+2. Contract/foundation: T036 -> T003 -> T004.
 3. Test-first core: T005 -> T006 -> T007 -> T008.
 4. Data: T010 -> T011 -> T012.
 5. Integrations/API: T013 -> T014; T015 -> T016; T017 -> T018.
@@ -199,15 +200,15 @@ No test may use production data, real identifiers, secrets, trivial assertions, 
 7. Validation and release preparation: T023 -> T024..T029/T032; after T023 and T035, T022 -> T034; then immutable build T033 and readiness T030.
 8. GitHub handoff: T031.
 
-Critical path is TC-001 -> contracts -> application ports -> persistence/integrations -> inbound API -> integration validation -> independent gates -> immutable candidate/readiness -> PR handoff.
+Critical path is TC-001 -> contract-validation harness -> validated contracts -> application ports -> persistence/integrations -> inbound API -> integration validation -> independent gates -> immutable candidate/readiness -> PR handoff.
 
 ### Parallel waves
 
 | Wave | Tasks safe to run after dependencies | Checkpoint |
 |---|---|---|
 | 0 | T001 | TC-001 is recorded in this proposed plan as a delegated technical-contract decision; approved source files remain unchanged. |
-| 1 | T002, then T003 | Issue/branch intent exists and public/event contracts apply TC-001. |
-| 2 | T004; T005 and T007 after foundation | Minimal dependencies are fixed; failing core/contract tests express approved behavior. |
+| 1 | T002, then T036 | Issue/branch intent exists and the repository can validate OpenAPI 3.1, JSON Schema 2020-12, references, and examples without changing contract meaning. |
+| 2 | T003, then T004; T005 after validated contract placement | Public/event contracts apply TC-001 and pass structural validation; failing behavioral contract tests express approved behavior. |
 | 3 | T006 and T008 sequentially; T010 may run in parallel after T004 | Pure core and DB migration independently match approved sources. |
 | 4 | T011, T013, T015, T017 test tasks where write scopes do not overlap | Adapter verification harnesses fail for the intended missing behavior. |
 | 5 | T012, T014, T016, T018 after corresponding tests/ports | Adapters satisfy stable ports/contracts without transaction or boundary leakage. |
@@ -225,7 +226,7 @@ Shared bottlenecks are `build.gradle.kts`, `application.properties`, OpenAPI, mi
 | `code-quality-gate-agent` | All implementation | Clean build/static analysis, architecture boundaries, changed-file inventory | Responsible implementation agent |
 | `test-quality-gate-agent` | Tests/behavior | Requirement-to-test coverage and non-trivial passing suites | `test-implementation-agent` |
 | `security-gate-agent` | Releasable change | Tenant isolation, no-auth boundary, secret/plaintext/redaction/no-store/DB privilege evidence | Quarkus/test/deployment owner by finding |
-| `dependency-supply-chain-gate-agent` | Build/dependencies | BOM alignment, vulnerability/license/secret scan, SBOM, reproducibility | Quarkus or build/release |
+| `dependency-supply-chain-gate-agent` | Build/dependencies, including T036 build-time validators | BOM alignment, validator minimality, runtime-classpath exclusion, vulnerability/license/secret scan, SBOM, reproducibility | Quarkus or build/release |
 | `api-contract-gate-agent` | OpenAPI/events | TC-001, operation inventory, compatibility, examples and contract tests | Contract author |
 | `database-migration-gate-agent` | Flyway/persistence | DBML mapping, clean/upgrade/representative tests, privileges, immutability | Database migration agent |
 | `performance-reliability-gate-agent` | NFR-001..011 | Load/lag/startup/fault/recovery results under approved pilot profile | Test/integration owner |
@@ -239,13 +240,13 @@ Completion evidence must be reproducible and include source commit, issue/branch
 
 | Obligation group | Implementation tasks | Verification tasks | Gates/evidence |
 |---|---|---|---|
-| AC-000; NFR-004..007; DR-008/009; CR-005 | T004, T010, T021, T022 | T021, T023, T024 | Code, dependency, migration, production-readiness; build/profile/LikeC4 evidence |
+| AC-000; NFR-004..007; DR-008/009; CR-005 | T036, T004, T010, T021, T022 | T036, T021, T023, T024 | Code, dependency, migration, production-readiness; schema-validation/build/profile/LikeC4 evidence |
 | FR-001..003, 007, 010..012, 015..017, 021..033; VR-001/002/006/009..012; DR-001..003/005/007 | T006, T008, T012, T014, T018 | T005, T007, T011, T013, T017, T023 | Test, security, API, performance; AC-001..005, 011/012, 019/020, 023/024, 027, 030..043, 059/060, 067..070 |
 | Amendment 001; FR-005/006/013/014/018/034..039/046..049; VR-003..005/007/008/013/014; DR-004; SR-001..007; CR-003 | T006, T008, T012, T014, T018, T019 | T005, T007, T011, T013, T017, T023 | Security, API, migration, test; AC-007..010, 017, 021/022, 028, 044..050, 061/062, 071..079 |
 | Amendment 002; effective FR-019/040..045/048/049; IR-004 | T008, T010, T012, T018 | T007, T011, T017, T021, T023/T024 | Architecture/API/security/migration evidence proving query-only catalog and no Scheme API/event |
 | FR-008/009/020/050; VR-015..018; DR-006; IR-002..004; NFR-001..003/009; CR-002/004 | T003, T008, T010, T016 | T004, T007, T011, T015, T023 | API, migration, reliability, security; AC-012..014, 016, 025, 029, 058, 063..066, 080 |
 | FR-023/031/036 and VR-007 pagination portions | TC-001; T003, T008, T012, T018 | T004, T007, T011, T017, T023 | API/test/performance; AC-028/033/041/047/081 and T027 |
-| IR-001/005; Geographic behavior | T003, T008, T014, T018 | T004, T007, T013, T017, T023 | API/security/reliability; AC-004/023/028/059/060 |
+| IR-001/005; Geographic behavior | T036, T003, T008, T014, T018 | T036, T004, T007, T013, T017, T023 | API/security/reliability; validated contract structure and AC-004/023/028/059/060 |
 | NFR-008..011; OR-001..009; CR-001 | T019, T020, T022, T033, T034 | T023, T028-T030, T035 | Performance/reliability, restricted-interface discovery, workflow-policy and production-readiness; AC-015/025/026 |
 | Every DBML enum/table/reference/check/index/trigger/grant obligation | T010, T012 | T011, T024 | Database migration gate and DBML mapping artifact |
 
@@ -261,6 +262,7 @@ Superseded v0.4 statements are traceable to exclusion tests: no command idempote
 | Authenticated encryption plus tenant HMAC | Restricted plaintext and exact protected lookup; plaintext/hash alternative is prohibited | ADR-003/004; security owner; rotation evidence required |
 | Bounded Geographic cache | Approved availability semantics; direct-only calls fail BR-019 | Quarkus integration owner; no durable/distributed cache |
 | Deferred Party/detail triggers and partial indexes | Explicit DBML invariants; application-only enforcement is concurrency-unsafe | Database migration owner; migration gate |
+| Build-time OpenAPI 3.1 and JSON Schema 2020-12 validators | T003 cannot prove parsing, reference resolution, schema validity, or example conformance without executable tooling; manual inspection is insufficient | Quarkus build owner; dependencies must be minimal, absent from runtime classpaths, independently supply-chain reviewed, and removable only if an equivalent repository-controlled validator replaces them |
 
 No new runtime container, broker, cache service, module, external logger, KMS, or privileged capability is planned.
 
@@ -279,6 +281,7 @@ No new runtime container, broker, cache service, module, external logger, KMS, o
 | R-009 MEDIUM | Unsupported Scheme rule key makes readiness unavailable | Release/migration coordination and readiness integration tests | Build/database owners |
 | R-010 MEDIUM | Restore recurrence and operational alert details are absent | Document before production; verify RPO/RTO with restore evidence | Operations authority; stop before production readiness |
 | R-011 HIGH | Existing `.github/workflows/ci.yml` can rebuild on `main`, use direct SSH/SCP, mutable `latest`, and Geographic Reference paths | Quarantine from use; T034 replaces it; T030 verifies restricted wrapper and same digest | Build/release and deployment owners; stop publication, merge readiness, or deployment while conflict remains |
+| R-012 MEDIUM | T036 validator selection may add unnecessary or vulnerable build dependencies, or validate syntax without resolving references/examples | Limit to build/test classpaths, record dependency rationale, self-test valid/invalid fixtures, execute all T003 artifacts, and independently review in T029 | Quarkus build owner/dependency gate; stop T003 on unresolved references, unvalidated examples, dependency vulnerability, or runtime-classpath leakage |
 
 ### Human decisions
 
@@ -296,6 +299,5 @@ Stop and return control rather than improvise on any requirement/architecture/DB
 
 Low-risk planning assumptions:
 
-1. The exact Java base package and new contract-directory placement are bounded implementation decisions because the scaffold establishes no package convention; T003/T004 must record them without altering architecture.
-2. No applied migration exists at planning time; T010 must re-inventory immediately before selecting the next immutable version.
-3. Operational numeric values not approved by requirements (publisher batch, timeout, backoff, jitter, pool limits, alert thresholds) remain bounded external configuration validated against approved targets, not new business requirements.
+1. No applied migration exists at planning time; T010 must re-inventory immediately before selecting the next immutable version.
+2. Operational numeric values not approved by requirements (publisher batch, timeout, backoff, jitter, pool limits, alert thresholds) remain bounded external configuration validated against approved targets, not new business requirements.

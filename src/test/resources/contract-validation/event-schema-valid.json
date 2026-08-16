@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventType", "sequence"],
+  "properties": {
+    "eventType": {"const": "synthetic.widget-created.v1"},
+    "sequence": {"type": "integer", "minimum": 1}
+  }
+}

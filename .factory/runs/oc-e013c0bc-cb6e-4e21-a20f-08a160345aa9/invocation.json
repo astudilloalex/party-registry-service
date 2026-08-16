@@ -1,0 +1,106 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "attempt": {
+    "current": 1,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/planning/tasks.md",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "api/openapi/v1/party-registry.openapi.yaml",
+      "api/events/v1/examples/party-created.v1.json",
+      "api/events/v1/examples/party-identifier-verified.v1.json",
+      "api/events/v1/party-registry-events.schema.json",
+      "docs/implementation/contract-placement.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-c18e0874-ee82-4735-b242-956ee8f78c8b/result.json",
+      ".factory/runs/oc-1c47291c-d538-4e76-ad5b-ce502c2bc2f7/result.json",
+      ".factory/runs/oc-0b493fdf-5bec-4daf-8e5a-0b9eba202ff5/result.json",
+      ".factory/runs/oc-072ebe71-097a-403c-b2f6-0980cb0c3641/result.json",
+      ".factory/runs/oc-83373587-dbd6-45c2-b6cb-e89bb54f9083/result.json",
+      ".factory/runs/oc-4cb8f673-3179-4281-a2a6-4482889a2f31/result.json",
+      ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json",
+      ".factory/runs/oc-50763d77-7c8e-455b-8a1c-40e8ce0fe376/result.json",
+      ".factory/runs/oc-618baa10-4125-44b6-99f0-4e89eb55f27e/result.json",
+      ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json",
+      ".factory/runs/oc-74c70e5e-0dca-4018-89db-473bf75b826a/result.json",
+      ".factory/runs/oc-1540c9f4-340e-4cb9-83c3-aca94637223f/result.json",
+      ".factory/runs/oc-dc3ea341-2ff6-48e2-960c-2a0223b0466c/result.json",
+      ".factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json",
+      ".factory/runs/oc-5f6ff212-eb7d-4106-b788-4381963639a2/result.json",
+      ".factory/runs/oc-ee06eb70-e2ae-47a0-84cd-6567f727b9be/result.json",
+      ".factory/runs/oc-f2cbc222-c6c8-4ef8-b118-61a57b85cd37/result.json",
+      ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-288f2213-2a4b-44a4-ad4c-c352e7880019/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-e013c0bc-cb6e-4e21-a20f-08a160345aa9",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-e013c0bc-cb6e-4e21-a20f-08a160345aa9",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "Self-tests prove both positive and negative detection; dependency inspection proves no validator on production runtime classpaths; the harness can be invoked by T003 against `api/openapi/v1/party-registry.openapi.yaml`, `api/events/v1/party-registry-events.schema.json`, and all `api/events/v1/examples/*.json`; exact commands and exit codes are recorded."
+    ],
+    "expectedArtifacts": [
+      "minimal build/test-scoped validator declarations; a repository-executable validation harness; synthetic valid and intentionally invalid self-test fixtures; a short dependency/command record."
+    ],
+    "instructions": [
+      "IMPLEMENTATION_TASK_ID: T036",
+      "IMPLEMENTATION_TASK_SOURCE: docs/planning/tasks.md",
+      "IMPLEMENTATION_TASK_CONTRACT:\nOwner agent: `quarkus-engineer-agent`\nPurpose: Supply the missing executable prerequisite that lets T003 prove OpenAPI 3.1 parsing/reference resolution and JSON Schema 2020-12 schema/example validity without weakening T003 acceptance.\nRequirements: IR-002..005; CR-002/004; NFR-004/007; API/event acceptance criteria assigned to T003.\nArchitecture: sections 5.1/10/12/19; build-time validation only, with no runtime-boundary change. DBML: not applicable.\nInputs: T002 branch evidence, `.factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json`, current `build.gradle.kts`, T003 contract locations, and the pinned repository/BOM baseline. Allowed paths: `build.gradle.kts`, `gradle.properties`, `src/test/java/com/alexastudillo/partyregistry/contractvalidation/**`, `src/test/resources/contract-validation/**`, `docs/implementation/contract-validation.md`. Prohibited paths: `api/**`, production source/resources, runtime dependencies/classpaths, approved requirements/architecture/DBML, version drift, package installation, and factory/Git metadata.\nExpected artifacts: minimal build/test-scoped validator declarations; a repository-executable validation harness; synthetic valid and intentionally invalid self-test fixtures; a short dependency/command record. Dependencies: Hard T001/T002. Parallelizable: false; it modifies the shared build and must finish before T003/T005.\nInstructions: Select the minimum maintained OpenAPI 3.1 and JSON Schema Draft 2020-12 validation capability as a bounded implementation decision, preferring existing BOM alignment where available and pinning any non-BOM build-time version from repository evidence. The harness must fail on malformed OpenAPI, unresolved `$ref`, invalid JSON Schema, and an event example that violates the catalog schema; it must discover and validate every example under the configured event-example path. Keep validators off production/runtime classpaths, add no code generator, generated server/client, runtime framework, network service, or contract semantics. Record why each dependency is required and the exact offline-reproducible Gradle command once dependencies are resolved through approved repositories.\nAcceptance/verification: Self-tests prove both positive and negative detection; dependency inspection proves no validator on production runtime classpaths; the harness can be invoked by T003 against `api/openapi/v1/party-registry.openapi.yaml`, `api/events/v1/party-registry-events.schema.json`, and all `api/events/v1/examples/*.json`; exact commands and exit codes are recorded.\nRisks/stop: stop if full OpenAPI 3.1/reference or JSON Schema 2020-12/example validation cannot be supported, a dependency is vulnerable/unlicensed/unpinned, validation requires external network service or package installation, or tooling leaks into runtime. Return a bounded implementation failure rather than accepting manual-only validation.",
+      "Select the minimum maintained OpenAPI 3.1 and JSON Schema Draft 2020-12 validation capability as a bounded implementation decision, preferring existing BOM alignment where available and pinning any non-BOM build-time version from repository evidence. The harness must fail on malformed OpenAPI, unresolved `$ref`, invalid JSON Schema, and an event example that violates the catalog schema; it must discover and validate every example under the configured event-example path. Keep validators off production/runtime classpaths, add no code generator, generated server/client, runtime framework, network service, or contract semantics. Record why each dependency is required and the exact offline-reproducible Gradle command once dependencies are resolved through approved repositories."
+    ],
+    "objective": "Execute T036 — Add repository-controlled contract validation harness: Supply the missing executable prerequisite that lets T003 prove OpenAPI 3.1 parsing/reference resolution and JSON Schema 2020-12 schema/example validity without weakening T003 acceptance."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "build.gradle.kts",
+      "gradle.properties",
+      "src/test/java/com/alexastudillo/partyregistry/contractvalidation/**",
+      "src/test/resources/contract-validation/**",
+      "docs/implementation/contract-validation.md"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

@@ -90,3 +90,13 @@ The following are intentionally absent and must remain absent from generated int
 8. Scheme, database, Flyway, platform, infrastructure, audit-store, or decryption events.
 
 No breaking V1 REST or event meaning is authorized. Additive changes still require requirements traceability and independent API-contract review; incompatible changes require a separately approved contract version.
+
+## T036 validation evidence
+
+Executed for T003 on 2026-08-15:
+
+| Command | Exit | Result |
+|---|---:|---|
+| `./gradlew --offline validateContracts` | `0` | Parsed `api/openapi/v1/party-registry.openapi.yaml` as OpenAPI 3.1 with references resolved, compiled `api/events/v1/party-registry-events.schema.json` as JSON Schema Draft 2020-12, discovered both files under `api/events/v1/examples/*.json`, and validated both examples against the catalog. |
+
+The T036 harness reported: `Validated OpenAPI document, JSON Schema Draft 2020-12 catalog, and 2 event example(s).` No contract defect was demonstrated, so the existing versioned OpenAPI document, event schema, and examples were preserved unchanged.

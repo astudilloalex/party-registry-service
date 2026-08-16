@@ -2,7 +2,7 @@
 
 ## Rules and Dependency Legend
 
-Status: proposed tasks only. `factoryctl` controls execution. All paths are repository-relative. `<base-package>` is resolved and recorded by T003/T004. Every task prohibits `.factory/**`, `orchestrator/**`, requirements, architecture, DBML, Git metadata, unrelated files, and test weakening unless its explicit allowed paths say otherwise. `Hard:` means execution cannot begin; `Soft:` means coordinate to avoid conflicts.
+Status: proposed tasks only. `factoryctl` controls execution. All paths are repository-relative. T003 has recorded the bounded base package as `com.alexastudillo.partyregistry`, and every Java path below uses its exact filesystem form. Every task prohibits `.factory/**`, `orchestrator/**`, requirements, architecture, DBML, Git metadata, unrelated files, and test weakening unless its explicit allowed paths say otherwise. `Hard:` means execution cannot begin; `Soft:` means coordinate to avoid conflicts. T036 is the stable repair prerequisite added after the T003 implementation failure; existing task IDs are not renumbered.
 
 ### T001 — Record delegated pagination technical-contract decision
 
@@ -27,17 +27,29 @@ Instructions: Use suggested title/scope; include no-auth risk, DBML authority, e
 Acceptance/verification: issue/branch URLs/names and base evidence; no commit, PR, merge or automerge yet.  
 Risks/stop: stop on wrong repository/account/base, dirty-scope ambiguity, or request to invent issue number.
 
+### T036 — Add repository-controlled contract validation harness
+
+Owner agent: `quarkus-engineer-agent`
+Purpose: Supply the missing executable prerequisite that lets T003 prove OpenAPI 3.1 parsing/reference resolution and JSON Schema 2020-12 schema/example validity without weakening T003 acceptance.
+Requirements: IR-002..005; CR-002/004; NFR-004/007; API/event acceptance criteria assigned to T003.
+Architecture: sections 5.1/10/12/19; build-time validation only, with no runtime-boundary change. DBML: not applicable.
+Inputs: T002 branch evidence, `.factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json`, current `build.gradle.kts`, T003 contract locations, and the pinned repository/BOM baseline. Allowed paths: `build.gradle.kts`, `gradle.properties`, `src/test/java/com/alexastudillo/partyregistry/contractvalidation/**`, `src/test/resources/contract-validation/**`, `docs/implementation/contract-validation.md`. Prohibited paths: `api/**`, production source/resources, runtime dependencies/classpaths, approved requirements/architecture/DBML, version drift, package installation, and factory/Git metadata.
+Expected artifacts: minimal build/test-scoped validator declarations; a repository-executable validation harness; synthetic valid and intentionally invalid self-test fixtures; a short dependency/command record. Dependencies: Hard T001/T002. Parallelizable: false; it modifies the shared build and must finish before T003/T005.
+Instructions: Select the minimum maintained OpenAPI 3.1 and JSON Schema Draft 2020-12 validation capability as a bounded implementation decision, preferring existing BOM alignment where available and pinning any non-BOM build-time version from repository evidence. The harness must fail on malformed OpenAPI, unresolved `$ref`, invalid JSON Schema, and an event example that violates the catalog schema; it must discover and validate every example under the configured event-example path. Keep validators off production/runtime classpaths, add no code generator, generated server/client, runtime framework, network service, or contract semantics. Record why each dependency is required and the exact offline-reproducible Gradle command once dependencies are resolved through approved repositories.
+Acceptance/verification: Self-tests prove both positive and negative detection; dependency inspection proves no validator on production runtime classpaths; the harness can be invoked by T003 against `api/openapi/v1/party-registry.openapi.yaml`, `api/events/v1/party-registry-events.schema.json`, and all `api/events/v1/examples/*.json`; exact commands and exit codes are recorded.
+Risks/stop: stop if full OpenAPI 3.1/reference or JSON Schema 2020-12/example validation cannot be supported, a dependency is vulnerable/unlicensed/unpinned, validation requires external network service or package installation, or tooling leaks into runtime. Return a bounded implementation failure rather than accepting manual-only validation.
+
 ### T003 — Establish contract and foundation placement
 
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Define contract-first OpenAPI/event artifacts and record minimal package/path placement before adapters.  
 Requirements: effective FR-001..050, VR-001..018, IR-001..005, CR-002/004; Amendments 001/002.  
 Architecture: sections 6/10/12; ADR-002/003/005. DBML: names only where contract semantics require them; no physical leakage.  
-Inputs: TC-001/T001 and approved sources. Allowed paths: `api/openapi/**`, `api/events/**`, `docs/implementation/contract-placement.md`. Prohibited paths: source, tests, build, DBML, Scheme administration/idempotency contracts.
-Expected artifacts: versioned OpenAPI and event schemas; synthetic examples; placement record. Dependencies: Hard T001/T002. Parallelizable: false; stabilizes shared contracts.  
-Instructions: Define approved operations/context/ETag/errors/TC-001 pagination/decryption no-store and event catalog/security/versioning; choose and document reversible query-parameter names/serialization; exclude Scheme/outbox administration, 401/403, `Idempotency-Key`, plaintext events, and stack traces. Choose repository paths/base package only as bounded implementation decisions.
-Acceptance/verification: every operation maps to requirement/AC; schemas parse with repository-approved tooling; compatibility and exclusion inventory exists.  
-Risks/stop: stop on TC-001 semantic drift, invented business behavior, sensitive example, or contract/requirement conflict.
+Inputs: TC-001/T001, approved sources, T036 harness, and existing contract/placement artifacts preserved from prior T003 attempts. Allowed paths: `api/openapi/**`, `api/events/**`, `docs/implementation/contract-placement.md`. Prohibited paths: source, tests, build, DBML, Scheme administration/idempotency contracts.
+Expected artifacts: versioned OpenAPI and event schemas; synthetic examples; placement record; T036 validation evidence for the OpenAPI document, resolved references, event schema, and every event example. Dependencies: Hard T001/T002/T036. Parallelizable: false; stabilizes shared contracts.
+Instructions: Preserve existing generated artifacts unless T036 demonstrates a defect, and correct only demonstrated contract defects. Define approved operations/context/ETag/errors/TC-001 pagination/decryption no-store and event catalog/security/versioning; choose and document reversible query-parameter names/serialization; exclude Scheme/outbox administration, 401/403, `Idempotency-Key`, plaintext events, and stack traces. Retain the recorded repository paths/base package unless verified conflict requires returning control. Execute the T036 harness; do not substitute manual inspection or `test NO-SOURCE` for validation.
+Acceptance/verification: every operation maps to requirement/AC; OpenAPI 3.1 parses with all references resolved; event schema validates as JSON Schema 2020-12; every event example validates against the catalog; compatibility and exclusion inventory exists; exact validation commands and exit codes are recorded.
+Risks/stop: stop on missing/unusable T036 tooling, unresolved reference, invalid example/schema, TC-001 semantic drift, invented business behavior, sensitive example, or contract/requirement conflict.
 
 ### T004 — Implement contract tests before REST/event adapters
 
@@ -56,8 +68,8 @@ Risks/stop: stop if test requires behavior not in effective sources or exposes p
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Add only BOM-aligned capabilities required by approved architecture and tests.  
 Requirements: NFR-004..007; IR-005; OR-006. Architecture: section 5.1; ADR-001. DBML: Flyway/PostgreSQL only.  
-Inputs: pinned Quarkus 3.33.3, profiles, T003 placement. Allowed paths: `build.gradle.kts`, `gradle.properties`, `settings.gradle.kts`, `gradle/**`, `gradlew`, `gradlew.bat`. Prohibited paths: version upgrades/build-tool replacement/unapproved libraries.  
-Expected artifacts: minimal dependency/tool declarations for reactive REST/OpenAPI/validation/reactive PostgreSQL/Flyway/RabbitMQ/health/metrics/JUnit/Testcontainers/ArchUnit/JaCoCo as justified. Dependencies: Hard T003; Soft serialize all later build edits here. Parallelizable: false; shared bottleneck.  
+Inputs: pinned Quarkus 3.33.3, profiles, T003 placement, and T036 build baseline. Allowed paths: `build.gradle.kts`, `gradle.properties`, `settings.gradle.kts`, `gradle/**`, `gradlew`, `gradlew.bat`. Prohibited paths: version upgrades/build-tool replacement/unapproved libraries or removal/weakening of T036 validation.
+Expected artifacts: minimal dependency/tool declarations for reactive REST/OpenAPI/validation/reactive PostgreSQL/Flyway/RabbitMQ/health/metrics/JUnit/Testcontainers/ArchUnit/JaCoCo as justified. Dependencies: Hard T003/T036; Soft serialize all later build edits here. Parallelizable: false; shared bottleneck.
 Instructions: Prefer approved Quarkus capabilities and BOM; document each addition; do not add Redis, ORM/JDBC runtime, auth, external logging/KMS, resilience convenience libraries, modules, or speculative clients.  
 Acceptance/verification: dependency report/build metadata resolves reproducibly; lock/SBOM impact documented; no unrelated upgrade.  
 Risks/stop: stop if a capability needs unapproved technology/version or network installation outside normal governed build resolution.
@@ -68,7 +80,7 @@ Owner agent: `test-implementation-agent`
 Purpose: Specify pure business behavior before domain code.  
 Requirements: BR-002..010, 015, 018, 020, 022, 023, 025, 027 as amended; AC-002..010, 017, 024, 035, 043, 049/050, 067, 069/070, 072/073.  
 Architecture: section 6 domain boundary. DBML: enum/state/value constraints as contract facts.  
-Inputs: approved sources. Allowed paths: `src/test/java/<base-package>/partyregistry/domain/**`. Prohibited paths: production/infrastructure mocks.  
+Inputs: approved sources. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/domain/**`. Prohibited paths: production/infrastructure mocks.
 Expected artifacts: deterministic parameterized/property-style domain tests. Dependencies: Hard T005. Parallelizable: true with T008 after stable package placement.  
 Instructions: Cover type/detail, dates, nationality, lifecycle matrices, immutability, display-name whitespace, mask boundaries, Scheme compatibility and domain errors; use clock values explicitly.  
 Acceptance/verification: tests compile and fail for missing domain behavior, with no Quarkus/Testcontainers dependency in test logic.  
@@ -79,7 +91,7 @@ Risks/stop: stop on any inferred business rule or superseded Scheme/idempotency 
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Satisfy T006 with pure domain models/policies/errors.  
 Requirements/architecture/DBML: same as T006; architecture guardrails 1 and 10.  
-Inputs: T006. Allowed paths: `src/main/java/<base-package>/partyregistry/domain/**`. Prohibited paths: Quarkus, Jakarta, Mutiny, REST/JSON, persistence, logging, config, crypto-provider imports.  
+Inputs: T006. Allowed paths: `src/main/java/com/alexastudillo/partyregistry/domain/**`. Prohibited paths: Quarkus, Jakarta, Mutiny, REST/JSON, persistence, logging, config, crypto-provider imports.
 Expected artifacts: entities/value objects/policies/errors only. Dependencies: Hard T006. Parallelizable: false with T006; true relative to T010.  
 Instructions: Implement minimum deterministic behavior; no persistence annotations, transport DTOs, schedulers or domain events beyond approved integration intent.  
 Acceptance/verification: T006 passes; import/cycle checks pass.  
@@ -91,7 +103,7 @@ Owner agent: `test-implementation-agent`
 Purpose: Define orchestration, transaction intent and boundary behavior before application code.  
 Requirements: FR-001..039, 046..050 as amended; VR-006..018; AC mappings; no Scheme mutation.  
 Architecture: sections 6.2/11/12/15; ADR-001..005. DBML: transaction/version/uniqueness/outbox obligations.  
-Inputs: T003, T007. Allowed paths: `src/test/java/<base-package>/partyregistry/application/**`. Prohibited paths: production, concrete adapters, Quarkus test context.  
+Inputs: T003, T007. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/application/**`. Prohibited paths: production, concrete adapters, Quarkus test context.
 Expected artifacts: use-case tests with boundary fakes/spies. Dependencies: Hard T003/T007. Parallelizable: true with T010.  
 Instructions: Cover context, tenant scoping, If-Match precedence, geography-before-transaction, mutation+outbox intent, read-only Scheme catalog, protection, exact lookup, log-before-decrypt-return, failure unchanged, and outbox claim/outcome orchestration.  
 Acceptance/verification: tests prove call ordering and outcomes independently of infrastructure; prohibited port inventory asserted.  
@@ -102,7 +114,7 @@ Risks/stop: stop if a concrete adapter or remote call is needed to define applic
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Satisfy T008 while preserving inward dependencies.  
 Requirements/architecture/DBML: same as T008; LikeC4 application-owned ports.  
-Inputs: T007/T008. Allowed paths: `src/main/java/<base-package>/partyregistry/application/**`. Prohibited paths: adapter implementations, REST DTOs/resources, persistence entities, SQL, Quarkus/Jakarta/logging/config/deployment APIs.  
+Inputs: T007/T008. Allowed paths: `src/main/java/com/alexastudillo/partyregistry/application/**`. Prohibited paths: adapter implementations, REST DTOs/resources, persistence entities, SQL, Quarkus/Jakarta/logging/config/deployment APIs.
 Expected artifacts: commands/queries/results, input/output ports, use cases, boundary errors and transaction intent. Dependencies: Hard T008. Parallelizable: false with T008; true relative to completed migration.  
 Instructions: Use reactive boundary types consistent with ADR-001 without manual subscription; define query-only Scheme port and no idempotency/Scheme mutation port; order external evidence before transaction and decryption logging before disclosure.  
 Acceptance/verification: T008 passes; application imports domain/core contracts only.  
@@ -126,7 +138,7 @@ Owner agent: `test-implementation-agent`
 Purpose: Prove every DBML/Flyway obligation and persistence port behavior independently.  
 Requirements: DR-001..009; NFR-001/002; effective AC-001..012, 016/017, 031, 061, 074..079. Architecture: persistence and transaction guardrails.  
 DBML: every physical object and normative integration-test note.  
-Inputs: T009/T010. Allowed paths: `src/test/java/<base-package>/partyregistry/adapter/out/postgresql/**`, `src/test/resources/database/**`. Prohibited paths: production/migrations/build.  
+Inputs: T009/T010. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/test/resources/database/**`. Prohibited paths: production/migrations/build.
 Expected artifacts: PostgreSQL 18 Testcontainers migration/schema/privilege/transaction/concurrency tests. Dependencies: Hard T009/T010. Parallelizable: true with T013/T015/T017 after ports stable.  
 Instructions: Cover both detail insertion orders and all invalid commit states; partial uniqueness/history; uppercase hash check; permanent/cross-scope/concurrent identifier uniqueness; verified primary; tenant FKs; versions; atomic outbox; runtime Scheme SELECT and denied writes; constraint error mapping fixtures.  
 Acceptance/verification: tests fail only for absent adapter/privilege behavior; DBML object coverage inventory complete.  
@@ -138,7 +150,7 @@ Owner agent: `quarkus-engineer-agent`
 Purpose: Implement application persistence/unit-of-work/outbox-store/query-only Scheme ports.  
 Requirements: FR-001/006..009/012/013/021..039/047..050; DR-001..006. Architecture: sections 6/7/11/12; ADR-002/004/005.  
 DBML: exact tables/constraints/queries; no redesign. Inputs: T009-T011.  
-Allowed paths: `src/main/java/<base-package>/partyregistry/adapter/out/postgresql/**`, `src/main/resources/application.properties` (database/Flyway keys only). Prohibited paths: domain/application edits, blocking ORM/JDBC, runtime auto-DDL, Scheme mutation methods.  
+Allowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/main/resources/application.properties` (database/Flyway keys only). Prohibited paths: domain/application edits, blocking ORM/JDBC, runtime auto-DDL, Scheme mutation methods.
 Expected artifacts: persistence records/mappers/reactive queries/transactions/error mapping and bounded pages/claims. Dependencies: Hard T009/T010/T011. Parallelizable: false with tasks changing `application.properties`; otherwise isolated.  
 Instructions: Tenant-qualify reads/mutations; map domain separately; enforce optimistic versions; atomically update aggregate/outbox; use parameterized SQL; implement claim commit before broker I/O and optimistic outcome; bound page/batch; expose Scheme queries only.  
 Acceptance/verification: T011 passes; transaction-overlap instrumentation available; no persistence model leaks inward.  
@@ -150,7 +162,7 @@ Owner agent: `test-implementation-agent`
 Purpose: Define external adapter security/failure semantics before implementation.  
 Requirements: FR-005/013..015/046/048/049; VR-011..014; SR-001..007; AC-010/021..023/059..062/071..073/077..079.  
 Architecture: sections 13-15; ADR-003. DBML: protected fields/hash representation.  
-Inputs: T009. Allowed paths: `src/test/java/<base-package>/partyregistry/adapter/out/{protection,logging,geography}/**`, `src/test/resources/integration/**`. Prohibited paths: production/build/secrets/real data.  
+Inputs: T009. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/adapter/out/{protection,logging,geography}/**`, `src/test/resources/integration/**`. Prohibited paths: production/build/secrets/real data.
 Expected artifacts: crypto vectors using synthetic values, log ordering/redaction tests, provider/cache/fault tests. Dependencies: Hard T009. Parallelizable: true with T011/T015/T017.  
 Instructions: Cover tenant-separated HMAC, authenticated-decryption failure, key versions/missing keys, exact masks, no plaintext telemetry, synchronous logger failure, required fields, TTL/stale/cold cache/malformed provider and transaction non-overlap.  
 Acceptance/verification: tests fail for absent adapters only; no secret value or real identifier stored.  
@@ -161,7 +173,7 @@ Risks/stop: stop if cryptographic algorithm/provider detail lacks approved secur
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Satisfy T013 through bounded outbound adapters.  
 Requirements/architecture/DBML: same as T013. Inputs: T012/T013.  
-Allowed paths: `src/main/java/<base-package>/partyregistry/adapter/out/{protection,logging,geography}/**`, `src/main/resources/application.properties` (non-secret names/bounds only). Prohibited paths: committed secrets, remote KMS/logger, durable/distributed cache, business policy.  
+Allowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/out/{protection,logging,geography}/**`, `src/main/resources/application.properties` (non-secret names/bounds only). Prohibited paths: committed secrets, remote KMS/logger, durable/distributed cache, business policy.
 Expected artifacts: reactive provider client/cache, secret-backed protection adapter, local security-log adapter. Dependencies: Hard T012/T013. Parallelizable: false where shared config overlaps.  
 Instructions: Use approved runtime injection, separate masters/tenant derivation, fail closed without fallback, bounded CPU isolation and provider timeout; keep remote geography outside state transaction; never log protected values.  
 Acceptance/verification: T013 and transaction-overlap tests pass; event-loop safety/redaction evidence exists.  
@@ -173,7 +185,7 @@ Owner agent: `test-implementation-agent`
 Purpose: Specify confirmed at-least-once publication and recovery before adapter code.  
 Requirements: FR-008/009/050; VR-015..018; IR-002..004; NFR-001..003/009; AC-012..014/016/029/063..066/080.  
 Architecture: section 12; ADR-002. DBML: `party_outbox_events`.  
-Inputs: T003/T009/T010. Allowed paths: `src/test/java/<base-package>/partyregistry/adapter/out/messaging/**`, `src/test/resources/events/**`. Prohibited paths: production/migrations/public recovery API.  
+Inputs: T003/T009/T010. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/adapter/out/messaging/**`, `src/test/resources/events/**`. Prohibited paths: production/migrations/public recovery API.
 Expected artifacts: contract/integration/fault/concurrency/restart tests. Dependencies: Hard T003/T009/T010. Parallelizable: true with T011/T013/T017.  
 Instructions: Assert bounded claim commit/lock release before broker I/O, persistent publish/confirm, same ID, transient/unknown PENDING, nonrecoverable FAILED, stale outcome rejection, crash recovery, no publisher DLQ/purge and minimal payload.  
 Acceptance/verification: tests fail for absent publisher only and distinguish every outcome class.  
@@ -184,7 +196,7 @@ Risks/stop: stop on irreversible retry, new event ID, open DB transaction during
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Satisfy T015 using application event publisher/outbox ports.  
 Requirements/architecture/DBML: same as T015. Inputs: T012/T015.  
-Allowed paths: `src/main/java/<base-package>/partyregistry/adapter/out/messaging/**`, `src/main/resources/application.properties` (bounded non-secret settings only). Prohibited paths: consumer queue/DLQ management, public outbox endpoints, new persistence fields.  
+Allowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/out/messaging/**`, `src/main/resources/application.properties` (bounded non-secret settings only). Prohibited paths: consumer queue/DLQ management, public outbox endpoints, new persistence fields.
 Expected artifacts: reactive publisher adapter and internal authorised recovery wiring boundary. Dependencies: Hard T012/T015. Parallelizable: false with shared config/bootstrap tasks.  
 Instructions: Preserve persistent messages, confirms, timeouts, bounded batch/concurrency, configurable backoff/jitter, same-event identity and safe errors; never cap durable eligibility with an unapproved discard limit.  
 Acceptance/verification: T015 passes; lag/backlog metrics hooks exist; no manual subscription/event-loop blocking.  
@@ -195,7 +207,7 @@ Risks/stop: stop on missing confirm, automatic discard/purge/DLQ, duplicate repl
 Owner agent: `test-implementation-agent`  
 Purpose: Verify OpenAPI conformance, context, error mapping and prohibited surfaces before REST implementation.  
 Requirements: IR-005; FR/VR/API ACs in T004; NFR-006/011; SR-006. Architecture: sections 6/10/17. DBML: none directly.  
-Inputs: T003/T004/T009. Allowed paths: `src/test/java/<base-package>/partyregistry/adapter/in/rest/**`, `src/test/java/<base-package>/partyregistry/bootstrap/**`. Prohibited paths: production/contracts/build.  
+Inputs: T003/T004/T009. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/adapter/in/rest/**`, `src/test/java/com/alexastudillo/partyregistry/bootstrap/**`. Prohibited paths: production/contracts/build.
 Expected artifacts: reactive endpoint, context propagation/cleanup, ETag/no-store, readiness and API-inventory tests. Dependencies: Hard T003/T004/T009. Parallelizable: true with other adapter test tasks.  
 Instructions: Assert canonical headers/generated process ID, tenant-before-data, envelope/error precedence, pagination decision, masks, decryption headers, no 401/403, no Scheme/outbox/idempotency endpoints and no persistence injection.  
 Acceptance/verification: tests fail only for absent inbound/bootstrap behavior; contract operation coverage complete.  
@@ -206,7 +218,7 @@ Risks/stop: stop on contract drift, business logic in resource tests, or public/
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Implement T004/T017 and wire approved ports/adapters in bootstrap only.  
 Requirements/architecture/DBML: same as T017 plus architecture section 6.3. Inputs: T012/T014/T016/T017.  
-Allowed paths: `src/main/java/<base-package>/partyregistry/adapter/in/rest/**`, `src/main/java/<base-package>/partyregistry/bootstrap/**`, `src/main/resources/application.properties`. Prohibited paths: business policy, direct DB/client access in REST, Scheme/outbox/idempotency/auth endpoints.  
+Allowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/in/rest/**`, `src/main/java/com/alexastudillo/partyregistry/bootstrap/**`, `src/main/resources/application.properties`. Prohibited paths: business policy, direct DB/client access in REST, Scheme/outbox/idempotency/auth endpoints.
 Expected artifacts: DTOs/mappers/resources/context filters/error mapper/composition/readiness. Dependencies: Hard T012/T014/T016/T017. Parallelizable: false; integration bottleneck.  
 Instructions: Keep DTOs at boundary; invoke input ports only; propagate/clear context reactively; map safe errors/ETags; configure loopback-ready runtime behavior without embedding environment secrets.  
 Acceptance/verification: T004/T017 pass; OpenAPI implementation comparison clean; event-loop and context tests pass.  
@@ -217,7 +229,7 @@ Risks/stop: stop on adapter-defined business rule, plaintext logging, concrete a
 Owner agent: `quarkus-engineer-agent`  
 Purpose: Complete cross-cutting controls without changing the approved no-auth posture.  
 Requirements: SR-001..007; OR-006; NFR-005/006/011. Architecture: sections 13/17/19/20; ADR-001/003/005. DBML: Scheme privilege/readiness facts.  
-Inputs: T018. Allowed paths: `src/main/java/<base-package>/partyregistry/bootstrap/**`, `src/main/java/<base-package>/partyregistry/adapter/**/telemetry/**`, `src/test/java/<base-package>/partyregistry/architecture/**`, `src/main/resources/application.properties`. Prohibited paths: auth libraries, external logging platform, audit store, sensitive labels.  
+Inputs: T018. Allowed paths: `src/main/java/com/alexastudillo/partyregistry/bootstrap/**`, `src/main/java/com/alexastudillo/partyregistry/adapter/**/telemetry/**`, `src/test/java/com/alexastudillo/partyregistry/architecture/**`, `src/main/resources/application.properties`. Prohibited paths: auth libraries, external logging platform, audit store, sensitive labels.
 Expected artifacts: liveness/readiness, structured safe telemetry, ArchUnit suite, blocking/context checks. Dependencies: Hard T018. Parallelizable: false where bootstrap/config overlaps; docs can follow independently.  
 Instructions: Separate telemetry from audit; expose required rates/latencies/pools/cache/outbox/confirm/readiness reasons; prohibit sensitive values and enforce all architecture guardrails including no Scheme mutation/idempotency.  
 Acceptance/verification: architecture/security telemetry tests pass; readiness/failure reasons are non-sensitive; liveness tolerates degradable dependencies.  
@@ -239,7 +251,7 @@ Risks/stop: stop if operational owner/recurrence/threshold is unknown—mark pen
 Owner agent: `test-implementation-agent`  
 Purpose: Produce executable strict-boundary and LikeC4 validation evidence before quality gates.  
 Requirements: NFR-005/007; AC-000. Architecture: model and guardrails; CAG-301. DBML: no change.  
-Inputs: T019, approved architecture bytes. Allowed paths: `src/test/java/<base-package>/partyregistry/architecture/**`, `docs/implementation/architecture-validation.md`; build path only through a separately scoped T005 repair if tooling is absent. Prohibited paths: architecture source semantic edits.  
+Inputs: T019, approved architecture bytes. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/architecture/**`, `docs/implementation/architecture-validation.md`; build path only through a separately scoped T005 repair if tooling is absent. Prohibited paths: architecture source semantic edits.
 Expected artifacts: ArchUnit results and repository-controlled LikeC4 parse/validate/render procedure/results. Dependencies: Hard T019. Parallelizable: true with T020.  
 Instructions: Verify no cycles/leaks, no Scheme administration/idempotency, reviewed model parses and required views render; syntax correction requires architecture authority, not this task.  
 Acceptance/verification: executable checks pass with exact commands/exit codes and artifact digest; manual-only evidence is insufficient for final quality approval.  
@@ -341,9 +353,9 @@ Risks/stop: wrong environment, omitted percentile/lag, event-loop blocking or lo
 Owner agent: `dependency-supply-chain-gate-agent`  
 Purpose: Independently approve build dependencies and supply-chain evidence before an immutable candidate is built.  
 Requirements: NFR-004/007; OR-003; deployment artifact profile. Architecture: sections 5.1/16. DBML: migration identity included.  
-Inputs: frozen dependency/build metadata and T023 evidence. Allowed paths: none. Prohibited paths: all repository and Git metadata writes.  
+Inputs: frozen dependency/build metadata including T036 validator rationale/classpath evidence and T023 evidence. Allowed paths: none. Prohibited paths: all repository and Git metadata writes.
 Expected artifacts: dependency gate result with BOM, license, vulnerability, secret-scan, SBOM/reproducibility findings. Dependencies: Hard T023. Parallelizable: true with T024-T028/T032.  
-Instructions: Verify minimality, BOM alignment, licenses, vulnerabilities, secret exclusion, SBOM plan and reproducibility without changing dependencies.  
+Instructions: Verify minimality, BOM alignment, licenses, vulnerabilities, secret exclusion, SBOM plan and reproducibility without changing dependencies; verify T036 validators are pinned/reproducible and absent from production runtime classpaths.
 Acceptance/verification: independent dependency PASS; no environment secrets or unapproved drift.  
 Risks/stop: critical vulnerability, non-reproducibility, secret, mutable-only tag or source drift.
 
@@ -393,6 +405,6 @@ Risks/stop: dirty unrelated files, missing gate, absent human-merge control or r
 
 The grouped requirement-to-task-to-gate matrix is in `implementation-plan.md` section 13. No executable task lacks a source obligation. Test tasks T004/T006/T008/T011/T013/T015/T017 precede corresponding production tasks. Migration T010 and persistence T012 are separate. Implementers and gate agents are independent.
 
-Critical path: T001 -> T002 -> T003 -> T004/T005 -> T006 -> T007 -> T008 -> T009 -> T011 -> T012 -> T013/T015/T017 -> T014/T016 -> T018 -> T019 -> T021 -> T023 -> T024..T029/T032 and T035 -> T022 -> T034 -> T033 -> T030 -> T031.
+Critical path: T001 -> T002 -> T036 -> T003 -> T004/T005 -> T006 -> T007 -> T008 -> T009 -> T011 -> T012 -> T013/T015/T017 -> T014/T016 -> T018 -> T019 -> T021 -> T023 -> T024..T029/T032 and T035 -> T022 -> T034 -> T033 -> T030 -> T031.
 
 All agents must stop on authoritative-source conflict, TC-001 semantic drift, DBML divergence, secret/plaintext/personal-data exposure, cross-tenant access, Scheme mutation, destructive migration, public binding, use of the existing direct-SSH/cross-service deployment behavior, remote I/O under mutation transaction, unbounded retry/concurrency, contract incompatibility, missing rollback/recovery, mandatory test/gate failure, unapproved dependency or request to modify protected factory state, merge, or deploy outside the authorised phase.

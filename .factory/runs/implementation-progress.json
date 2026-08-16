@@ -1,84 +1,328 @@
 {
   "phase": "IMPLEMENTATION",
   "phaseComplete": false,
-  "planDigest": "3774aca5f465f66ab75ba84189ca5a3cf7c1824c2f19eed591c6dd5d8ad05f47",
+  "planDigest": "f9231a56105d2b761f8f6a726672d7483a302987e1b5b09375cb49b75679dd00",
+  "replannedFrom": {
+    "archive": ".factory/runs/implementation-progress-000048-3774aca5f465-superseded.json",
+    "planDigest": "3774aca5f465f66ab75ba84189ca5a3cf7c1824c2f19eed591c6dd5d8ad05f47",
+    "preservedCheckpoints": [],
+    "reason": "The prior T003 finding remains unresolved: no repository-approved OpenAPI 3.1 or JSON Schema validator is configured, so reference resolution, event-schema validation, and validation of both event examples cannot be demonstrated. The current write scope excludes build and test tooling.",
+    "resultPath": ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+    "taskId": "T003"
+  },
   "schemaVersion": 1,
   "tasks": {
     "T003": {
-      "changedFiles": [],
-      "generatedFiles": [],
-      "lastAttempt": {
-        "decision": "FAIL",
-        "resultSha256": "9949d71c7683596df397afc5a5e0b3067697e638f7544f7fa5ef5d8fa62a7e3d",
-        "riskLevel": "MEDIUM",
-        "runDirectory": ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0"
-      },
+      "changedFiles": [
+        "docs/implementation/contract-placement.md"
+      ],
+      "generatedFiles": [
+        "docs/implementation/contract-placement.md"
+      ],
       "owner": "quarkus-engineer-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "2be5754530f9225b83f1379919948bd0eacc7702109238a92f3579f1133b0b41"
+      "resultSha256": "d976947b455c5276ee561fa03f3cc44139e1b619bb4ad92d192e6ef7ec3ad587",
+      "riskLevel": "LOW",
+      "runDirectory": ".factory/runs/oc-28514833-b00a-4b9a-bda0-2390abb36962",
+      "status": "PASS",
+      "taskDigest": "0fb6995ef42d4e41c683582d50eb22923623477edfd26356ea58f060df932886"
     },
     "T004": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/contract/ContractSources.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/EventCatalogContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/JsonEnvelopeAssertions.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/OpenApiBehaviorContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/RestAdapterAcceptanceTest.java",
+        "src/test/resources/contracts/fixture-catalog.json"
+      ],
+      "generatedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/contract/ContractSources.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/EventCatalogContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/JsonEnvelopeAssertions.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/OpenApiBehaviorContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/contract/RestAdapterAcceptanceTest.java",
+        "src/test/resources/contracts/fixture-catalog.json"
+      ],
       "owner": "test-implementation-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
+      "resultSha256": "fd3eed5afd18fe8863f57820f745cfe4d92fe698ad8b921eaed123273e19b4a6",
+      "riskLevel": "MEDIUM",
+      "runDirectory": ".factory/runs/oc-ba341551-0449-42fe-a28e-99f518a415be",
+      "status": "PASS",
       "taskDigest": "53ec772f430df36d2271a7880bec9cfca5ebc946f655caaf3b3ac39169be9c9d"
     },
     "T005": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "gradle/dependency-governance.md",
+        "settings.gradle.kts"
+      ],
+      "generatedFiles": [
+        "build.gradle.kts",
+        "settings.gradle.kts",
+        "gradle/dependency-governance.md",
+        "gradle/dependency-locks/gradle.lockfile"
+      ],
+      "lastAttempt": {
+        "decision": "FAIL",
+        "resultSha256": "c60c4708120247b5d410aa66e5948cae30ccd392a171b4bf095bc0f96525b51d",
+        "riskLevel": "MEDIUM",
+        "runDirectory": ".factory/runs/oc-a900a2f7-7382-45c4-94c6-b5678ce4703c"
+      },
       "owner": "quarkus-engineer-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "d842622f411de2f41a4c31a6147462df5e2354bac9b447d32fe50a0236213cf4"
+      "resultSha256": "082985185894a936361310e68258fcddfb772f8861dab3c0883744ad46be6c5e",
+      "riskLevel": "LOW",
+      "runDirectory": ".factory/runs/oc-dd00e3fa-7373-4dae-876a-7b7873d12256",
+      "status": "PASS",
+      "taskDigest": "1dfd9e3bc596a4422cbe0894243b69345c45bded9dac86ed3f773790f0974fdb"
     },
     "T006": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/domain/DisplayNameAndMaskContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/DomainContractSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/IdentifierDomainContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/NationalityDomainContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/PartyDomainContractTest.java"
+      ],
+      "generatedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/domain/DomainContractSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/PartyDomainContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/NationalityDomainContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/IdentifierDomainContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/domain/DisplayNameAndMaskContractTest.java"
+      ],
       "owner": "test-implementation-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "dece505d19533c4d61985e69fe455a78c15eb5ccb4d2fb445779cc077fab0d39"
+      "resultSha256": "51639f4072a952dc0f6df63fa2aac1c8fb132b91db5b74bbbe64482ab67c4e7f",
+      "riskLevel": "LOW",
+      "runDirectory": ".factory/runs/oc-75b04866-9417-4574-a6a3-a548921f6815",
+      "status": "PASS",
+      "taskDigest": "b5169f577fb6e6254a0995bddf19a9ac38f4b8e26587e2d0fd67936de61feba2"
     },
     "T007": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "src/main/java/com/alexastudillo/partyregistry/domain/CountryCode.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/DetailKind.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/DisplayName.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/DomainViolation.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierMask.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierSchemePolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierSubjectType.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierUniquenessKey.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/LifeDatePolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/Nationality.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/NationalityPolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/NonNegativeVersion.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyDetailPolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentifierIdentity.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentifierLifecycle.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentifierStatus.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentity.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyLifecycle.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyStatus.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyType.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PositiveVersion.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/ProtectedIdentifier.java"
+      ],
+      "generatedFiles": [
+        "src/main/java/com/alexastudillo/partyregistry/domain/CountryCode.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/DetailKind.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/DisplayName.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/DomainViolation.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierMask.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierSchemePolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierSubjectType.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/IdentifierUniquenessKey.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/LifeDatePolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/Nationality.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/NationalityPolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/NonNegativeVersion.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyDetailPolicy.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentifierIdentity.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentifierLifecycle.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentifierStatus.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyIdentity.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyLifecycle.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyStatus.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PartyType.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/PositiveVersion.java",
+        "src/main/java/com/alexastudillo/partyregistry/domain/ProtectedIdentifier.java"
+      ],
       "owner": "quarkus-engineer-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "7b9b4d897828aa583e3d61bd36152d575e635b425e52ad30bc7b8f3aaac2e7d2"
+      "resultSha256": "54d8611536ad51c8500e1c66507581ec2e53d15ca9d336f384f06a3a401413fa",
+      "riskLevel": "LOW",
+      "runDirectory": ".factory/runs/oc-a0b9192d-fffb-4134-85a6-2282ea0da98b",
+      "status": "PASS",
+      "taskDigest": "c8c135f5c2ba0da9607a837f811cdf4a8c68e2c5aafd953dc844354e274e1f27"
     },
     "T008": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/application/ApplicationContractSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/ApplicationPortInventoryContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/ContextAndPartyOrchestrationContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/IdentifierOrchestrationContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/OutboxOrchestrationContractTest.java"
+      ],
+      "generatedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/application/ApplicationContractSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/ApplicationPortInventoryContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/ContextAndPartyOrchestrationContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/IdentifierOrchestrationContractTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/application/OutboxOrchestrationContractTest.java"
+      ],
       "owner": "test-implementation-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "4df7f4518d7304f288310d1be48f2f6242be1d6cf91a83b5e9fe73e6c81117fa"
+      "resultSha256": "ba83a51e96b2bccaaa4b3709195cab1c6c346f64d7c4cbc768f3c689d5d35c2b",
+      "riskLevel": "LOW",
+      "runDirectory": ".factory/runs/oc-97731636-06b2-43d4-9bb7-314b616f03d9",
+      "status": "PASS",
+      "taskDigest": "2f0f156ab51be4f349911b978d6b9d3c1556f5fd34bcc2c70441f6636722c839"
     },
     "T009": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "src/main/java/com/alexastudillo/partyregistry/application/ApplicationFailure.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/CountryEvidence.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/CreatePartyCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/DecryptedIdentifierResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/DecryptionSecurityLogEvent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierMutationIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierSchemeMetadata.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierSearchQuery.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierTransitionCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/MutationResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalityCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalityMutationIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalitySearchQuery.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalityView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NormalizedIdentifier.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/OutboxBatchResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/OutboxClaim.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/OutboxIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PageRequest.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PageResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyAndSchemeSelection.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyDetailsView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyIdentifierResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyIdentifierView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyMutationIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartySearchQuery.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/ProtectedIdentifierData.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PublicationOutcome.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/RecordedOutboxOutcome.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/RecoveredOutboxEvent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/RequestContext.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/UpdateIdentifierCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/UpdatePartyCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/ClockPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/DecryptionSecurityLogPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/GeographicReferencePort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierProtectionPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierQueryPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierRuleCatalogPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierSchemeCatalogPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierUnitOfWorkPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IntegrationEventPublisherPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/OutboxStorePort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/PartyQueryPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/PartyUnitOfWorkPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/AddNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/DecryptPartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/EndNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/ExactIdentifierSearchUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/FindPartyIdentifiersByPartyAndSchemeUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyDetailsUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/PublishOutboxBatchUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/RecoverFailedOutboxEventUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/SearchNationalitiesUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/SearchPartiesUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/SearchPartyIdentifiersUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/TransitionPartyIdentifierStatusUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/TransitionPartyStatusUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdateNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyDetailsUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UseCaseSupport.java"
+      ],
+      "generatedFiles": [
+        "src/main/java/com/alexastudillo/partyregistry/application/ApplicationFailure.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/CountryEvidence.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/CreatePartyCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/DecryptedIdentifierResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/DecryptionSecurityLogEvent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierMutationIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierSchemeMetadata.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierSearchQuery.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/IdentifierTransitionCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/MutationResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalityCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalityMutationIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalitySearchQuery.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NationalityView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/NormalizedIdentifier.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/OutboxBatchResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/OutboxClaim.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/OutboxIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PageRequest.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PageResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyAndSchemeSelection.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyDetailsView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyIdentifierResult.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyIdentifierView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyMutationIntent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartySearchQuery.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PartyView.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/ProtectedIdentifierData.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/PublicationOutcome.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/RecordedOutboxOutcome.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/RecoveredOutboxEvent.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/RequestContext.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/UpdateIdentifierCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/UpdatePartyCommand.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/ClockPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/DecryptionSecurityLogPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/GeographicReferencePort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierProtectionPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierQueryPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierRuleCatalogPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierSchemeCatalogPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IdentifierUnitOfWorkPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/IntegrationEventPublisherPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/OutboxStorePort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/PartyQueryPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/port/PartyUnitOfWorkPort.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/AddNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/DecryptPartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/EndNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/ExactIdentifierSearchUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/FindPartyIdentifiersByPartyAndSchemeUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyDetailsUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/PublishOutboxBatchUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/RecoverFailedOutboxEventUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/SearchNationalitiesUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/SearchPartiesUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/SearchPartyIdentifiersUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/TransitionPartyIdentifierStatusUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/TransitionPartyStatusUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdateNationalityUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyDetailsUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyIdentifierUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyUseCase.java",
+        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UseCaseSupport.java"
+      ],
       "owner": "quarkus-engineer-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "5baf1dbefe8035da55c53e5b17634e797be80d957341cc5a46927b2d724adca7"
+      "resultSha256": "6b8d00f38e8ab8575a1e54ef71b20858f08789b086ed7da136be199cfbd87ad4",
+      "riskLevel": "LOW",
+      "runDirectory": ".factory/runs/oc-baf3379c-134c-41be-9854-5991d517ef72",
+      "status": "PASS",
+      "taskDigest": "04d0468026b8926277a0a7de312da27a547dea6f29abf58c37840f07ecbf0511"
     },
     "T010": {
       "changedFiles": [],
@@ -98,7 +342,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "0781e6b05e59bdaf9f73099b7056d4b5b834337050a0d2bb263061ff7851de3b"
+      "taskDigest": "428040b69b55e605ee16fe36d089f5e9c227f0da21589661f700bda93e4869ee"
     },
     "T012": {
       "changedFiles": [],
@@ -108,7 +352,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "3e489a4aeece90233d5a4cd5eac9059833f694610a43e6f2f7195c2af60802f7"
+      "taskDigest": "48f5edcd8d362bb9d7f7ec6cfe961c92518c3c3daec888cbb29d2c52048cbfcb"
     },
     "T013": {
       "changedFiles": [],
@@ -118,7 +362,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "ab3b5e016917d865164bb6b573822eb489f88b69889c30b9ff7e2d4838ef1ade"
+      "taskDigest": "dfde05a29213e88d93a3e9f43e5d1d4f1d2c96110497f005ac8e299685c544c9"
     },
     "T014": {
       "changedFiles": [],
@@ -128,7 +372,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "6d54c5ce0ef689d2da2262486dcbd58f6a759a334620d8c41b67b8806134cc47"
+      "taskDigest": "cbaa2ddd5c0d90ff432f0a1d92c4c79f5d840a579a4707c224725c4861496137"
     },
     "T015": {
       "changedFiles": [],
@@ -138,7 +382,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "da11fbd0deb8501dc7ba978f5857d8ae7ab5a12aea873247e3bc0dc8dab31f55"
+      "taskDigest": "bedfc4bda214ef680ed6232706e2e4f16aaed390ba75fc5ef168ca4f40026d65"
     },
     "T016": {
       "changedFiles": [],
@@ -148,7 +392,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "971354c52832f3cc5a4c903c3cea06e73e14f225ed2209ac15c76e09c753f791"
+      "taskDigest": "4bc31ebdf621303559816a7f0825c33bf4ccf9da7a0431d8a968320f922ce2a2"
     },
     "T017": {
       "changedFiles": [],
@@ -158,7 +402,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "be492415c6ba4f4fbafbbbc9957483dba2460a55b574e51312fa76bf2de7e835"
+      "taskDigest": "b088188041d84ce1c593902e9f5ea920ca33e36296e7f5623bbce252f71b11ec"
     },
     "T018": {
       "changedFiles": [],
@@ -168,7 +412,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "5cf57380b1aac6b151e028992c0af977ff4966af42431927e2ebfae7dbbf1303"
+      "taskDigest": "02aacc06cb083fdafd14c3889082331d9b245608368c211e535e336f9495c0ba"
     },
     "T019": {
       "changedFiles": [],
@@ -178,7 +422,7 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "f4092b269ae33147b22fc710fd1ef19529ad6aefbdb158c718ecc1a1134b9abf"
+      "taskDigest": "0aa2aa906abcb7d1d1a8cc1b7e7814c431226bef16a2435c8a1c0d173f0df4de"
     },
     "T020": {
       "changedFiles": [],
@@ -198,8 +442,46 @@
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "2fe826e013743eed5858586616b2e9b1e93e60399730fc4c0fc60cc38dd095e1"
+      "taskDigest": "b456d9f3aec17274f32354e2d70d24befec59a94d5d766c59bdfc4d28cb6fa80"
+    },
+    "T036": {
+      "changedFiles": [
+        "build.gradle.kts",
+        "docs/implementation/contract-validation.md",
+        "src/test/java/com/alexastudillo/partyregistry/contractvalidation/ContractValidationException.java",
+        "src/test/java/com/alexastudillo/partyregistry/contractvalidation/ContractValidationHarness.java",
+        "src/test/java/com/alexastudillo/partyregistry/contractvalidation/ContractValidationHarnessTest.java",
+        "src/test/resources/contract-validation/event-schema-invalid.json",
+        "src/test/resources/contract-validation/event-schema-valid.json",
+        "src/test/resources/contract-validation/examples-invalid/invalid.json",
+        "src/test/resources/contract-validation/examples-valid/first.json",
+        "src/test/resources/contract-validation/examples-valid/second.json",
+        "src/test/resources/contract-validation/openapi-malformed.yaml",
+        "src/test/resources/contract-validation/openapi-unresolved-ref.yaml",
+        "src/test/resources/contract-validation/openapi-valid.yaml"
+      ],
+      "generatedFiles": [
+        "build.gradle.kts",
+        "docs/implementation/contract-validation.md",
+        "src/test/java/com/alexastudillo/partyregistry/contractvalidation/ContractValidationException.java",
+        "src/test/java/com/alexastudillo/partyregistry/contractvalidation/ContractValidationHarness.java",
+        "src/test/java/com/alexastudillo/partyregistry/contractvalidation/ContractValidationHarnessTest.java",
+        "src/test/resources/contract-validation/openapi-valid.yaml",
+        "src/test/resources/contract-validation/openapi-malformed.yaml",
+        "src/test/resources/contract-validation/openapi-unresolved-ref.yaml",
+        "src/test/resources/contract-validation/event-schema-valid.json",
+        "src/test/resources/contract-validation/event-schema-invalid.json",
+        "src/test/resources/contract-validation/examples-valid/first.json",
+        "src/test/resources/contract-validation/examples-valid/second.json",
+        "src/test/resources/contract-validation/examples-invalid/invalid.json"
+      ],
+      "owner": "quarkus-engineer-agent",
+      "resultSha256": "eb264de38a3f0227c8bc9eebd4b01898a196f2b85d154e22f04e61f2ad6cc64e",
+      "riskLevel": "LOW",
+      "runDirectory": ".factory/runs/oc-e013c0bc-cb6e-4e21-a20f-08a160345aa9",
+      "status": "PASS",
+      "taskDigest": "1ef55fbaf8d3296b7a5181a18e3ca105b17bafa1642ac0e2999bfe180aff7059"
     }
   },
-  "workflowSequence": 45
+  "workflowSequence": 49
 }

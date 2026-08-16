@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:plan-task-repair-guard",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "PLAN_TASK_REPAIR_RECOVERED",
+  "note": "Recovered T003 plan-task contract defect from .factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json.",
+  "occurredAt": "2026-08-16T04:20:09Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "PLAN_TASK_REPAIR_RECOVERED",
+  "riskLevel": "MEDIUM",
+  "sequence": 46,
+  "sourceState": "FAILED_AFTER_THREE_ATTEMPTS",
+  "transitionId": "5f129502-84da-4768-9fba-b410921ab5fb",
+  "workflowId": "software-factory-default"
+}

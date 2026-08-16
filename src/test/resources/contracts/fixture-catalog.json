@@ -1,0 +1,34 @@
+{
+  "catalogVersion": 1,
+  "classification": "wholly synthetic; no production or personal data",
+  "identities": {
+    "tenantA": "018f0c72-4a7b-7c91-8b2a-1234567890aa",
+    "tenantB": "018f0c72-4a7b-7c91-8b2a-1234567890b2",
+    "partyA": "018f0c72-4a7b-7c91-8b2a-1234567890ab",
+    "partyIdentifierA": "018f0c72-4a7b-7c91-8b2a-1234567890b0",
+    "identifierScheme": "018f0c72-4a7b-7c91-8b2a-1234567890ac",
+    "process": "018f0c72-4a7b-7c91-8b2a-1234567890ae",
+    "user": "synthetic-contract-user"
+  },
+  "restrictedInputToken": "TEST_IDENTIFIER_VALUE",
+  "expectedMasks": ["****", "****ALUE"],
+  "runtimeScenarios": [
+    {"id": "API-SEARCH-DEFAULTS", "method": "GET", "path": "/parties", "expectedStatus": 200, "outcome": "success envelope, page 0, size 20, UUID ascending, generated process-id"},
+    {"id": "API-CONTEXT-INVALID", "method": "GET", "path": "/parties", "expectedStatus": 400, "outcome": "VALIDATION_ERROR before business access"},
+    {"id": "API-TENANT-NONDISCLOSURE", "method": "GET", "path": "/parties/{partyA}", "tenant": "tenantB", "expectedStatus": 404, "outcome": "same NOT_FOUND envelope as an unknown ID"},
+    {"id": "API-PRECONDITION-REQUIRED", "method": "PATCH", "path": "/parties/{partyA}", "expectedStatus": 428, "outcome": "PRECONDITION_REQUIRED and no state change"},
+    {"id": "API-VERSION-CONFLICT", "method": "PATCH", "path": "/parties/{partyA}", "ifMatch": "\"999\"", "expectedStatus": 412, "outcome": "VERSION_CONFLICT and no state change"},
+    {"id": "API-DECRYPT-NOT-FOUND", "method": "POST", "path": "/party-identifiers/{partyIdentifierA}/decryption", "tenant": "tenantB", "expectedStatus": 404, "outcome": "NOT_FOUND, Cache-Control no-store, and no plaintext"},
+    {"id": "API-PAGINATION-BOUNDARIES", "method": "GET", "path": "/party-identifiers?size=1", "expectedStatus": 200, "outcome": "size 1 accepted; size 100 accepted; 0 and 101 rejected"}
+  ],
+  "traceability": [
+    {"testId": "OpenApiBehaviorContractTest#requiresTrustedContextAndReturnsEffectiveProcessIdWithoutTenantBodyDisclosure", "acceptanceCriteria": ["AC-001", "AC-019", "AC-032", "AC-037", "AC-040", "AC-045"], "observableOutcome": "Every operation requires trusted context and cross-tenant resources use the non-disclosing 404 contract."},
+    {"testId": "OpenApiBehaviorContractTest#definesStableEnvelopePaginationPreconditionsAndNoStoreResponses", "acceptanceCriteria": ["AC-004", "AC-007", "AC-009", "AC-023", "AC-035", "AC-036", "AC-038", "AC-039", "AC-042", "AC-043", "AC-044", "AC-049", "AC-050", "AC-059", "AC-060", "AC-061", "AC-062", "AC-067", "AC-069", "AC-077", "AC-078", "AC-079"], "observableOutcome": "Typed requests and stable error responses expose validation, lifecycle, dependency, protection, and unchanged failure outcomes."},
+    {"testId": "OpenApiBehaviorContractTest#definesStableEnvelopePaginationPreconditionsAndNoStoreResponses", "acceptanceCriteria": ["AC-008", "AC-020", "AC-034", "AC-048", "AC-070", "AC-074", "AC-075", "AC-076"], "observableOutcome": "Conflict categories, conditional mutation statuses, ETags, immutable request shapes, and permanent identifier uniqueness scenarios are specified."},
+    {"testId": "OpenApiBehaviorContractTest#limitsIdentifierPlaintextToWriteInputsAndSeparateDecryptionWhileOrdinaryResultsAreMasked", "acceptanceCriteria": ["AC-010", "AC-021", "AC-022", "AC-027", "AC-071", "AC-072", "AC-073"], "observableOutcome": "Ordinary identifier results are masked, exact search is input-only, decryption alone returns plaintext with no-store, and no authentication decision exists."},
+    {"testId": "EventCatalogContractTest#catalogContainsExactlyApprovedVersionedEventsAndRequiredStableEnvelope", "acceptanceCriteria": ["AC-014", "AC-029", "AC-057", "AC-080"], "observableOutcome": "The immutable event catalog has stable identity/version/tenant fields, minimized payloads, no Scheme events, and same-event recovery identity."},
+    {"testId": "OpenApiBehaviorContractTest#definesStableEnvelopePaginationPreconditionsAndNoStoreResponses", "acceptanceCriteria": ["AC-028", "AC-033", "AC-041", "AC-047", "AC-081"], "observableOutcome": "Success and error envelopes, pagination metadata, default/boundary values, filters, and deterministic UUID ordering are contractually visible."},
+    {"testId": "OpenApiBehaviorContractTest#exposesOnlyApprovedV1OperationsAndNoSchemeOutboxDeleteOrAuthenticationSurface", "acceptanceCriteria": ["AC-030", "AC-052", "AC-053", "AC-054", "AC-055", "AC-056", "AC-058", "AC-068"], "observableOutcome": "Approved Party behavior is present while Scheme discovery/administration, outbox CRUD, and detail deletion/lifecycle operations are absent."},
+    {"testId": "OpenApiBehaviorContractTest#exposesOnlyApprovedV1OperationsAndNoSchemeOutboxDeleteOrAuthenticationSurface", "acceptanceCriteria": ["AC-046", "AC-051"], "observableOutcome": "Party/Scheme identifier selection is bounded and Scheme introduction remains outside every runtime REST operation."}
+  ]
+}
