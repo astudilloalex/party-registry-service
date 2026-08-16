@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:test-implementation-agent",
+  "destinationState": "BLOCKED_HIGH_RISK",
+  "dryRun": false,
+  "effectiveEvent": "BLOCKED",
+  "note": "Validated OpenCode invocation oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308",
+  "occurredAt": "2026-08-16T19:47:49Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "BLOCKED",
+  "riskLevel": "HIGH",
+  "sequence": 50,
+  "sourceState": "IMPLEMENTATION",
+  "transitionId": "b4780814-facb-4b34-a927-386d5163778a",
+  "workflowId": "software-factory-default"
+}

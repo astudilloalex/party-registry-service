@@ -325,18 +325,30 @@
       "taskDigest": "04d0468026b8926277a0a7de312da27a547dea6f29abf58c37840f07ecbf0511"
     },
     "T010": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "docs/database/migration-mapping.md",
+        "src/main/resources/db/migration/V2__defer_party_detail_foreign_keys.sql"
+      ],
+      "generatedFiles": [
+        "src/main/resources/db/migration/V2__defer_party_detail_foreign_keys.sql",
+        "docs/database/migration-mapping.md"
+      ],
       "owner": "database-migration-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
+      "resultSha256": "f372300a707b21851318645477b63ab7fbde345870b228240cd5cb02d32504ae",
+      "riskLevel": "MEDIUM",
+      "runDirectory": ".factory/runs/oc-50f3c43e-e03a-4205-8cc0-67015343dd67",
+      "status": "PASS",
       "taskDigest": "b4e415223b6cf07d0ee82b113183921fb5ac0aad608e3a28420e2c1e5ac0dcef"
     },
     "T011": {
       "changedFiles": [],
       "generatedFiles": [],
+      "lastAttempt": {
+        "decision": "BLOCKED",
+        "resultSha256": "19261027651ad75b225820df8bedf6d0284dc64723ea91ae5195a8fba84fce06",
+        "riskLevel": "HIGH",
+        "runDirectory": ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308"
+      },
       "owner": "test-implementation-agent",
       "resultSha256": null,
       "riskLevel": null,
@@ -483,5 +495,5 @@
       "taskDigest": "1ef55fbaf8d3296b7a5181a18e3ca105b17bafa1642ac0e2999bfe180aff7059"
     }
   },
-  "workflowSequence": 49
+  "workflowSequence": 50
 }

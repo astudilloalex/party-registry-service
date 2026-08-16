@@ -1,18 +1,18 @@
 {
-  "currentState": "IMPLEMENTATION",
+  "currentState": "BLOCKED_HIGH_RISK",
   "initializedAt": "2026-08-09T19:08:42Z",
-  "lastEffectiveEvent": "FAIL",
-  "lastEvent": "FAIL",
-  "lastTransitionAt": "2026-08-16T04:50:13Z",
-  "lastTransitionId": "8822dca7-0630-4a3f-a41f-ad7902d0b487",
-  "previousState": "GITHUB_PREPARATION",
+  "lastEffectiveEvent": "BLOCKED",
+  "lastEvent": "BLOCKED",
+  "lastTransitionAt": "2026-08-16T19:47:49Z",
+  "lastTransitionId": "b4780814-facb-4b34-a927-386d5163778a",
+  "previousState": "IMPLEMENTATION",
   "project": "party-registry-service",
   "repairCycles": {
     "ARCHITECTURE_GATE": 2,
     "IMPLEMENTATION": 1
   },
   "schemaVersion": 1,
-  "sequence": 49,
-  "updatedAt": "2026-08-16T04:50:13Z",
+  "sequence": 50,
+  "updatedAt": "2026-08-16T19:47:49Z",
   "workflowId": "software-factory-default"
 }
