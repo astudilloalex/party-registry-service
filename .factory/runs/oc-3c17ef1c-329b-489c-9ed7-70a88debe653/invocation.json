@@ -1,0 +1,92 @@
+{
+  "agent": "github-flow-agent",
+  "attempt": {
+    "current": 1,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "docs/planning/tasks.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-50763d77-7c8e-455b-8a1c-40e8ce0fe376/result.json",
+      ".factory/runs/oc-618baa10-4125-44b6-99f0-4e89eb55f27e/result.json",
+      ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json",
+      ".factory/runs/oc-74c70e5e-0dca-4018-89db-473bf75b826a/result.json",
+      ".factory/runs/oc-1540c9f4-340e-4cb9-83c3-aca94637223f/result.json",
+      ".factory/runs/oc-dc3ea341-2ff6-48e2-960c-2a0223b0466c/result.json",
+      ".factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json",
+      ".factory/runs/oc-5f6ff212-eb7d-4106-b788-4381963639a2/result.json",
+      ".factory/runs/oc-ee06eb70-e2ae-47a0-84cd-6567f727b9be/result.json",
+      ".factory/runs/oc-f2cbc222-c6c8-4ef8-b118-61a57b85cd37/result.json",
+      ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-288f2213-2a4b-44a4-ad4c-c352e7880019/result.json",
+      ".factory/runs/oc-a900a2f7-7382-45c4-94c6-b5678ce4703c/result.json",
+      ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+      ".factory/runs/oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f/result.json",
+      ".factory/runs/oc-4fb99cd4-b73c-4565-8a9a-18a29ca6a6c5/result.json",
+      ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84/result.json",
+      ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
+      ".factory/runs/oc-d1ec4eb5-d181-430d-ae80-b524b95720b3/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-3c17ef1c-329b-489c-9ed7-70a88debe653",
+  "phase": "GITHUB_PREPARATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-3c17ef1c-329b-489c-9ed7-70a88debe653",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "Required issue and working branch are verified without destructive history operations, product-file mutation, premature PR creation, merge, or automerge."
+    ],
+    "expectedArtifacts": [],
+    "instructions": [
+      "GLOBAL_FACTORY_INTENT (context only; not current-phase acceptance): Establish the approved requirements and architecture baseline for party-registry-service as the pilot of the AI Software Factory, using only verified repository sources, the project manifest, existing documentation and the authoritative DBML, without inventing business requirements or modifying the database design.",
+      "GLOBAL_FACTORY_ACCEPTANCE_INTENT (context only; not current-phase acceptance): Requirements and architecture are explicit, internally consistent, traceable to repository evidence, compliant with strict Clean Architecture and LikeC4 standards, and no unresolved high-risk contradiction remains before database validation.",
+      "PHASE_TASK_AUTHORITY: The current workflow state, passed upstream results, and authoritative repository artifacts define this phase scope. Do not reinterpret global intent as a request to repeat completed earlier phases."
+    ],
+    "objective": "Prepare governed issue and working-branch metadata for the validated implementation plan using the repository's authoritative approved-baseline branch."
+  },
+  "writePolicy": {
+    "allowedPaths": [],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "READ_ONLY"
+  }
+}

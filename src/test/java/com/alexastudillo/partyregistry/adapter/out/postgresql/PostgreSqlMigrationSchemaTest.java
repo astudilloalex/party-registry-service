@@ -166,8 +166,11 @@ class PostgreSqlMigrationSchemaTest extends PostgreSql18TestSupport {
                 "pk_party_identifiers", "uq_party_identifier_tenant_scheme_hash", "ix_party_identifiers_party_scheme_status", "ix_party_identifiers_primary", "uq_party_identifiers_verified_primary_scheme",
                 "pk_party_outbox_events", "ix_party_outbox_delivery", "ix_party_outbox_aggregate", "ix_party_outbox_correlation");
         try (Connection connection = ownerConnection()) {
-            assertEquals(expectedConstraints, names(connection, "select conname from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname='public'"));
-            assertEquals(expectedIndexes, names(connection, "select indexname from pg_indexes where schemaname='public'"));
+            Set<String> actualConstraints = names(connection, "select conname from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname='public' and c.contype in ('p','u','c','f') and c.conrelid <> 'flyway_schema_history'::regclass");
+            assertEquals(expectedConstraints, actualConstraints,
+                    () -> "Missing: " + difference(expectedConstraints, actualConstraints)
+                            + "; unexpected: " + difference(actualConstraints, expectedConstraints));
+            assertEquals(expectedIndexes, names(connection, "select indexname from pg_indexes where schemaname='public' and tablename <> 'flyway_schema_history'"));
             assertEquals(Set.of("ct_parties_detail_type", "ct_natural_person_details_party_type", "ct_legal_entity_details_party_type"),
                     names(connection, "select tgname from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and not t.tgisinternal"));
             assertEquals(1, queryInt(connection, "select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='fn_enforce_party_detail_type'"));
@@ -210,6 +213,12 @@ class PostgreSqlMigrationSchemaTest extends PostgreSql18TestSupport {
             while (result.next()) names.add(result.getString(1));
         }
         return names;
+    }
+
+    private static Set<String> difference(Set<String> left, Set<String> right) {
+        Set<String> difference = new TreeSet<>(left);
+        difference.removeAll(right);
+        return difference;
     }
 
     private static String createDisposableDatabase(String prefix) throws Exception {

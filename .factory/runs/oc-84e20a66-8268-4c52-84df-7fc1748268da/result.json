@@ -1,0 +1,29 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "assumptions": [],
+  "decision": "FAIL",
+  "evidence": [
+    "docs/planning/tasks.md:147-157 requires exact DBML behavior, all six ports, and stops on SQL/DBML mismatch or inability to expose a valid adapter seam.",
+    "src/main/java/com/alexastudillo/partyregistry/application/NationalityMutationIntent.java:7-17 contains no primary field, while AddNationalityUseCase.java:23-31 receives NationalityCommand.primary() but does not propagate it.",
+    "api/openapi/v1/party-registry.openapi.yaml:711-719 requires nationality primary data for writes.",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyIdentifierUseCase.java:32-52 accepts only Party, Scheme, and plaintext and cannot propagate the approved creation metadata shown at api/openapi/v1/party-registry.openapi.yaml:738-750.",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/TransitionPartyIdentifierStatusUseCase.java:31-43 validates IdentifierTransitionCommand but passes only PartyIdentifierStatus to IdentifierMutationIntent, losing verification and expiration facts required by docs/database/v1-scheme.dbml:358-365.",
+    "src/main/java/com/alexastudillo/partyregistry/application/PartyIdentifierView.java:6-24 lacks fields required by api/openapi/v1/party-registry.openapi.yaml:777-793.",
+    "The validated database contract PASS is recorded in .factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json; the completed T011 PostgreSQL suite is recorded in .factory/runs/oc-26b81f6f-11bd-4090-a3db-8283bbb1078e/result.json with 19 PostgreSQL tests passing.",
+    "Executed `git status --short && git diff --check`; exit code 0. Status confirmed only pre-existing factory-managed and T011 test changes, with no T012-generated file."
+  ],
+  "findings": [
+    "PLAN_TASK_CONTRACT_DEFECT: T012 cannot implement the approved persistence behavior because completed prerequisite T009 omits mandatory data from application ports and intents. NationalityMutationIntent has no primary designation; CreatePartyIdentifierUseCase and IdentifierMutationIntent omit issuerCode, primary, issuedOn, and expiresOn during creation; TransitionPartyIdentifierStatusUseCase discards verifiedAt, verifiedBy, and expiresOn before invoking the unit of work; PartyIdentifierView cannot represent persisted status, primary designation, issuer, lifecycle dates, verification facts, or audit facts.",
+    "The omissions conflict with DR-003, identifier lifecycle requirements, DBML constraints ck_party_identifier_verification and ck_party_identifier_expired_date, and OpenAPI schemas NationalityWriteRequest, PartyIdentifierCreateRequest, IdentifierStatusTransitionRequest, and IdentifierData. An adapter cannot recover these values without inventing behavior or leaking transport concerns.",
+    "The current write policy prohibits application and test edits, so the prerequisite contracts cannot be repaired within T012. Implementing placeholder/default values would risk data-integrity violations and public-contract mismatch.",
+    "No adapter files were created or modified. Repository status showed pre-existing factory-managed and T011 test changes outside this invocation's write scope; they were left untouched."
+  ],
+  "generatedFiles": [],
+  "nextPhase": null,
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "REPLAN_REQUIRED: Add a bounded repair task for T008/T009 that carries all approved nationality and identifier persistence fields through application commands, mutation intents, use cases, and query views, with corresponding application tests; then rerun T012 using an allowed adapter-only scope.",
+    "After repairing T009, verify the application contracts against the OpenAPI and DBML before implementing the six PostgreSQL ports, and rerun T011 plus the subsequent T037 black-box persistence-port suite."
+  ],
+  "riskLevel": "HIGH"
+}

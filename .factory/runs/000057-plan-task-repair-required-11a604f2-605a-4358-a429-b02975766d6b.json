@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:plan-task-repair-guard",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "note": "Validated OpenCode invocation oc-84e20a66-8268-4c52-84df-7fc1748268da",
+  "occurredAt": "2026-08-16T22:20:08Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "IMPLEMENTATION",
+  "repairCycleCount": 1,
+  "requestedEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "riskLevel": "HIGH",
+  "sequence": 57,
+  "sourceState": "IMPLEMENTATION",
+  "transitionId": "11a604f2-605a-4358-a429-b02975766d6b",
+  "workflowId": "software-factory-default"
+}

@@ -1,0 +1,34 @@
+{
+  "agent": "implementation-planning-agent",
+  "assumptions": [
+    "Operational numeric values not approved by requirements remain bounded external configuration validated against approved targets."
+  ],
+  "decision": "PASS",
+  "evidence": [
+    ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json identifies the mandatory T009-to-T012 application-contract defect and required DAG repair.",
+    ".factory/runs/oc-409818fa-64f6-430b-88eb-be8e97ddcd1b/result.json, .factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json, and .factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json record upstream requirements, architecture, and database-contract PASS decisions.",
+    "Repository inspection confirmed the reported omissions in NationalityMutationIntent, CreatePartyIdentifierUseCase, IdentifierMutationIntent, TransitionPartyIdentifierStatusUseCase, and PartyIdentifierView.",
+    "docs/planning/tasks.md contains 39 stable task identifiers, preserving T001-T037 and adding T038-T039 with owners, bounded paths, dependencies, acceptance evidence, risks, and stop conditions.",
+    "docs/planning/implementation-plan.md updates the repository baseline, workstreams, persistence sequence, waves, traceability, risk register, and stop conditions.",
+    "git diff --check -- docs/planning/implementation-plan.md docs/planning/tasks.md completed successfully with no output.",
+    "Scoped status confirmed that this agent modified only docs/planning/implementation-plan.md and docs/planning/tasks.md; pre-existing factory-managed and implementation-test changes were not modified."
+  ],
+  "findings": [
+    "The T012 implementation result proved that completed T009 drops mandatory approved nationality and Party Identifier data before the persistence boundary.",
+    "The repaired DAG preserves T001-T037 and adds test-first T038 followed by production repair T039, T011 regression revalidation, T012 retry, and independent T037 black-box verification.",
+    "The approved unauthenticated internal decryption posture and existing noncompliant delivery workflow remain HIGH residual risks covered by mandatory security, deployment, supply-chain, and production-readiness controls."
+  ],
+  "generatedFiles": [
+    "docs/planning/implementation-plan.md",
+    "docs/planning/tasks.md"
+  ],
+  "nextPhase": null,
+  "phase": "PLANNING",
+  "requiredActions": [
+    "Execute T038 to add failing application field-flow tests and the OpenAPI/DBML-to-application mapping.",
+    "Execute T039 to repair only the affected application contracts and use cases, then require all application and contract checks to pass.",
+    "Rerun T011 after T039 in the authorised PostgreSQL 18 Testcontainers environment before retrying T012.",
+    "Retry T012 with adapter-only scope, then execute T037 and all remaining independent gates."
+  ],
+  "riskLevel": "HIGH"
+}

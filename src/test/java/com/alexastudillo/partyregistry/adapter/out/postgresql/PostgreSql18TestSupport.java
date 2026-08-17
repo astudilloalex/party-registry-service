@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
@@ -144,8 +145,17 @@ abstract class PostgreSql18TestSupport {
 
     static SQLException assertConstraint(String expectedConstraint, org.junit.jupiter.api.function.Executable action) {
         SQLException failure = assertThrows(SQLException.class, action);
-        org.junit.jupiter.api.Assertions.assertTrue(failure.getMessage().contains(expectedConstraint),
+        org.junit.jupiter.api.Assertions.assertEquals(expectedConstraint, postgresConstraint(failure),
                 () -> "Expected named constraint " + expectedConstraint + " but received: " + failure.getMessage());
         return failure;
+    }
+
+    static String postgresConstraint(SQLException failure) {
+        try {
+            Object serverError = failure.getClass().getMethod("getServerErrorMessage").invoke(failure);
+            return (String) serverError.getClass().getMethod("getConstraint").invoke(serverError);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException reflectionFailure) {
+            throw new AssertionError("PostgreSQL JDBC error metadata is unavailable", reflectionFailure);
+        }
     }
 }

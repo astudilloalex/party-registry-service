@@ -1,0 +1,10 @@
+{
+  "action": "ROUTE_TO_PLANNING",
+  "detection": "EXPLICIT_AGENT_MARKERS",
+  "humanDecisionAccepted": false,
+  "phase": "IMPLEMENTATION",
+  "reason": "PLAN_TASK_CONTRACT_DEFECT: T012 cannot implement the approved persistence behavior because completed prerequisite T009 omits mandatory data from application ports and intents. NationalityMutationIntent has no primary designation; CreatePartyIdentifierUseCase and IdentifierMutationIntent omit issuerCode, primary, issuedOn, and expiresOn during creation; TransitionPartyIdentifierStatusUseCase discards verifiedAt, verifiedBy, and expiresOn before invoking the unit of work; PartyIdentifierView cannot represent persisted status, primary designation, issuer, lifecycle dates, verification facts, or audit facts.",
+  "resultPath": ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
+  "schemaVersion": 1,
+  "taskId": "T012"
+}

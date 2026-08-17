@@ -1,0 +1,19 @@
+{
+  "actor": "Alex / responsable del proyecto",
+  "destinationState": "IMPLEMENTATION",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": "Rootless Podman socket verified. PostgreSQL 18 Testcontainers now executes; T011 has three reproducible test failures requiring test-scope diagnosis and repair.",
+  "occurredAt": "2026-08-16T22:05:21Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 56,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "ccd1eb91-60a4-4e39-9ef3-b4084ad255c7",
+  "workflowId": "software-factory-default"
+}

@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -34,6 +35,18 @@ class PostgreSqlIntegrityAndPrivilegeTest extends PostgreSql18TestSupport {
         }
         try (Connection connection = transaction()) {
             insertNaturalParty(connection, tenant);
+            connection.commit();
+        }
+        try (Connection connection = transaction()) {
+            UUID party = UUID.randomUUID();
+            execute(connection, "insert into legal_entity_details(party_id,legal_name,incorporation_country_code,created_by,updated_by) values (?,'Synthetic Legal','EC',?,?)", party, ACTOR, ACTOR);
+            execute(connection, "insert into parties(id,tenant_id,type,display_name,created_by,updated_by) values (?,?,'LEGAL_ENTITY','Synthetic Legal',?,?)", party, tenant, ACTOR, ACTOR);
+            connection.commit();
+        }
+        try (Connection connection = transaction()) {
+            UUID party = UUID.randomUUID();
+            execute(connection, "insert into parties(id,tenant_id,type,display_name,created_by,updated_by) values (?,?,'LEGAL_ENTITY','Synthetic Legal',?,?)", party, tenant, ACTOR, ACTOR);
+            execute(connection, "insert into legal_entity_details(party_id,legal_name,incorporation_country_code,created_by,updated_by) values (?,'Synthetic Legal','EC',?,?)", party, ACTOR, ACTOR);
             connection.commit();
         }
     }
@@ -145,9 +158,13 @@ class PostgreSqlIntegrityAndPrivilegeTest extends PostgreSql18TestSupport {
                 "a".repeat(64),
                 "A".repeat(32) + "b" + "A".repeat(31),
                 "A".repeat(63) + "G",
-                "0x" + "A".repeat(64),
                 "A".repeat(63))) {
             assertStatementConstraint("ck_party_identifier_hash_upper_hex", connection -> insertIdentifier(connection, tenantA, finalPartyA, finalSchemeA, invalidHash, "PENDING_VERIFICATION", false));
+        }
+        try (Connection connection = transaction()) {
+            SQLException prefixedHash = assertThrows(SQLException.class,
+                    () -> insertIdentifier(connection, tenantA, finalPartyA, finalSchemeA, "0x" + "A".repeat(64), "PENDING_VERIFICATION", false));
+            assertEquals("22001", prefixedHash.getSQLState());
         }
         assertStatementConstraint("fk_party_identifiers_party", connection -> insertIdentifier(connection, tenantB, finalPartyA, finalSchemeA, HASH_A, "PENDING_VERIFICATION", false));
 
@@ -186,15 +203,19 @@ class PostgreSqlIntegrityAndPrivilegeTest extends PostgreSql18TestSupport {
         CountDownLatch start = new CountDownLatch(1);
         UUID finalParty = party;
         UUID finalScheme = scheme;
-        List<CompletableFuture<Boolean>> attempts = List.of(1, 2).stream().map(ignored -> CompletableFuture.supplyAsync(() -> {
+        List<CompletableFuture<String>> attempts = List.of(1, 2).stream().map(ignored -> CompletableFuture.supplyAsync(() -> {
             try (Connection connection = transaction()) {
                 ready.countDown();
                 assertTrue(start.await(10, TimeUnit.SECONDS));
                 insertIdentifier(connection, tenant, finalParty, finalScheme, HASH_A, "PENDING_VERIFICATION", false);
                 connection.commit();
-                return true;
+                return "COMMITTED";
             } catch (SQLException expectedUniqueConflict) {
-                return false;
+                if (!"23505".equals(expectedUniqueConflict.getSQLState())
+                        || !"uq_party_identifier_tenant_scheme_hash".equals(postgresConstraint(expectedUniqueConflict))) {
+                    throw new CompletionException(expectedUniqueConflict);
+                }
+                return "UNIQUE_CONFLICT";
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
                 throw new AssertionError(interrupted);
@@ -202,7 +223,14 @@ class PostgreSqlIntegrityAndPrivilegeTest extends PostgreSql18TestSupport {
         })).toList();
         assertTrue(ready.await(10, TimeUnit.SECONDS));
         start.countDown();
-        assertEquals(1, attempts.stream().map(CompletableFuture::join).filter(Boolean::booleanValue).count());
+        List<String> outcomes = attempts.stream().map(attempt -> {
+            try {
+                return attempt.get(15, TimeUnit.SECONDS);
+            } catch (Exception failure) {
+                throw new AssertionError("Concurrent identifier attempt did not complete safely", failure);
+            }
+        }).sorted().toList();
+        assertEquals(List.of("COMMITTED", "UNIQUE_CONFLICT"), outcomes);
         try (Connection connection = ownerConnection()) {
             assertEquals(1, queryInt(connection, "select count(*) from party_identifiers where tenant_id=? and identifier_scheme_id=? and normalized_value_hash=?", tenant, scheme, HASH_A));
         }

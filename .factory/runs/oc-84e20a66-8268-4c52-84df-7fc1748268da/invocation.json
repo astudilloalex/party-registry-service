@@ -1,0 +1,108 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "attempt": {
+    "current": 1,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/planning/tasks.md",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "api/openapi/v1/party-registry.openapi.yaml",
+      "api/events/v1/examples/party-created.v1.json",
+      "api/events/v1/examples/party-identifier-verified.v1.json",
+      "api/events/v1/party-registry-events.schema.json",
+      "docs/implementation/contract-placement.md",
+      "docs/implementation/contract-validation.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-4cb8f673-3179-4281-a2a6-4482889a2f31/result.json",
+      ".factory/runs/oc-bae96f91-74cb-4d6d-a506-f208f3dec005/result.json",
+      ".factory/runs/oc-50763d77-7c8e-455b-8a1c-40e8ce0fe376/result.json",
+      ".factory/runs/oc-618baa10-4125-44b6-99f0-4e89eb55f27e/result.json",
+      ".factory/runs/oc-ae767d3d-c531-40a3-9664-411843df2766/result.json",
+      ".factory/runs/oc-74c70e5e-0dca-4018-89db-473bf75b826a/result.json",
+      ".factory/runs/oc-1540c9f4-340e-4cb9-83c3-aca94637223f/result.json",
+      ".factory/runs/oc-dc3ea341-2ff6-48e2-960c-2a0223b0466c/result.json",
+      ".factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json",
+      ".factory/runs/oc-5f6ff212-eb7d-4106-b788-4381963639a2/result.json",
+      ".factory/runs/oc-ee06eb70-e2ae-47a0-84cd-6567f727b9be/result.json",
+      ".factory/runs/oc-f2cbc222-c6c8-4ef8-b118-61a57b85cd37/result.json",
+      ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-288f2213-2a4b-44a4-ad4c-c352e7880019/result.json",
+      ".factory/runs/oc-a900a2f7-7382-45c4-94c6-b5678ce4703c/result.json",
+      ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+      ".factory/runs/oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f/result.json",
+      ".factory/runs/oc-4fb99cd4-b73c-4565-8a9a-18a29ca6a6c5/result.json",
+      ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84/result.json",
+      ".factory/runs/oc-baf3379c-134c-41be-9854-5991d517ef72/result.json",
+      ".factory/runs/oc-50f3c43e-e03a-4205-8cc0-67015343dd67/result.json",
+      ".factory/runs/oc-26b81f6f-11bd-4090-a3db-8283bbb1078e/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-84e20a66-8268-4c52-84df-7fc1748268da",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "T011 migration/integrity and presence checks pass in the approved PostgreSQL environment; construction contract is sufficient for T037; transaction-overlap instrumentation is available; no persistence model leaks inward. Full black-box persistence-port behavior is accepted only after T037."
+    ],
+    "expectedArtifacts": [
+      "persistence records/mappers/reactive queries/transactions/error mapping and bounded pages/claims; implementations of all six ports named by T011; and a concise construction/test-fixture contract documenting the concrete constructor or factory, required synthetic non-secret configuration, lifecycle and cleanup needed by T037."
+    ],
+    "instructions": [
+      "IMPLEMENTATION_TASK_ID: T012",
+      "IMPLEMENTATION_TASK_SOURCE: docs/planning/tasks.md",
+      "IMPLEMENTATION_TASK_CONTRACT:\nOwner agent: `quarkus-engineer-agent`  \nPurpose: Implement application persistence/unit-of-work/outbox-store/query-only Scheme ports.  \nRequirements: FR-001/006..009/012/013/021..039/047..050; DR-001..006. Architecture: sections 6/7/11/12; ADR-002/004/005.  \nDBML: exact tables/constraints/queries; no redesign. Inputs: T009-T011.  \nAllowed paths: `src/main/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/main/resources/application.properties` (database/Flyway keys only), `docs/implementation/postgresql-adapter.md`. Prohibited paths: domain/application edits, test edits, blocking ORM/JDBC, runtime auto-DDL, Scheme mutation methods.\nExpected artifacts: persistence records/mappers/reactive queries/transactions/error mapping and bounded pages/claims; implementations of all six ports named by T011; and a concise construction/test-fixture contract documenting the concrete constructor or factory, required synthetic non-secret configuration, lifecycle and cleanup needed by T037. Dependencies: Hard T009/T010/T011. Parallelizable: false with tasks changing `application.properties`; otherwise isolated.\nInstructions: Tenant-qualify reads/mutations; map domain separately; enforce optimistic versions; atomically update aggregate/outbox; use parameterized SQL; implement claim commit before broker I/O and optimistic outcome; bound page/batch; expose Scheme queries only. Define the narrowest stable construction seam needed for independent black-box testing without adding a production-only test abstraction, leaking persistence models, or requiring T037 to use reflection into private internals.\nAcceptance/verification: T011 migration/integrity and presence checks pass in the approved PostgreSQL environment; construction contract is sufficient for T037; transaction-overlap instrumentation is available; no persistence model leaks inward. Full black-box persistence-port behavior is accepted only after T037.\nRisks/stop: stop on SQL/DBML mismatch, cross-tenant result, blocking access, unbounded query, Scheme write, stale-outcome overwrite, inaccessible mandatory database tests, or inability to expose a bounded construction seam within this adapter scope.",
+      "Tenant-qualify reads/mutations; map domain separately; enforce optimistic versions; atomically update aggregate/outbox; use parameterized SQL; implement claim commit before broker I/O and optimistic outcome; bound page/batch; expose Scheme queries only. Define the narrowest stable construction seam needed for independent black-box testing without adding a production-only test abstraction, leaking persistence models, or requiring T037 to use reflection into private internals."
+    ],
+    "objective": "Execute T012 — Implement reactive PostgreSQL adapter: Implement application persistence/unit-of-work/outbox-store/query-only Scheme ports."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "src/main/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**",
+      "src/main/resources/application.properties",
+      "docs/implementation/postgresql-adapter.md"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

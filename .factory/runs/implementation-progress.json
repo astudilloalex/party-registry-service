@@ -351,24 +351,32 @@
       "taskDigest": "b4e415223b6cf07d0ee82b113183921fb5ac0aad608e3a28420e2c1e5ac0dcef"
     },
     "T011": {
-      "changedFiles": [],
-      "generatedFiles": [],
-      "lastAttempt": {
-        "decision": "BLOCKED",
-        "resultSha256": "f552fa8ef04d2be4d1abe6a15f1b5980abc43b060e23dcf00b43a5b0e017747a",
-        "riskLevel": "HIGH",
-        "runDirectory": ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84"
-      },
+      "changedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSql18TestSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlIntegrityAndPrivilegeTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlMigrationSchemaTest.java"
+      ],
+      "generatedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSql18TestSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlIntegrityAndPrivilegeTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlMigrationSchemaTest.java"
+      ],
       "owner": "test-implementation-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
+      "resultSha256": "2a20b96eefe666117947a9197f726f7a02502f933a2de4e595185e3ab5ee08c2",
+      "riskLevel": "MEDIUM",
+      "runDirectory": ".factory/runs/oc-26b81f6f-11bd-4090-a3db-8283bbb1078e",
+      "status": "PASS",
       "taskDigest": "bd732397a9cca63fabbc1142f0792550cd4c7e054bb66a045536480ca7863861"
     },
     "T012": {
       "changedFiles": [],
       "generatedFiles": [],
+      "lastAttempt": {
+        "decision": "FAIL",
+        "resultSha256": "cc71a86e39f7624f61118f37a0889d594cd1b749b31c7a700b36dbe3f8349c3f",
+        "riskLevel": "HIGH",
+        "runDirectory": ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da"
+      },
       "owner": "quarkus-engineer-agent",
       "resultSha256": null,
       "riskLevel": null,
@@ -515,5 +523,5 @@
       "taskDigest": "ac93d132fdb7ecece4093d515aff448908d17cb90fd1da2f6e8ca9ea4654fcfd"
     }
   },
-  "workflowSequence": 55
+  "workflowSequence": 57
 }
