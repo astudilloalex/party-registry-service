@@ -9,6 +9,7 @@ public record NationalityMutationIntent(
         UUID partyId,
         UUID nationalityId,
         String countryCode,
+        Boolean primary,
         LocalDate validFrom,
         LocalDate validUntil,
         CountryEvidence countryEvidence,

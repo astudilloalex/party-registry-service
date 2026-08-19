@@ -26,8 +26,8 @@ public final class AddNationalityUseCase {
         UseCaseSupport.required(command, "command");
         return geography.resolveActive(command.countryCode()).thenCompose(evidence ->
                 unitOfWork.addNationalityAndAppendOutbox(new NationalityMutationIntent(
-                        context.tenantId(), partyId, null, command.countryCode(), command.validFrom(), command.validUntil(),
-                        UseCaseSupport.found(evidence, "Active country"), version, context.userId(),
+                        context.tenantId(), partyId, null, command.countryCode(), command.primary(), command.validFrom(),
+                        command.validUntil(), UseCaseSupport.found(evidence, "Active country"), version, context.userId(),
                         new OutboxIntent("party.nationality-added.v1", context.processId()))));
     }
 }

@@ -1,0 +1,50 @@
+# Application-to-persistence field map — T038
+
+This map records the approved application facts carried after T039. It does not define transport DTOs, persistence records, SQL, adapter construction, or database defaults. OpenAPI names are mapped explicitly to the final DBML names while the application remains boundary-neutral.
+
+## Nationality mutation flow
+
+| Authority and requirement | OpenAPI fact | DBML fact / nullability | Required application carrier and flow | Acceptance assertion |
+|---|---|---|---|---|
+| `NationalityWriteRequest`; DR-003; AC-039/042 | `primary` required boolean | `party_nationalities.is_primary BOOLEAN NOT NULL` | Primitive `NationalityCommand.primary` -> `AddNationalityUseCase` / `UpdateNationalityUseCase` -> non-null `NationalityMutationIntent.primary` -> atomic `PartyUnitOfWorkPort` call; the field is nullable only for the distinct end operation where primary is unchanged | `addNationalityPropagatesRequiredPrimaryWithTenantVersionAndAtomicOutboxIdentity`; `updateNationalityPropagatesRequiredPrimaryWithoutChangingOwnershipOrTransactionIntent` |
+| Context and AC-020/031 | headers plus Party ownership | Party ownership inherited through non-null `party_id`; Party version changes atomically | Existing context tenant/actor, immutable Party/nationality IDs and `expectedVersion` remain on the intent; one mutation-and-outbox call retains the correlation/event identity | Both nationality tests assert tenant, ownership, expected version, actor and outbox facts |
+| `NationalityWriteRequest`; DR-003; VR-009 | `countryCode` required; `validFrom`/`validUntil` nullable | `country_code NOT NULL`; both validity dates nullable; date check retained | Existing command/intent fields remain unchanged and Geographic evidence still precedes the unit of work | Both nationality tests use the existing Geographic fake before the unit-of-work spy; pre-existing T008 failure/date tests remain authoritative |
+
+## Party Identifier creation and mutation flow
+
+| Authority and requirement | OpenAPI fact | DBML fact / nullability | Required application carrier and flow | Acceptance assertion |
+|---|---|---|---|---|
+| `PartyIdentifierCreateRequest`; FR-018 | `partyId` required | `party_identifiers.party_id UUID NOT NULL`, immutable | `CreateIdentifierCommand.partyId` (required) -> use case -> `IdentifierMutationIntent.partyId`; no update command carries the association | `identifierCreationPropagatesRequiredAndNullableInputFactsWithProtectedImmutableAssociations`; `identifierUpdatePreservesImmutableAssociationsVersionAndAtomicOutboxIdentity` |
+| `PartyIdentifierCreateRequest`; FR-018 | `identifierSchemeId` required | `identifier_scheme_id UUID NOT NULL`, immutable | `CreateIdentifierCommand.schemeId` (required) -> read-only Scheme lookup -> `IdentifierMutationIntent.schemeId`; no Scheme mutation and no update command association field | Creation/update tests and `repairedDataFlowIntroducesNeitherSchemeMutationNorCommandIdempotencyCapability` |
+| `PartyIdentifierCreateRequest`; AC-044; DR-004 | transient `value` required/write-only | `encrypted_value`, `normalized_value_hash`, `masked_value`, encryption/normalization versions are non-null protected persisted facts; plaintext is absent | Creation command carries transient input only to normalization/protection; `ProtectedIdentifierData` carries ciphertext/hash/mask/encryption version and `IdentifierMutation.Creation.normalizationVersion` carries the validator result; immutable value is absent from update input and ordinary result | Creation test asserts protected hash/mask and single protection/unit-of-work calls; update/query tests assert restricted fields are absent |
+| `PartyIdentifierCreateRequest`; DR-004 | `issuerCode` nullable | `issuer_code VARCHAR(64) NULL` | `CreateIdentifierCommand.issuerCode` -> `IdentifierMutation.Creation.issuerCode`, preserving null | Creation propagation and carrier-nullability tests |
+| `PartyIdentifierCreateRequest`; DR-004; AC-008 | `primary` required boolean | `is_primary BOOLEAN NOT NULL DEFAULT false` (the adapter may not invent the request value) | Primitive `CreateIdentifierCommand.primary` -> primitive `IdentifierMutation.Creation.primary`; update uses `IdentifierMutation.Update.primary` | Creation propagation and carrier-nullability tests |
+| `PartyIdentifierCreateRequest`; DR-004; AC-009 | `issuedOn` nullable | `issued_on DATE NULL` | `CreateIdentifierCommand.issuedOn` -> `IdentifierMutation.Creation.issuedOn`; preserve null | Creation propagation and carrier-nullability tests |
+| `PartyIdentifierCreateRequest`; DR-004; AC-009 | `expiresOn` nullable | `expires_on DATE NULL`; when status is `EXPIRED`, `ck_party_identifier_expired_date` requires a value; it may not precede issue date | `CreateIdentifierCommand.expiresOn` -> `IdentifierMutation.Creation.expiresOn`; validated transition uses `IdentifierMutation.Transition.expiresOn` | Creation tests plus `expiredTransitionPropagatesRequiredExpiryAndPreservesNullableVerificationEvidence` |
+| `IdentifierStatusTransitionRequest`; FR-038; VR-004 | `targetStatus` required | `status party_identifier_status NOT NULL` | Domain lifecycle returns the accepted status in non-null `IdentifierMutation.Transition.status`; the typed mutation reaches the unit of work | Both transition tests assert the accepted status and exact lifecycle event |
+| `IdentifierStatusTransitionRequest`; VR-004; AC-009/049 | `verifiedAt`/`verifiedBy` nullable generally | Both columns nullable; `ck_party_identifier_verification` requires both for `VERIFIED` | Nullable `IdentifierMutation.Transition.verifiedAt/verifiedBy` preserve applicable values after domain validation; non-verification transitions preserve nulls | Verified and expired transition tests |
+| AC-020/048/070 | `If-Match` outside the body; immutable IDs/value absent from update body | `version BIGINT NOT NULL`; tenant/Party/Scheme/value associations remain immutable | Existing context tenant, identifier/Party/Scheme IDs and expected version remain intent facts; update/transition invoke exactly one atomic mutation-and-outbox port method | Update and transition tests assert ownership, version, protected-value absence, call count, event type and correlation ID |
+| Amendment 001 FR-006/047 and AC-074..076 | no command-idempotency field | unconditional DB uniqueness `(tenant_id, identifier_scheme_id, normalized_value_hash)` | Tenant, Scheme and protected HMAC facts reach the one creation transaction; no replay/idempotency port is introduced. PostgreSQL concurrency enforcement remains T011/T037 scope. | Creation test asserts tenant/Scheme/hash and one atomic call; prohibited-capability test asserts no idempotency port |
+
+## Party Identifier query and ordinary-result flow
+
+| Authority | OpenAPI output | DBML fact / nullability | Required application view/result behavior | Acceptance assertion |
+|---|---|---|---|---|
+| `IdentifierData`; DR-004 | `id`, `partyId`, `identifierSchemeId` required | IDs non-null | Tenant-qualified `PartyIdentifierView` retains IDs; ordinary result retains public IDs | `identifierQueryViewCarriesPersistedOutputAuditAndVersionFactsAndOrdinaryResultIsRestricted` |
+| `IdentifierData`; DR-004 | `issuerCode` nullable | `issuer_code NULL` | `PartyIdentifierView.issuerCode` and `PartyIdentifierResult.issuerCode` preserve issuer or null | Query-view test |
+| `IdentifierData`; FR-046 | `maskedValue` required | `masked_value NOT NULL` | `PartyIdentifierView.maskedValue` maps to `PartyIdentifierResult.maskedValue`; the result has no plaintext, ciphertext or hash field | Query-view restricted-result assertions |
+| `IdentifierData`; DR-004 | `primary` required boolean | `is_primary NOT NULL` | Non-null final `PartyIdentifierView.primary` maps to `PartyIdentifierResult.primary`; nullable Java representation exists only for the pre-T038 compatibility constructor and must not be produced by persistence | Query-view test |
+| `IdentifierData`; FR-034..039 | `status` required | `status NOT NULL` | `PartyIdentifierView.status` maps to `PartyIdentifierResult.status` | Query-view test |
+| `IdentifierData`; VR-004 | `issuedOn`, `expiresOn`, `verifiedAt`, `verifiedBy` nullable | Corresponding columns nullable subject to the verification/expired/date checks | Matching nullable fields on `PartyIdentifierView` map directly to `PartyIdentifierResult` without placeholders | Query-view test; transition tests prove applicable non-null values reach mutation intent |
+| `IdentifierData.AuditFacts`; DR-005; AC-011 | `createdAt`, `createdBy`, `updatedAt`, `updatedBy` all required | Four audit columns `NOT NULL` | Non-null final persistence values map through matching `PartyIdentifierView` and `PartyIdentifierResult` fields | Query-view test asserts every view audit fact and representative ordinary mapping |
+| ETag/If-Match; DR-004/005; AC-020/048 | version represented as HTTP ETag rather than body field | `version BIGINT NOT NULL`, non-negative | View and ordinary result retain version for inbound adapter ETag mapping without exposing persistence models | Query-view test asserts exact version |
+
+## Triggering T012 finding coverage
+
+| Triggering result finding | Test evidence | Map rows |
+|---|---|---|
+| `NationalityMutationIntent` loses primary | Add/update nationality propagation tests | Nationality `primary` row |
+| Identifier creation loses issuer, primary, issue and expiry facts | Creation propagation/nullability tests | Four creation metadata rows |
+| Identifier transition loses verification and expiry facts | Verified/expired transition tests | Status, verification and transition-expiry rows |
+| `PartyIdentifierView` cannot represent status, primary, issuer, lifecycle, verification or audit facts | Query-view and ordinary-result test | Every query/output row |
+| Adapter must not invent values or violate immutability/atomicity | Creation/update/transition tenant, association, version, protected-value and outbox assertions | Context/concurrency, immutable association, protected value and permanent uniqueness rows |

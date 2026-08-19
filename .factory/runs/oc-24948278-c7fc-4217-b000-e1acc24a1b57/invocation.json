@@ -1,0 +1,106 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "attempt": {
+    "current": 1,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/planning/tasks.md",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "api/openapi/v1/party-registry.openapi.yaml",
+      "api/events/v1/examples/party-created.v1.json",
+      "api/events/v1/examples/party-identifier-verified.v1.json",
+      "api/events/v1/party-registry-events.schema.json",
+      "docs/implementation/application-persistence-field-map.md",
+      "docs/implementation/contract-placement.md",
+      "docs/implementation/contract-validation.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-74c70e5e-0dca-4018-89db-473bf75b826a/result.json",
+      ".factory/runs/oc-1540c9f4-340e-4cb9-83c3-aca94637223f/result.json",
+      ".factory/runs/oc-dc3ea341-2ff6-48e2-960c-2a0223b0466c/result.json",
+      ".factory/runs/oc-d789b16f-216c-4a48-b5f7-c64110810402/result.json",
+      ".factory/runs/oc-5f6ff212-eb7d-4106-b788-4381963639a2/result.json",
+      ".factory/runs/oc-ee06eb70-e2ae-47a0-84cd-6567f727b9be/result.json",
+      ".factory/runs/oc-f2cbc222-c6c8-4ef8-b118-61a57b85cd37/result.json",
+      ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-288f2213-2a4b-44a4-ad4c-c352e7880019/result.json",
+      ".factory/runs/oc-a900a2f7-7382-45c4-94c6-b5678ce4703c/result.json",
+      ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+      ".factory/runs/oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f/result.json",
+      ".factory/runs/oc-4fb99cd4-b73c-4565-8a9a-18a29ca6a6c5/result.json",
+      ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84/result.json",
+      ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
+      ".factory/runs/oc-d1ec4eb5-d181-430d-ae80-b524b95720b3/result.json",
+      ".factory/runs/oc-3c17ef1c-329b-489c-9ed7-70a88debe653/result.json",
+      ".factory/runs/oc-8153df51-f1e1-4d81-8d90-d553c20dd2c5/result.json",
+      ".factory/runs/oc-bb0b489e-1fd7-445a-b199-3309f10a79bb/result.json",
+      ".factory/runs/oc-3399b6f7-c52b-4726-b25e-bbbeec0eb182/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-24948278-c7fc-4217-b000-e1acc24a1b57",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-24948278-c7fc-4217-b000-e1acc24a1b57",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "all T038 and pre-existing T008 application tests pass; field-map rows identify the final application carrier and nullability for every repaired fact; contract validation remains green; import/boundary checks pass; changed-file inventory is confined to allowed paths. Then rerun T011 before T012."
+    ],
+    "expectedArtifacts": [
+      "repaired boundary-neutral command/input records, `NationalityMutationIntent`, `IdentifierMutationIntent` or typed mutation data, `PartyIdentifierView`, affected use cases and port-facing contracts; completed field-flow map."
+    ],
+    "instructions": [
+      "IMPLEMENTATION_TASK_ID: T039",
+      "IMPLEMENTATION_TASK_SOURCE: docs/planning/tasks.md",
+      "IMPLEMENTATION_TASK_CONTRACT:\nOwner agent: `quarkus-engineer-agent`\nPurpose: Satisfy T038 by making the minimum boundary-neutral application changes required for T012 to implement valid DBML/OpenAPI behavior without inventing values.\nRequirements/architecture/DBML: same as T038; preserve all T008/T009 orchestration and strict Clean Architecture obligations.\nInputs: T038 failing tests/field map and existing T009 production artifacts. Allowed paths: `src/main/java/com/alexastudillo/partyregistry/application/**`, `docs/implementation/application-persistence-field-map.md`. Prohibited paths: domain, adapters, tests, OpenAPI/events, migrations, build/configuration, requirements/architecture/DBML and factory/Git metadata.\nExpected artifacts: repaired boundary-neutral command/input records, `NationalityMutationIntent`, `IdentifierMutationIntent` or typed mutation data, `PartyIdentifierView`, affected use cases and port-facing contracts; completed field-flow map. Dependencies: Hard T038. Parallelizable: false with T038 or any task editing application production contracts; adapters remain blocked until completion.\nInstructions: Carry nationality primary through add/update intents; replace any lossy identifier creation signature with a boundary-neutral command carrying issuer/primary/issue/expiry facts; preserve protected data and immutable Party/Scheme/value associations; replace untyped or lossy mutation payloads only as narrowly needed so update and transition retain all approved metadata; propagate verification/expiry facts after domain lifecycle validation; make query views represent the approved persisted/output facts while ensuring ordinary API mapping can exclude ciphertext/plaintext. Preserve reactive return types, pre-transaction geography, log-before-disclosure, tenant qualification, If-Match semantics and outbox event identity. Do not add persistence annotations, SQL, Quarkus/Jakarta/logging imports, adapter constructors, new business defaults, Scheme administration or idempotency.\nAcceptance/verification: all T038 and pre-existing T008 application tests pass; field-map rows identify the final application carrier and nullability for every repaired fact; contract validation remains green; import/boundary checks pass; changed-file inventory is confined to allowed paths. Then rerun T011 before T012.\nRisks/stop: stop on public-contract or DBML mismatch, need for a new business default, transport/persistence leakage, loss of protected-data separation, changed event meaning, or inability to represent a DBML-valid transition. Return control rather than putting placeholders in an adapter.",
+      "Carry nationality primary through add/update intents; replace any lossy identifier creation signature with a boundary-neutral command carrying issuer/primary/issue/expiry facts; preserve protected data and immutable Party/Scheme/value associations; replace untyped or lossy mutation payloads only as narrowly needed so update and transition retain all approved metadata; propagate verification/expiry facts after domain lifecycle validation; make query views represent the approved persisted/output facts while ensuring ordinary API mapping can exclude ciphertext/plaintext. Preserve reactive return types, pre-transaction geography, log-before-disclosure, tenant qualification, If-Match semantics and outbox event identity. Do not add persistence annotations, SQL, Quarkus/Jakarta/logging imports, adapter constructors, new business defaults, Scheme administration or idempotency."
+    ],
+    "objective": "Execute T039 — Repair application contracts for complete persistence data: Satisfy T038 by making the minimum boundary-neutral application changes required for T012 to implement valid DBML/OpenAPI behavior without inventing values."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "src/main/java/com/alexastudillo/partyregistry/application/**",
+      "docs/implementation/application-persistence-field-map.md"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

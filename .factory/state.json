@@ -1,18 +1,18 @@
 {
-  "currentState": "IMPLEMENTATION",
+  "currentState": "FAILED_AFTER_THREE_ATTEMPTS",
   "initializedAt": "2026-08-09T19:08:42Z",
-  "lastEffectiveEvent": "PASS",
-  "lastEvent": "PASS",
-  "lastTransitionAt": "2026-08-16T22:26:57Z",
-  "lastTransitionId": "c7a46f0b-6612-463d-9f40-a683087fdcac",
-  "previousState": "GITHUB_PREPARATION",
+  "lastEffectiveEvent": "REPAIR_LIMIT_REACHED",
+  "lastEvent": "FAIL",
+  "lastTransitionAt": "2026-08-19T03:39:00Z",
+  "lastTransitionId": "e49b93f6-eacf-49c0-8402-28508d64e639",
+  "previousState": "IMPLEMENTATION",
   "project": "party-registry-service",
   "repairCycles": {
     "ARCHITECTURE_GATE": 2,
-    "IMPLEMENTATION": 1
+    "IMPLEMENTATION": 3
   },
   "schemaVersion": 1,
-  "sequence": 59,
-  "updatedAt": "2026-08-16T22:26:57Z",
+  "sequence": 65,
+  "updatedAt": "2026-08-19T03:39:00Z",
   "workflowId": "software-factory-default"
 }

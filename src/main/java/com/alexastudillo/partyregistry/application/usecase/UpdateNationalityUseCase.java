@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry.application.usecase;
 
 import com.alexastudillo.partyregistry.application.MutationResult;
+import com.alexastudillo.partyregistry.application.NationalityCommand;
 import com.alexastudillo.partyregistry.application.NationalityMutationIntent;
 import com.alexastudillo.partyregistry.application.OutboxIntent;
 import com.alexastudillo.partyregistry.application.RequestContext;
@@ -24,7 +25,30 @@ public final class UpdateNationalityUseCase {
             RequestContext context,
             UUID partyId,
             UUID nationalityId,
+            NationalityCommand command,
+            Long expectedVersion) {
+        UseCaseSupport.required(command, "command");
+        return execute(context, partyId, nationalityId, command.countryCode(), command.primary(), command.validFrom(),
+                command.validUntil(), expectedVersion);
+    }
+
+    public CompletionStage<MutationResult> execute(
+            RequestContext context,
+            UUID partyId,
+            UUID nationalityId,
             String countryCode,
+            LocalDate validFrom,
+            LocalDate validUntil,
+            Long expectedVersion) {
+        return execute(context, partyId, nationalityId, countryCode, null, validFrom, validUntil, expectedVersion);
+    }
+
+    private CompletionStage<MutationResult> execute(
+            RequestContext context,
+            UUID partyId,
+            UUID nationalityId,
+            String countryCode,
+            Boolean primary,
             LocalDate validFrom,
             LocalDate validUntil,
             Long expectedVersion) {
@@ -39,6 +63,7 @@ public final class UpdateNationalityUseCase {
                         partyId,
                         nationalityId,
                         countryCode,
+                        primary,
                         validFrom,
                         validUntil,
                         UseCaseSupport.found(evidence, "Active country"),

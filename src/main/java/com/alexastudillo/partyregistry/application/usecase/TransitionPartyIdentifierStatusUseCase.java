@@ -1,5 +1,6 @@
 package com.alexastudillo.partyregistry.application.usecase;
 
+import com.alexastudillo.partyregistry.application.IdentifierMutation;
 import com.alexastudillo.partyregistry.application.IdentifierMutationIntent;
 import com.alexastudillo.partyregistry.application.IdentifierTransitionCommand;
 import com.alexastudillo.partyregistry.application.MutationResult;
@@ -39,7 +40,10 @@ public final class TransitionPartyIdentifierStatusUseCase {
             case PENDING_VERIFICATION -> throw new IllegalStateException("PENDING_VERIFICATION is not a transition target");
         };
         return unitOfWork.transitionIdentifierAndAppendOutbox(new IdentifierMutationIntent(
-                context.tenantId(), identifierId, partyId, schemeId, null, version, accepted, context.userId(),
+                context.tenantId(), identifierId, partyId, schemeId, null, version,
+                new IdentifierMutation.Transition(
+                        accepted, command.verifiedAt(), command.verifiedBy(), command.expiresOn()),
+                context.userId(),
                 new OutboxIntent(eventType, context.processId())));
     }
 }

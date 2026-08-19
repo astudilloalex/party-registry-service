@@ -1,5 +1,6 @@
 package com.alexastudillo.partyregistry.application.usecase;
 
+import com.alexastudillo.partyregistry.application.IdentifierMutation;
 import com.alexastudillo.partyregistry.application.IdentifierMutationIntent;
 import com.alexastudillo.partyregistry.application.MutationResult;
 import com.alexastudillo.partyregistry.application.OutboxIntent;
@@ -27,7 +28,10 @@ public final class UpdatePartyIdentifierUseCase {
         long version = UseCaseSupport.expectedVersion(expectedVersion);
         UseCaseSupport.required(command, "command");
         return unitOfWork.updateIdentifierAndAppendOutbox(new IdentifierMutationIntent(
-                context.tenantId(), identifierId, partyId, schemeId, null, version, command, context.userId(),
+                context.tenantId(), identifierId, partyId, schemeId, null, version,
+                new IdentifierMutation.Update(
+                        command.issuerCode(), command.primary(), command.issuedOn(), command.expiresOn()),
+                context.userId(),
                 new OutboxIntent("party.identifier-updated.v1", context.processId())));
     }
 }

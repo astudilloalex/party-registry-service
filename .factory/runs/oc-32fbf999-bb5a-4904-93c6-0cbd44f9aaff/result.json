@@ -1,0 +1,42 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "assumptions": [],
+  "decision": "FAIL",
+  "evidence": [
+    "`./gradlew test --offline --tests 'com.alexastudillo.partyregistry.application.*' --rerun-tasks` exited 0: all 33 application tests passed, including 9 T038 and 24 pre-existing tests.",
+    "`./gradlew --offline validateContracts` exited 0 and validated OpenAPI, the Draft 2020-12 event schema, and two event examples.",
+    "`./gradlew compileJava --offline` exited 0.",
+    "Application-package import search found no adapter, bootstrap, Quarkus, Jakarta, Hibernate, Vert.x, logging, Jackson, MicroProfile, or JDBC imports.",
+    "`./gradlew test --offline --tests com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlMigrationSchemaTest --tests com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlIntegrityAndPrivilegeTest --rerun-tasks` exited 1 during Testcontainers initialization because Docker socket access was denied; no PostgreSQL assertions executed.",
+    "`./gradlew test --offline --tests com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlAdapterPresenceTest --rerun-tasks` exited 1 on the expected absent-adapter assertion.",
+    "`git diff --check` exited 0.",
+    "`git status --short` confirmed T039 production/documentation artifacts are confined to allowed paths; pre-existing T038 test, factory-managed, and planning changes were not modified by this task."
+  ],
+  "findings": [
+    "ENVIRONMENT_BLOCKER: Mandatory T011 PostgreSQL regression tests could not initialize Testcontainers because access to /var/run/docker.sock was denied.",
+    "The T039 application repair is complete and its focused acceptance checks pass, but mandatory T011 database evidence remains unavailable in this environment.",
+    "The pre-T012 PostgreSQL adapter-presence test failed as expected because T012 has not yet implemented the adapter."
+  ],
+  "generatedFiles": [
+    "src/main/java/com/alexastudillo/partyregistry/application/CreateIdentifierCommand.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/IdentifierMutation.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/IdentifierMutationIntent.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/NationalityMutationIntent.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/PartyIdentifierResult.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/PartyIdentifierView.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/AddNationalityUseCase.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyIdentifierUseCase.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/EndNationalityUseCase.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/TransitionPartyIdentifierStatusUseCase.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdateNationalityUseCase.java",
+    "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyIdentifierUseCase.java",
+    "docs/implementation/application-persistence-field-map.md"
+  ],
+  "nextPhase": null,
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "Provide an authorised container runtime able to start the pinned PostgreSQL 18 Testcontainers image and rerun the T011 migration and integrity suites before T012.",
+    "Retain the expected pre-T012 adapter-presence failure until T012 implements the PostgreSQL adapter."
+  ],
+  "riskLevel": "MEDIUM"
+}

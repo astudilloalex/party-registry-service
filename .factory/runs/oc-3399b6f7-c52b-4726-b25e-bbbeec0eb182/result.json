@@ -1,0 +1,32 @@
+{
+  "agent": "test-implementation-agent",
+  "assumptions": [],
+  "decision": "PASS",
+  "evidence": [
+    "`./gradlew test --offline --tests com.alexastudillo.partyregistry.application.CompleteNationalityAndIdentifierDataFlowContractTest --rerun-tasks` exited 1 after successful compilation: 9 tests, 7 expected failures, 2 passes, 0 skipped, 0 errors.",
+    "The targeted command was rerun after test-harness corrections and reproduced the same 9-test/7-failure result, providing deterministic red-test evidence.",
+    "`./gradlew test --offline --tests 'com.alexastudillo.partyregistry.application.*' --rerun-tasks` exited 1: 33 tests, with only the same 7 T038 failures.",
+    "`./gradlew test --offline --tests com.alexastudillo.partyregistry.application.ApplicationPortInventoryContractTest --tests com.alexastudillo.partyregistry.application.ContextAndPartyOrchestrationContractTest --tests com.alexastudillo.partyregistry.application.IdentifierOrchestrationContractTest --tests com.alexastudillo.partyregistry.application.OutboxOrchestrationContractTest --rerun-tasks` exited 0; all 24 pre-existing application tests passed.",
+    "`build/test-results/test/TEST-com.alexastudillo.partyregistry.application.CompleteNationalityAndIdentifierDataFlowContractTest.xml` records the expected failures, including missing `NationalityMutationIntent.primary`, missing complete creation carrier, missing transition verification/expiry facts, and missing `PartyIdentifierView.status`.",
+    "`docs/implementation/application-persistence-field-map.md` maps every triggering T012 finding and repaired OpenAPI/DBML fact to application carriers, nullability, use-case flow, and named assertions.",
+    "`git diff --check` exited 0.",
+    "`git status --short` confirmed the only task-generated source artifacts are the two allowed untracked files; no production code was changed."
+  ],
+  "findings": [
+    "PRODUCT_DEFECT: The new acceptance contract reproducibly exposes only the approved T009 omissions: nationality primary propagation, complete identifier creation input, transition verification/expiry facts, and complete identifier query views.",
+    "Targeted execution compiled 9 tests: 2 passed and 7 failed on the identified omissions; no tests were skipped or errored.",
+    "The broader application suite compiled 33 tests and had the same 7 expected failures. The 24 pre-existing application tests passed independently.",
+    "Pre-existing factory-managed worktree changes were outside the allowed paths and were not modified."
+  ],
+  "generatedFiles": [
+    "src/test/java/com/alexastudillo/partyregistry/application/CompleteNationalityAndIdentifierDataFlowContractTest.java",
+    "docs/implementation/application-persistence-field-map.md"
+  ],
+  "nextPhase": "IMPLEMENTATION",
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "T039 owner must repair the boundary-neutral application commands, intents, views, results, and affected use cases until all T038 tests pass without changing adapters, contracts, DBML, migrations, or tests.",
+    "After T039, rerun the targeted T038 suite, pre-existing application suite, contract validation, and required T011 database regression checks."
+  ],
+  "riskLevel": "HIGH"
+}

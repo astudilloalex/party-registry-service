@@ -10,13 +10,14 @@ public record IdentifierMutationIntent(
         UUID schemeId,
         ProtectedIdentifierData protectedIdentifier,
         long expectedVersion,
-        Object mutation,
+        IdentifierMutation mutation,
         String actorId,
         OutboxIntent outbox) {
     public IdentifierMutationIntent {
         Objects.requireNonNull(tenantId, "tenantId");
         Objects.requireNonNull(partyId, "partyId");
         Objects.requireNonNull(schemeId, "schemeId");
+        Objects.requireNonNull(mutation, "mutation");
         Objects.requireNonNull(actorId, "actorId");
         Objects.requireNonNull(outbox, "outbox");
         if (expectedVersion < 0) {

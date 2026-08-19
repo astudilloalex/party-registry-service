@@ -1,5 +1,7 @@
 package com.alexastudillo.partyregistry.application.usecase;
 
+import com.alexastudillo.partyregistry.application.CreateIdentifierCommand;
+import com.alexastudillo.partyregistry.application.IdentifierMutation;
 import com.alexastudillo.partyregistry.application.IdentifierMutationIntent;
 import com.alexastudillo.partyregistry.application.MutationResult;
 import com.alexastudillo.partyregistry.application.OutboxIntent;
@@ -11,6 +13,7 @@ import com.alexastudillo.partyregistry.application.port.IdentifierUnitOfWorkPort
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.IntFunction;
 
 public final class CreatePartyIdentifierUseCase {
     private final IdentifierSchemeCatalogPort schemes;
@@ -31,24 +34,40 @@ public final class CreatePartyIdentifierUseCase {
 
     public CompletionStage<MutationResult> execute(
             RequestContext context, UUID partyId, UUID schemeId, String plaintext) {
-        UseCaseSupport.required(context, "context");
         UseCaseSupport.required(partyId, "partyId");
         UseCaseSupport.required(schemeId, "schemeId");
         UseCaseSupport.nonblank(plaintext, "identifier");
+        return create(context, partyId, schemeId, plaintext, ignored -> new IdentifierMutation.LegacyCreation());
+    }
+
+    public CompletionStage<MutationResult> execute(RequestContext context, CreateIdentifierCommand command) {
+        UseCaseSupport.required(command, "command");
+        return create(context, command.partyId(), command.schemeId(), command.plaintext(), normalizationVersion ->
+                new IdentifierMutation.Creation(command.issuerCode(), command.primary(), command.issuedOn(),
+                        command.expiresOn(), normalizationVersion));
+    }
+
+    private CompletionStage<MutationResult> create(
+            RequestContext context,
+            UUID partyId,
+            UUID schemeId,
+            String plaintext,
+            IntFunction<IdentifierMutation> mutation) {
+        UseCaseSupport.required(context, "context");
         return schemes.findUsableById(schemeId)
                 .thenApply(scheme -> UseCaseSupport.found(scheme, "Identifier Scheme"))
                 .thenApply(scheme -> rules.normalizeAndValidate(scheme, plaintext))
-                .thenCompose(normalized -> protection.protect(context.tenantId(), normalized))
-                .thenCompose(protectedIdentifier -> unitOfWork.createIdentifierAndAppendOutbox(
-                        new IdentifierMutationIntent(
-                                context.tenantId(),
-                                null,
-                                partyId,
-                                schemeId,
-                                protectedIdentifier,
-                                0,
-                                null,
-                                context.userId(),
-                                new OutboxIntent("party.identifier-created.v1", context.processId()))));
+                .thenCompose(normalized -> protection.protect(context.tenantId(), normalized)
+                        .thenCompose(protectedIdentifier -> unitOfWork.createIdentifierAndAppendOutbox(
+                                new IdentifierMutationIntent(
+                                        context.tenantId(),
+                                        null,
+                                        partyId,
+                                        schemeId,
+                                        protectedIdentifier,
+                                        0,
+                                        mutation.apply(normalized.normalizationVersion()),
+                                        context.userId(),
+                                        new OutboxIntent("party.identifier-created.v1", context.processId())))));
     }
 }

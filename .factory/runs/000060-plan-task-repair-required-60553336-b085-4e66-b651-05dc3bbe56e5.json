@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:repaired-plan-validation",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "note": "REPAIRED_PLAN_INVALID: canonical IMPLEMENTATION preflight failed: Dependency cycle: T038 -> T012 -> T039 -> T038.; evidence .factory/runs/plan-validation-143d7b22-db5e-49e6-88f6-0bac7fd278f2/repaired-plan-validation.json",
+  "occurredAt": "2026-08-19T03:10:40Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "IMPLEMENTATION",
+  "repairCycleCount": 2,
+  "requestedEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "riskLevel": "MEDIUM",
+  "sequence": 60,
+  "sourceState": "IMPLEMENTATION",
+  "transitionId": "60553336-b085-4e66-b651-05dc3bbe56e5",
+  "workflowId": "software-factory-default"
+}

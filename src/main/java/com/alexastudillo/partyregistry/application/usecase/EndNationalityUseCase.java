@@ -27,7 +27,7 @@ public final class EndNationalityUseCase {
             Long expectedVersion) {
         long version = UseCaseSupport.expectedVersion(expectedVersion);
         return unitOfWork.endNationalityAndAppendOutbox(new NationalityMutationIntent(
-                context.tenantId(), partyId, nationalityId, existingCountryCode, validFrom, validUntil,
+                context.tenantId(), partyId, nationalityId, existingCountryCode, null, validFrom, validUntil,
                 null, version, context.userId(),
                 new OutboxIntent("party.nationality-removed.v1", context.processId())));
     }

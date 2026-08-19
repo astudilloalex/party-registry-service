@@ -1,30 +1,27 @@
 {
   "phase": "IMPLEMENTATION",
   "phaseComplete": false,
-  "planDigest": "1ffe8ee59400700739ac5fc20fb13ba5155b60884d7ca3a24cc7bd86376979fc",
-  "replanValidationPending": {
+  "planDigest": "9c9c1c612f72dea585325b70c0cf94d65f47794c3ffb3aa37d2f67f156c08834",
+  "replanRequired": {
     "detection": "EXPLICIT_AGENT_MARKERS",
     "invocationId": "oc-84e20a66-8268-4c52-84df-7fc1748268da",
     "legacyTransitionPath": ".factory/runs/000057-plan-task-repair-required-11a604f2-605a-4358-a429-b02975766d6b.json",
     "originTaskId": "T012",
-    "planDigest": "1ffe8ee59400700739ac5fc20fb13ba5155b60884d7ca3a24cc7bd86376979fc",
     "reason": "PLAN_TASK_CONTRACT_DEFECT: T012 cannot implement the approved persistence behavior because completed prerequisite T009 omits mandatory data from application ports and intents. NationalityMutationIntent has no primary designation; CreatePartyIdentifierUseCase and IdentifierMutationIntent omit issuerCode, primary, issuedOn, and expiresOn during creation; TransitionPartyIdentifierStatusUseCase discards verifiedAt, verifiedBy, and expiresOn before invoking the unit of work; PartyIdentifierView cannot represent persisted status, primary designation, issuer, lifecycle dates, verification facts, or audit facts.",
-    "recordedAt": "2026-08-19T03:15:02Z",
+    "recordedAt": "2026-08-16T22:20:08Z",
     "repairScope": "PLAN_GRAPH",
     "resultPath": ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
-    "sourcePlanDigest": "9c9c1c612f72dea585325b70c0cf94d65f47794c3ffb3aa37d2f67f156c08834",
     "taskId": "T038",
     "validationErrors": [
       "Dependency cycle: T038 -> T012 -> T039 -> T038."
     ],
     "validationRecordedAt": "2026-08-19T03:10:40Z",
     "validationResultPath": ".factory/runs/plan-validation-143d7b22-db5e-49e6-88f6-0bac7fd278f2/repaired-plan-validation.json",
-    "validationSource": "LEGACY_0_4_11_LEDGER",
-    "workflowSequence": 62
+    "validationSource": "LEGACY_0_4_11_LEDGER"
   },
   "replannedFrom": {
-    "archive": ".factory/runs/implementation-progress-000062-9c9c1c612f72-superseded.json",
-    "planDigest": "9c9c1c612f72dea585325b70c0cf94d65f47794c3ffb3aa37d2f67f156c08834",
+    "archive": ".factory/runs/implementation-progress-000054-f9231a56105d-superseded.json",
+    "planDigest": "f9231a56105d2b761f8f6a726672d7483a302987e1b5b09375cb49b75679dd00",
     "preservedCheckpoints": [
       "T036",
       "T003",
@@ -36,9 +33,9 @@
       "T009",
       "T010"
     ],
-    "reason": "PLAN_TASK_CONTRACT_DEFECT: T012 cannot implement the approved persistence behavior because completed prerequisite T009 omits mandatory data from application ports and intents. NationalityMutationIntent has no primary designation; CreatePartyIdentifierUseCase and IdentifierMutationIntent omit issuerCode, primary, issuedOn, and expiresOn during creation; TransitionPartyIdentifierStatusUseCase discards verifiedAt, verifiedBy, and expiresOn before invoking the unit of work; PartyIdentifierView cannot represent persisted status, primary designation, issuer, lifecycle dates, verification facts, or audit facts.",
-    "resultPath": ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
-    "taskId": "T038"
+    "reason": "ENVIRONMENT_BLOCKER: Testcontainers cannot access the configured Docker socket; PostgreSQL 18 migration, schema, privilege, transaction, and concurrency tests could not execute.",
+    "resultPath": ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+    "taskId": "T011"
   },
   "schemaVersion": 1,
   "tasks": {
@@ -371,24 +368,38 @@
       "taskDigest": "b4e415223b6cf07d0ee82b113183921fb5ac0aad608e3a28420e2c1e5ac0dcef"
     },
     "T011": {
-      "changedFiles": [],
-      "generatedFiles": [],
+      "changedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSql18TestSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlIntegrityAndPrivilegeTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlMigrationSchemaTest.java"
+      ],
+      "generatedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSql18TestSupport.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlIntegrityAndPrivilegeTest.java",
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlMigrationSchemaTest.java"
+      ],
       "owner": "test-implementation-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "c3250a1f2a6cebbc4e5f18a05d5a6e7e8fe586cb82943f2668e8a38b90d5a99b"
+      "resultSha256": "2a20b96eefe666117947a9197f726f7a02502f933a2de4e595185e3ab5ee08c2",
+      "riskLevel": "MEDIUM",
+      "runDirectory": ".factory/runs/oc-26b81f6f-11bd-4090-a3db-8283bbb1078e",
+      "status": "PASS",
+      "taskDigest": "bd732397a9cca63fabbc1142f0792550cd4c7e054bb66a045536480ca7863861"
     },
     "T012": {
       "changedFiles": [],
       "generatedFiles": [],
+      "lastAttempt": {
+        "decision": "FAIL",
+        "resultSha256": "cc71a86e39f7624f61118f37a0889d594cd1b749b31c7a700b36dbe3f8349c3f",
+        "riskLevel": "HIGH",
+        "runDirectory": ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da"
+      },
       "owner": "quarkus-engineer-agent",
       "resultSha256": null,
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "d807ef6e950cc45a30caca61bda915111578842660904ff59cb85a49d0462106"
+      "taskDigest": "833c01004370cb6545e645079a57dd3419e710968b8a484e6f434c7088dc2ef9"
     },
     "T013": {
       "changedFiles": [],
@@ -527,39 +538,7 @@
       "runDirectory": null,
       "status": "PENDING",
       "taskDigest": "ac93d132fdb7ecece4093d515aff448908d17cb90fd1da2f6e8ca9ea4654fcfd"
-    },
-    "T038": {
-      "changedFiles": [
-        "docs/implementation/application-persistence-field-map.md",
-        "src/test/java/com/alexastudillo/partyregistry/application/CompleteNationalityAndIdentifierDataFlowContractTest.java"
-      ],
-      "generatedFiles": [
-        "src/test/java/com/alexastudillo/partyregistry/application/CompleteNationalityAndIdentifierDataFlowContractTest.java",
-        "docs/implementation/application-persistence-field-map.md"
-      ],
-      "owner": "test-implementation-agent",
-      "resultSha256": "f6e720b6d0af7a7c6e780ffe8aa54e52d828f0e36cf2e771a135c9897dde0e23",
-      "riskLevel": "HIGH",
-      "runDirectory": ".factory/runs/oc-3399b6f7-c52b-4726-b25e-bbbeec0eb182",
-      "status": "PASS",
-      "taskDigest": "ec5268821efe7c9bbe77e3207af63a06adcf3b533f079f5d368b47da2545d79b"
-    },
-    "T039": {
-      "changedFiles": [],
-      "generatedFiles": [],
-      "lastAttempt": {
-        "decision": "FAIL",
-        "resultSha256": "62765bc127cc16d00198e153f8ba8e313658be3fbc16c037a4e25c4ef41677be",
-        "riskLevel": "MEDIUM",
-        "runDirectory": ".factory/runs/oc-4da29cdd-cde8-4502-a17e-a0677dfc6d9a"
-      },
-      "owner": "quarkus-engineer-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "af1f8c3b64b995e1bab6cae47dee6dd1025ebbaca49baf6ca920fe0a9a887c47"
     }
   },
-  "workflowSequence": 65
+  "workflowSequence": 57
 }
