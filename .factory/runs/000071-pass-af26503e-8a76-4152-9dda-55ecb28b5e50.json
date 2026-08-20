@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:github-flow-agent",
+  "destinationState": "IMPLEMENTATION",
+  "dryRun": false,
+  "effectiveEvent": "PASS",
+  "note": "Validated OpenCode invocation oc-87b45815-e590-4627-9801-b108434e9a80",
+  "occurredAt": "2026-08-20T23:45:20Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "PASS",
+  "riskLevel": "LOW",
+  "sequence": 71,
+  "sourceState": "GITHUB_PREPARATION",
+  "transitionId": "af26503e-8a76-4152-9dda-55ecb28b5e50",
+  "workflowId": "software-factory-default"
+}
