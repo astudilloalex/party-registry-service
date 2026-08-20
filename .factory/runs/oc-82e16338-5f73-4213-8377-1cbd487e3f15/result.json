@@ -1,0 +1,30 @@
+{
+  "agent": "test-implementation-agent",
+  "assumptions": [],
+  "decision": "PASS",
+  "evidence": [
+    "Candidate revision: 7a57529c2a11ec6e156841dc06967938ea3b3239.",
+    "`./gradlew --version` exited 0: Gradle 9.3.1 on Java 25.0.4.",
+    "`./gradlew test --offline --tests 'com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlMigrationSchemaTest' --tests 'com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlIntegrityAndPrivilegeTest' --rerun-tasks` exited 0 against Testcontainers image postgres:18.0. XML recorded 19 tests, 0 failures, 0 errors and 0 skipped.",
+    "PostgreSqlMigrationSchemaTest recorded 8 passing tests covering the complete V1/V2 Flyway chain, no-op rerun, missing-role rollback and recovery, V1 upgrade preservation, V2 failure atomicity, 8 enums, 7 tables, 104 columns, 40 named constraints, 23 indexes, 3 deferred constraint triggers, the enforcement function, deferrable restricted detail foreign keys, UUIDv7 defaults, audit defaults, JSONB and TIMESTAMPTZ.",
+    "PostgreSqlIntegrityAndPrivilegeTest recorded 11 passing tests covering both detail insertion orders and invalid commit states, lifecycle and country checks, nationality partial uniqueness/history, uppercase hashes, permanent/cross-tenant/cross-scheme/concurrent identifier uniqueness, tenant foreign keys, verified-primary uniqueness, version and numeric boundaries, atomic outbox rollback/commit, optimistic stale writes, SKIP LOCKED claims, runtime Scheme SELECT and denied writes, and the 31-entry safe constraint mapping fixture.",
+    "`./gradlew test --offline --tests 'com.alexastudillo.partyregistry.adapter.out.postgresql.*' --rerun-tasks` exited 1 with 20 tests completed and exactly 1 expected pre-T012 failure; both PostgreSQL classes passed and PostgreSqlAdapterPresenceTest reported only the absent PartyQueryPort implementation.",
+    "After the presence-check repair, `./gradlew test --offline --tests 'com.alexastudillo.partyregistry.adapter.out.postgresql.PostgreSqlAdapterPresenceTest' --rerun-tasks` exited 1. XML recorded tests=1, failures=1, errors=0, skipped=0 with only `PostgreSQL adapter implementation is absent for PartyQueryPort`.",
+    "Scoped inspection found no @Disabled, assumptions, arbitrary sleeps or TODO markers.",
+    "`git diff --check -- src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql src/test/resources/database` exited 0.",
+    "Only PostgreSqlAdapterPresenceTest.java is modified within the authorized paths; production code, migrations, DBML, contracts and factory state were not changed."
+  ],
+  "findings": [
+    "The pre-T012 adapter-presence check fails solely because no PostgreSQL implementation of PartyQueryPort exists; no production PostgreSQL adapter package is present yet.",
+    "The previous presence discovery could inspect test output instead of production output. It now deterministically scans production classes, including nested PostgreSQL packages, without initializing discovered classes."
+  ],
+  "generatedFiles": [
+    "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlAdapterPresenceTest.java"
+  ],
+  "nextPhase": null,
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "T012 must implement production types assignable to PartyQueryPort, PartyUnitOfWorkPort, IdentifierQueryPort, IdentifierUnitOfWorkPort, IdentifierSchemeCatalogPort and OutboxStorePort, then rerun the presence check."
+  ],
+  "riskLevel": "MEDIUM"
+}

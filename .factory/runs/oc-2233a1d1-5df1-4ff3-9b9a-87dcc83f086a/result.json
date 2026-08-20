@@ -1,0 +1,32 @@
+{
+  "agent": "implementation-planning-agent",
+  "assumptions": [
+    "Operational numeric values not approved by requirements remain bounded external configuration validated against approved targets."
+  ],
+  "decision": "FAIL",
+  "evidence": [
+    "`.factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json` identifies the current T012 contract defect: canonical Party display names are not carried through Domain/Application mutation intent.",
+    "`docs/database/v1-scheme.dbml:110,133-145` requires Domain/Application-derived canonical display names and atomic persistence with source-name changes.",
+    "`src/main/java/com/alexastudillo/partyregistry/domain/DisplayName.java:6-36` contains the existing approved derivation policy.",
+    "`docs/planning/tasks.md` now defines T040 test-first verification, T041 application repair, T011 dependency on T041, and T012 dependency on revalidated T011/T041.",
+    "Pre-final-edit `git diff --check -- docs/planning/implementation-plan.md docs/planning/tasks.md` exited 0; the required post-final-edit rerun could not be executed because the maximum agent steps were reached.",
+    "Scoped status before the final edit showed only `docs/planning/implementation-plan.md` and `docs/planning/tasks.md` modified within this invocation's write scope."
+  ],
+  "findings": [
+    "Maximum execution steps were reached after the final one-line requirements-traceability correction, preventing final post-edit validation.",
+    "The planning repair added stable tasks T040 and T041 for test-first canonical Party display-name propagation, updated T011/T012 dependencies, preserved prior completed checkpoints, and corrected release-task dependency declarations.",
+    "A bounded review found 41 unique task headings and 41 dependency fields; the repaired chain is T039 -> T040 -> T041 -> T011 -> T012 -> T037, with implementation evidence retained under Inputs rather than Dependencies."
+  ],
+  "generatedFiles": [
+    "docs/planning/implementation-plan.md",
+    "docs/planning/tasks.md"
+  ],
+  "nextPhase": null,
+  "phase": "PLANNING",
+  "requiredActions": [
+    "Rerun `git diff --check -- docs/planning/implementation-plan.md docs/planning/tasks.md` after the final edit.",
+    "Run canonical repaired-plan validation to confirm all 41 tasks exist, the complete dependency graph is acyclic, no implementation task depends on a later workflow phase, and allowed paths satisfy implementation policy.",
+    "If validation passes, retain T040/T041 and execute the repaired dependency chain without weakening acceptance or deriving display names in the PostgreSQL adapter."
+  ],
+  "riskLevel": "MEDIUM"
+}

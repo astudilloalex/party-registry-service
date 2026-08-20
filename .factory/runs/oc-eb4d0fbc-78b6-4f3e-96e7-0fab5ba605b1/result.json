@@ -1,0 +1,26 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "assumptions": [],
+  "decision": "FAIL",
+  "evidence": [
+    "Prerequisite evidence is otherwise available: `.factory/runs/oc-3a4d52a8-4dc8-49b8-96d7-928b580f739f/result.json` records T039 PASS and 19 passing T011 PostgreSQL tests; `.factory/runs/oc-82e16338-5f73-4213-8377-1cbd487e3f15/result.json` records the revalidated T011 suite and expected pre-T012 presence failure.",
+    "`src/main/java/com/alexastudillo/partyregistry/domain/DisplayName.java:6-12` contains the approved canonical derivation policy, confirming this is domain behavior rather than SQL mapping.",
+    "`docs/architecture/solution-architecture.md:140-174` assigns business invariants to Domain/Application and prohibits outbound adapters from redefining domain rules; lines 288-302 require atomic Party/detail/outbox behavior.",
+    "`git status --short` exited 0 and showed only pre-existing factory-managed artifacts and `PostgreSqlAdapterPresenceTest.java`; no allowed T012 path was changed.",
+    "`git diff --check -- \"src/main/java/com/alexastudillo/partyregistry/adapter/out/postgresql\" \"src/main/resources/application.properties\" \"docs/implementation/postgresql-adapter.md\"` exited 0 with no output."
+  ],
+  "findings": [
+    "PLAN_TASK_CONTRACT_DEFECT: T012 cannot safely implement Party creation and detail updates within its adapter-only scope. `PartyMutationIntent` carries `CreatePartyCommand` or `PartyDetailsView`, but no Domain/Application-derived canonical `display_name`. The DBML explicitly requires Domain/Application to derive this value and persist source-name mutations with the resulting display-name update atomically; deriving it in the PostgreSQL adapter would place business policy in an outbound adapter.",
+    "`CreatePartyUseCase.java:32-34` passes the unprocessed command to persistence, and `UpdatePartyDetailsUseCase.java:31-33` passes raw detail data. `PartyMutationIntent.java:6-15` has no canonical display-name carrier, while `docs/database/v1-scheme.dbml:133-145` assigns derivation to Domain/Application and requires atomic persistence.",
+    "The T039 repair and field map cover nationality and Party Identifier omissions but do not repair Party display-name propagation. T012 explicitly requires stopping on any still-missing approved application carrier, and its write policy prohibits the required application-layer correction.",
+    "No T012 files were created or modified. Pre-existing factory-managed state and T011 test changes shown by repository status were left untouched."
+  ],
+  "generatedFiles": [],
+  "nextPhase": null,
+  "phase": "IMPLEMENTATION",
+  "requiredActions": [
+    "REPLAN_REQUIRED: Add a bounded test-first application repair that derives canonical Party display names through the existing domain policy for Party creation and detail-name updates, carries the derived value in a boundary-neutral application mutation contract, and verifies atomic Party/detail/version/outbox intent without persistence leakage.",
+    "After that repair, rerun application tests and T011, then retry T012 with the same adapter-only scope. Do not derive canonical display names inside the PostgreSQL adapter or invent persisted defaults."
+  ],
+  "riskLevel": "HIGH"
+}

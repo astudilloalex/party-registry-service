@@ -8,9 +8,8 @@ import com.alexastudillo.partyregistry.application.port.IdentifierUnitOfWorkPort
 import com.alexastudillo.partyregistry.application.port.OutboxStorePort;
 import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyUnitOfWorkPort;
-import java.io.File;
-import java.net.URL;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -19,15 +18,12 @@ class PostgreSqlAdapterPresenceTest {
 
     @Test
     void postgresAdapterImplementsEveryPersistencePort() throws Exception {
-        URL directoryUrl = Thread.currentThread().getContextClassLoader()
-                .getResource(PACKAGE.replace('.', '/'));
-        assertTrue(directoryUrl != null, "PostgreSQL adapter package is absent");
-        File directory = new File(directoryUrl.toURI());
-        List<Class<?>> productionTypes = Arrays.stream(directory.listFiles((ignored, name) -> name.endsWith(".class")))
-                .map(file -> file.getName().substring(0, file.getName().length() - 6))
-                .filter(name -> !name.contains("Test") && !name.contains("Support"))
-                .<Class<?>>map(name -> load(PACKAGE + "." + name))
-                .toList();
+        Path productionClasses = Path.of(PartyQueryPort.class.getProtectionDomain()
+                .getCodeSource().getLocation().toURI());
+        Path adapterPackage = productionClasses.resolve(PACKAGE.replace('.', '/'));
+        List<Class<?>> productionTypes = Files.isDirectory(adapterPackage)
+                ? discoverProductionTypes(productionClasses, adapterPackage)
+                : List.of();
 
         for (Class<?> port : List.of(
                 PartyQueryPort.class,
@@ -41,9 +37,23 @@ class PostgreSqlAdapterPresenceTest {
         }
     }
 
+    private static List<Class<?>> discoverProductionTypes(Path productionClasses, Path adapterPackage)
+            throws Exception {
+        try (var files = Files.walk(adapterPackage)) {
+            return files.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".class"))
+                    .map(productionClasses::relativize)
+                    .map(Path::toString)
+                    .map(name -> name.substring(0, name.length() - 6)
+                            .replace('/', '.').replace('\\', '.'))
+                    .<Class<?>>map(PostgreSqlAdapterPresenceTest::load)
+                    .toList();
+        }
+    }
+
     private static Class<?> load(String name) {
         try {
-            return Class.forName(name);
+            return Class.forName(name, false, Thread.currentThread().getContextClassLoader());
         } catch (ClassNotFoundException failure) {
             throw new AssertionError("Cannot inspect PostgreSQL adapter type " + name, failure);
         }

@@ -1,0 +1,20 @@
+{
+  "actor": "factoryctl:implementation-block-routing",
+  "destinationState": "BLOCKED_HIGH_RISK",
+  "dryRun": false,
+  "effectiveEvent": "BLOCKED",
+  "note": "Validated OpenCode invocation oc-4da29cdd-cde8-4502-a17e-a0677dfc6d9a",
+  "occurredAt": "2026-08-20T04:04:13Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "recoveryReason": "Environment blocker was previously misclassified as repairable FAIL.",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "BLOCKED",
+  "riskLevel": "HIGH",
+  "sequence": 66,
+  "sourceState": "FAILED_AFTER_THREE_ATTEMPTS",
+  "transitionId": "893034f1-fa2f-406e-ae75-77ffaddc008d",
+  "workflowId": "software-factory-default"
+}

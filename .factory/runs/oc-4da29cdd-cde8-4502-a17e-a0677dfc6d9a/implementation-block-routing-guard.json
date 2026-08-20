@@ -1,0 +1,9 @@
+{
+  "action": "RECOVER_EXHAUSTED_FAIL_AS_ENVIRONMENT_BLOCKER",
+  "classification": "ENVIRONMENT_BLOCKER",
+  "humanDecisionAccepted": false,
+  "phase": "IMPLEMENTATION",
+  "reason": "ENVIRONMENT_BLOCKER: Mandatory T011 PostgreSQL regression tests could not initialize Testcontainers because access to /var/run/docker.sock was denied.",
+  "resultPath": ".factory/runs/oc-4da29cdd-cde8-4502-a17e-a0677dfc6d9a/result.json",
+  "schemaVersion": 1
+}

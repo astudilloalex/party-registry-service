@@ -1,0 +1,19 @@
+{
+  "actor": "opencode:implementation-planning-agent",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "FAIL",
+  "note": "Validated OpenCode invocation oc-2233a1d1-5df1-4ff3-9b9a-87dcc83f086a",
+  "occurredAt": "2026-08-20T04:33:47Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "PLANNING",
+  "repairCycleCount": 1,
+  "requestedEvent": "FAIL",
+  "riskLevel": "MEDIUM",
+  "sequence": 69,
+  "sourceState": "PLANNING",
+  "transitionId": "f08709d8-359d-4317-8195-ee1382fbd443",
+  "workflowId": "software-factory-default"
+}

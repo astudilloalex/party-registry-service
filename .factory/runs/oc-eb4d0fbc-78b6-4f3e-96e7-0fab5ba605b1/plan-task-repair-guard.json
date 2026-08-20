@@ -1,0 +1,10 @@
+{
+  "action": "ROUTE_BLOCKED_TASK_TO_PLANNING",
+  "detection": "EXPLICIT_BLOCKED_AGENT_MARKERS",
+  "humanDecisionAccepted": false,
+  "phase": "IMPLEMENTATION",
+  "reason": "PLAN_TASK_CONTRACT_DEFECT: T012 cannot safely implement Party creation and detail updates within its adapter-only scope. `PartyMutationIntent` carries `CreatePartyCommand` or `PartyDetailsView`, but no Domain/Application-derived canonical `display_name`. The DBML explicitly requires Domain/Application to derive this value and persist source-name mutations with the resulting display-name update atomically; deriving it in the PostgreSQL adapter would place business policy in an outbound adapter.",
+  "resultPath": ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json",
+  "schemaVersion": 1,
+  "taskId": "T012"
+}

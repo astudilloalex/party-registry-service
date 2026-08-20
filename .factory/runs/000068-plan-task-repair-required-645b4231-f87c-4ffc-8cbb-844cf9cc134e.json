@@ -1,0 +1,19 @@
+{
+  "actor": "factoryctl:implementation-block-routing",
+  "destinationState": "PLANNING",
+  "dryRun": false,
+  "effectiveEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "note": "Validated OpenCode invocation oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1",
+  "occurredAt": "2026-08-20T04:27:19Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": "IMPLEMENTATION",
+  "repairCycleCount": 1,
+  "requestedEvent": "PLAN_TASK_REPAIR_REQUIRED",
+  "riskLevel": "HIGH",
+  "sequence": 68,
+  "sourceState": "IMPLEMENTATION",
+  "transitionId": "645b4231-f87c-4ffc-8cbb-844cf9cc134e",
+  "workflowId": "software-factory-default"
+}

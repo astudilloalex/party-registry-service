@@ -1,0 +1,19 @@
+{
+  "actor": "alex",
+  "destinationState": "IMPLEMENTATION",
+  "dryRun": false,
+  "effectiveEvent": "REVIEW_RETRY_REQUESTED",
+  "note": null,
+  "occurredAt": "2026-08-20T04:09:37Z",
+  "ok": true,
+  "pendingActions": [],
+  "project": "party-registry-service",
+  "repairCycle": null,
+  "repairCycleCount": null,
+  "requestedEvent": "REVIEW_RETRY_REQUESTED",
+  "riskLevel": null,
+  "sequence": 67,
+  "sourceState": "BLOCKED_HIGH_RISK",
+  "transitionId": "613977aa-c1db-444a-805e-d37499be6e93",
+  "workflowId": "software-factory-default"
+}
