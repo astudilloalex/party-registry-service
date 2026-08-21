@@ -1,0 +1,107 @@
+{
+  "agent": "quarkus-engineer-agent",
+  "attempt": {
+    "current": 2,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/planning/tasks.md",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "api/openapi/v1/party-registry.openapi.yaml",
+      "api/events/v1/examples/party-created.v1.json",
+      "api/events/v1/examples/party-identifier-verified.v1.json",
+      "api/events/v1/party-registry-events.schema.json",
+      "docs/implementation/application-persistence-field-map.md",
+      "docs/implementation/contract-placement.md",
+      "docs/implementation/contract-validation.md",
+      "docs/implementation/party-display-name-flow.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-288f2213-2a4b-44a4-ad4c-c352e7880019/result.json",
+      ".factory/runs/oc-a900a2f7-7382-45c4-94c6-b5678ce4703c/result.json",
+      ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+      ".factory/runs/oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f/result.json",
+      ".factory/runs/oc-4fb99cd4-b73c-4565-8a9a-18a29ca6a6c5/result.json",
+      ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84/result.json",
+      ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
+      ".factory/runs/oc-d1ec4eb5-d181-430d-ae80-b524b95720b3/result.json",
+      ".factory/runs/oc-3c17ef1c-329b-489c-9ed7-70a88debe653/result.json",
+      ".factory/runs/oc-8153df51-f1e1-4d81-8d90-d553c20dd2c5/result.json",
+      ".factory/runs/oc-bb0b489e-1fd7-445a-b199-3309f10a79bb/result.json",
+      ".factory/runs/oc-24948278-c7fc-4217-b000-e1acc24a1b57/result.json",
+      ".factory/runs/oc-32fbf999-bb5a-4904-93c6-0cbd44f9aaff/result.json",
+      ".factory/runs/oc-4da29cdd-cde8-4502-a17e-a0677dfc6d9a/result.json",
+      ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json",
+      ".factory/runs/oc-2233a1d1-5df1-4ff3-9b9a-87dcc83f086a/result.json",
+      ".factory/runs/oc-96be14a8-a721-40aa-9436-39a0988629f1/result.json",
+      ".factory/runs/oc-87b45815-e590-4627-9801-b108434e9a80/result.json",
+      ".factory/runs/oc-a277e554-279c-4f52-bcce-eea6bfd4e3d6/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-384b561b-00f1-4509-95d5-9df4fb3f7978",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-384b561b-00f1-4509-95d5-9df4fb3f7978",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "T040, all pre-existing application tests and existing pure domain display-name tests pass; flow-map rows identify final carriers and ordering; contract validation and application import/boundary checks pass; changed-file inventory is confined to allowed paths. Then rerun T011 before T012."
+    ],
+    "expectedArtifacts": [
+      "a narrowly typed boundary-neutral Party create/detail mutation carrier containing canonical display name with matching source details; repaired `CreatePartyUseCase`, `UpdatePartyDetailsUseCase`, and only directly affected Party port-facing contracts; completed flow map."
+    ],
+    "instructions": [
+      "IMPLEMENTATION_TASK_ID: T041",
+      "IMPLEMENTATION_TASK_SOURCE: docs/planning/tasks.md",
+      "IMPLEMENTATION_TASK_CONTRACT:\nOwner agent: `quarkus-engineer-agent`\nPurpose: Satisfy T040 with the minimum boundary-neutral application changes needed for T012 to persist canonical Party display names atomically without owning business policy.\nRequirements/architecture/DBML: same as T040; preserve all completed T008/T009/T039 orchestration, reactive and strict Clean Architecture obligations.\nInputs: T040 failing tests/flow map and existing Party application/domain artifacts. Allowed paths: `src/main/java/com/alexastudillo/partyregistry/application/**`, `docs/implementation/party-display-name-flow.md`. Prohibited paths: domain, adapters, tests, OpenAPI/events, migrations, build/runtime configuration, requirements/architecture/DBML, factory/Git metadata, and unrelated application refactoring.\nExpected artifacts: a narrowly typed boundary-neutral Party create/detail mutation carrier containing canonical display name with matching source details; repaired `CreatePartyUseCase`, `UpdatePartyDetailsUseCase`, and only directly affected Party port-facing contracts; completed flow map. Dependencies: Hard T040. Parallelizable: false with T040 or any task editing application production contracts; persistence remains blocked until completion.\nInstructions: Reuse the existing domain `DisplayName` policy rather than duplicating normalization. Select the derivation function from approved Party type/detail kind, reject mismatches before unit-of-work invocation, derive after required input validation and before persistence, and carry the result with source details in the same Party mutation intent. Preserve tenant qualification, expected-version behavior, geography resolution before the state-changing transaction, actor/audit context, reactive return types, single atomic Party/detail/outbox intent and event meaning. Do not add SQL, persistence annotations/models, Quarkus/Jakarta/logging imports, adapter constructors, new defaults, or changes to DBML/public contracts.\nAcceptance/verification: T040, all pre-existing application tests and existing pure domain display-name tests pass; flow-map rows identify final carriers and ordering; contract validation and application import/boundary checks pass; changed-file inventory is confined to allowed paths. Then rerun T011 before T012.\nRisks/stop: stop on public-contract/DBML/domain-policy mismatch, need for a new name-source rule, transport/persistence leakage, loss of transaction ordering, changed event meaning, or inability to carry one canonical display name with matching details. Return control rather than deriving in T012.",
+      "Reuse the existing domain `DisplayName` policy rather than duplicating normalization. Select the derivation function from approved Party type/detail kind, reject mismatches before unit-of-work invocation, derive after required input validation and before persistence, and carry the result with source details in the same Party mutation intent. Preserve tenant qualification, expected-version behavior, geography resolution before the state-changing transaction, actor/audit context, reactive return types, single atomic Party/detail/outbox intent and event meaning. Do not add SQL, persistence annotations/models, Quarkus/Jakarta/logging imports, adapter constructors, new defaults, or changes to DBML/public contracts."
+    ],
+    "objective": "Execute T041 — Repair Party mutation contracts with canonical display name: Satisfy T040 with the minimum boundary-neutral application changes needed for T012 to persist canonical Party display names atomically without owning business policy."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "src/main/java/com/alexastudillo/partyregistry/application/**",
+      "docs/implementation/party-display-name-flow.md"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

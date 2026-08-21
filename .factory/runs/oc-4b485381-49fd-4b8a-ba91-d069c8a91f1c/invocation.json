@@ -1,0 +1,109 @@
+{
+  "agent": "test-implementation-agent",
+  "attempt": {
+    "current": 2,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/planning/tasks.md",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "api/openapi/v1/party-registry.openapi.yaml",
+      "api/events/v1/examples/party-created.v1.json",
+      "api/events/v1/examples/party-identifier-verified.v1.json",
+      "api/events/v1/party-registry-events.schema.json",
+      "docs/implementation/application-persistence-field-map.md",
+      "docs/implementation/contract-placement.md",
+      "docs/implementation/contract-validation.md",
+      "docs/implementation/party-display-name-flow.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-288f2213-2a4b-44a4-ad4c-c352e7880019/result.json",
+      ".factory/runs/oc-a900a2f7-7382-45c4-94c6-b5678ce4703c/result.json",
+      ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+      ".factory/runs/oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f/result.json",
+      ".factory/runs/oc-4fb99cd4-b73c-4565-8a9a-18a29ca6a6c5/result.json",
+      ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84/result.json",
+      ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
+      ".factory/runs/oc-d1ec4eb5-d181-430d-ae80-b524b95720b3/result.json",
+      ".factory/runs/oc-3c17ef1c-329b-489c-9ed7-70a88debe653/result.json",
+      ".factory/runs/oc-8153df51-f1e1-4d81-8d90-d553c20dd2c5/result.json",
+      ".factory/runs/oc-bb0b489e-1fd7-445a-b199-3309f10a79bb/result.json",
+      ".factory/runs/oc-24948278-c7fc-4217-b000-e1acc24a1b57/result.json",
+      ".factory/runs/oc-32fbf999-bb5a-4904-93c6-0cbd44f9aaff/result.json",
+      ".factory/runs/oc-4da29cdd-cde8-4502-a17e-a0677dfc6d9a/result.json",
+      ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json",
+      ".factory/runs/oc-2233a1d1-5df1-4ff3-9b9a-87dcc83f086a/result.json",
+      ".factory/runs/oc-96be14a8-a721-40aa-9436-39a0988629f1/result.json",
+      ".factory/runs/oc-87b45815-e590-4627-9801-b108434e9a80/result.json",
+      ".factory/runs/oc-50f3c43e-e03a-4205-8cc0-67015343dd67/result.json",
+      ".factory/runs/oc-3a4d52a8-4dc8-49b8-96d7-928b580f739f/result.json",
+      ".factory/runs/oc-384b561b-00f1-4509-95d5-9df4fb3f7978/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-4b485381-49fd-4b8a-ba91-d069c8a91f1c",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-4b485381-49fd-4b8a-ba91-d069c8a91f1c",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "after T041 and before T012, rerun the suite: schema/integrity tests pass in an authorised environment able to start the pinned PostgreSQL 18 Testcontainers image and the presence check fails only because the adapter is absent; after T012, the presence check passes. Exact commands/exit codes and DBML object coverage are recorded. Socket permission denial is an environment blocker and never grounds for disabling/skipping tests."
+    ],
+    "expectedArtifacts": [
+      "PostgreSQL 18 Testcontainers migration/schema/privilege/transaction/concurrency tests, constraint-error mapping fixture, and a deterministic implementation-presence check."
+    ],
+    "instructions": [
+      "IMPLEMENTATION_TASK_ID: T011",
+      "IMPLEMENTATION_TASK_SOURCE: docs/planning/tasks.md",
+      "IMPLEMENTATION_TASK_CONTRACT:\nOwner agent: `test-implementation-agent`  \nPurpose: Prove every DBML/Flyway obligation, PostgreSQL integrity/privilege/concurrency behavior, and the presence of implementations for all six persistence ports without guessing a not-yet-defined concrete adapter constructor.\nRequirements: DR-001..009; NFR-001/002; effective AC-001..012, 016/017, 031, 061, 074..079. Architecture: persistence and transaction guardrails.  \nDBML: every physical object and normative integration-test note.  \nInputs: T010/T039/T041 and the existing T011 suite. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**`, `src/test/resources/database/**`. Prohibited paths: production/migrations/build.\nExpected artifacts: PostgreSQL 18 Testcontainers migration/schema/privilege/transaction/concurrency tests, constraint-error mapping fixture, and a deterministic implementation-presence check. Dependencies: Hard T010/T039/T041. Parallelizable: true with T013/T015/T017 after repaired ports are stable.\nInstructions: Cover both detail insertion orders and all invalid commit states; canonical display-name persistence with matching details; partial uniqueness/history; uppercase hash check; permanent/cross-scope/concurrent identifier uniqueness; verified primary; tenant FKs; versions; atomic outbox; `SKIP LOCKED`; runtime Scheme SELECT and denied writes; constraint error mapping fixtures. Keep the presence check limited to assignability to PartyQueryPort, PartyUnitOfWorkPort, IdentifierQueryPort, IdentifierUnitOfWorkPort, IdentifierSchemeCatalogPort and OutboxStorePort. Do not invent constructor/factory expectations or claim black-box port behavior; T037 owns that evidence after T012.\nAcceptance/verification: after T041 and before T012, rerun the suite: schema/integrity tests pass in an authorised environment able to start the pinned PostgreSQL 18 Testcontainers image and the presence check fails only because the adapter is absent; after T012, the presence check passes. Exact commands/exit codes and DBML object coverage are recorded. Socket permission denial is an environment blocker and never grounds for disabling/skipping tests.\nRisks/stop: stop if the container runtime cannot start the pinned image, a fixture requires real personal data, a test alters DBML/migration, or the task would infer a concrete construction API before T012.",
+      "Cover both detail insertion orders and all invalid commit states; canonical display-name persistence with matching details; partial uniqueness/history; uppercase hash check; permanent/cross-scope/concurrent identifier uniqueness; verified primary; tenant FKs; versions; atomic outbox; `SKIP LOCKED`; runtime Scheme SELECT and denied writes; constraint error mapping fixtures. Keep the presence check limited to assignability to PartyQueryPort, PartyUnitOfWorkPort, IdentifierQueryPort, IdentifierUnitOfWorkPort, IdentifierSchemeCatalogPort and OutboxStorePort. Do not invent constructor/factory expectations or claim black-box port behavior; T037 owns that evidence after T012."
+    ],
+    "objective": "Execute T011 — Write PostgreSQL migration, integrity and adapter-presence tests: Prove every DBML/Flyway obligation, PostgreSQL integrity/privilege/concurrency behavior, and the presence of implementations for all six persistence ports without guessing a not-yet-defined concrete adapter constructor."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/**",
+      "src/test/resources/database/**"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

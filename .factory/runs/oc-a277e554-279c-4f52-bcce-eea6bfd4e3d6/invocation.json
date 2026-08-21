@@ -1,0 +1,106 @@
+{
+  "agent": "test-implementation-agent",
+  "attempt": {
+    "current": 2,
+    "maximum": 3
+  },
+  "context": {
+    "files": [
+      ".factory/project.yaml",
+      ".factory/state.json",
+      ".factory/decisions.json",
+      "docs/database/v1-scheme.dbml",
+      "docs/planning/tasks.md",
+      "docs/requirements/requirements-amendment-001.md",
+      "docs/requirements/requirements-amendment-002.md",
+      "docs/requirements/requirements-specification.md",
+      "docs/architecture/adr/ADR-001-reactive-single-deployable.md",
+      "docs/architecture/adr/ADR-002-transactional-outbox.md",
+      "docs/architecture/adr/ADR-003-sensitive-identifier-boundary.md",
+      "docs/architecture/adr/ADR-004-permanent-identifier-uniqueness.md",
+      "docs/architecture/adr/ADR-005-database-managed-identifier-schemes.md",
+      "docs/architecture/solution-architecture.md",
+      "architecture/model.c4",
+      "docs/planning/implementation-plan.md",
+      "api/openapi/v1/party-registry.openapi.yaml",
+      "api/events/v1/examples/party-created.v1.json",
+      "api/events/v1/examples/party-identifier-verified.v1.json",
+      "api/events/v1/party-registry-events.schema.json",
+      "docs/implementation/application-persistence-field-map.md",
+      "docs/implementation/contract-placement.md",
+      "docs/implementation/contract-validation.md"
+    ],
+    "previousResults": [
+      ".factory/runs/oc-d1f62086-42fe-436f-8f7e-0b1eb129c3f0/result.json",
+      ".factory/runs/oc-6981d1cd-e2cc-4faf-b4b7-b2873a02ed58/result.json",
+      ".factory/runs/oc-288f2213-2a4b-44a4-ad4c-c352e7880019/result.json",
+      ".factory/runs/oc-a900a2f7-7382-45c4-94c6-b5678ce4703c/result.json",
+      ".factory/runs/oc-cdd8eb8b-6b15-4ee9-bf0a-132c87f98308/result.json",
+      ".factory/runs/oc-5c4ee5bb-2274-41d3-abbd-497b27428b6f/result.json",
+      ".factory/runs/oc-4fb99cd4-b73c-4565-8a9a-18a29ca6a6c5/result.json",
+      ".factory/runs/oc-8625a770-f44b-4840-8090-f1fd1ca3ee84/result.json",
+      ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
+      ".factory/runs/oc-d1ec4eb5-d181-430d-ae80-b524b95720b3/result.json",
+      ".factory/runs/oc-3c17ef1c-329b-489c-9ed7-70a88debe653/result.json",
+      ".factory/runs/oc-8153df51-f1e1-4d81-8d90-d553c20dd2c5/result.json",
+      ".factory/runs/oc-bb0b489e-1fd7-445a-b199-3309f10a79bb/result.json",
+      ".factory/runs/oc-24948278-c7fc-4217-b000-e1acc24a1b57/result.json",
+      ".factory/runs/oc-32fbf999-bb5a-4904-93c6-0cbd44f9aaff/result.json",
+      ".factory/runs/oc-4da29cdd-cde8-4502-a17e-a0677dfc6d9a/result.json",
+      ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json",
+      ".factory/runs/oc-2233a1d1-5df1-4ff3-9b9a-87dcc83f086a/result.json",
+      ".factory/runs/oc-96be14a8-a721-40aa-9436-39a0988629f1/result.json",
+      ".factory/runs/oc-87b45815-e590-4627-9801-b108434e9a80/result.json",
+      ".factory/runs/oc-3a4d52a8-4dc8-49b8-96d7-928b580f739f/result.json"
+    ],
+    "profiles": [
+      "profiles/architecture/clean-architecture.yaml",
+      "profiles/stacks/quarkus-java25.yaml",
+      "profiles/deployment/vps-podman-quadlet.yaml",
+      "profiles/persistence/postgresql.yaml"
+    ],
+    "standards": [],
+    "templates": []
+  },
+  "invocationId": "oc-a277e554-279c-4f52-bcce-eea6bfd4e3d6",
+  "phase": "IMPLEMENTATION",
+  "project": {
+    "decisionsPath": ".factory/decisions.json",
+    "manifestPath": ".factory/project.yaml",
+    "name": "party-registry-service",
+    "repositoryRoot": "/home/alex/Documents/Development/backend/quarkus/party-registry-service",
+    "runDirectory": ".factory/runs/oc-a277e554-279c-4f52-bcce-eea6bfd4e3d6",
+    "statePath": ".factory/state.json"
+  },
+  "requestedBy": "factoryctl",
+  "response": {
+    "allowAdditionalText": false,
+    "mediaType": "application/json",
+    "schemaPath": "contracts/agent-result.schema.json"
+  },
+  "schemaVersion": 1,
+  "task": {
+    "acceptanceCriteria": [
+      "targeted tests compile and fail only because the application mutation flow lacks canonical display-name derivation/carriage; pre-existing application and domain suites retain their prior results; every current T012 finding maps to a meaningful assertion and flow-map row; exact commands/exit codes are recorded."
+    ],
+    "expectedArtifacts": [
+      "failing application tests with Party unit-of-work spies; a DBML/OpenAPI/domain-to-application flow map for source names, Party type/detail kind, canonical display name, tenant, version, actor and outbox identity."
+    ],
+    "instructions": [
+      "IMPLEMENTATION_TASK_ID: T040",
+      "IMPLEMENTATION_TASK_SOURCE: docs/planning/tasks.md",
+      "IMPLEMENTATION_TASK_CONTRACT:\nOwner agent: `test-implementation-agent`\nPurpose: Add the missing test-first acceptance contract proving that Party creation and detail-name updates derive the approved canonical display name in Domain/Application and carry it with the matching detail mutation before persistence is retried.\nRequirements: FR-002/007/010..012/015/016/021/028; VR-001/002/006; DR-002/005; NFR-002; AC-002/003/004/011/012/019/020/023/030/031/036/038/070, as effectively amended to exclude command idempotency.\nArchitecture: sections 6.1/6.2/8/11/19; business derivation remains inward of adapters and Party/detail/outbox changes remain one transaction. DBML: `parties.display_name`, `natural_person_details.given_names/family_names`, `legal_entity_details.legal_name`, audit/version fields, and the normative atomicity note at DBML lines 133-145.\nInputs: completed T039 application artifacts, existing `DisplayName` domain policy and domain tests, frozen OpenAPI Party detail schemas, final DBML, and triggering implementation result `.factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json`. Allowed paths: `src/test/java/com/alexastudillo/partyregistry/application/PartyDisplayNameMutationContractTest.java`, `docs/implementation/party-display-name-flow.md`. Prohibited paths: production, adapters, build/configuration, contracts, migrations, approved requirements/architecture/DBML, factory/Git metadata, and changes to existing tests.\nExpected artifacts: failing application tests with Party unit-of-work spies; a DBML/OpenAPI/domain-to-application flow map for source names, Party type/detail kind, canonical display name, tenant, version, actor and outbox identity. Dependencies: Hard T039. Parallelizable: true with T013/T015/T017 because scopes do not overlap; false with T041.\nInstructions: Cover natural-person and legal-entity creation plus matching detail-name updates. Assert exact canonical values from the existing `DisplayName.forNaturalPerson` and `DisplayName.forLegalEntity` policy, including trim/collapse behavior while preserving case and diacritics; prove preferred/trade names do not replace the canonical source. Prove the canonical value and its matching source details reach one boundary-neutral Party mutation intent and one atomic Party unit-of-work call with tenant, expected version, actor, geography-before-transaction ordering and outbox identity unchanged. Cover type/detail mismatch and blank required source rejection before persistence. Do not prescribe SQL, persistence records, adapter constructors, transport DTOs, a second normalization algorithm, or a new business default.\nAcceptance/verification: targeted tests compile and fail only because the application mutation flow lacks canonical display-name derivation/carriage; pre-existing application and domain suites retain their prior results; every current T012 finding maps to a meaningful assertion and flow-map row; exact commands/exit codes are recorded.\nRisks/stop: stop if OpenAPI, domain policy and DBML conflict; if existing boundary-neutral detail fields cannot be mapped without a product decision; if a test requires adapter leakage; or if derivation differs from the approved policy. Do not accept adapter-side derivation or duplicated normalization.",
+      "Cover natural-person and legal-entity creation plus matching detail-name updates. Assert exact canonical values from the existing `DisplayName.forNaturalPerson` and `DisplayName.forLegalEntity` policy, including trim/collapse behavior while preserving case and diacritics; prove preferred/trade names do not replace the canonical source. Prove the canonical value and its matching source details reach one boundary-neutral Party mutation intent and one atomic Party unit-of-work call with tenant, expected version, actor, geography-before-transaction ordering and outbox identity unchanged. Cover type/detail mismatch and blank required source rejection before persistence. Do not prescribe SQL, persistence records, adapter constructors, transport DTOs, a second normalization algorithm, or a new business default."
+    ],
+    "objective": "Execute T040 — Specify canonical Party display-name application flow: Add the missing test-first acceptance contract proving that Party creation and detail-name updates derive the approved canonical display name in Domain/Application and carry it with the matching detail mutation before persistence is retried."
+  },
+  "writePolicy": {
+    "allowedPaths": [
+      "src/test/java/com/alexastudillo/partyregistry/application/PartyDisplayNameMutationContractTest.java",
+      "docs/implementation/party-display-name-flow.md"
+    ],
+    "mayMutateWorkflowState": false,
+    "maySelectNextPhase": false,
+    "mode": "SCOPED_WRITE"
+  }
+}

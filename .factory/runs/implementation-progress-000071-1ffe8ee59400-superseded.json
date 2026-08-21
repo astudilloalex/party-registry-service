@@ -1,17 +1,27 @@
 {
   "phase": "IMPLEMENTATION",
   "phaseComplete": false,
-  "planDigest": "2baa9fbe1fecff7f90827ee2c499817613ca32c09f2c0b3edda9966f58f051fc",
-  "replannedFrom": {
-    "archive": ".factory/runs/implementation-progress-000071-1ffe8ee59400-superseded.json",
-    "markerRecovery": {
-      "detection": "EXPLICIT_AGENT_MARKERS",
-      "invocationId": "oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1",
-      "mode": "MISSING_REPLAN_MARKER",
-      "resultPath": ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json",
-      "taskId": "T012"
-    },
+  "planDigest": "1ffe8ee59400700739ac5fc20fb13ba5155b60884d7ca3a24cc7bd86376979fc",
+  "replanRequired": {
+    "detection": "EXPLICIT_AGENT_MARKERS",
+    "invocationId": "oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1",
+    "reason": "PLAN_TASK_CONTRACT_DEFECT: T012 cannot safely implement Party creation and detail updates within its adapter-only scope. `PartyMutationIntent` carries `CreatePartyCommand` or `PartyDetailsView`, but no Domain/Application-derived canonical `display_name`. The DBML explicitly requires Domain/Application to derive this value and persist source-name mutations with the resulting display-name update atomically; deriving it in the PostgreSQL adapter would place business policy in an outbound adapter.",
+    "recordedAt": "2026-08-21T00:11:18Z",
+    "recoveredMissingMarker": true,
+    "resultPath": ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json",
+    "taskId": "T012"
+  },
+  "replanValidation": {
     "planDigest": "1ffe8ee59400700739ac5fc20fb13ba5155b60884d7ca3a24cc7bd86376979fc",
+    "recordedAt": "2026-08-20T04:09:44Z",
+    "repairSource": "RECONCILED_REPAIR",
+    "schemaVersion": 1,
+    "status": "PASS",
+    "taskId": "T038"
+  },
+  "replannedFrom": {
+    "archive": ".factory/runs/implementation-progress-000062-9c9c1c612f72-superseded.json",
+    "planDigest": "9c9c1c612f72dea585325b70c0cf94d65f47794c3ffb3aa37d2f67f156c08834",
     "preservedCheckpoints": [
       "T036",
       "T003",
@@ -21,13 +31,11 @@
       "T007",
       "T008",
       "T009",
-      "T038",
-      "T039",
       "T010"
     ],
-    "reason": "PLAN_TASK_CONTRACT_DEFECT: T012 cannot safely implement Party creation and detail updates within its adapter-only scope. `PartyMutationIntent` carries `CreatePartyCommand` or `PartyDetailsView`, but no Domain/Application-derived canonical `display_name`. The DBML explicitly requires Domain/Application to derive this value and persist source-name mutations with the resulting display-name update atomically; deriving it in the PostgreSQL adapter would place business policy in an outbound adapter.",
-    "resultPath": ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1/result.json",
-    "taskId": "T012"
+    "reason": "PLAN_TASK_CONTRACT_DEFECT: T012 cannot implement the approved persistence behavior because completed prerequisite T009 omits mandatory data from application ports and intents. NationalityMutationIntent has no primary designation; CreatePartyIdentifierUseCase and IdentifierMutationIntent omit issuerCode, primary, issuedOn, and expiresOn during creation; TransitionPartyIdentifierStatusUseCase discards verifiedAt, verifiedBy, and expiresOn before invoking the unit of work; PartyIdentifierView cannot represent persisted status, primary designation, issuer, lifecycle dates, verification facts, or audit facts.",
+    "resultPath": ".factory/runs/oc-84e20a66-8268-4c52-84df-7fc1748268da/result.json",
+    "taskId": "T038"
   },
   "schemaVersion": 1,
   "tasks": {
@@ -360,30 +368,34 @@
       "taskDigest": "b4e415223b6cf07d0ee82b113183921fb5ac0aad608e3a28420e2c1e5ac0dcef"
     },
     "T011": {
-      "changedFiles": [],
-      "generatedFiles": [],
-      "lastAttempt": {
-        "decision": "BLOCKED",
-        "resultSha256": "d27e42880f14a6e2e48081b9a1310d10a9065109dfc836d2e9d8fb7d548b03bc",
-        "riskLevel": "HIGH",
-        "runDirectory": ".factory/runs/oc-4b485381-49fd-4b8a-ba91-d069c8a91f1c"
-      },
+      "changedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlAdapterPresenceTest.java"
+      ],
+      "generatedFiles": [
+        "src/test/java/com/alexastudillo/partyregistry/adapter/out/postgresql/PostgreSqlAdapterPresenceTest.java"
+      ],
       "owner": "test-implementation-agent",
-      "resultSha256": null,
-      "riskLevel": null,
-      "runDirectory": null,
-      "status": "PENDING",
-      "taskDigest": "d63b8c35539adf8c83cef4bf02284c73e0ad680804fbd490cd19d71f229c0aa6"
+      "resultSha256": "448c0ba60bf5bbb681e235fa5652c15f6765b5d2fdc473fd518b99cac4fc8a23",
+      "riskLevel": "MEDIUM",
+      "runDirectory": ".factory/runs/oc-82e16338-5f73-4213-8377-1cbd487e3f15",
+      "status": "PASS",
+      "taskDigest": "c3250a1f2a6cebbc4e5f18a05d5a6e7e8fe586cb82943f2668e8a38b90d5a99b"
     },
     "T012": {
       "changedFiles": [],
       "generatedFiles": [],
+      "lastAttempt": {
+        "decision": "FAIL",
+        "resultSha256": "a50d706c7c7a9e0f4c60713dfdebb03a72d2a2cafb9832f597f1d35b0ba72bfb",
+        "riskLevel": "HIGH",
+        "runDirectory": ".factory/runs/oc-eb4d0fbc-78b6-4f3e-96e7-0fab5ba605b1"
+      },
       "owner": "quarkus-engineer-agent",
       "resultSha256": null,
       "riskLevel": null,
       "runDirectory": null,
       "status": "PENDING",
-      "taskDigest": "e8e014fc4e655c54d078554029c85619031d4c711d784c537a3f65db7e5e0b0b"
+      "taskDigest": "d807ef6e950cc45a30caca61bda915111578842660904ff59cb85a49d0462106"
     },
     "T013": {
       "changedFiles": [],
@@ -548,45 +560,7 @@
       "runDirectory": ".factory/runs/oc-3a4d52a8-4dc8-49b8-96d7-928b580f739f",
       "status": "PASS",
       "taskDigest": "af1f8c3b64b995e1bab6cae47dee6dd1025ebbaca49baf6ca920fe0a9a887c47"
-    },
-    "T040": {
-      "changedFiles": [
-        "docs/implementation/party-display-name-flow.md",
-        "src/test/java/com/alexastudillo/partyregistry/application/PartyDisplayNameMutationContractTest.java"
-      ],
-      "generatedFiles": [
-        "src/test/java/com/alexastudillo/partyregistry/application/PartyDisplayNameMutationContractTest.java",
-        "docs/implementation/party-display-name-flow.md"
-      ],
-      "owner": "test-implementation-agent",
-      "resultSha256": "ae4dc20545bf98a341fdbb53c04a4d4137d3760a394ad47bf1fe1ae5b73fa77a",
-      "riskLevel": "LOW",
-      "runDirectory": ".factory/runs/oc-a277e554-279c-4f52-bcce-eea6bfd4e3d6",
-      "status": "PASS",
-      "taskDigest": "7035461926a08cc071f8ac5b7fa53f46f30c0595c3a4aa39cccd9561d5fad48e"
-    },
-    "T041": {
-      "changedFiles": [
-        "docs/implementation/party-display-name-flow.md",
-        "src/main/java/com/alexastudillo/partyregistry/application/PartyCreationMutation.java",
-        "src/main/java/com/alexastudillo/partyregistry/application/PartyDetailsMutation.java",
-        "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyUseCase.java",
-        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyDetailsUseCase.java"
-      ],
-      "generatedFiles": [
-        "src/main/java/com/alexastudillo/partyregistry/application/PartyCreationMutation.java",
-        "src/main/java/com/alexastudillo/partyregistry/application/PartyDetailsMutation.java",
-        "src/main/java/com/alexastudillo/partyregistry/application/usecase/CreatePartyUseCase.java",
-        "src/main/java/com/alexastudillo/partyregistry/application/usecase/UpdatePartyDetailsUseCase.java",
-        "docs/implementation/party-display-name-flow.md"
-      ],
-      "owner": "quarkus-engineer-agent",
-      "resultSha256": "e8f382520f0908062f4707a4087e6adce7b56e7789cfd73fb69aac8b3f70b7a4",
-      "riskLevel": "LOW",
-      "runDirectory": ".factory/runs/oc-384b561b-00f1-4509-95d5-9df4fb3f7978",
-      "status": "PASS",
-      "taskDigest": "c033e5731ff7927402c7b1a7184587f5da9763567720ddbe8d692b9867be46e1"
     }
   },
-  "workflowSequence": 72
+  "workflowSequence": 68
 }

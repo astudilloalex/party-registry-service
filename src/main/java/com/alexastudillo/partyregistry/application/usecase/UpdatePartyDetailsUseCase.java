@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.application.usecase;
 
 import com.alexastudillo.partyregistry.application.MutationResult;
 import com.alexastudillo.partyregistry.application.OutboxIntent;
+import com.alexastudillo.partyregistry.application.PartyDetailsMutation;
 import com.alexastudillo.partyregistry.application.PartyDetailsView;
 import com.alexastudillo.partyregistry.application.PartyMutationIntent;
 import com.alexastudillo.partyregistry.application.RequestContext;
@@ -24,12 +25,16 @@ public final class UpdatePartyDetailsUseCase {
     public CompletionStage<MutationResult> execute(
             RequestContext context, UUID partyId, PartyDetailsView details, Long expectedVersion) {
         long version = UseCaseSupport.expectedVersion(expectedVersion);
+        UseCaseSupport.required(context, "context");
+        UseCaseSupport.required(partyId, "partyId");
+        UseCaseSupport.required(details, "details");
+        PartyDetailsMutation mutation = PartyDetailsMutation.from(details);
         CompletionStage<?> evidence = details.countryCode() == null
                 ? CompletableFuture.completedFuture(null)
                 : geography.resolveActive(details.countryCode())
                         .thenApply(country -> UseCaseSupport.found(country, "Active country"));
         return evidence.thenCompose(ignored -> unitOfWork.updateDetailsAndAppendOutbox(new PartyMutationIntent(
-                context.tenantId(), partyId, version, details, context.userId(),
+                context.tenantId(), partyId, version, mutation, context.userId(),
                 new OutboxIntent("party.updated.v1", context.processId()))));
     }
 }

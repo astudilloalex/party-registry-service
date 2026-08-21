@@ -52,6 +52,56 @@ class PostgreSqlIntegrityAndPrivilegeTest extends PostgreSql18TestSupport {
     }
 
     @Test
+    void canonicalDisplayNamesPersistWithMatchingDetailSourcesAndUpdateAtomically() throws Exception {
+        UUID tenant = UUID.randomUUID();
+        UUID naturalParty = UUID.randomUUID();
+        UUID legalParty = UUID.randomUUID();
+        try (Connection connection = transaction()) {
+            execute(connection, "insert into parties(id,tenant_id,type,display_name,created_by,updated_by) values (?,?, 'NATURAL_PERSON','José María Núñez',?,?)", naturalParty, tenant, ACTOR, ACTOR);
+            execute(connection, "insert into natural_person_details(party_id,given_names,family_names,preferred_name,created_by,updated_by) values (?,? ,?,? ,?,?)",
+                    naturalParty, "  José   María ", " Núñez ", "Pepe", ACTOR, ACTOR);
+            execute(connection, "insert into parties(id,tenant_id,type,display_name,created_by,updated_by) values (?,?, 'LEGAL_ENTITY','Compañía Única S.A.',?,?)", legalParty, tenant, ACTOR, ACTOR);
+            execute(connection, "insert into legal_entity_details(party_id,legal_name,trade_name,incorporation_country_code,created_by,updated_by) values (?,?,?,'EC',?,?)",
+                    legalParty, "  Compañía   Única S.A. ", "Marca distinta", ACTOR, ACTOR);
+            connection.commit();
+        }
+        try (Connection connection = ownerConnection()) {
+            assertEquals("José María Núñez", queryString(connection, "select display_name from parties where id=?", naturalParty));
+            assertEquals("  José   María ", queryString(connection, "select given_names from natural_person_details where party_id=?", naturalParty));
+            assertEquals(" Núñez ", queryString(connection, "select family_names from natural_person_details where party_id=?", naturalParty));
+            assertEquals("Compañía Única S.A.", queryString(connection, "select display_name from parties where id=?", legalParty));
+            assertEquals("  Compañía   Única S.A. ", queryString(connection, "select legal_name from legal_entity_details where party_id=?", legalParty));
+        }
+
+        try (Connection connection = transaction()) {
+            execute(connection, "update natural_person_details set given_names=?,family_names=?,updated_by=? where party_id=?",
+                    "  Ana   María ", " Pérez ", ACTOR, naturalParty);
+            execute(connection, "update parties set display_name=?,version=version+1,updated_by=? where id=?",
+                    "Ana María Pérez", ACTOR, naturalParty);
+            connection.rollback();
+        }
+        try (Connection connection = ownerConnection()) {
+            assertEquals("José María Núñez", queryString(connection, "select display_name from parties where id=?", naturalParty));
+            assertEquals("  José   María ", queryString(connection, "select given_names from natural_person_details where party_id=?", naturalParty));
+            assertEquals(0, queryInt(connection, "select version from parties where id=?", naturalParty));
+        }
+
+        try (Connection connection = transaction()) {
+            execute(connection, "update natural_person_details set given_names=?,family_names=?,updated_by=? where party_id=?",
+                    "  Ana   María ", " Pérez ", ACTOR, naturalParty);
+            execute(connection, "update parties set display_name=?,version=version+1,updated_by=? where id=?",
+                    "Ana María Pérez", ACTOR, naturalParty);
+            connection.commit();
+        }
+        try (Connection connection = ownerConnection()) {
+            assertEquals("Ana María Pérez", queryString(connection, "select display_name from parties where id=?", naturalParty));
+            assertEquals("  Ana   María ", queryString(connection, "select given_names from natural_person_details where party_id=?", naturalParty));
+            assertEquals(" Pérez ", queryString(connection, "select family_names from natural_person_details where party_id=?", naturalParty));
+            assertEquals(1, queryInt(connection, "select version from parties where id=?", naturalParty));
+        }
+    }
+
+    @Test
     void deferredDetailInvariantRejectsEveryInvalidCommittedState() throws Exception {
         assertCommitConstraint("ct_parties_detail_type", connection ->
                 execute(connection, "insert into parties(id,tenant_id,type,display_name,created_by,updated_by) values (uuidv7(),uuidv7(),'NATURAL_PERSON','Missing detail',?,?)", ACTOR, ACTOR));
