@@ -98,7 +98,7 @@ Table parties {
   id UUID [pk, not null, default: `uuidv7()`]
   tenant_id UUID [not null, note: 'Opaque reference to the tenant that owns this Party representation.']
 
-  type party_type [not null]
+  type party_type [not null, note: 'Immutable after Party creation.']
   display_name VARCHAR(300) [not null, note: 'Denormalized search and presentation value maintained atomically with the corresponding detail row.']
   record_status party_record_status [not null, default: 'DRAFT']
 
@@ -115,6 +115,9 @@ Table parties {
   }
 
   checks {
+    `btrim(display_name) <> ''` [name: 'ck_parties_nonblank_display_name']
+    `btrim(created_by) <> ''` [name: 'ck_parties_nonblank_created_by']
+    `btrim(updated_by) <> ''` [name: 'ck_parties_nonblank_updated_by']
     `version >= 0` [name: 'ck_parties_nonnegative_version']
   }
 
@@ -122,8 +125,15 @@ Table parties {
     Root of the Party aggregate. A Party is either NATURAL_PERSON or LEGAL_ENTITY.
     It is never a Customer, Supplier, Employee, User, Tenant, or operating company.
 
-    Any mutation to natural_person_details, legal_entity_details or
-    party_nationalities must increment parties.version in the same transaction.
+    Initial aggregate construction inserts the Party root, its matching detail
+    and any nationalities at version 0. Only post-creation mutations to
+    natural_person_details, legal_entity_details or party_nationalities must
+    increment parties.version in the same transaction.
+
+    Flyway must create function reject_party_type_change() and trigger
+    trg_parties_type_immutable BEFORE UPDATE OF type ON parties FOR EACH ROW.
+    The trigger must reject OLD.type IS DISTINCT FROM NEW.type immediately and
+    allow no-op assignments. Migration tests must verify both outcomes.
   '''
 }
 
@@ -143,6 +153,10 @@ Table natural_person_details {
   updated_by VARCHAR(128) [not null]
 
   checks {
+    `btrim(given_names) <> ''` [name: 'ck_natural_person_nonblank_given_names']
+    `btrim(family_names) <> ''` [name: 'ck_natural_person_nonblank_family_names']
+    `btrim(created_by) <> ''` [name: 'ck_natural_person_nonblank_created_by']
+    `btrim(updated_by) <> ''` [name: 'ck_natural_person_nonblank_updated_by']
     `date_of_death IS NULL OR birth_date IS NULL OR date_of_death >= birth_date` [name: 'ck_natural_person_life_dates']
     `birth_country_code IS NULL OR birth_country_code ~ '^[A-Z]{2}$'` [name: 'ck_natural_person_birth_country_code']
   }
@@ -150,10 +164,30 @@ Table natural_person_details {
   Note: '''
     One-to-one component of the Party aggregate for NATURAL_PERSON.
 
-    Flyway must implement a deferred constraint trigger that prevents:
-    - NATURAL_PERSON Parties from having legal_entity_details.
-    - LEGAL_ENTITY Parties from having natural_person_details.
-    - The same Party from having both detail rows.
+    Flyway must create function enforce_party_detail_shape() and these constraint
+    triggers, each FOR EACH ROW, DEFERRABLE and INITIALLY DEFERRED:
+    - ct_parties_detail_shape AFTER INSERT ON parties.
+    - ct_natural_person_details_party_shape AFTER INSERT OR UPDATE OF party_id
+      ON natural_person_details.
+    - ct_legal_entity_details_party_shape AFTER INSERT OR UPDATE OF party_id
+      ON legal_entity_details.
+
+    Under the service's PostgreSQL READ COMMITTED isolation level, the function
+    must first acquire SELECT ... FOR NO KEY UPDATE on the affected parties row
+    and only then, in a separate statement with a fresh snapshot, query both
+    detail tables. It must reject NATURAL_PERSON Parties with
+    legal_entity_details, LEGAL_ENTITY Parties with natural_person_details, and
+    any Party with both detail rows. FOR NO KEY UPDATE serializes competing
+    checks without conflicting with the foreign-key KEY SHARE row lock.
+
+    Migration tests must cover every trigger path, verify that violations fail
+    at commit, and run two transactions that concurrently insert opposing detail
+    types for one Party. At most one transaction may commit; the other must fail
+    with the shape constraint rather than a deadlock.
+
+    The service remains responsible for creating exactly one matching detail
+    row and for preventing nationalities on LEGAL_ENTITY Parties. Those rules
+    are intentionally outside this deferred trigger in V1.
   '''
 }
 
@@ -173,6 +207,9 @@ Table legal_entity_details {
   updated_by VARCHAR(128) [not null]
 
   checks {
+    `btrim(legal_name) <> ''` [name: 'ck_legal_entity_nonblank_legal_name']
+    `btrim(created_by) <> ''` [name: 'ck_legal_entity_nonblank_created_by']
+    `btrim(updated_by) <> ''` [name: 'ck_legal_entity_nonblank_updated_by']
     `dissolved_on IS NULL OR incorporated_on IS NULL OR dissolved_on >= incorporated_on` [name: 'ck_legal_entity_lifecycle_dates']
     `incorporation_country_code ~ '^[A-Z]{2}$'` [name: 'ck_legal_entity_incorporation_country_code']
   }
@@ -204,18 +241,29 @@ Table party_nationalities {
   }
 
   checks {
+    `btrim(created_by) <> ''` [name: 'ck_party_nationality_nonblank_created_by']
+    `btrim(updated_by) <> ''` [name: 'ck_party_nationality_nonblank_updated_by']
     `country_code ~ '^[A-Z]{2}$'` [name: 'ck_party_nationality_country_code']
     `valid_until IS NULL OR valid_from IS NULL OR valid_until >= valid_from` [name: 'ck_party_nationality_validity']
   }
 
   Note: '''
     Nationalities known and maintained by the tenant for a natural-person Party.
+    Tenant scope is inherited from the owning Party through party_id. Validity
+    bounds are inclusive; a null bound represents an unbounded interval.
 
-    Flyway must create:
-    - A partial unique index preventing more than one active row for the same
-      tenant, Party and country.
-    - A partial unique index preventing more than one active primary nationality
-      for the same tenant and Party.
+    Flyway must execute CREATE EXTENSION IF NOT EXISTS btree_gist and create two
+    immediate, NOT DEFERRABLE exclusion constraints:
+    - ex_party_nationalities_country_validity EXCLUDE USING gist
+      (party_id WITH =, country_code WITH =,
+      daterange(valid_from, valid_until, '[]') WITH &&).
+    - ex_party_nationalities_primary_validity EXCLUDE USING gist
+      (party_id WITH =, daterange(valid_from, valid_until, '[]') WITH &&)
+      WHERE (is_primary).
+
+    Migration tests must cover finite, open and equal-boundary intervals,
+    non-overlapping intervals and concurrent conflicting inserts for both
+    constraints.
   '''
 }
 
@@ -313,11 +361,11 @@ Table party_identifiers {
     Aggregate for official identifiers such as national ID, RUC, passport,
     residence permit and legal registration number.
 
-    Flyway must create:
-    - A partial unique index on
+    Flyway must create and test:
+    - uq_party_identifiers_active_value, a partial unique index on
       (tenant_id, identifier_scheme_id, normalized_value_hash)
       WHERE status IN ('PENDING_VERIFICATION', 'VERIFIED').
-    - A partial unique index on
+    - uq_party_identifiers_verified_primary, a partial unique index on
       (tenant_id, party_id, identifier_scheme_id)
       WHERE is_primary = true AND status = 'VERIFIED'.
 
@@ -353,24 +401,28 @@ Table party_outbox_events {
   last_error_detail VARCHAR(1000)
 
   created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null, note: 'Service principal that created the business event.']
+  created_by VARCHAR(128) [not null, note: 'Trusted audit subject from User-Id for command-originated business events.']
   updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null, note: 'Publisher instance or service principal that last changed delivery state.']
+  updated_by VARCHAR(128) [not null, note: 'Initially the trusted User-Id audit subject; subsequently the publisher instance or service principal that last changed delivery state.']
   version BIGINT [not null, default: 0, note: 'Optimistic concurrency version for delivery-state transitions.']
 
   indexes {
     (status, next_attempt_at, created_at) [name: 'ix_party_outbox_delivery']
-    (tenant_id, aggregate_type, aggregate_id, aggregate_version) [name: 'ix_party_outbox_aggregate']
+    (tenant_id, aggregate_type, aggregate_id, aggregate_version, event_type) [unique, name: 'uq_party_outbox_event_identity']
     correlation_id [name: 'ix_party_outbox_correlation']
   }
 
   checks {
+    `btrim(event_type) <> ''` [name: 'ck_party_outbox_nonblank_event_type']
+    `btrim(created_by) <> ''` [name: 'ck_party_outbox_nonblank_created_by']
+    `btrim(updated_by) <> ''` [name: 'ck_party_outbox_nonblank_updated_by']
     `aggregate_version >= 0` [name: 'ck_party_outbox_nonnegative_aggregate_version']
     `event_schema_version > 0` [name: 'ck_party_outbox_positive_schema_version']
     `publish_attempts >= 0` [name: 'ck_party_outbox_nonnegative_attempts']
     `version >= 0` [name: 'ck_party_outbox_nonnegative_version']
     `(status = 'PUBLISHED' AND published_at IS NOT NULL) OR (status <> 'PUBLISHED' AND published_at IS NULL)` [name: 'ck_party_outbox_published_at']
     `(status = 'FAILED' AND last_error_code IS NOT NULL) OR status <> 'FAILED'` [name: 'ck_party_outbox_failed_error']
+    `event_type <> 'party.created.v1' OR (aggregate_type = 'PARTY' AND aggregate_version = 0 AND event_schema_version = 1 AND payload IN ('{"partyType":"NATURAL_PERSON"}'::jsonb, '{"partyType":"LEGAL_ENTITY"}'::jsonb))` [name: 'ck_party_outbox_created_event_shape']
   }
 
   Note: '''
@@ -386,6 +438,20 @@ Table party_outbox_events {
       party_nationalities; parties.version must be incremented in the same transaction.
     - PARTY_IDENTIFIER: aggregate_id = party_identifiers.id and
       aggregate_version = party_identifiers.version.
+
+    Exactly one event may exist for a tenant, aggregate type, aggregate ID,
+    aggregate version and event type. For party.created.v1, aggregate_version
+    is 0, status is initially PENDING, and payload contains only partyType.
+    created_by and the initial updated_by value are copied from the trusted
+    User-Id command audit context.
+
+    ck_party_outbox_created_event_shape enforces the aggregate type, aggregate
+    version, schema version and closed payload shape for party.created.v1. The
+    persistence adapter and its integration tests must enforce initial PENDING
+    status and map created_by and updated_by from the trusted User-Id; later
+    publisher transitions may change status and updated_by. The unique event
+    index also supports aggregate-prefix lookups, so no shorter duplicate index
+    is required.
 
     The table does not publish:
     - PostgreSQL schema changes.
