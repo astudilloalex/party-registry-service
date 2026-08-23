@@ -1,6 +1,6 @@
 # ADR-001: Hibernate Reactive Execution Model
 
-- **Status**: Accepted
+- **Status**: Proposed — pending architecture-owner approval
 - **Proposed on**: 2026-08-23
 - **Decision owner**: Alex Astudillo — Architecture Owner
 - **Technical reviewers**: Not required — single-maintainer project
@@ -101,10 +101,12 @@ Party creation executes in this order:
 Steps inside the transaction are composed sequentially. No Geographic Reference request or other
 remote I/O occurs while the transaction is open.
 
-Any mapping, persistence, constraint, flush, cancellation, or commit failure terminates the chain
-with failure and leaves no rows from the command. Party and outbox persistence must not be split
-into separate transactions. Automatic write-transaction retries are not introduced without a
-separate, approved idempotency and retry decision.
+Any mapping, persistence, constraint, flush, or commit failure, and any cancellation observed before
+commit completes, terminates the chain with failure and rolls back the transaction. Cancellation
+after commit cannot reverse committed state; it can only prevent delivery of the successful
+response. Party and outbox persistence must not be split into separate transactions. Automatic
+write-transaction retries are not introduced without a separate, approved idempotency and retry
+decision.
 
 ### 4. Database Access and Schema Ownership
 
@@ -141,9 +143,11 @@ production values require environment capacity evidence; this ADR does not inven
 Configuration changes must preserve bounded resource use and must be supported by integration or
 load evidence appropriate to their risk.
 
-Cancellation or timeout of the transaction chain must release the session and connection through
-the managed reactive lifecycle and must result in rollback rather than partial success. No code may
-swallow cancellation or continue using a session after its transaction terminates.
+Cancellation or timeout observed before commit completes must release the session and connection
+through the managed reactive lifecycle and must result in rollback rather than partial success. If
+cancellation is observed after commit, committed state remains authoritative even when the response
+can no longer be delivered. No code may swallow cancellation or continue using a session after its
+transaction terminates.
 
 ### 6. Failure Handling and Debugging
 
@@ -262,6 +266,7 @@ tests written after the implementation do not satisfy that requirement.
 | Reactive context is lost | Context-propagation tests across every adapter and mandatory MDC verification |
 | Sensitive data appears in diagnostics | Sanitized RFC 9457 mapping, bounded telemetry attributes, and logging tests |
 | Packaging behaves differently from development | Run packaged `quarkusIntTest` against PostgreSQL 18 and controlled HTTP dependencies |
+| Hibernate Reactive is a Preview technology in Quarkus 3.33 | Pin the Quarkus BOM to 3.33.3 and require the complete reactive, PostgreSQL, schema-validation, UUID-generation, and packaged test suite before every Quarkus or Hibernate Reactive upgrade |
 
 ## Alternatives Considered
 
@@ -309,10 +314,11 @@ required approval field remains `TBD`.
 |-------|-------------|-------|
 | Architecture owner | Required | Alex Astudillo |
 | Technical reviewer | Optional | Not required — single-maintainer project |
-| Approval date | Required | 2026-08-23 |
-| Reviewed ADR revision | Required | 905eb5f1c1830d1f55c1398702674d48cf798feb |
-| Decision outcome | Required | APPROVED |
-| Material conditions or findings | Required; record `None` if there are no findings | None |
+| Approval date | Required | TBD |
+| Review or Pull Request | Required | TBD |
+| Reviewed ADR revision | Required | TBD |
+| Decision outcome | Required | PENDING |
+| Material conditions or findings | Required; record `None` if there are no findings | TBD |
 
 To accept this ADR, the architecture owner must review the complete decision, resolve every
 material finding, change the status to `Accepted`, set the decision outcome to `APPROVED`, and
@@ -336,3 +342,4 @@ record dated, traceable review evidence for the final ADR revision.
 | Date | Status | Change |
 |------|--------|--------|
 | 2026-08-23 | Proposed | Initial execution-model decision prepared for architecture review |
+| 2026-08-23 | Proposed | Clarified cancellation timing, recorded Quarkus Preview risk, and reset approval evidence for final architecture review |
