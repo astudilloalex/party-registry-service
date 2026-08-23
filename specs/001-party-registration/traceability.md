@@ -75,12 +75,15 @@
 ## Pre-Implementation Traceability Gates
 
 - The current DBML's nationality exclusions, outbox uniqueness, `User-Id` audit notes, and
-  `ck_party_outbox_created_event_shape` must pass independent database-contract validation.
+  `ck_party_outbox_created_event_shape` passed independent database-contract validation for commit
+  `a167e5bea93eeccbd4513c1fb91a6d9f08e2412d`; the dated report records all material findings as
+  resolved and revalidated on PostgreSQL 18.4.
 - LikeC4 must remove customer ownership from the Party database description.
 - LikeC4 must add the Clean Architecture component/port/adapter view and the upstream
   trusted-header/internal-ingress boundary.
-- The architecture owner must approve an execution-model ADR for Hibernate Reactive ORM and the
-  reactive transaction/resource model.
+- The architecture owner approved
+  [`ADR-001`](../../docs/ADRs/ADR-001-hibernate-reactive-execution-model.md) for Hibernate Reactive
+  ORM and its reactive transaction/resource model in PR #12.
 - The Geographic Reference adapter mapping must remain conformant with Postman collection
   `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, the approved activity-state clarification, and
   the newer three-header decision; the provider contract must remove `company-id` before integration

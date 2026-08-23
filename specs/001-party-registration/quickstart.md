@@ -29,6 +29,7 @@ production
 - [Research decisions](./research.md)
 - [Data model](./data-model.md)
 - [Traceability matrix](./traceability.md)
+- [Independent DBML validation](../../docs/database/reviews/2026-08-23-v1-scheme-independent-validation.md)
 - [Party registration OpenAPI](./contracts/party-registration.openapi.yaml)
 - [Party-created payload schema](./contracts/party-created-v1.schema.json)
 - [Geographic validation port](./contracts/geographic-reference-port.md)

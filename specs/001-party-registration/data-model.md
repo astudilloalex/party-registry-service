@@ -116,8 +116,9 @@ The approved database design decision strengthens concurrent integrity with temp
 - Primary intervals for the same Party cannot overlap across countries.
 
 The current DBML records these rules as `ex_party_nationalities_country_validity` and
-`ex_party_nationalities_primary_validity`. It must be independently validated before Flyway
-migration design. No migration may infer a change from this document alone.
+`ex_party_nationalities_primary_validity`. Independent database-contract validation passed for
+DBML commit `a167e5bea93eeccbd4513c1fb91a6d9f08e2412d`. No migration may infer a change from this
+document alone; Flyway design must use the reviewed DBML and pass its separate migration gate.
 
 ### Tenant Isolation
 

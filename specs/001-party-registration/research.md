@@ -1,8 +1,8 @@
 # Phase 0 Research: Party Registration
 
 **Date**: 2026-08-23
-**Status**: Complete for design; independent DBML validation and remaining architecture
-synchronization remain pre-implementation gates
+**Status**: Complete for design; independent DBML validation passed, while remaining architecture
+and provider synchronization stay as pre-implementation gates
 
 ## Authoritative Inputs
 
@@ -165,10 +165,12 @@ the invariant for every date and closes concurrency races.
   that are active.
 - Application-only validation: rejected because concurrent writes can both pass before commit.
 
-**Pre-implementation gate**: `ex_party_nationalities_country_validity` and
-`ex_party_nationalities_primary_validity` are present in the current DBML. The DBML must pass its
-independent contract validation before Flyway migrations are designed. This plan does not modify
-the DBML or create migrations.
+**Pre-implementation gate**: PASS. `ex_party_nationalities_country_validity` and
+`ex_party_nationalities_primary_validity` are present in reviewed DBML commit
+`a167e5bea93eeccbd4513c1fb91a6d9f08e2412d`. The dated
+[`independent validation`](../../docs/database/reviews/2026-08-23-v1-scheme-independent-validation.md)
+proved finite, open, equal-boundary, and concurrent conflict behavior on PostgreSQL 18.4. No Flyway
+migration is created by that validation.
 
 ## R-008: Aggregate Shape Enforcement
 
@@ -329,9 +331,10 @@ personal data while giving consumers minimal classification.
 - Empty payload: rejected because immutable Party classification is useful and non-identifying.
 - Publication during creation: rejected by feature scope and the approved outbox sequence.
 
-**Pre-implementation gate**: The current DBML records outbox uniqueness, the closed creation-event
-shape, and `User-Id` audit semantics. It must pass independent validation before Flyway migration
-design.
+**Pre-implementation gate**: PASS. Reviewed DBML commit
+`a167e5bea93eeccbd4513c1fb91a6d9f08e2412d` records outbox uniqueness, the closed creation-event
+shape, and `User-Id` audit semantics. The dated independent validation proved those rules on
+PostgreSQL 18.4 and records all material findings as resolved.
 
 ## R-015: Verification Strategy
 
