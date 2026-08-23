@@ -34,4 +34,6 @@
 - First validation iteration identified three contract clarifications.
 - Second validation iteration completed on 2026-08-21 after approving `Tenant-Id`, `User-Id`,
   and type-derived display names.
+- Third validation iteration completed on 2026-08-21 after approving a maximum of 10
+  nationalities per creation command.
 - All specification quality criteria are satisfied.

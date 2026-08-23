@@ -1,6 +1,6 @@
 # Feature Specification: Party Registration
 
-**Feature Branch**: Not created (no `before_specify` hook configured)
+**Feature Branch**: `11-ft-1` (existing branch; no `before_specify` hook was configured)
 
 **Created**: 2026-08-21
 
@@ -114,6 +114,7 @@ tenant ownership and all-or-nothing outcomes.
 - Required type-specific details are absent, empty, or supplied for the wrong Party type.
 - A legal entity includes nationalities, which belong only to natural persons.
 - The same active nationality country is supplied more than once for one Party.
+- More than 10 nationalities are supplied in one creation command.
 - A nationality starts in the future or ended before registration; its primary-status evaluation
   follows the clarified active-nationality rule.
 - A birth or incorporation country is syntactically valid but unknown or inactive.
@@ -187,6 +188,8 @@ tenant ownership and all-or-nothing outcomes.
 - **FR-027**: The service MUST produce one consistent error category for each of these outcomes:
   invalid context, invalid Party data, invalid geographic reference, dependency unavailable, and
   creation failure. Transport-specific mappings require the approved API contract.
+- **FR-028**: A natural-person creation command MUST contain no more than 10 nationalities; a
+  larger collection MUST be rejected as invalid Party data before geographic validation.
 
 ### Key Entities
 
@@ -219,8 +222,9 @@ tenant ownership and all-or-nothing outcomes.
 
 ### Measurable Outcomes
 
-- **SC-001**: All 14 minimum acceptance scenarios supplied for Party registration have repeatable
-  pass/fail outcomes with no unresolved partial result.
+- **SC-001**: Every acceptance scenario in this specification, including all 14 minimum scenarios
+  supplied for Party registration, has a repeatable pass/fail outcome with no unresolved partial
+  result.
 - **SC-002**: 100% of accepted creation commands produce exactly one Party root, exactly one
   type-compatible details record, the requested valid nationalities, and a result containing the
   same Party identifier and version `0`.
