@@ -28,7 +28,7 @@ No se puede iniciar una tarea que produzca comportamiento, migraciones o adaptad
 - Validación independiente de `docs/database/v1-scheme.dbml`.
 - Vista LikeC4 Clean Architecture, frontera de ingreso interno y corrección de propiedad de la base Party.
 - ADR de Hibernate Reactive y su modelo de ejecución/transacción.
-- Contrato Geographic Reference con `Tenant-Id`, `User-Id` y `Process-Id`, sin `company-id`.
+- Contrato Geographic Reference que exige exactamente un `Tenant-Id`, `User-Id` y `Process-Id`.
 
 ---
 
@@ -132,7 +132,7 @@ No se puede iniciar una tarea que produzca comportamiento, migraciones o adaptad
 
 ### Ciclo US1.6: Lookup geográfico activo y contexto
 
-- [ ] T045 [US1] Red: Implementar y ejecutar `./gradlew test --tests '*GeographicReferenceAdapterTest.active*'` para ruta alpha-2, `ACTIVE`, deduplicación, conjunto vacío, propagación exacta de `Tenant-Id`/`User-Id`/`Process-Id`, eco y ausencia de `company-id` en `src/test/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/GeographicReferenceAdapterTest.java`
+- [ ] T045 [US1] Red: Implementar y ejecutar `./gradlew test --tests '*GeographicReferenceAdapterTest.active*'` para ruta alpha-2, `ACTIVE`, deduplicación, conjunto vacío, exigencia y propagación exacta de `Tenant-Id`/`User-Id`/`Process-Id` como contrato completo de contexto, y eco de `Process-Id` en `src/test/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/GeographicReferenceAdapterTest.java`
 - [ ] T046 [US1] Green: Implementar cliente, DTO y adapter mínimos para T045 en `src/main/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/client/GeographicReferenceClient.java`, `dto/CountryResponse.java`, `adapter/GeographicRequestContext.java` y `GeographicReferenceAdapter.java`
 - [ ] T047 [US1] Refactor: Aislar DTOs/contexto del proveedor y mantener verdes T045 y `CleanArchitectureTest` en `src/main/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/`
 

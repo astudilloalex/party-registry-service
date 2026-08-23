@@ -16,7 +16,7 @@ production
 - The Geographic Reference adapter is mapped to Postman collection
   `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`; its controlled local stub reproduces that
   contract, the approved `data.status` values, and the newer required `Tenant-Id`, `User-Id`, and
-  `Process-Id` headers without `company-id`.
+  `Process-Id` context headers.
 - LikeC4 has been synchronized with a Clean Architecture component view, the upstream trusted-header
   and internal-ingress boundary, and Party database ownership that excludes customers.
 - The architecture owner has approved the Hibernate Reactive execution-model ADR, including
@@ -133,8 +133,8 @@ Do not expose the development listener beyond the local machine.
 
 Configure the stub to expect one
 `GET /api/v1/countries/by-alpha2/{alpha2Code}` per distinct code with `Accept: application/json`,
-the trusted values in `Tenant-Id`, `User-Id`, and `Process-Id`. It must echo `Process-Id`;
-`company-id` remains absent. A successful active response has the standard envelope with
+exactly the trusted values in `Tenant-Id`, `User-Id`, and `Process-Id`. It must echo `Process-Id`.
+A successful active response has the standard envelope with
 `status: 200`, `code: successful`, and `data.status: ACTIVE`.
 `DRAFT`, `DEPRECATED`, or `RETIRED` represents an inactive country. A `404` envelope whose code ends
 in `not-found` represents an unknown country.
@@ -242,7 +242,7 @@ Use at least two tenant UUIDs and distinct `User-Id` values. Verify:
   calls.
 - Missing, malformed, or repeated `Process-Id` is rejected before dependency or persistence calls.
 - The exact inbound `Process-Id`, `Tenant-Id`, and `User-Id` values reach every Geographic Reference
-  lookup, and no request contains `company-id`.
+  lookup as the complete business-context header set.
 - A request with 11 nationalities is rejected before geographic validation; requests with 0 and 10
   valid nationalities reach their expected validation path.
 - A failed command for tenant A does not affect committed state for tenant B.

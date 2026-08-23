@@ -197,7 +197,7 @@ The infrastructure adapter maps this request to one
 reference. `DRAFT`, `DEPRECATED`, and `RETIRED` are inactive; the documented `404` not-found outcome
 is unknown. The adapter propagates trusted `Tenant-Id`, `User-Id`, and `Process-Id` unchanged to each
 provider lookup and verifies the echoed process identifier. It never generates a missing process
-identifier and does not send the removed `company-id` header.
+identifier; those three values are its complete business-context header contract.
 
 ## Application Inputs and Outputs
 

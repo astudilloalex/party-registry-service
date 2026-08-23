@@ -1,8 +1,9 @@
 # Phase 0 Research: Party Registration
 
 **Date**: 2026-08-23
-**Status**: Complete for design; independent DBML validation passed, while remaining architecture
-and provider synchronization stay as pre-implementation gates
+**Status**: Complete for design; independent DBML validation and the Geographic Reference
+trusted-header contract are approved, while the remaining architecture alignment stays as a
+pre-implementation gate
 
 ## Authoritative Inputs
 
@@ -16,9 +17,10 @@ and provider synchronization stay as pre-implementation gates
   `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, updated 2026-07-27
 - Human contract clarification dated 2026-08-22: a successful country lookup returns `data.status`
   as one of `DRAFT`, `ACTIVE`, `DEPRECATED`, or `RETIRED`
-- Human contract decision dated 2026-08-23: Party Registry requires one UUID `Process-Id` and
-  propagates `Process-Id`, `Tenant-Id`, and `User-Id` to Geographic Reference; Geographic Reference
-  removes `company-id`
+- Provider-owner contract decision dated 2026-08-23: Party Registry requires exactly one
+  `Tenant-Id`, `User-Id`, and `Process-Id` and propagates those three trusted context headers to
+  Geographic Reference. This closed header decision governs Party Registry independently of later
+  maintenance of the provider's Postman collection.
 
 Only the two sequence views required by this feature were consulted.
 
@@ -258,8 +260,9 @@ The REST adapter implements Postman collection
 `GET /api/v1/countries/by-alpha2/{alpha2Code}` once for each distinct code, with at most 11 lookups
 for one creation command. It sends `Accept: application/json` and propagates the trusted
 `Tenant-Id`, `User-Id`, and `Process-Id` unchanged to every lookup. The provider echoes
-`Process-Id`, which the adapter verifies. The 2026-08-23 human decision removes `company-id` from
-the provider contract and supersedes the older Postman header definition.
+`Process-Id`, which the adapter verifies. The 2026-08-23 provider-owner decision is authoritative
+for Party Registry's three required context headers and supersedes the older Postman header
+definition for this integration scope.
 
 For each requested code, a `200` response is active only when the standard envelope has
 `status: 200`, `code: successful`, and `data.status: ACTIVE`. A documented `data.status` of `DRAFT`,
@@ -286,8 +289,8 @@ header decision.
   item shape or a completeness guarantee suitable for authoritative membership checks.
 - Treating every `200` as active: rejected because existing but non-active countries are valid
   provider outcomes.
-- Continuing to send `company-id`: rejected because the approved provider change removes it in
-  favor of `Tenant-Id`.
+- Relying on any undeclared business-context header: rejected because the Party Registry adapter
+  contract is closed to the three approved trusted context headers.
 
 ## R-013: Geographic Resilience
 

@@ -51,7 +51,8 @@ to `DEPENDENCY_UNAVAILABLE` and performs no persistence.
   MDC or thread-local state as an application input.
 - The adapter reuses the inbound `Process-Id` unchanged for all per-code requests and verifies the
   provider echo; it never generates a replacement.
-- Removed provider header `company-id` is never sent.
+- The adapter's business-context header contract is limited to `Tenant-Id`, `User-Id`, and
+  `Process-Id`.
 - Trace context may be propagated by the infrastructure adapter without exposing observability
   framework types through the application port.
 
@@ -71,9 +72,9 @@ Process-Id: <trusted process UUID>
 ```
 
 The route, envelope, and activity values come from the cited Postman collection. The header block
-implements the newer 2026-08-23 human decision that Geographic Reference will require `Tenant-Id`,
-retain `User-Id` and `Process-Id`, and remove `company-id`; the provider collection must be
-synchronized before adapter integration acceptance.
+comes from the 2026-08-23 provider-owner decision: Party Registry requires and propagates exactly
+one `Tenant-Id`, `User-Id`, and `Process-Id`. This decision is authoritative for the Party Registry
+integration and does not depend on a later Postman collection update.
 
 The adapter issues one request per distinct code, with at most 11 requests for one Party command.
 It consumes only the standard envelope and country activity field approved by the collection and
@@ -99,7 +100,7 @@ lookup is authoritative and at least one is inactive or unknown, the aggregate o
   `InvalidReferences` when all lookups are authoritative.
 - Partial, malformed, contradictory, delayed, disconnected, mismatched process-ID, or unexpected
   responses produce `ValidationUnavailable`.
-- Adapter requests use the approved route, propagate the three trusted headers, omit `company-id`,
+- Adapter requests use the approved route, propagate exactly the three trusted context headers,
   and never exceed one lookup per distinct code.
 - No persistence call occurs after either failure outcome.
 - HTTP adapter tests use a controlled stub and prove serialization, response mapping, timeout, and
