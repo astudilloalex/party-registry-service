@@ -81,11 +81,14 @@ one geographic-reference dependency, and four persistence table families in scop
 
 **Pre-design gate result**: PASS for Phase 0 and Phase 1 design.
 
-**Pre-implementation database approval gate**: PENDING independent validation. The authoritative
-DBML now records the approved nationality exclusion constraints, creation-event uniqueness,
-creation-event payload shape, and `User-Id` audit semantics. No migration or persistence
-implementation may precede independent database-contract approval. The existing deferred
-detail-type trigger remains unchanged by decision.
+**Pre-implementation database approval gate**: APPROVED by the dated independent PASS in
+[`2026-08-23-v1-scheme-independent-validation.md`](../../docs/database/reviews/2026-08-23-v1-scheme-independent-validation.md)
+for DBML commit `a167e5bea93eeccbd4513c1fb91a6d9f08e2412d`. The review resolved native PostgreSQL
+type generation and detail foreign-key direction findings, then revalidated the approved
+nationality exclusions, creation-event uniqueness, creation-event payload shape, and `User-Id`
+audit semantics on PostgreSQL 18.4. The existing deferred detail-type trigger remains unchanged by
+decision. Migration and persistence work remains blocked by the other implementation-readiness
+gates.
 
 ## Project Structure
 
@@ -192,12 +195,13 @@ flush failure rolls back all rows. No publisher or RabbitMQ client is started by
 
 ### Data Contract Alignment
 
-The current DBML remains authoritative and now contains the approved temporal nationality exclusion
+The current DBML remains authoritative and contains the approved temporal nationality exclusion
 constraints, unique creation-event identity, closed `party.created.v1` payload check, and `User-Id`
-outbox audit semantics documented in [research.md](./research.md). It still requires independent
-database-contract validation before migration work. The current deferred detail-type trigger is
-retained, while exactly-one-detail and no-legal-nationality guarantees remain domain/application
-responsibilities backed by integration tests.
+outbox audit semantics documented in [research.md](./research.md). Independent database-contract
+validation passed for commit `a167e5bea93eeccbd4513c1fb91a6d9f08e2412d`; the dated report records
+all material findings as resolved. The current deferred detail-type trigger is retained, while
+exactly-one-detail and no-legal-nationality guarantees remain domain/application responsibilities
+backed by integration tests.
 
 ### Verification Flow
 
@@ -229,28 +233,31 @@ Hibernate, and JDBC outside the Flyway boundary.
 | Mandatory TDD | `research.md` and `quickstart.md` define targeted Red, minimal Green, green Refactor, and layer checkpoint evidence | PASS |
 | Tests and observability | `quickstart.md` covers TDD ordering plus all acceptance, rollback, tenant, non-blocking, architecture, contract, log-format, and MDC evidence | PASS |
 | Requirement traceability | `traceability.md` covers FR-001 through FR-028 and every measurable success criterion | PASS |
-| Approved-source consistency | Current DBML and Postman decisions are cited directly; independent database approval and remaining architecture corrections stay explicit pre-implementation gates | PASS |
+| Approved-source consistency | The independently approved DBML and current Postman decisions are cited directly; remaining LikeC4 and provider corrections stay explicit pre-implementation gates | PASS |
 
 **Post-design gate result**: PASS for the Phase 0/Phase 1 planning artifacts. No clarification marker
 or unjustified constitutional exception remains in the design.
 
-**Implementation readiness**: BLOCKED until the current DBML passes independent database-contract
-validation. The Geographic Reference REST adapter contract is resolved by Postman collection
+**Implementation readiness**: BLOCKED by the remaining LikeC4 and Geographic Reference gates. The
+database-contract gate passed independent validation and the Hibernate Reactive execution-model
+ADR is approved. The Geographic Reference REST adapter contract is resolved by Postman collection
 `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, the approved `data.status` clarification, and the
 2026-08-23 trusted-header decision. Geographic Reference must synchronize its collection and
 runtime to require `Tenant-Id`, `User-Id`, and `Process-Id` and remove `company-id` before adapter
 integration acceptance. The externally maintained LikeC4 model still must correct the Party
 database description so it does not imply customer ownership.
 
-Before implementation, the architecture owner must also add an approved LikeC4 component view for
+Before implementation, the architecture owner must add an approved LikeC4 component view for
 the Clean Architecture boundaries, ports, adapters, and bootstrap composition; record the upstream
-trusted-header/internal-ingress boundary; and approve an execution-model ADR for Hibernate Reactive
-and its transaction/resource consequences. The explicit human decision that the service is
-internal-only remains binding while those architecture artifacts are synchronized.
+trusted-header/internal-ingress boundary; and correct Party database ownership. The approved
+Hibernate Reactive execution-model ADR records its transaction/resource consequences. The explicit
+human decision that the service is internal-only remains binding while the remaining architecture
+artifacts are synchronized.
 
 ## Complexity Tracking
 
 No constitutional violation or exception is accepted by this plan. The temporal database
 constraints add justified integrity complexity required to enforce approved concurrent temporal
-rules. They are present in the authoritative DBML but require independent validation before
-migration work, so they are not treated as an implementation exception.
+rules. They are present in the authoritative DBML and passed independent contract validation, so
+they are not treated as an implementation exception. Migration work remains subject to the overall
+implementation-readiness decision and its separate migration gate.

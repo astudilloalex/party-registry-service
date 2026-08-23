@@ -95,18 +95,18 @@ Enum outbox_status {
 // Tables
 
 Table parties {
-  id UUID [pk, not null, default: `uuidv7()`]
-  tenant_id UUID [not null, note: 'Opaque reference to the tenant that owns this Party representation.']
+  id uuid [pk, not null, default: `uuidv7()`]
+  tenant_id uuid [not null, note: 'Opaque reference to the tenant that owns this Party representation.']
 
   type party_type [not null, note: 'Immutable after Party creation.']
-  display_name VARCHAR(300) [not null, note: 'Denormalized search and presentation value maintained atomically with the corresponding detail row.']
+  display_name varchar(300) [not null, note: 'Denormalized search and presentation value maintained atomically with the corresponding detail row.']
   record_status party_record_status [not null, default: 'DRAFT']
 
-  created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null, note: 'Opaque authenticated subject or service principal.']
-  updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null, note: 'Opaque authenticated subject or service principal.']
-  version BIGINT [not null, default: 0, note: 'Optimistic concurrency version of the Party aggregate.']
+  created_at timestamptz [not null, default: `now()`]
+  created_by varchar(128) [not null, note: 'Opaque authenticated subject or service principal.']
+  updated_at timestamptz [not null, default: `now()`]
+  updated_by varchar(128) [not null, note: 'Opaque authenticated subject or service principal.']
+  version bigint [not null, default: 0, note: 'Optimistic concurrency version of the Party aggregate.']
 
   indexes {
     (tenant_id, id) [unique, name: 'uq_parties_tenant_id']
@@ -138,19 +138,19 @@ Table parties {
 }
 
 Table natural_person_details {
-  party_id UUID [pk, not null]
+  party_id uuid [pk, not null]
 
-  given_names VARCHAR(200) [not null]
-  family_names VARCHAR(200) [not null]
-  preferred_name VARCHAR(200)
-  birth_date DATE
-  date_of_death DATE
-  birth_country_code CHAR(2) [note: 'ISO 3166-1 alpha-2 code.']
+  given_names varchar(200) [not null]
+  family_names varchar(200) [not null]
+  preferred_name varchar(200)
+  birth_date date
+  date_of_death date
+  birth_country_code char(2) [note: 'ISO 3166-1 alpha-2 code.']
 
-  created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null]
-  updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null]
+  created_at timestamptz [not null, default: `now()`]
+  created_by varchar(128) [not null]
+  updated_at timestamptz [not null, default: `now()`]
+  updated_by varchar(128) [not null]
 
   checks {
     `btrim(given_names) <> ''` [name: 'ck_natural_person_nonblank_given_names']
@@ -192,19 +192,19 @@ Table natural_person_details {
 }
 
 Table legal_entity_details {
-  party_id UUID [pk, not null]
+  party_id uuid [pk, not null]
 
-  legal_name VARCHAR(300) [not null, note: 'Official registered name.']
-  trade_name VARCHAR(300) [note: 'Primary trade name for V1; it does not replace legal_name.']
-  legal_form_code VARCHAR(64) [note: 'Jurisdiction-qualified code, for example EC_SAS, EC_SA or US_LLC.']
-  incorporation_country_code CHAR(2) [not null, note: 'ISO 3166-1 alpha-2 code.']
-  incorporated_on DATE
-  dissolved_on DATE
+  legal_name varchar(300) [not null, note: 'Official registered name.']
+  trade_name varchar(300) [note: 'Primary trade name for V1; it does not replace legal_name.']
+  legal_form_code varchar(64) [note: 'Jurisdiction-qualified code, for example EC_SAS, EC_SA or US_LLC.']
+  incorporation_country_code char(2) [not null, note: 'ISO 3166-1 alpha-2 code.']
+  incorporated_on date
+  dissolved_on date
 
-  created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null]
-  updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null]
+  created_at timestamptz [not null, default: `now()`]
+  created_by varchar(128) [not null]
+  updated_at timestamptz [not null, default: `now()`]
+  updated_by varchar(128) [not null]
 
   checks {
     `btrim(legal_name) <> ''` [name: 'ck_legal_entity_nonblank_legal_name']
@@ -222,18 +222,18 @@ Table legal_entity_details {
 }
 
 Table party_nationalities {
-  id UUID [pk, not null, default: `uuidv7()`]
-  party_id UUID [not null]
+  id uuid [pk, not null, default: `uuidv7()`]
+  party_id uuid [not null]
 
-  country_code CHAR(2) [not null, note: 'ISO 3166-1 alpha-2 code.']
-  is_primary BOOLEAN [not null, default: false]
-  valid_from DATE
-  valid_until DATE
+  country_code char(2) [not null, note: 'ISO 3166-1 alpha-2 code.']
+  is_primary boolean [not null, default: false]
+  valid_from date
+  valid_until date
 
-  created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null]
-  updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null]
+  created_at timestamptz [not null, default: `now()`]
+  created_by varchar(128) [not null]
+  updated_at timestamptz [not null, default: `now()`]
+  updated_by varchar(128) [not null]
 
   indexes {
     (party_id, country_code) [name: 'ix_party_nationalities_country']
@@ -268,27 +268,27 @@ Table party_nationalities {
 }
 
 Table identifier_schemes {
-  id UUID [pk, not null, default: `uuidv7()`]
+  id uuid [pk, not null, default: `uuidv7()`]
 
-  code VARCHAR(64) [not null, unique, note: 'Global stable code, for example EC_CEDULA, EC_RUC_NATURAL or US_EIN.']
-  issuing_country_code CHAR(2) [not null, note: 'Logical ISO 3166-1 alpha-2 reference.']
+  code varchar(64) [not null, unique, note: 'Global stable code, for example EC_CEDULA, EC_RUC_NATURAL or US_EIN.']
+  issuing_country_code char(2) [not null, note: 'Logical ISO 3166-1 alpha-2 reference.']
   category identifier_category [not null]
   applicable_subject_type identifier_subject_type [not null]
-  name VARCHAR(150) [not null]
-  description VARCHAR(500)
+  name varchar(150) [not null]
+  description varchar(500)
 
-  normalizer_key VARCHAR(64) [not null, note: 'Versioned implementation key, for example DIGITS_ONLY_V1.']
-  validator_key VARCHAR(64) [not null, note: 'Versioned implementation key, for example ECUADOR_CEDULA_V1. It does not contain executable code.']
-  minimum_length SMALLINT
-  maximum_length SMALLINT
-  requires_expiration BOOLEAN [not null, default: false]
+  normalizer_key varchar(64) [not null, note: 'Versioned implementation key, for example DIGITS_ONLY_V1.']
+  validator_key varchar(64) [not null, note: 'Versioned implementation key, for example ECUADOR_CEDULA_V1. It does not contain executable code.']
+  minimum_length smallint
+  maximum_length smallint
+  requires_expiration boolean [not null, default: false]
   status identifier_scheme_status [not null, default: 'DRAFT']
 
-  created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null]
-  updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null]
-  version BIGINT [not null, default: 0]
+  created_at timestamptz [not null, default: `now()`]
+  created_by varchar(128) [not null]
+  updated_at timestamptz [not null, default: `now()`]
+  updated_by varchar(128) [not null]
+  version bigint [not null, default: 0]
 
   indexes {
     (issuing_country_code, category, applicable_subject_type, status) [name: 'ix_identifier_schemes_country_category']
@@ -315,32 +315,32 @@ Table identifier_schemes {
 }
 
 Table party_identifiers {
-  id UUID [pk, not null, default: `uuidv7()`]
-  tenant_id UUID [not null]
-  party_id UUID [not null]
-  identifier_scheme_id UUID [not null]
+  id uuid [pk, not null, default: `uuidv7()`]
+  tenant_id uuid [not null]
+  party_id uuid [not null]
+  identifier_scheme_id uuid [not null]
 
-  issuer_code VARCHAR(64) [note: 'Issuing authority, for example SRI or REGISTRO_CIVIL.']
+  issuer_code varchar(64) [note: 'Issuing authority, for example SRI or REGISTRO_CIVIL.']
 
-  encrypted_value TEXT [not null, note: 'Authenticated encryption; never plain text.']
-  encryption_key_version SMALLINT [not null, note: 'Version of the external KMS or secret-managed encryption key.']
-  normalized_value_hash CHAR(64) [not null, note: 'Tenant-isolated HMAC-SHA-256 hexadecimal fingerprint of the normalized value.']
-  masked_value VARCHAR(64) [not null, note: 'Safe representation for UI and logs.']
-  normalization_version SMALLINT [not null, default: 1]
+  encrypted_value text [not null, note: 'Authenticated encryption; never plain text.']
+  encryption_key_version smallint [not null, note: 'Version of the external KMS or secret-managed encryption key.']
+  normalized_value_hash char(64) [not null, note: 'Tenant-isolated HMAC-SHA-256 hexadecimal fingerprint of the normalized value.']
+  masked_value varchar(64) [not null, note: 'Safe representation for UI and logs.']
+  normalization_version smallint [not null, default: 1]
 
-  is_primary BOOLEAN [not null, default: false, note: 'Primary identifier within the same Party and identifier scheme.']
+  is_primary boolean [not null, default: false, note: 'Primary identifier within the same Party and identifier scheme.']
   status party_identifier_status [not null, default: 'PENDING_VERIFICATION']
 
-  issued_on DATE
-  expires_on DATE
-  verified_at TIMESTAMPTZ
-  verified_by VARCHAR(128)
+  issued_on date
+  expires_on date
+  verified_at timestamptz
+  verified_by varchar(128)
 
-  created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null]
-  updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null]
-  version BIGINT [not null, default: 0, note: 'Optimistic concurrency version of the Party Identifier aggregate.']
+  created_at timestamptz [not null, default: `now()`]
+  created_by varchar(128) [not null]
+  updated_at timestamptz [not null, default: `now()`]
+  updated_by varchar(128) [not null]
+  version bigint [not null, default: 0, note: 'Optimistic concurrency version of the Party Identifier aggregate.']
 
   indexes {
     (tenant_id, identifier_scheme_id, normalized_value_hash, status) [name: 'ix_party_identifier_tenant_hash_status']
@@ -377,34 +377,34 @@ Table party_identifiers {
 }
 
 Table party_outbox_events {
-  id UUID [pk, not null, default: `uuidv7()`, note: 'Integration event identifier.']
-  tenant_id UUID [not null]
+  id uuid [pk, not null, default: `uuidv7()`, note: 'Integration event identifier.']
+  tenant_id uuid [not null]
 
   aggregate_type party_outbox_aggregate_type [not null]
-  aggregate_id UUID [not null]
-  aggregate_version BIGINT [not null]
+  aggregate_id uuid [not null]
+  aggregate_version bigint [not null]
 
-  event_type VARCHAR(128) [not null, note: 'Versioned business contract, for example party.created.v1 or party.identifier-verified.v1.']
-  event_schema_version SMALLINT [not null, default: 1]
-  payload JSONB [not null, note: 'Minimal integration payload without full identifiers or unnecessary personal data.']
+  event_type varchar(128) [not null, note: 'Versioned business contract, for example party.created.v1 or party.identifier-verified.v1.']
+  event_schema_version smallint [not null, default: 1]
+  payload jsonb [not null, note: 'Minimal integration payload without full identifiers or unnecessary personal data.']
 
-  occurred_at TIMESTAMPTZ [not null, default: `now()`]
-  correlation_id VARCHAR(128)
-  causation_id VARCHAR(128)
+  occurred_at timestamptz [not null, default: `now()`]
+  correlation_id varchar(128)
+  causation_id varchar(128)
 
   status outbox_status [not null, default: 'PENDING']
-  publish_attempts INTEGER [not null, default: 0]
-  next_attempt_at TIMESTAMPTZ
-  last_attempt_at TIMESTAMPTZ
-  published_at TIMESTAMPTZ
-  last_error_code VARCHAR(64)
-  last_error_detail VARCHAR(1000)
+  publish_attempts integer [not null, default: 0]
+  next_attempt_at timestamptz
+  last_attempt_at timestamptz
+  published_at timestamptz
+  last_error_code varchar(64)
+  last_error_detail varchar(1000)
 
-  created_at TIMESTAMPTZ [not null, default: `now()`]
-  created_by VARCHAR(128) [not null, note: 'Trusted audit subject from User-Id for command-originated business events.']
-  updated_at TIMESTAMPTZ [not null, default: `now()`]
-  updated_by VARCHAR(128) [not null, note: 'Initially the trusted User-Id audit subject; subsequently the publisher instance or service principal that last changed delivery state.']
-  version BIGINT [not null, default: 0, note: 'Optimistic concurrency version for delivery-state transitions.']
+  created_at timestamptz [not null, default: `now()`]
+  created_by varchar(128) [not null, note: 'Trusted audit subject from User-Id for command-originated business events.']
+  updated_at timestamptz [not null, default: `now()`]
+  updated_by varchar(128) [not null, note: 'Initially the trusted User-Id audit subject; subsequently the publisher instance or service principal that last changed delivery state.']
+  version bigint [not null, default: 0, note: 'Optimistic concurrency version for delivery-state transitions.']
 
   indexes {
     (status, next_attempt_at, created_at) [name: 'ix_party_outbox_delivery']
@@ -465,9 +465,9 @@ Table party_outbox_events {
 
 // References
 
-Ref: natural_person_details.(party_id) - parties.(id) [delete: restrict]
+Ref: parties.(id) - natural_person_details.(party_id) [delete: restrict]
 
-Ref: legal_entity_details.(party_id) - parties.(id) [delete: restrict]
+Ref: parties.(id) - legal_entity_details.(party_id) [delete: restrict]
 
 Ref: party_nationalities.(party_id) > parties.(id) [delete: restrict]
 
