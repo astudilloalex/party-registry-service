@@ -233,26 +233,28 @@ Hibernate, and JDBC outside the Flyway boundary.
 | Mandatory TDD | `research.md` and `quickstart.md` define targeted Red, minimal Green, green Refactor, and layer checkpoint evidence | PASS |
 | Tests and observability | `quickstart.md` covers TDD ordering plus all acceptance, rollback, tenant, non-blocking, architecture, contract, log-format, and MDC evidence | PASS |
 | Requirement traceability | `traceability.md` covers FR-001 through FR-028 and every measurable success criterion | PASS |
-| Approved-source consistency | The independently approved DBML, Postman route/response mapping, and provider-owner trusted-header decision are cited directly; the remaining LikeC4 correction stays an explicit pre-implementation gate | PASS |
+| Approved-source consistency | The independently approved DBML, Postman route/response mapping, provider-owner trusted-header decision, and Architecture Owner-approved LikeC4 C2 scope and Party ownership interpretation are cited directly | PASS |
 
 **Post-design gate result**: PASS for the Phase 0/Phase 1 planning artifacts. No clarification marker
 or unjustified constitutional exception remains in the design.
 
-**Implementation readiness**: BLOCKED only by the remaining LikeC4 gate. The database-contract gate
-passed independent validation, the Hibernate Reactive execution-model ADR is approved, and the
-Geographic Reference trusted-header contract is approved by the provider owner in
+**Implementation readiness**: READY. The database-contract gate passed independent validation, the
+Hibernate Reactive execution-model ADR is approved, the LikeC4 C2 scope and Party ownership
+interpretation are approved by the Architecture Owner in
+[`2026-08-23-likec4-c2-scope-owner-approval.md`](../../docs/architecture/reviews/2026-08-23-likec4-c2-scope-owner-approval.md),
+and the Geographic Reference trusted-header contract is approved by the provider owner in
 [`2026-08-23-trusted-header-contract-owner-approval.md`](../../docs/integrations/geographic-reference/2026-08-23-trusted-header-contract-owner-approval.md)
 for reviewed revision `b2fc550073c7f48c0c285e2c5bac72b8f5104867`. The Geographic Reference
 REST adapter uses the Postman collection for its route and response semantics and the owner decision
-for exactly one required `Tenant-Id`, `User-Id`, and `Process-Id`. The externally maintained LikeC4
-model still must correct the Party database description so it does not imply customer ownership.
+for exactly one required `Tenant-Id`, `User-Id`, and `Process-Id`.
 
-Before implementation, the architecture owner must add an approved LikeC4 component view for
-the Clean Architecture boundaries, ports, adapters, and bootstrap composition; record the upstream
-trusted-header/internal-ingress boundary; and correct Party database ownership. The approved
-Hibernate Reactive execution-model ADR records its transaction/resource consequences. The explicit
-human decision that the service is internal-only remains binding while the remaining architecture
-artifact is synchronized.
+The approved LikeC4 scope ends at C2. No upstream consumer or ingress integration currently exists,
+so the model must not invent one; the ingress and trusted-header establishment boundary becomes
+mandatory when the first concrete upstream integration is approved. C3 component modeling is not
+required. Strict Clean Architecture is instead verified through the planned package boundaries,
+ArchUnit rules, and layer-specific tests. The C2 Party database description is non-normative for
+detailed domain ownership: the constitution and approved DBML bind implementation to the Party
+bounded context and exclude a separate Customer bounded context.
 
 ## Complexity Tracking
 

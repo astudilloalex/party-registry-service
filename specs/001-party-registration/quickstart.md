@@ -17,8 +17,10 @@ production
   `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`; its controlled local stub reproduces that
   contract, the approved `data.status` values, and the newer required `Tenant-Id`, `User-Id`, and
   `Process-Id` context headers.
-- LikeC4 has been synchronized with a Clean Architecture component view, the upstream trusted-header
-  and internal-ingress boundary, and Party database ownership that excludes customers.
+- The Architecture Owner has approved the current LikeC4 C2 scope. No upstream consumer or ingress
+  is modeled until a concrete integration exists; its trust-establishment boundary becomes required
+  at that point. Clean Architecture is verified in this repository, and the constitution plus the
+  approved DBML govern Party ownership without a separate Customer bounded context.
 - The architecture owner has approved the Hibernate Reactive execution-model ADR, including
   transaction, resource, debugging, operational, and packaging consequences.
 

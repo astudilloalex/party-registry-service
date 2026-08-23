@@ -78,9 +78,14 @@
   `ck_party_outbox_created_event_shape` passed independent database-contract validation for commit
   `a167e5bea93eeccbd4513c1fb91a6d9f08e2412d`; the dated report records all material findings as
   resolved and revalidated on PostgreSQL 18.4.
-- LikeC4 must remove customer ownership from the Party database description.
-- LikeC4 must add the Clean Architecture component/port/adapter view and the upstream
-  trusted-header/internal-ingress boundary.
+- The Architecture Owner approved the current LikeC4 C2 scope and Party ownership interpretation in
+  [`2026-08-23-likec4-c2-scope-owner-approval.md`](../../docs/architecture/reviews/2026-08-23-likec4-c2-scope-owner-approval.md).
+  The C2 database description does not authorize a separate Customer bounded context; detailed
+  ownership remains governed by the constitution and approved DBML.
+- Party Registry has no current upstream consumer or ingress integration. LikeC4 must add the
+  upstream relationship and trusted-header establishment boundary when a concrete integration is
+  approved, not before. Component/port/adapter modeling remains outside the approved C2 scope;
+  ArchUnit and layer-specific tests verify Clean Architecture in this repository.
 - The architecture owner approved
   [`ADR-001`](../../docs/ADRs/ADR-001-hibernate-reactive-execution-model.md) for Hibernate Reactive
   ORM and its reactive transaction/resource model in PR #12.

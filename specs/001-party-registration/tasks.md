@@ -26,7 +26,8 @@ Cada tarea usa exactamente `- [ ] Tnnn [P?] [USn?] descripción con ruta`.
 No se puede iniciar una tarea que produzca comportamiento, migraciones o adaptadores hasta aprobar y registrar:
 
 - Validación independiente de `docs/database/v1-scheme.dbml`.
-- Vista LikeC4 Clean Architecture, frontera de ingreso interno y corrección de propiedad de la base Party.
+- Aprobación del alcance LikeC4 C2, ausencia intencional de consumidores aún inexistentes y
+  propiedad del bounded context Party.
 - ADR de Hibernate Reactive y su modelo de ejecución/transacción.
 - Contrato Geographic Reference que exige exactamente un `Tenant-Id`, `User-Id` y `Process-Id`.
 
@@ -36,7 +37,7 @@ No se puede iniciar una tarea que produzca comportamiento, migraciones o adaptad
 
 **Objetivo**: Preparar dependencias, source sets, fixtures y evidencia sin anticipar comportamiento.
 
-- [ ] T001 Documentar la aprobación de los cuatro gates en `specs/001-party-registration/implementation-readiness.md`
+- [x] T001 Documentar la aprobación de los cuatro gates en `specs/001-party-registration/implementation-readiness.md`
 - [ ] T002 Configurar en `build.gradle.kts` dependencias runtime y test para Quarkus REST/Jackson, REST Client/Jackson, Hibernate Reactive, PostgreSQL reactivo, Validator, OpenAPI, context propagation, Micrometer Prometheus, OpenTelemetry, Flyway/JDBC aislado, JUnit 5, Quarkus Vert.x test, RestAssured, ArchUnit, Testcontainers PostgreSQL, stub HTTP, parser OpenAPI 3.1 y validador JSON Schema 2020-12
 - [ ] T003 Configurar en `build.gradle.kts` los source sets y tareas `test`, `check` y `quarkusIntTest` para `src/test/java` y `src/integrationTest/java`
 - [ ] T004 [P] Crear fronteras de paquetes con `package-info.java` en `src/main/java/com/alexastudillo/partyregistry/domain/`, `application/`, `infrastructure/`, `api/` y `bootstrap/`
