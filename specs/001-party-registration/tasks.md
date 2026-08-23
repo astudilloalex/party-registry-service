@@ -54,42 +54,42 @@ No se puede iniciar una tarea que produzca comportamiento, migraciones o adaptad
 
 **CRÍTICO**: Esta fase bloquea US1, US2 y US3.
 
-- [ ] T007 [P] Implementar reglas ArchUnit de capas hacia adentro, dominio sin frameworks y prohibición de blocking, SQL nativo, cliente PostgreSQL directo y JDBC fuera de Flyway en `src/test/java/com/alexastudillo/partyregistry/architecture/CleanArchitectureTest.java`
-- [ ] T008 [P] Crear harness OpenAPI 3.1.1 y JSON Schema 2020-12 en `src/test/java/com/alexastudillo/partyregistry/api/rest/v1/party/ContractConformanceTest.java`
-- [ ] T009 [P] Crear recurso Testcontainers PostgreSQL 18 en `src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PostgreSqlTestResource.java` y `src/test/resources/application.properties`
-- [ ] T010 [P] Crear stub HTTP controlado con conteo de requests, cancelación y delays en `src/test/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/GeographicReferenceStubResource.java`
-- [ ] T011 Crear scaffolding compilable sin invariantes para `PartyType`, `PartyRecordStatus`, `CountryCode`, `Party`, `NaturalPersonDetails`, `LegalEntityDetails`, `NationalityPeriod` y `PartyNationality` en `src/main/java/com/alexastudillo/partyregistry/domain/party/model/`
-- [ ] T012 Crear scaffolding compilable sin comportamiento para comandos, contexto, intent de evento, resultados y outcomes en `src/main/java/com/alexastudillo/partyregistry/application/party/command/` y `result/`
-- [ ] T013 Crear scaffolding compilable para `CreatePartyUseCase` en `src/main/java/com/alexastudillo/partyregistry/application/party/port/in/` y para puertos geográfico, persistence, política y reloj en `src/main/java/com/alexastudillo/partyregistry/application/party/port/out/`
-- [ ] T014 Crear fakes reactivos con historial de llamadas y commit controlado en `src/test/java/com/alexastudillo/partyregistry/application/party/support/CreatePartyPortFakes.java`
-- [ ] T015 Crear scaffolding REST compilable que responda sin comportamiento para DTOs, mapper, extractor, errores y recurso en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/`
-- [ ] T016 Crear scaffolding compilable sin comportamiento para `CreatePartyService`, cliente/adaptador geográfico, `ConfiguredPartyEventPolicy`, entidades/mappers y adapter persistence en `src/main/java/com/alexastudillo/partyregistry/application/party/service/CreatePartyService.java` y `src/main/java/com/alexastudillo/partyregistry/infrastructure/`
+- [x] T007 [P] Implementar reglas ArchUnit de capas hacia adentro, dominio sin frameworks y prohibición de blocking, SQL nativo, cliente PostgreSQL directo y JDBC fuera de Flyway en `src/test/java/com/alexastudillo/partyregistry/architecture/CleanArchitectureTest.java`
+- [x] T008 [P] Crear harness OpenAPI 3.1.1 y JSON Schema 2020-12 en `src/test/java/com/alexastudillo/partyregistry/api/rest/v1/party/ContractConformanceTest.java`
+- [x] T009 [P] Crear recurso Testcontainers PostgreSQL 18 en `src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PostgreSqlTestResource.java` y `src/test/resources/application.properties`
+- [x] T010 [P] Crear stub HTTP controlado con conteo de requests, cancelación y delays en `src/test/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/GeographicReferenceStubResource.java`
+- [x] T011 Crear scaffolding compilable sin invariantes para `PartyType`, `PartyRecordStatus`, `CountryCode`, `Party`, `NaturalPersonDetails`, `LegalEntityDetails`, `NationalityPeriod` y `PartyNationality` en `src/main/java/com/alexastudillo/partyregistry/domain/party/model/`
+- [x] T012 Crear scaffolding compilable sin comportamiento para comandos, contexto, intent de evento, resultados y outcomes en `src/main/java/com/alexastudillo/partyregistry/application/party/command/` y `result/`
+- [x] T013 Crear scaffolding compilable para `CreatePartyUseCase` en `src/main/java/com/alexastudillo/partyregistry/application/party/port/in/` y para puertos geográfico, persistence, política y reloj en `src/main/java/com/alexastudillo/partyregistry/application/party/port/out/`
+- [x] T014 Crear fakes reactivos con historial de llamadas y commit controlado en `src/test/java/com/alexastudillo/partyregistry/application/party/support/CreatePartyPortFakes.java`
+- [x] T015 Crear scaffolding REST compilable que responda sin comportamiento para DTOs, mapper, extractor, errores y recurso en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/`
+- [x] T016 Crear scaffolding compilable sin comportamiento para `CreatePartyService`, cliente/adaptador geográfico, `ConfiguredPartyEventPolicy`, entidades/mappers y adapter persistence en `src/main/java/com/alexastudillo/partyregistry/application/party/service/CreatePartyService.java` y `src/main/java/com/alexastudillo/partyregistry/infrastructure/`
 
 ### Ciclo TDD compartido: Headers confiables
 
-- [ ] T017 Red: Crear y ejecutar `./gradlew test --tests '*TrustedRequestContextTest'` para exigir exactamente un `Tenant-Id` UUID, `User-Id` no blank de hasta 128 y `Process-Id` UUID canónico preservado textualmente, con cero puertos ante ausencia, forma no canónica, malformación o duplicado, en `src/test/java/com/alexastudillo/partyregistry/api/rest/v1/party/TrustedRequestContextTest.java` (FR-002, FR-004, FR-005, FR-029)
-- [ ] T018 Green: Implementar solo extracción y validación cardinal para pasar T017 en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/context/TrustedRequestContextExtractor.java` y `src/main/java/com/alexastudillo/partyregistry/application/party/command/TrustedCreationContext.java` (FR-002, FR-004, FR-005, FR-029)
-- [ ] T019 Refactor: Mantener transporte fuera del dominio y ejecutar verdes T017 y `CleanArchitectureTest` sobre `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/context/`
+- [x] T017 Red: Crear y ejecutar `./gradlew test --tests '*TrustedRequestContextTest'` para exigir exactamente un `Tenant-Id` UUID, `User-Id` no blank de hasta 128 y `Process-Id` UUID canónico preservado textualmente, con cero puertos ante ausencia, forma no canónica, malformación o duplicado, en `src/test/java/com/alexastudillo/partyregistry/api/rest/v1/party/TrustedRequestContextTest.java` (FR-002, FR-004, FR-005, FR-029)
+- [x] T018 Green: Implementar solo extracción y validación cardinal para pasar T017 en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/context/TrustedRequestContextExtractor.java` y `src/main/java/com/alexastudillo/partyregistry/application/party/command/TrustedCreationContext.java` (FR-002, FR-004, FR-005, FR-029)
+- [x] T019 Refactor: Mantener transporte fuera del dominio y ejecutar verdes T017 y `CleanArchitectureTest` sobre `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/context/`
 
 ### Ciclo TDD compartido: Body cerrado
 
-- [ ] T020 Red: Crear y ejecutar `./gradlew test --tests '*ServerOwnedFieldsResourceTest'` para rechazar tenant, user, process, display name, status, versión, auditoría y campos desconocidos antes de puertos, con violations sanitizadas por JSON path, en `src/test/java/com/alexastudillo/partyregistry/api/rest/v1/party/ServerOwnedFieldsResourceTest.java` (FR-003, FR-011, FR-027)
-- [ ] T021 Green: Implementar deserialización cerrada y mapper sin campos server-owned en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/dto/` y `mapper/PartyRequestMapper.java` (FR-003, FR-011, FR-027)
-- [ ] T022 Refactor: Centralizar violations sanitizadas sin incluir valores rechazados y mantener verdes T020 y `ContractConformanceTest` en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/mapper/PartyRequestMapper.java`
+- [x] T020 Red: Crear y ejecutar `./gradlew test --tests '*ServerOwnedFieldsResourceTest'` para rechazar tenant, user, process, display name, status, versión, auditoría y campos desconocidos antes de puertos, con violations sanitizadas por JSON path, en `src/test/java/com/alexastudillo/partyregistry/api/rest/v1/party/ServerOwnedFieldsResourceTest.java` (FR-003, FR-011, FR-027)
+- [x] T021 Green: Implementar deserialización cerrada y mapper sin campos server-owned en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/dto/` y `mapper/PartyRequestMapper.java` (FR-003, FR-011, FR-027)
+- [x] T022 Refactor: Centralizar violations sanitizadas sin incluir valores rechazados y mantener verdes T020 y `ContractConformanceTest` en `src/main/java/com/alexastudillo/partyregistry/api/rest/v1/party/mapper/PartyRequestMapper.java`
 
 ### Ciclo TDD compartido: Esquema raíz
 
-- [ ] T023 Red: Crear y ejecutar `./gradlew test --tests '*PartyRootMigrationTest'` para exigir enum, tabla `parties`, checks, índices e inmutabilidad de tipo; verificar fallo por migración ausente en `src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/PartyRootMigrationTest.java` (FR-006, FR-019, FR-020)
-- [ ] T024 Green: Implementar solo el esquema requerido por T023 mediante Flyway en `src/main/resources/db/migration/V1__create_party_root.sql` (FR-006, FR-019, FR-020)
-- [ ] T025 Refactor: Alinear nombres con `docs/database/v1-scheme.dbml` y mantener verde T023 sin modificar una migración ya aplicada en `src/main/resources/db/migration/V1__create_party_root.sql`
+- [x] T023 Red: Crear y ejecutar `./gradlew test --tests '*PartyRootMigrationTest'` para exigir enum, tabla `parties`, checks, índices e inmutabilidad de tipo; verificar fallo por migración ausente en `src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/PartyRootMigrationTest.java` (FR-006, FR-019, FR-020)
+- [x] T024 Green: Implementar solo el esquema requerido por T023 mediante Flyway en `src/main/resources/db/migration/V1__create_party_root.sql` (FR-006, FR-019, FR-020)
+- [x] T025 Refactor: Alinear nombres con `docs/database/v1-scheme.dbml` y mantener verde T023 sin modificar una migración ya aplicada en `src/main/resources/db/migration/V1__create_party_root.sql`
 
 ### Ciclo TDD compartido: ORM raíz
 
-- [ ] T026 Red: Crear y ejecutar `./gradlew test --tests '*PartyRootEntityMappingTest'` para enum nombrado, UUID v7, versión `0`, schema generation deshabilitado, schema validation habilitado y JDBC aislado a Flyway; verificar fallo del scaffold/configuración en `src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/PartyRootEntityMappingTest.java` (FR-019, FR-020)
-- [ ] T027 Green: Implementar el mapeo y configuración mínimos para pasar T026 en `src/main/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/entity/PartyEntity.java` y `src/main/resources/application.properties` (FR-019, FR-020)
-- [ ] T028 Refactor: Encapsular mapping de raíz y mantener verdes T026 y `CleanArchitectureTest` en `src/main/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/mapper/PartyRootPersistenceMapper.java`
+- [x] T026 Red: Crear y ejecutar `./gradlew test --tests '*PartyRootEntityMappingTest'` para enum nombrado, UUID v7, versión `0`, schema generation deshabilitado, schema validation habilitado y JDBC aislado a Flyway; verificar fallo del scaffold/configuración en `src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/PartyRootEntityMappingTest.java` (FR-019, FR-020)
+- [x] T027 Green: Implementar el mapeo y configuración mínimos para pasar T026 en `src/main/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/entity/PartyEntity.java` y `src/main/resources/application.properties` (FR-019, FR-020)
+- [x] T028 Refactor: Encapsular mapping de raíz y mantener verdes T026 y `CleanArchitectureTest` en `src/main/java/com/alexastudillo/partyregistry/infrastructure/persistence/party/mapper/PartyRootPersistenceMapper.java`
 
-- [ ] T029 Ejecutar `./gradlew test --tests '*CleanArchitectureTest' --tests '*ContractConformanceTest' --tests '*TrustedRequestContextTest' --tests '*PartyRoot*'` y registrar el checkpoint en `specs/001-party-registration/implementation-readiness.md`
+- [x] T029 Ejecutar `./gradlew test --tests '*CleanArchitectureTest' --tests '*ContractConformanceTest' --tests '*TrustedRequestContextTest' --tests '*PartyRoot*'` y registrar el checkpoint en `specs/001-party-registration/implementation-readiness.md`
 
 **Checkpoint**: Los tests Red posteriores pueden compilar contra scaffolding y fallar por comportamiento ausente.
 

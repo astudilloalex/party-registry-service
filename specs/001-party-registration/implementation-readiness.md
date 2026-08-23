@@ -31,3 +31,37 @@ Captured on 2026-08-23 from the repository root:
 |---------|-----------|----------|
 | `java -version` | `0` | OpenJDK `25.0.4`, Debian build `25.0.4+7-1-deb13u1-Debian`, 64-bit Server VM |
 | `./gradlew --version` | `0` | Gradle `9.3.1`; Launcher JVM `25.0.4`; Daemon JVM `/usr/lib/jvm/java-25-openjdk-amd64` |
+
+## Phase 2 Foundation Checkpoint
+
+Captured on 2026-08-23. PostgreSQL tests used the repository's PostgreSQL 18 Testcontainers
+resource through the rootless Podman socket. `TESTCONTAINERS_RYUK_DISABLED=true` was required for
+that rootless runtime; no local or production database endpoint was used.
+
+**Phase 2 base revision**: `0176e3e7eae61ffe179fb54ac72425e5119f944a`. The evidence below applies
+to the uncommitted Phase 2 worktree changes based on that revision; the eventual Pull Request must
+identify the committed revision reviewed by repository gates.
+
+### TDD Evidence
+
+| Cycle | Red evidence | Green/refactor evidence |
+|-------|--------------|-------------------------|
+| Trusted request context | `./gradlew test --tests '*TrustedRequestContextTest'` exited `1`; the valid singular-header case reached the scaffold's `UnsupportedOperationException`. | The same command exited `0`; the combined context and architecture command also exited `0`. |
+| Closed request body | `./gradlew test --tests '*ServerOwnedFieldsResourceTest'` exited `1`; unknown and server-owned fields reached the scaffold and returned `500` instead of sanitized `422` responses. | The same command exited `0`; all root and nested cases returned sanitized JSON paths and the recording use case observed zero calls. `ContractConformanceTest` remained green. |
+| Party root migration | `./gradlew test --tests '*PartyRootMigrationTest'` exited `1`; Flyway reported no migrations, enum assertions were empty, and `parties` did not exist. | The same command exited `0` against a fresh PostgreSQL 18 container after `V1__create_party_root.sql`; DBML enum, table, check, index, function, trigger, no-op update, and immutable-type assertions passed. |
+| Party root ORM | `./gradlew test --tests '*PartyRootEntityMappingTest'` exited `1`; the scaffold/configuration exposed no reactive default persistence datasource and had no root enum/UUID/version mapping. | The same command exited `0`; Hibernate Reactive validated the Flyway schema, persisted on the Vert.x event loop, generated UUID version 7, retained version `0`, and exposed JDBC only through the named Flyway datasource. `CleanArchitectureTest` remained green. |
+
+### Foundation Gate
+
+The T029 command completed with exit code `0`:
+
+```bash
+./gradlew test \
+  --tests '*CleanArchitectureTest' \
+  --tests '*ContractConformanceTest' \
+  --tests '*TrustedRequestContextTest' \
+  --tests '*PartyRoot*'
+```
+
+This checkpoint approves only the Phase 2 implementation foundation (`T007` through `T029`). It
+does not approve or begin any user-story behavior from Phase 3 or later.
