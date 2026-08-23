@@ -36,4 +36,6 @@
   and type-derived display names.
 - Third validation iteration completed on 2026-08-21 after approving a maximum of 10
   nationalities per creation command.
+- Fourth validation iteration completed on 2026-08-23 after approving mandatory `Process-Id`
+  propagation and the Geographic Reference `Tenant-Id` header.
 - All specification quality criteria are satisfied.

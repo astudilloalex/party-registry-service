@@ -119,6 +119,7 @@ tenant ownership and all-or-nothing outcomes.
   follows the clarified active-nationality rule.
 - A birth or incorporation country is syntactically valid but unknown or inactive.
 - Tenant or audit context is missing, malformed, or conflicts with client-supplied data.
+- Process context is missing, malformed, duplicated, or cannot be propagated to an outbound call.
 - Geographic validation succeeds for some codes and fails for another; no state is created.
 - The effective event configuration changes between requests; each request follows the
   configuration effective for its own atomic operation.
@@ -190,6 +191,10 @@ tenant ownership and all-or-nothing outcomes.
   creation failure. Transport-specific mappings require the approved API contract.
 - **FR-028**: A natural-person creation command MUST contain no more than 10 nationalities; a
   larger collection MUST be rejected as invalid Party data before geographic validation.
+- **FR-029**: The service MUST obtain the process identifier exclusively from one mandatory
+  `Process-Id` request header. The value MUST be a valid UUID and MUST be propagated unchanged to
+  every downstream microservice call. A missing, malformed, or duplicate header MUST be rejected as
+  invalid context before geographic validation or any state change.
 
 ### Key Entities
 
@@ -258,5 +263,5 @@ tenant ownership and all-or-nothing outcomes.
 - Approved Party Registry database contract in `docs/database/v1-scheme.dbml`.
 - Approved LikeC4 `createPartySequence` and `partyRegistryOverview` views.
 - Geographic Reference Service country lookup and active-status semantics.
-- Trusted `Tenant-Id` and `User-Id` request headers supplied to the internal service.
+- Trusted `Tenant-Id`, `User-Id`, and `Process-Id` request headers supplied to the internal service.
 - Effective configuration for Party creation events.

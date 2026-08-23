@@ -7,13 +7,13 @@
 ## Operation
 
 ```text
-validateAll(activeCountryCodes, auditSubject) -> asynchronous CountryValidationOutcome
+validateAll(activeCountryCodes, tenantId, auditSubject, processId) -> asynchronous CountryValidationOutcome
 ```
 
 The application invokes the port once with an immutable, non-empty set of syntactically valid,
 uppercase ISO 3166-1 alpha-2 codes collected from the applicable birth, incorporation, and
-nationality fields, plus the trusted audit subject already validated from `User-Id`. It does not
-invoke the port when no country is supplied.
+nationality fields, plus trusted context already validated from `Tenant-Id`, `User-Id`, and
+`Process-Id`. It does not invoke the port when no country is supplied.
 
 The concrete application port returns `Uni<CountryValidationOutcome>`. This document defines
 semantics rather than Java signatures so provider transport details remain outside the application.
@@ -47,12 +47,11 @@ to `DEPENDENCY_UNAVAILABLE` and performs no persistence.
 - The adapter preserves cancellation and never blocks, awaits, sleeps, or manually subscribes.
 - The adapter does not automatically retry and does not use stale cached activity data.
 - Connection and request deadlines are bounded mandatory configuration supplied per environment.
-- The adapter maps the trusted audit subject to required provider header `user-id` without using MDC
-  or thread-local state as an application input.
-- The adapter creates one canonical UUID `process-id` for a validation invocation, reuses it for all
-  per-code requests, and verifies the provider echo.
-- Optional provider header `company-id` is omitted because no approved source establishes that
-  Party `Tenant-Id` and Geographic Reference company identity use the same namespace.
+- The adapter propagates trusted `Tenant-Id`, `User-Id`, and `Process-Id` explicitly without using
+  MDC or thread-local state as an application input.
+- The adapter reuses the inbound `Process-Id` unchanged for all per-code requests and verifies the
+  provider echo; it never generates a replacement.
+- Removed provider header `company-id` is never sent.
 - Trace context may be propagated by the infrastructure adapter without exposing observability
   framework types through the application port.
 
@@ -66,9 +65,15 @@ The authoritative provider source for this feature is Postman collection
 ```http
 GET /api/v1/countries/by-alpha2/{alpha2Code}
 Accept: application/json
-user-id: <trusted audit subject>
-process-id: <canonical command-validation UUID>
+Tenant-Id: <trusted tenant UUID>
+User-Id: <trusted audit subject>
+Process-Id: <trusted process UUID>
 ```
+
+The route, envelope, and activity values come from the cited Postman collection. The header block
+implements the newer 2026-08-23 human decision that Geographic Reference will require `Tenant-Id`,
+retain `User-Id` and `Process-Id`, and remove `company-id`; the provider collection must be
+synchronized before adapter integration acceptance.
 
 The adapter issues one request per distinct code, with at most 11 requests for one Party command.
 It consumes only the standard envelope and country activity field approved by the collection and
@@ -76,9 +81,9 @@ the 2026-08-22 human clarification:
 
 | Provider result | Port interpretation |
 |-----------------|---------------------|
-| `200`, JSON, envelope `status: 200`, `code: successful`, `data.status: ACTIVE`, matching `process-id` echo | Active |
+| `200`, JSON, envelope `status: 200`, `code: successful`, `data.status: ACTIVE`, matching `Process-Id` echo | Active |
 | Same valid result with `data.status: DRAFT`, `DEPRECATED`, or `RETIRED` | Explicitly inactive |
-| `404`, JSON, envelope `status: 404`, code ending in `not-found`, matching `process-id` echo | Explicitly unknown |
+| `404`, JSON, envelope `status: 404`, code ending in `not-found`, matching `Process-Id` echo | Explicitly unknown |
 | Any other status, media type, envelope, activity value, echo, timeout, connection result, or incomplete response | Validation unavailable |
 
 All distinct lookups must complete authoritatively. If any lookup is unavailable, the aggregate
@@ -94,8 +99,8 @@ lookup is authoritative and at least one is inactive or unknown, the aggregate o
   `InvalidReferences` when all lookups are authoritative.
 - Partial, malformed, contradictory, delayed, disconnected, mismatched process-ID, or unexpected
   responses produce `ValidationUnavailable`.
-- Adapter requests use the approved route and headers, omit `company-id`, and never exceed one
-  lookup per distinct code.
+- Adapter requests use the approved route, propagate the three trusted headers, omit `company-id`,
+  and never exceed one lookup per distinct code.
 - No persistence call occurs after either failure outcome.
 - HTTP adapter tests use a controlled stub and prove serialization, response mapping, timeout, and
   cancellation behavior without contacting production.

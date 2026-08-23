@@ -15,7 +15,8 @@ production
   gate.
 - The Geographic Reference adapter is mapped to Postman collection
   `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`; its controlled local stub reproduces that
-  contract and the approved `data.status` values.
+  contract, the approved `data.status` values, and the newer required `Tenant-Id`, `User-Id`, and
+  `Process-Id` headers without `company-id`.
 - LikeC4 has been synchronized with a Clean Architecture component view, the upstream trusted-header
   and internal-ingress boundary, and Party database ownership that excludes customers.
 - The architecture owner has approved the Hibernate Reactive execution-model ADR, including
@@ -131,9 +132,9 @@ Do not expose the development listener beyond the local machine.
 
 Configure the stub to expect one
 `GET /api/v1/countries/by-alpha2/{alpha2Code}` per distinct code with `Accept: application/json`,
-the trusted audit subject in `user-id`, and one canonical `process-id` reused across the validation
-invocation. It must echo `process-id`; `company-id` remains absent. A successful active response has
-the standard envelope with `status: 200`, `code: successful`, and `data.status: ACTIVE`.
+the trusted values in `Tenant-Id`, `User-Id`, and `Process-Id`. It must echo `Process-Id`;
+`company-id` remains absent. A successful active response has the standard envelope with
+`status: 200`, `code: successful`, and `data.status: ACTIVE`.
 `DRAFT`, `DEPRECATED`, or `RETIRED` represents an inactive country. A `404` envelope whose code ends
 in `not-found` represents an unknown country.
 
@@ -145,6 +146,7 @@ curl --fail-with-body \
   -H 'Content-Type: application/json' \
   -H 'Tenant-Id: 018f47ea-4e72-7f52-9f2c-6b95849f1180' \
   -H 'User-Id: local-validator' \
+  -H 'Process-Id: 01991f6a-07a5-70ce-8194-f3ab0a4ce931' \
   --data '{
     "type": "NATURAL_PERSON",
     "naturalPersonDetails": {
@@ -175,6 +177,7 @@ curl --fail-with-body \
   -H 'Content-Type: application/json' \
   -H 'Tenant-Id: 018f47ea-4e72-7f52-9f2c-6b95849f1180' \
   -H 'User-Id: local-validator' \
+  -H 'Process-Id: 01991f6a-07a5-70ce-8194-f3ab0a4ce931' \
   --data '{
     "type": "LEGAL_ENTITY",
     "legalEntityDetails": {
@@ -193,6 +196,7 @@ curl --include \
   -X POST 'http://localhost:8080/internal/v1/parties' \
   -H 'Content-Type: application/json' \
   -H 'User-Id: local-validator' \
+  -H 'Process-Id: 01991f6a-07a5-70ce-8194-f3ab0a4ce931' \
   --data '{
     "type": "NATURAL_PERSON",
     "naturalPersonDetails": {
@@ -235,6 +239,9 @@ Use at least two tenant UUIDs and distinct `User-Id` values. Verify:
 - Missing, malformed, or repeated `Tenant-Id` is rejected before dependency or persistence calls.
 - Missing, blank, oversized, or repeated `User-Id` is rejected before dependency or persistence
   calls.
+- Missing, malformed, or repeated `Process-Id` is rejected before dependency or persistence calls.
+- The exact inbound `Process-Id`, `Tenant-Id`, and `User-Id` values reach every Geographic Reference
+  lookup, and no request contains `company-id`.
 - A request with 11 nationalities is rejected before geographic validation; requests with 0 and 10
   valid nationalities reach their expected validation path.
 - A failed command for tenant A does not affect committed state for tenant B.
@@ -247,7 +254,7 @@ For applicable request paths, capture local test logs and verify the configured 
 %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3}] (%t) [pid=%X{processId}] [user=%X{userId}] [tenantId=%X{tenantId}] %s%e%n
 ```
 
-Verify `processId`, `userId`, and `tenantId` survive asynchronous boundaries when available. Logs,
+Verify mandatory `processId`, `userId`, and `tenantId` survive asynchronous boundaries. Logs,
 errors, traces, and event payloads must not contain complete identifiers, names, dates, country
 lists, provider payloads, SQL, or stack traces returned to clients.
 

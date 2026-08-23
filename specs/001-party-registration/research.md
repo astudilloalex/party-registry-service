@@ -1,6 +1,6 @@
 # Phase 0 Research: Party Registration
 
-**Date**: 2026-08-22
+**Date**: 2026-08-23
 **Status**: Complete for design; independent DBML validation and remaining architecture
 synchronization remain pre-implementation gates
 
@@ -16,6 +16,9 @@ synchronization remain pre-implementation gates
   `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, updated 2026-07-27
 - Human contract clarification dated 2026-08-22: a successful country lookup returns `data.status`
   as one of `DRAFT`, `ACTIVE`, `DEPRECATED`, or `RETIRED`
+- Human contract decision dated 2026-08-23: Party Registry requires one UUID `Process-Id` and
+  propagates `Process-Id`, `Tenant-Id`, and `User-Id` to Geographic Reference; Geographic Reference
+  removes `company-id`
 
 Only the two sequence views required by this feature were consulted.
 
@@ -54,7 +57,7 @@ models from becoming the Party domain model.
 
 **Decision**: Execute creation in this order:
 
-1. Validate singular `Tenant-Id` and `User-Id` context headers at the API boundary.
+1. Validate singular `Tenant-Id`, `User-Id`, and `Process-Id` context headers at the API boundary.
 2. Map and validate the closed natural-person or legal-entity request variant.
 3. Construct and validate a new domain aggregate without a persistence identity, deriving display
    name, `DRAFT`, version `0`, audit values, and distinct country codes.
@@ -190,10 +193,10 @@ service and migrations.
 ## R-009: Internal REST Contract
 
 **Decision**: Define `POST /internal/v1/parties` in OpenAPI 3.1.1. Require exactly one `Tenant-Id`
-UUID header and one `User-Id` header of 1 to 128 characters. Use a closed discriminated request
-union for `NATURAL_PERSON` and `LEGAL_ENTITY`, reject unknown and server-owned fields, and return
-`201 Created` with `partyId` and version `0`. Do not emit a `Location` header until a retrieval
-contract exists.
+UUID header, one `User-Id` header of 1 to 128 characters, and one `Process-Id` UUID header. Use a
+closed discriminated request union for `NATURAL_PERSON` and `LEGAL_ENTITY`, reject unknown and
+server-owned fields, and return `201 Created` with `partyId` and version `0`. Do not emit a
+`Location` header until a retrieval contract exists.
 
 **Rationale**: The path makes internal intent and API version explicit; the closed union prevents
 incompatible details structurally. `201` is returned only after a completed commit.
@@ -226,11 +229,11 @@ business validation, dependency availability, and known rollback outcomes.
 
 ## R-011: Trusted Context and Internal Reachability
 
-**Decision**: Treat `Tenant-Id` and `User-Id` as trusted context supplied to an internal-only
-service, not as authentication credentials. Authentication, caller-to-tenant authorization, and
-public ingress remain outside this feature and must be enforced upstream and by deployment policy.
-The service still validates header cardinality, syntax, and length and never accepts tenant or
-audit ownership from the body.
+**Decision**: Treat `Tenant-Id`, `User-Id`, and `Process-Id` as trusted context supplied to an
+internal-only service, not as authentication credentials. Authentication, caller-to-tenant
+authorization, and public ingress remain outside this feature and must be enforced upstream and by
+deployment policy. The service validates header cardinality, syntax, and length, never accepts
+tenant or audit ownership from the body, and propagates the process identifier unchanged.
 
 **Rationale**: The feature specification explicitly excludes authentication and authorization,
 while requiring trusted context and no Internet exposure.
@@ -244,18 +247,17 @@ while requiring trusted context and no Internet exposure.
 ## R-012: Geographic Reference Anti-Corruption Port
 
 **Decision**: Define an application-owned `ActiveCountryReferenceValidationPort` that accepts an
-immutable set of distinct uppercase ISO alpha-2 codes plus the trusted audit subject required by
-the provider and returns a `Uni` with one typed outcome: all active, explicitly invalid references,
-or validation unavailable. Skip the call for an empty set.
+immutable set of distinct uppercase ISO alpha-2 codes plus trusted tenant, audit-subject, and process
+context and returns a `Uni` with one typed outcome: all active, explicitly invalid references, or
+validation unavailable. Skip the call for an empty set.
 
 The REST adapter implements Postman collection
 `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3` by issuing
 `GET /api/v1/countries/by-alpha2/{alpha2Code}` once for each distinct code, with at most 11 lookups
-for one creation command. It sends `Accept: application/json`, maps the trusted `User-Id` to the
-required `user-id`, creates one canonical UUID `process-id` for the validation invocation, reuses it
-for every lookup, and verifies the echoed response header. It omits optional `company-id` because no
-approved source establishes that Party `Tenant-Id` and Geographic Reference company identity share
-the same namespace.
+for one creation command. It sends `Accept: application/json` and propagates the trusted
+`Tenant-Id`, `User-Id`, and `Process-Id` unchanged to every lookup. The provider echoes
+`Process-Id`, which the adapter verifies. The 2026-08-23 human decision removes `company-id` from
+the provider contract and supersedes the older Postman header definition.
 
 For each requested code, a `200` response is active only when the standard envelope has
 `status: 200`, `code: successful`, and `data.status: ACTIVE`. A documented `data.status` of `DRAFT`,
@@ -268,10 +270,10 @@ Only explicit unknown or inactive results are invalid references. Partial, malfo
 contradictory, timed-out, unauthorized, or otherwise incomplete responses mean validation is
 unavailable and fail creation before persistence.
 
-**Rationale**: The port isolates provider semantics, deduplicates lookups, carries the provider's
-required audit context explicitly, and keeps HTTP models outside the application and domain. It
-uses only the provider route, envelope, status field, status values, and headers approved by the
-Postman contract and human clarification.
+**Rationale**: The port isolates provider semantics, deduplicates lookups, carries all required
+trusted context explicitly, and keeps HTTP models outside the application and domain. It uses the
+provider route, envelope, status field, and status values from Postman together with the newer human
+header decision.
 
 **Alternatives considered**:
 
@@ -282,8 +284,8 @@ Postman contract and human clarification.
   item shape or a completeness guarantee suitable for authoritative membership checks.
 - Treating every `200` as active: rejected because existing but non-active countries are valid
   provider outcomes.
-- Mapping `Tenant-Id` to optional `company-id`: rejected until an approved source establishes
-  identity-namespace equivalence.
+- Continuing to send `company-id`: rejected because the approved provider change removes it in
+  favor of `Tenant-Id`.
 
 ## R-013: Geographic Resilience
 
@@ -358,7 +360,8 @@ tenant isolation, non-blocking execution, and operational requirements independe
 
 **Decision**: Use Quarkus BOM-managed extensions for REST/Jackson, REST Client/Jackson, Hibernate
 Reactive, reactive PostgreSQL, Hibernate Validator, SmallRye OpenAPI, context propagation, Flyway,
-and the Flyway-only PostgreSQL JDBC boundary. Use JUnit, Quarkus reactive test support,
+Micrometer Prometheus, OpenTelemetry, and the Flyway-only PostgreSQL JDBC boundary. Use JUnit,
+Quarkus reactive test support,
 RestAssured, ArchUnit, Testcontainers PostgreSQL, an HTTP stub, an OpenAPI parser, and a JSON Schema
 2020-12 validator for tests.
 

@@ -4,8 +4,8 @@ info:
   version: 1.0.0
   description: >-
     Internal-only contract for tenant-scoped Party registration. Network isolation and caller
-    authentication are upstream and deployment responsibilities; Tenant-Id and User-Id provide
-    trusted context but are not authentication credentials.
+    authentication are upstream and deployment responsibilities; Tenant-Id, User-Id and Process-Id
+    provide trusted context but are not authentication credentials.
 servers: []
 tags:
   - name: Parties
@@ -25,6 +25,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/ProcessId'
       requestBody:
         required: true
         content:
@@ -90,6 +91,17 @@ components:
         minLength: 1
         maxLength: 128
         pattern: '.*\S.*'
+    ProcessId:
+      name: Process-Id
+      in: header
+      required: true
+      description: >-
+        Trusted request correlation identifier propagated unchanged to downstream microservices.
+        Exactly one canonical UUID is required. Missing, malformed, or repeated values are
+        INVALID_CONTEXT.
+      schema:
+        type: string
+        format: uuid
   schemas:
     CreatePartyRequest:
       oneOf:

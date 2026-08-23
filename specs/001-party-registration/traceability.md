@@ -1,6 +1,6 @@
 # Traceability Matrix: Party Registration
 
-**Date**: 2026-08-22
+**Date**: 2026-08-23
 
 ## Architecture References
 
@@ -46,6 +46,7 @@
 | FR-026 | `CreatePartyResult` and response mapper | REST, R-004 | `201` response UUID version 7 and version `0` |
 | FR-027 | API problem mapper | REST, R-010 | Status/type/code-specific RFC 9457 conformance tests |
 | FR-028 | Request schema and Party factory | REST, R-017 | Accept 0 and 10 nationalities; reject 11 before geographic validation |
+| FR-029 | API process context and geographic adapter | REST, GEO, 2026-08-23 human decision | Missing, malformed, repeated, valid, and unchanged downstream `Process-Id` tests |
 
 ## Success Criteria
 
@@ -81,5 +82,7 @@
 - The architecture owner must approve an execution-model ADR for Hibernate Reactive ORM and the
   reactive transaction/resource model.
 - The Geographic Reference adapter mapping must remain conformant with Postman collection
-  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3` and the approved activity-state clarification.
+  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, the approved activity-state clarification, and
+  the newer three-header decision; the provider contract must remove `company-id` before integration
+  acceptance.
 - Migration and implementation tasks must retain the requirement identifiers in this matrix.
