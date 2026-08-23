@@ -7,12 +7,13 @@
 ## Operation
 
 ```text
-validateAll(activeCountryCodes) -> asynchronous CountryValidationOutcome
+validateAll(activeCountryCodes, auditSubject) -> asynchronous CountryValidationOutcome
 ```
 
 The application invokes the port once with an immutable, non-empty set of syntactically valid,
 uppercase ISO 3166-1 alpha-2 codes collected from the applicable birth, incorporation, and
-nationality fields. It does not invoke the port when no country is supplied.
+nationality fields, plus the trusted audit subject already validated from `User-Id`. It does not
+invoke the port when no country is supplied.
 
 The concrete application port returns `Uni<CountryValidationOutcome>`. This document defines
 semantics rather than Java signatures so provider transport details remain outside the application.
@@ -46,28 +47,55 @@ to `DEPENDENCY_UNAVAILABLE` and performs no persistence.
 - The adapter preserves cancellation and never blocks, awaits, sleeps, or manually subscribes.
 - The adapter does not automatically retry and does not use stale cached activity data.
 - Connection and request deadlines are bounded mandatory configuration supplied per environment.
-- Tenant and audit headers are not propagated unless the Geographic Reference Service's approved
-  contract explicitly requires them.
+- The adapter maps the trusted audit subject to required provider header `user-id` without using MDC
+  or thread-local state as an application input.
+- The adapter creates one canonical UUID `process-id` for a validation invocation, reuses it for all
+  per-code requests, and verifies the provider echo.
+- Optional provider header `company-id` is omitted because no approved source establishes that
+  Party `Tenant-Id` and Geographic Reference company identity use the same namespace.
 - Trace context may be propagated by the infrastructure adapter without exposing observability
   framework types through the application port.
 
-## Provider Contract Boundary
+## Provider Wire Mapping
 
-LikeC4 approves reactive REST/JSON country validation but does not define the provider method, URI,
-status mapping, or JSON schemas. The infrastructure adapter must implement this semantic contract
-against Geographic Reference Service's own approved, versioned interface. This plan deliberately
-does not invent that external URI or provider payload.
+The authoritative provider source for this feature is Postman collection
+`geographic-reference-service`, UID `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, updated
+2026-07-27. The selected request is `Get country by alpha-2 code`, request UID
+`15834347-ed5c0238-71ab-455a-32b8-e63856198cb5`:
 
-Adapter implementation cannot be accepted until its mapping is verified against that provider
-contract. Application and domain work can proceed using this stable port and deterministic fakes.
+```http
+GET /api/v1/countries/by-alpha2/{alpha2Code}
+Accept: application/json
+user-id: <trusted audit subject>
+process-id: <canonical command-validation UUID>
+```
+
+The adapter issues one request per distinct code, with at most 11 requests for one Party command.
+It consumes only the standard envelope and country activity field approved by the collection and
+the 2026-08-22 human clarification:
+
+| Provider result | Port interpretation |
+|-----------------|---------------------|
+| `200`, JSON, envelope `status: 200`, `code: successful`, `data.status: ACTIVE`, matching `process-id` echo | Active |
+| Same valid result with `data.status: DRAFT`, `DEPRECATED`, or `RETIRED` | Explicitly inactive |
+| `404`, JSON, envelope `status: 404`, code ending in `not-found`, matching `process-id` echo | Explicitly unknown |
+| Any other status, media type, envelope, activity value, echo, timeout, connection result, or incomplete response | Validation unavailable |
+
+All distinct lookups must complete authoritatively. If any lookup is unavailable, the aggregate
+outcome is `ValidationUnavailable`, even when another lookup was explicitly invalid. If every
+lookup is authoritative and at least one is inactive or unknown, the aggregate outcome is
+`InvalidReferences`; only all `ACTIVE` results produce `AllActive`.
 
 ## Tests
 
 - Empty country set skips the port.
 - Distinct active codes produce `AllActive`.
-- Explicit unknown and inactive codes produce `InvalidReferences`.
-- Partial, malformed, contradictory, delayed, disconnected, or unexpected responses produce
-  `ValidationUnavailable`.
+- `DRAFT`, `DEPRECATED`, `RETIRED`, and documented `404` not-found results produce
+  `InvalidReferences` when all lookups are authoritative.
+- Partial, malformed, contradictory, delayed, disconnected, mismatched process-ID, or unexpected
+  responses produce `ValidationUnavailable`.
+- Adapter requests use the approved route and headers, omit `company-id`, and never exceed one
+  lookup per distinct code.
 - No persistence call occurs after either failure outcome.
 - HTTP adapter tests use a controlled stub and prove serialization, response mapping, timeout, and
   cancellation behavior without contacting production.

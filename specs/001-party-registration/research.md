@@ -1,8 +1,8 @@
 # Phase 0 Research: Party Registration
 
-**Date**: 2026-08-21
-**Status**: Complete for design; approved DBML and architecture synchronization remain
-pre-implementation gates
+**Date**: 2026-08-22
+**Status**: Complete for design; independent DBML validation and remaining architecture
+synchronization remain pre-implementation gates
 
 ## Authoritative Inputs
 
@@ -12,6 +12,10 @@ pre-implementation gates
 - [Party Registry service context](file:///home/alex/Documents/Development/architecture/alex-astudillo-architecture/architectures/party-registry/party-registry-overview.c4#L2)
 - [Create Party sequence](file:///home/alex/Documents/Development/architecture/alex-astudillo-architecture/architectures/party-registry/party-registry-sequences.c4#L2)
 - [Optional outbox sequence](file:///home/alex/Documents/Development/architecture/alex-astudillo-architecture/architectures/party-registry/party-registry-sequences.c4#L169)
+- Geographic Reference Service Postman collection `geographic-reference-service`, UID
+  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, updated 2026-07-27
+- Human contract clarification dated 2026-08-22: a successful country lookup returns `data.status`
+  as one of `DRAFT`, `ACTIVE`, `DEPRECATED`, or `RETIRED`
 
 Only the two sequence views required by this feature were consulted.
 
@@ -28,8 +32,6 @@ LikeC4 technology declaration while preserving non-blocking I/O and ORM-based pe
 **Alternatives considered**:
 
 - Direct PostgreSQL Reactive Client: rejected by the amended constitution and human decision.
-- Hibernate Reactive: rejected because LikeC4 now specifies plain Hibernate Reactive
-  and the constitution prohibits.
 - Blocking Hibernate ORM or JDBC: rejected because request processing must remain non-blocking.
 
 ## R-002: Clean Architecture Boundaries
@@ -67,8 +69,8 @@ call occurs while a database transaction is open.
 
 **Rationale**: The sequence implements the approved remote-before-transaction boundary, keeps
 network latency outside the transaction, and guarantees all-or-nothing Party and outbox
-persistence. The current flattened LikeC4 sequence must be synchronized to show the natural/legal
-alternatives and transaction closure explicitly before implementation.
+persistence. The current LikeC4 sequence now shows separate natural-person and legal-entity
+validation paths before their Hibernate Reactive transaction steps.
 
 **Alternatives considered**:
 
@@ -141,8 +143,7 @@ boundary preserves both the migration requirement and the non-blocking applicati
 
 ## R-007: Temporal Nationality Integrity
 
-**Decision**: Replace the DBML's requested active-row partial unique indexes with approved temporal
-exclusion constraints before migration generation:
+**Decision**: Use the temporal exclusion constraints now recorded by the authoritative DBML:
 
 - For one Party and country, nationality validity intervals must not overlap.
 - For one Party, intervals marked primary must not overlap, regardless of country.
@@ -161,8 +162,10 @@ the invariant for every date and closes concurrency races.
   that are active.
 - Application-only validation: rejected because concurrent writes can both pass before commit.
 
-**Pre-implementation gate**: The final DBML must be amended and revalidated before Flyway
-migrations are designed. This plan does not modify the DBML or create migrations.
+**Pre-implementation gate**: `ex_party_nationalities_country_validity` and
+`ex_party_nationalities_primary_validity` are present in the current DBML. The DBML must pass its
+independent contract validation before Flyway migrations are designed. This plan does not modify
+the DBML or create migrations.
 
 ## R-008: Aggregate Shape Enforcement
 
@@ -241,24 +244,46 @@ while requiring trusted context and no Internet exposure.
 ## R-012: Geographic Reference Anti-Corruption Port
 
 **Decision**: Define an application-owned `ActiveCountryReferenceValidationPort` that accepts an
-immutable set of distinct uppercase ISO alpha-2 codes and returns a `Uni` with one typed outcome:
-all active, explicitly invalid references, or validation unavailable. Skip the call for an empty
-set. Keep external URI, status, and DTO mappings inside the REST adapter; they are supplied by the
-Geographic Reference Service's own approved contract and are not invented here.
+immutable set of distinct uppercase ISO alpha-2 codes plus the trusted audit subject required by
+the provider and returns a `Uni` with one typed outcome: all active, explicitly invalid references,
+or validation unavailable. Skip the call for an empty set.
+
+The REST adapter implements Postman collection
+`15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3` by issuing
+`GET /api/v1/countries/by-alpha2/{alpha2Code}` once for each distinct code, with at most 11 lookups
+for one creation command. It sends `Accept: application/json`, maps the trusted `User-Id` to the
+required `user-id`, creates one canonical UUID `process-id` for the validation invocation, reuses it
+for every lookup, and verifies the echoed response header. It omits optional `company-id` because no
+approved source establishes that Party `Tenant-Id` and Geographic Reference company identity share
+the same namespace.
+
+For each requested code, a `200` response is active only when the standard envelope has
+`status: 200`, `code: successful`, and `data.status: ACTIVE`. A documented `data.status` of `DRAFT`,
+`DEPRECATED`, or `RETIRED` is an explicit inactive reference. A `404` standard envelope whose code
+ends in `not-found` is an explicit unknown reference. Every other HTTP status, activity value,
+media type, envelope, process-ID echo, timeout, connection result, or incomplete response is
+validation unavailable.
 
 Only explicit unknown or inactive results are invalid references. Partial, malformed,
 contradictory, timed-out, unauthorized, or otherwise incomplete responses mean validation is
 unavailable and fail creation before persistence.
 
-**Rationale**: The port isolates provider semantics, deduplicates lookups, and keeps HTTP models
-outside the application and domain.
+**Rationale**: The port isolates provider semantics, deduplicates lookups, carries the provider's
+required audit context explicitly, and keeps HTTP models outside the application and domain. It
+uses only the provider route, envelope, status field, status values, and headers approved by the
+Postman contract and human clarification.
 
 **Alternatives considered**:
 
 - Boolean result: rejected because it cannot distinguish invalid data from dependency failure.
 - Provider DTOs or exceptions in the port: rejected because they break the anti-corruption
   boundary.
-- Inventing a provider URI: rejected because its API contract is owned by another service.
+- `GET /api/v1/countries?status=ACTIVE`: rejected because the collection does not define the list
+  item shape or a completeness guarantee suitable for authoritative membership checks.
+- Treating every `200` as active: rejected because existing but non-active countries are valid
+  provider outcomes.
+- Mapping `Tenant-Id` to optional `company-id`: rejected until an approved source establishes
+  identity-namespace equivalence.
 
 ## R-013: Geographic Resilience
 
@@ -288,8 +313,9 @@ assigns the Party ID, to exactly one `PENDING` outbox entity in the Party transa
 type `PARTY`, aggregate version `0`, delivery version `0`, and payload containing only `partyType`.
 Do not publish or connect to RabbitMQ in this feature.
 
-Add an approved uniqueness rule for tenant, aggregate type, aggregate ID, aggregate version, and
-event type before migration generation.
+The current DBML records uniqueness for tenant, aggregate type, aggregate ID, aggregate version,
+and event type as `uq_party_outbox_event_identity` and constrains the creation payload through
+`ck_party_outbox_created_event_shape`.
 
 **Rationale**: The metadata already carries tenant, aggregate identity, and version. A payload with
 only immutable `partyType` avoids names, dates, countries, audit identity, and other unnecessary
@@ -301,8 +327,9 @@ personal data while giving consumers minimal classification.
 - Empty payload: rejected because immutable Party classification is useful and non-identifying.
 - Publication during creation: rejected by feature scope and the approved outbox sequence.
 
-**Pre-implementation gate**: The final DBML must record outbox uniqueness and `User-Id` audit
-semantics and be revalidated before Flyway migration design.
+**Pre-implementation gate**: The current DBML records outbox uniqueness, the closed creation-event
+shape, and `User-Id` audit semantics. It must pass independent validation before Flyway migration
+design.
 
 ## R-015: Verification Strategy
 
@@ -420,3 +447,5 @@ passing against code written first.
 - [Quarkus REST Client asynchronous support](https://quarkus.io/version/3.33/guides/rest-client#async-support)
 - [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457)
 - [OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html)
+- Postman collection `geographic-reference-service`, UID
+  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`

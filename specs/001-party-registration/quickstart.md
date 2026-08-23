@@ -8,17 +8,16 @@ production
 - JDK 25 selected by `JAVA_HOME`.
 - Podman or Docker available for PostgreSQL 18 and controlled HTTP test containers.
 - No production credentials or endpoints configured.
-- The final DBML has incorporated and passed independent validation for:
-  - Temporal nationality exclusion constraints.
-  - Unique `party.created.v1` event identity.
-  - `User-Id` initial outbox audit semantics.
+- The current DBML contains the temporal nationality exclusions,
+  `uq_party_outbox_event_identity`, `ck_party_outbox_created_event_shape`, and trusted `User-Id`
+  initial outbox audit semantics, and has passed independent database-contract validation.
 - Flyway migrations generated from that validated DBML have passed their independent migration
   gate.
-- The Geographic Reference adapter is mapped to an approved provider contract or a controlled local
-  stub.
+- The Geographic Reference adapter is mapped to Postman collection
+  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`; its controlled local stub reproduces that
+  contract and the approved `data.status` values.
 - LikeC4 has been synchronized with a Clean Architecture component view, the upstream trusted-header
-  and internal-ingress boundary, explicit natural/legal alternatives, remote validation before the
-  local transaction, and Party database ownership that excludes customers.
+  and internal-ingress boundary, and Party database ownership that excludes customers.
 - The architecture owner has approved the Hibernate Reactive execution-model ADR, including
   transaction, resource, debugging, operational, and packaging consequences.
 
@@ -84,8 +83,9 @@ Expected evidence:
 - Domain tests cover type/detail compatibility, lifecycle dates, derived display name,
   nationality intervals and the 10-item limit, status `DRAFT`, and version `0`.
 - Application tests prove context and country validation occur before persistence.
-- Geographic adapter tests cover active, inactive, unknown, partial, malformed, delayed, and failed
-  responses.
+- Geographic adapter tests cover `ACTIVE`, `DRAFT`, `DEPRECATED`, `RETIRED`, unknown, partial,
+  malformed, delayed, failed, and mismatched process-ID responses using the approved route and
+  envelope.
 - Persistence tests prove Party, details, nationalities, and optional outbox atomicity.
 - Flyway applies from an empty PostgreSQL 18 database and Hibernate schema validation passes.
 - Architecture tests reject outward dependencies, blocking APIs, direct/native SQL,
@@ -128,6 +128,14 @@ Reference stub:
 ```
 
 Do not expose the development listener beyond the local machine.
+
+Configure the stub to expect one
+`GET /api/v1/countries/by-alpha2/{alpha2Code}` per distinct code with `Accept: application/json`,
+the trusted audit subject in `user-id`, and one canonical `process-id` reused across the validation
+invocation. It must echo `process-id`; `company-id` remains absent. A successful active response has
+the standard envelope with `status: 200`, `code: successful`, and `data.status: ACTIVE`.
+`DRAFT`, `DEPRECATED`, or `RETIRED` represents an inactive country. A `404` envelope whose code ends
+in `not-found` represents an unknown country.
 
 ### Create a Minimal Natural Person
 
@@ -253,5 +261,7 @@ Validation is complete only when:
   represented by automated tests.
 - The full suite proves zero partial state for every injected failure boundary.
 - OpenAPI and event-payload contracts validate.
+- Geographic provider fixtures conform to the cited Postman collection and approved activity-state
+  mapping.
 - The final DBML, Flyway migrations, and Hibernate mappings correspond exactly.
 - No test contacts a production endpoint or uses a production secret.

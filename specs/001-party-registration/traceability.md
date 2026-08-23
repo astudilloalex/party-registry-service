@@ -1,6 +1,6 @@
 # Traceability Matrix: Party Registration
 
-**Date**: 2026-08-21
+**Date**: 2026-08-22
 
 ## Architecture References
 
@@ -10,6 +10,8 @@
 - **DBML**: `docs/database/v1-scheme.dbml`
 - **REST**: `contracts/party-registration.openapi.yaml`
 - **GEO**: `contracts/geographic-reference-port.md`
+- **GEO-POSTMAN**: Geographic Reference Service collection
+  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`
 - **EVENT**: `contracts/party-created-v1.schema.json`
 
 ## Functional Requirements
@@ -29,8 +31,8 @@
 | FR-011 | Party display-name policy | R-003, data model | Natural and legal derivation; reject derived value over 300 |
 | FR-012 | Lifecycle date value objects | REST, DBML | Equal, open, valid, and reversed lifecycle date tests |
 | FR-013 | Nationality interval value object | REST, DBML | Equal, open, valid, and reversed validity date tests |
-| FR-014 | `ActiveCountryReferenceValidationPort` | C2, CP, GEO, R-012 | Active birth/incorporation/nationality HTTP-stub tests |
-| FR-015 | Geographic outcome mapping | GEO, R-012/R-013 | Unknown, inactive, partial, malformed, timeout, and connection failure tests |
+| FR-014 | `ActiveCountryReferenceValidationPort` | C2, CP, GEO, GEO-POSTMAN, R-012 | `ACTIVE` birth/incorporation/nationality HTTP-stub tests |
+| FR-015 | Geographic outcome mapping | GEO, GEO-POSTMAN, R-012/R-013 | `DRAFT`, `DEPRECATED`, `RETIRED`, 404 unknown, partial, malformed, echo mismatch, timeout, and connection failure tests |
 | FR-016 | Party aggregate composition | DBML, data model | Natural-only nationality domain and persistence tests |
 | FR-017 | UTC registration date and interval rules | R-004/R-007 | Boundary-date and open-bound domain tests |
 | FR-018 | Domain temporal checks and approved DB exclusion | R-007, DBML gate | Duplicate-country, overlapping-country, primary-overlap, and concurrency tests |
@@ -71,13 +73,13 @@
 
 ## Pre-Implementation Traceability Gates
 
-- The final DBML must incorporate the approved temporal nationality exclusion and outbox
-  uniqueness/`User-Id` audit decisions and pass independent validation.
-- LikeC4 must make the natural/legal alternatives and remote-before-transaction boundary explicit
-  and remove customer ownership from the Party database description.
+- The current DBML's nationality exclusions, outbox uniqueness, `User-Id` audit notes, and
+  `ck_party_outbox_created_event_shape` must pass independent database-contract validation.
+- LikeC4 must remove customer ownership from the Party database description.
 - LikeC4 must add the Clean Architecture component/port/adapter view and the upstream
   trusted-header/internal-ingress boundary.
 - The architecture owner must approve an execution-model ADR for Hibernate Reactive ORM and the
   reactive transaction/resource model.
-- The Geographic Reference adapter mapping must cite its provider's approved wire contract.
+- The Geographic Reference adapter mapping must remain conformant with Postman collection
+  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3` and the approved activity-state clarification.
 - Migration and implementation tasks must retain the requirement identifiers in this matrix.

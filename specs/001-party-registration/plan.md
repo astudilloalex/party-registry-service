@@ -1,6 +1,6 @@
 # Implementation Plan: Party Registration
 
-**Branch**: `11-ft-1` | **Feature Key**: `001-party-registration` | **Date**: 2026-08-21 | **Spec**: [spec.md](./spec.md)
+**Branch**: `11-ft-1` | **Feature Key**: `001-party-registration` | **Date**: 2026-08-22 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/001-party-registration/spec.md`
 
@@ -13,8 +13,9 @@ port, and persists the aggregate plus an optional `party.created.v1` outbox row 
 
 The implementation uses strict Clean Architecture, Java 25, Quarkus 3.33.3, Mutiny, Hibernate
 Reactive ORM, PostgreSQL 18, and Flyway. No direct/native SQL, JDBC, blocking ORM,
-or direct PostgreSQL Reactive Client access is permitted in production application code. Event
-publication is outside this feature.
+or direct PostgreSQL Reactive Client access is permitted in production application code. Country
+validation maps the approved Geographic Reference Postman contract through one alpha-2 lookup per
+distinct code. Event publication is outside this feature.
 
 ## Technical Context
 
@@ -37,15 +38,17 @@ with the repository's Quarkus container images and rootless container runtime
 **Project Type**: Internal reactive REST microservice
 
 **Performance Goals**: No throughput or latency target is approved for this feature. Preserve
-event-loop execution, deduplicate country validation requests, perform remote validation before
-opening a database transaction, and keep the transaction bounded to local writes and commit.
+event-loop execution, deduplicate country validation requests to at most 11 provider lookups,
+perform remote validation before opening a database transaction, and keep the transaction bounded
+to local writes and commit.
 
 **Constraints**: Strict Clean Architecture; framework-free domain; all runtime I/O returns `Uni`
 or `Multi`; no blocking calls; Hibernate Reactive ORM; no production direct/native
 SQL; Flyway-only migrations; exact DTO/domain/persistence separation; fail-closed tenant and
 geographic validation; internal-only reachability; exact constitutional logging pattern and MDC
-propagation; mandatory test-first implementation with recorded Red and Green executions; no Party
-event publication in this feature
+propagation; Geographic Reference contract UID
+`15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`; mandatory test-first implementation with recorded
+Red and Green executions; no Party event publication in this feature
 
 **Scale/Scope**: One creation operation, two mutually exclusive Party variants, one aggregate root,
 one matching detail, zero to 10 natural-person nationalities, zero or one creation outbox event,
@@ -65,16 +68,17 @@ one geographic-reference dependency, and four persistence table families in scop
 | Explicit internal API | OpenAPI contract is versioned under `/internal/v1`; no public server authority or public ingress is introduced | PASS |
 | Tenant isolation | `Tenant-Id` is required, body ownership is rejected, and tenant propagates to Party and outbox metadata | PASS |
 | DTO/domain/persistence separation | Explicit mapper boundaries and separate package trees are planned | PASS |
-| Traceability and approved sources | `traceability.md` maps every requirement to its owner, source, and planned validation | PASS |
+| Traceability and approved sources | `traceability.md` maps every requirement to its owner, DBML/LikeC4 source, Postman provider contract, and planned validation | PASS |
 | Mandatory TDD | Each production behavior is planned as a small Red -> Green -> Refactor cycle at the lowest capable layer | PASS |
 | Tests and observability | Domain, use-case, architecture, contract, PostgreSQL, rollback, non-blocking, logging, and MDC checks are planned as TDD cycles and checkpoint gates | PASS |
 
 **Pre-design gate result**: PASS for Phase 0 and Phase 1 design.
 
-**Pre-implementation data gate**: CLOSED until the authoritative DBML is amended and independently
-revalidated for the approved temporal nationality exclusion constraints and creation-event
-uniqueness plus `User-Id` audit semantics. No migration or persistence implementation may precede
-that gate. The existing deferred detail-type trigger remains unchanged by decision.
+**Pre-implementation database approval gate**: PENDING independent validation. The authoritative
+DBML now records the approved nationality exclusion constraints, creation-event uniqueness,
+creation-event payload shape, and `User-Id` audit semantics. No migration or persistence
+implementation may precede independent database-contract approval. The existing deferred
+detail-type trigger remains unchanged by decision.
 
 ## Project Structure
 
@@ -164,8 +168,10 @@ The domain factory constructs a new Party without a persistence identity and enf
 compatibility, required values, derived display name, lifecycle dates, a maximum of 10
 nationalities, interval rules, active duplicate/primary rules, initial `DRAFT`, and version `0`.
 The application gathers distinct country codes, invokes `ActiveCountryReferenceValidationPort`,
-evaluates event policy once, creates the optional technology-neutral event-recording intent, and
-calls one aggregate persistence port.
+passing the trusted audit subject required by its approved provider, evaluates event policy once,
+creates the optional technology-neutral event-recording intent, and calls one aggregate persistence
+port. The geographic adapter executes per-code alpha-2 lookups, maps only `ACTIVE` to success, and
+fails closed for incomplete or unexpected provider results.
 
 ### Persistence Flow
 
@@ -177,11 +183,12 @@ flush failure rolls back all rows. No publisher or RabbitMQ client is started by
 
 ### Data Contract Alignment
 
-The current DBML remains authoritative. Before implementation it must incorporate the two approved
-changes documented in [research.md](./research.md): temporal exclusion constraints for nationality
-intervals and a unique creation-event identity with `User-Id` audit semantics. The current deferred
-detail-type trigger is retained, while exactly-one-detail and no-legal-nationality guarantees remain
-domain/application responsibilities backed by integration tests.
+The current DBML remains authoritative and now contains the approved temporal nationality exclusion
+constraints, unique creation-event identity, closed `party.created.v1` payload check, and `User-Id`
+outbox audit semantics documented in [research.md](./research.md). It still requires independent
+database-contract validation before migration work. The current deferred detail-type trigger is
+retained, while exactly-one-detail and no-legal-nationality guarantees remain domain/application
+responsibilities backed by integration tests.
 
 ### Verification Flow
 
@@ -208,23 +215,21 @@ Hibernate, and JDBC outside the Flyway boundary.
 | Flyway-only schema evolution | `quickstart.md` blocks migrations until final DBML validation and requires Hibernate validation only | PASS |
 | Explicit internal API | `contracts/party-registration.openapi.yaml` defines one versioned internal operation and one RFC 9457 error family | PASS |
 | Tenant and audit context | Contract and data model require singular `Tenant-Id` and `User-Id`; server-owned fields are rejected from the body | PASS |
-| Geographic anti-corruption boundary | `contracts/geographic-reference-port.md` exposes typed application outcomes without provider DTO leakage | PASS |
-| Transactional outbox privacy | JSON schema contains only `partyType`; metadata and uniqueness rules are explicit | PASS |
+| Geographic anti-corruption boundary | `contracts/geographic-reference-port.md` maps the approved Postman alpha-2 lookup, required audit header, activity states, and fail-closed outcomes without provider DTO leakage | PASS |
+| Transactional outbox privacy | JSON schema contains only `partyType`; DBML metadata, uniqueness, and `ck_party_outbox_created_event_shape` are explicit | PASS |
 | Mandatory TDD | `research.md` and `quickstart.md` define targeted Red, minimal Green, green Refactor, and layer checkpoint evidence | PASS |
 | Tests and observability | `quickstart.md` covers TDD ordering plus all acceptance, rollback, tenant, non-blocking, architecture, contract, log-format, and MDC evidence | PASS |
 | Requirement traceability | `traceability.md` covers FR-001 through FR-028 and every measurable success criterion | PASS |
-| Approved-source consistency | DBML differences are not silently implemented; approved amendments are explicit pre-implementation gates | PASS |
+| Approved-source consistency | Current DBML and Postman decisions are cited directly; independent database approval and remaining architecture corrections stay explicit pre-implementation gates | PASS |
 
 **Post-design gate result**: PASS for the Phase 0/Phase 1 planning artifacts. No clarification marker
 or unjustified constitutional exception remains in the design.
 
-**Implementation readiness**: BLOCKED until the final DBML incorporates the approved nationality
-exclusion constraints and outbox uniqueness/`User-Id` audit decisions, then passes independent
-database-contract validation. The Geographic Reference REST adapter also requires its provider's
-approved wire contract; the application port and all provider-independent work are fully designed.
-The externally maintained LikeC4 model must also align its flattened creation sequence with the
-approved remote-before-transaction branches and correct the Party database description so it does
-not imply customer ownership.
+**Implementation readiness**: BLOCKED until the current DBML passes independent database-contract
+validation. The Geographic Reference REST adapter contract is resolved by Postman collection
+`15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3` and the approved `data.status` clarification. The
+externally maintained LikeC4 model still must correct the Party database description so it does not
+imply customer ownership.
 
 Before implementation, the architecture owner must also add an approved LikeC4 component view for
 the Clean Architecture boundaries, ports, adapters, and bootstrap composition; record the upstream
@@ -236,5 +241,5 @@ internal-only remains binding while those architecture artifacts are synchronize
 
 No constitutional violation or exception is accepted by this plan. The temporal database
 constraints add justified integrity complexity required to enforce approved concurrent temporal
-rules; they must first become part of the authoritative DBML and therefore are not treated as an
-implementation exception.
+rules. They are present in the authoritative DBML but require independent validation before
+migration work, so they are not treated as an implementation exception.
