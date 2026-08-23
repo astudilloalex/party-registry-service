@@ -12,9 +12,7 @@ val quarkusPlatformGroupId: String by project
 val quarkusPlatformArtifactId: String by project
 val quarkusPlatformVersion: String by project
 val archUnitVersion = "1.5.0"
-val jsonSchemaValidatorVersion = "1.5.9"
 val swaggerParserVersion = "2.1.47"
-val wireMockVersion = "3.13.2"
 
 dependencies {
     implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
@@ -22,11 +20,12 @@ dependencies {
 
     implementation("io.quarkus:quarkus-rest-jackson")
     implementation("io.quarkus:quarkus-rest-client-jackson")
-    implementation("io.quarkus:quarkus-hibernate-reactive")
+    implementation("io.quarkus:quarkus-hibernate-reactive-panache")
     implementation("io.quarkus:quarkus-reactive-pg-client")
     implementation("io.quarkus:quarkus-hibernate-validator")
     implementation("io.quarkus:quarkus-smallrye-openapi")
     implementation("io.quarkus:quarkus-smallrye-context-propagation")
+    implementation("io.quarkus:quarkus-smallrye-health")
     implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
     implementation("io.quarkus:quarkus-opentelemetry")
 
@@ -42,17 +41,16 @@ dependencies {
     testImplementation("com.tngtech.archunit:archunit-junit5:${archUnitVersion}")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation("org.wiremock:wiremock:${wireMockVersion}")
     testImplementation("io.swagger.parser.v3:swagger-parser:${swaggerParserVersion}")
-    testImplementation("com.networknt:json-schema-validator:${jsonSchemaValidatorVersion}")
 }
 
 group = "com.alexastudillo"
 version = "1.0.0-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 sourceSets {
@@ -66,13 +64,28 @@ sourceSets {
     }
 }
 
+quarkus {
+    sourceSets {
+        setExtraNativeTest(sourceSets["integrationTest"])
+    }
+}
+
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+    options.release = 25
     options.compilerArgs.add("-parameters")
 }
 
-tasks.test {
+tasks.processResources {
+    from("docs/contracts/party-registry.openapi.yaml") {
+        into("META-INF")
+        rename { "openapi.yaml" }
+    }
+}
+
+tasks.withType<Test> {
     useJUnitPlatform()
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
 
 tasks.named<Test>("quarkusIntTest") {
