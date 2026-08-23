@@ -310,8 +310,7 @@ required approval field remains `TBD`.
 | Architecture owner | Required | Alex Astudillo |
 | Technical reviewer | Optional | Not required — single-maintainer project |
 | Approval date | Required | 2026-08-23 |
-| Review or Pull Request | Required | TBD |
-| Reviewed ADR revision | Required | TBD |
+| Reviewed ADR revision | Required | 905eb5f1c1830d1f55c1398702674d48cf798feb |
 | Decision outcome | Required | APPROVED |
 | Material conditions or findings | Required; record `None` if there are no findings | None |
 
