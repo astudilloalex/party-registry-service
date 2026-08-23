@@ -39,10 +39,10 @@ No se puede iniciar una tarea que produzca comportamiento, migraciones o adaptad
 
 - [x] T001 Documentar la aprobación de los cuatro gates en `specs/001-party-registration/implementation-readiness.md`
 - [x] T002 Configurar en `build.gradle.kts` dependencias runtime y test para Quarkus REST/Jackson, REST Client/Jackson, Hibernate Reactive, PostgreSQL reactivo, Validator, OpenAPI, context propagation, Micrometer Prometheus, OpenTelemetry, Flyway/JDBC aislado, JUnit 5, Quarkus Vert.x test, RestAssured, ArchUnit, Testcontainers PostgreSQL, stub HTTP, parser OpenAPI 3.1 y validador JSON Schema 2020-12
-- [ ] T003 Configurar en `build.gradle.kts` los source sets y tareas `test`, `check` y `quarkusIntTest` para `src/test/java` y `src/integrationTest/java`
-- [ ] T004 [P] Crear fronteras de paquetes con `package-info.java` en `src/main/java/com/alexastudillo/partyregistry/domain/`, `application/`, `infrastructure/`, `api/` y `bootstrap/`
-- [ ] T005 [P] Crear fixtures geográficos para estados, 404, 401/403, status/envelope/JSON/media type inesperados, respuesta incompleta/contradictoria, timeout, cancelación y eco incorrecto en `src/test/resources/geographic/`
-- [ ] T006 Registrar `java -version` y `./gradlew --version` con Java 25 en `specs/001-party-registration/implementation-readiness.md`
+- [x] T003 Configurar en `build.gradle.kts` los source sets y tareas `test`, `check` y `quarkusIntTest` para `src/test/java` y `src/integrationTest/java`
+- [x] T004 [P] Crear fronteras de paquetes con `package-info.java` en `src/main/java/com/alexastudillo/partyregistry/domain/`, `application/`, `infrastructure/`, `api/` y `bootstrap/`
+- [x] T005 [P] Crear fixtures geográficos para estados, 404, 401/403, status/envelope/JSON/media type inesperados, respuesta incompleta/contradictoria, timeout, cancelación y eco incorrecto en `src/test/resources/geographic/`
+- [x] T006 Registrar `java -version` y `./gradlew --version` con Java 25 en `specs/001-party-registration/implementation-readiness.md`
 
 **Checkpoint**: Dependencias resueltas, estructura compilable y gates externos aprobados.
 

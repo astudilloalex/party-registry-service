@@ -4,8 +4,9 @@
 **Repository revision**: `46a20d3`
 **Overall status**: READY
 
-This record evaluates only the four mandatory pre-implementation gates required by T001. It does
-not approve a gate without an independently verifiable approval artifact.
+The readiness decision evaluates only the four mandatory pre-implementation gates required by
+T001. It does not approve a gate without an independently verifiable approval artifact. Toolchain
+evidence is recorded separately for T006.
 
 ## Gate Status
 
@@ -21,3 +22,12 @@ not approve a gate without an independently verifiable approval artifact.
 All four pre-implementation gates are `APPROVED` with their approval artifacts recorded in this
 file. T001 is complete, and the feature may proceed to implementation subject to the mandatory
 Red -> Green -> Refactor ordering and the remaining task-level prerequisites.
+
+## Toolchain Evidence
+
+Captured on 2026-08-23 from the repository root:
+
+| Command | Exit code | Evidence |
+|---------|-----------|----------|
+| `java -version` | `0` | OpenJDK `25.0.4`, Debian build `25.0.4+7-1-deb13u1-Debian`, 64-bit Server VM |
+| `./gradlew --version` | `0` | Gradle `9.3.1`; Launcher JVM `25.0.4`; Daemon JVM `/usr/lib/jvm/java-25-openjdk-amd64` |

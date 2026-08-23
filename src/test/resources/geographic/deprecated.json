@@ -1,0 +1,14 @@
+{
+  "httpStatus": 200,
+  "contentType": "application/json",
+  "responseHeaders": {
+    "Process-Id": "01991f6a-07a5-70ce-8194-f3ab0a4ce931"
+  },
+  "body": {
+    "status": 200,
+    "code": "successful",
+    "data": {
+      "status": "DEPRECATED"
+    }
+  }
+}

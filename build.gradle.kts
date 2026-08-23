@@ -55,7 +55,31 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 
+sourceSets {
+    test {
+        java.setSrcDirs(listOf("src/test/java"))
+        resources.setSrcDirs(listOf("src/test/resources"))
+    }
+    named("integrationTest") {
+        java.setSrcDirs(listOf("src/integrationTest/java"))
+        resources.setSrcDirs(listOf("src/integrationTest/resources"))
+    }
+}
+
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+tasks.named<Test>("quarkusIntTest") {
+    useJUnitPlatform()
+    shouldRunAfter(tasks.test)
+}
+
+tasks.check {
+    dependsOn(tasks.named("quarkusIntTest"))
 }
