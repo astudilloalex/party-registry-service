@@ -1,20 +1,19 @@
 <!--
 Sync Impact Report
 
-- Version change: 1.1.0 -> 1.2.0
+- Version change: 2.0.0 -> 2.1.0
 - Modified principles:
   - V. Traceable Quality and Observability -> V. Traceable Quality and Observability
-    (added the mandatory application log format and reactive MDC propagation)
+    (made behavior-level Red -> Green -> Refactor TDD mandatory)
 - Added sections: none
 - Removed sections: none
 - Modified sections:
   - Delivery and Compliance Workflow
-- Follow-up TODOs:
-  - Align the approved LikeC4 technology declaration, which currently names Hibernate
-    Reactive with Panache, with the PostgreSQL Reactive Client mandate before persistence
-    implementation begins.
-  - Confirm in the approved deployment architecture that Party Registry Service has no
-    public ingress or Internet exposure.
+- Synchronized guidance:
+  - `.specify/templates/tasks-template.md`
+  - `.opencode/commands/speckit.tasks.md`
+  - Party registration planning artifacts
+- Follow-up TODOs: none
 -->
 # Party Registry Service Constitution
 
@@ -49,7 +48,7 @@ authorization, addresses, contacts, or other concepts excluded by approved sourc
 This protects aggregate consistency and prevents accidental coupling between bounded
 contexts.
 
-### III. End-to-End Reactive Execution
+### III. End-to-End Reactive ORM Execution
 Java 25, Quarkus, and Mutiny are mandatory for application and adapter code. Every I/O
 operation MUST be non-blocking and expose `Uni` for an asynchronous zero-or-one result or
 `Multi` for an asynchronous stream. Reactive composition MUST be preserved from the API
@@ -57,11 +56,11 @@ adapter through application ports to infrastructure adapters; code MUST NOT bloc
 `await` or equivalent synchronization APIs, use worker-thread offloading to conceal
 blocking I/O, or invoke blocking APIs inside a reactive flow.
 
-Persistence adapters MUST use the Quarkus PostgreSQL Reactive Client. Hibernate ORM,
-Hibernate Reactive with Panache, JDBC, and other alternate or blocking persistence APIs
-MUST NOT be used. Reactive transaction boundaries MUST be explicit in application or
-infrastructure orchestration and MUST preserve aggregate mutation and transactional
-outbox insertion atomically when the approved use case requires an event.
+Persistence adapters MUST use Hibernate Reactive ORM through its Mutiny API, Production application code MUST NOT execute direct or native SQL, call the
+PostgreSQL Reactive Client directly, use blocking Hibernate ORM, or use JDBC. Reactive
+session and transaction boundaries MUST be explicit in application or infrastructure
+orchestration and MUST preserve aggregate mutation and transactional outbox insertion
+atomically when the approved use case requires an event.
 
 Flyway is the sole database schema migration mechanism. Flyway migration execution is an
 operational activity outside request, event-processing, and other reactive business flows;
@@ -93,6 +92,16 @@ requirement, ADR, LikeC4 element or relationship, or DBML definition. Missing or
 authority MUST stop the affected specification or implementation; contributors MUST NOT
 invent requirements, business rules, data structures, failure semantics, or integrations.
 
+Every new or changed production behavior MUST be implemented through a small
+Red -> Green -> Refactor TDD cycle. Contributors MUST first add the lowest-layer automated
+test that can prove the behavior and run it to observe the expected failure caused by the
+missing behavior. They MUST then add only enough production code to make that test pass and
+MUST keep the relevant suite green while refactoring. A defect correction MUST begin with a
+failing regression test. Pure refactoring starts from a verified green baseline and remains
+green; test harness setup or compile-only scaffolding may precede Red but MUST NOT implement
+business behavior. Task plans and review evidence MUST preserve this ordering and identify the
+targeted Red and Green executions.
+
 Automated tests MUST provide evidence at every layer: framework-free unit tests for domain
 invariants, use-case tests for application orchestration, integration tests for reactive
 PostgreSQL and external adapters, API contract tests for versioning and errors, and
@@ -121,8 +130,10 @@ for applicable request and event-processing paths.
 ## Technology and Source Constraints
 
 - The mandatory runtime stack is Java 25 and Quarkus with Mutiny-based reactive flows.
-- PostgreSQL access MUST use the Quarkus PostgreSQL Reactive Client and non-blocking
-  transaction APIs.
+- PostgreSQL application persistence MUST use Hibernate Reactive ORM with Mutiny and
+  non-blocking session and transaction APIs. Direct SQL, native SQL, direct
+  PostgreSQL Reactive Client access, blocking Hibernate ORM, and JDBC are prohibited in
+  production application code.
 - `docs/database/v1-scheme.dbml` is the authoritative database structure for the current
   approved version. Persistence records, SQL, constraints, and migrations MUST correspond
   to it exactly and MUST NOT silently alter its design.
@@ -135,9 +146,6 @@ for applicable request and event-processing paths.
 - An explicit recorded human decision has precedence over an older project artifact. Any
   resulting inconsistency MUST be reconciled in the affected authoritative artifact before
   implementation proceeds.
-- The currently approved LikeC4 model declares Hibernate Reactive with Panache for this
-  service. That declaration conflicts with Principle III and MUST be amended or resolved by
-  an explicit governance decision before persistence implementation begins.
 - The DBML and approved architecture define the Party bounded context. Other services may
   retain `partyId` only as an opaque reference and MUST NOT create cross-service foreign
   keys into the Party Registry database.
@@ -153,19 +161,23 @@ for applicable request and event-processing paths.
    traceability without selecting unsupported rules or data structures.
 3. Plans MUST map responsibilities to `domain`, `application`, `infrastructure`, and `api`,
    identify every I/O boundary, and demonstrate that each dependency points inward.
-4. Persistence planning MUST verify DBML approval, define each schema change as a Flyway
-   migration, and resolve the known LikeC4 persistence technology conflict before code or
-   migrations are produced.
-5. Implementation MUST keep DTO mappings, domain behavior, use-case orchestration, and
+4. Persistence planning MUST verify DBML approval, map persistence through Hibernate Reactive
+   ORM, and define each schema change as a Flyway migration before code or migrations are
+   produced.
+5. Implementation tasks MUST use behavior-sized Red -> Green -> Refactor cycles and retain
+   evidence that each targeted test failed for the expected reason before its production behavior
+   was added. Pure refactoring MUST begin and end with relevant tests green.
+6. Implementation MUST keep DTO mappings, domain behavior, use-case orchestration, and
    reactive adapters separate. No convenience shortcut may cross a layer boundary.
-6. Reviews MUST reject blocking calls, Hibernate or JDBC application persistence, database
-   changes outside Flyway, modified applied migrations, missing tenant predicates, public
-   exposure, noncompliant pattern-based logging, lost reactive logging context, business
+7. Reviews MUST reject missing TDD ordering evidence, blocking calls, Direct or native
+   SQL in application code, direct PostgreSQL Reactive Client access, blocking Hibernate ORM,
+   JDBC, database changes outside Flyway, modified applied migrations, missing tenant predicates,
+   public exposure, noncompliant pattern-based logging, lost reactive logging context, business
    rules in adapters, unapproved schema changes, or absent traceability.
-7. Relevant automated tests, architecture checks, and static analysis MUST pass before a
+8. Relevant automated tests, architecture checks, and static analysis MUST pass before a
    change is considered complete. Test deletion, disabling, or weakened assertions MUST NOT
    be used to obtain a passing result.
-8. Changes MUST use the repository's Pull Request workflow. Review evidence MUST identify
+9. Changes MUST use the repository's Pull Request workflow. Review evidence MUST identify
    the applicable constitutional principles and any approved exception or amendment.
 
 ## Governance
@@ -195,4 +207,4 @@ does not demonstrate compliance. The constitution MUST be reviewed whenever appr
 requirements, architecture, DBML, runtime technology, API exposure, or deployment boundaries
 change.
 
-**Version**: 1.2.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-21
+**Version**: 2.1.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-22
