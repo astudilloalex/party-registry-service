@@ -7,6 +7,7 @@
   Owner, Developer, and QA
 - **Reviewed Party Registry revision**: `b2fc550073c7f48c0c285e2c5bac72b8f5104867`
 - **Feature branch**: `11-ft-1`
+- **Review evidence**: [PR #14](https://github.com/astudilloalex/party-registry-service/pull/14)
 
 ## Approved Contract
 
