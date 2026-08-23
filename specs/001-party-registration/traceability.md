@@ -84,8 +84,9 @@
 - The architecture owner approved
   [`ADR-001`](../../docs/ADRs/ADR-001-hibernate-reactive-execution-model.md) for Hibernate Reactive
   ORM and its reactive transaction/resource model in PR #12.
-- The Geographic Reference adapter mapping must remain conformant with Postman collection
-  `15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, the approved activity-state clarification, and
-  the newer three-header decision; the provider contract must remove `company-id` before integration
-  acceptance.
+- The Geographic Reference trusted-header contract is approved by the provider owner in
+  [`2026-08-23-trusted-header-contract-owner-approval.md`](../../docs/integrations/geographic-reference/2026-08-23-trusted-header-contract-owner-approval.md)
+  for reviewed revision `b2fc550073c7f48c0c285e2c5bac72b8f5104867`. The adapter must remain
+  conformant with the Postman route and response semantics and require and propagate exactly one
+  `Tenant-Id`, `User-Id`, and `Process-Id`.
 - Migration and implementation tasks must retain the requirement identifiers in this matrix.

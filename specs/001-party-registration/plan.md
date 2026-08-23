@@ -87,8 +87,8 @@ for DBML commit `a167e5bea93eeccbd4513c1fb91a6d9f08e2412d`. The review resolved 
 type generation and detail foreign-key direction findings, then revalidated the approved
 nationality exclusions, creation-event uniqueness, creation-event payload shape, and `User-Id`
 audit semantics on PostgreSQL 18.4. The existing deferred detail-type trigger remains unchanged by
-decision. Migration and persistence work remains blocked by the other implementation-readiness
-gates.
+decision. Migration and persistence work remains blocked by the remaining implementation-readiness
+gate.
 
 ## Project Structure
 
@@ -233,26 +233,26 @@ Hibernate, and JDBC outside the Flyway boundary.
 | Mandatory TDD | `research.md` and `quickstart.md` define targeted Red, minimal Green, green Refactor, and layer checkpoint evidence | PASS |
 | Tests and observability | `quickstart.md` covers TDD ordering plus all acceptance, rollback, tenant, non-blocking, architecture, contract, log-format, and MDC evidence | PASS |
 | Requirement traceability | `traceability.md` covers FR-001 through FR-028 and every measurable success criterion | PASS |
-| Approved-source consistency | The independently approved DBML and current Postman decisions are cited directly; remaining LikeC4 and provider corrections stay explicit pre-implementation gates | PASS |
+| Approved-source consistency | The independently approved DBML, Postman route/response mapping, and provider-owner trusted-header decision are cited directly; the remaining LikeC4 correction stays an explicit pre-implementation gate | PASS |
 
 **Post-design gate result**: PASS for the Phase 0/Phase 1 planning artifacts. No clarification marker
 or unjustified constitutional exception remains in the design.
 
-**Implementation readiness**: BLOCKED by the remaining LikeC4 and Geographic Reference gates. The
-database-contract gate passed independent validation and the Hibernate Reactive execution-model
-ADR is approved. The Geographic Reference REST adapter contract is resolved by Postman collection
-`15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3`, the approved `data.status` clarification, and the
-2026-08-23 trusted-header decision. Geographic Reference must synchronize its collection and
-runtime to require `Tenant-Id`, `User-Id`, and `Process-Id` and remove `company-id` before adapter
-integration acceptance. The externally maintained LikeC4 model still must correct the Party
-database description so it does not imply customer ownership.
+**Implementation readiness**: BLOCKED only by the remaining LikeC4 gate. The database-contract gate
+passed independent validation, the Hibernate Reactive execution-model ADR is approved, and the
+Geographic Reference trusted-header contract is approved by the provider owner in
+[`2026-08-23-trusted-header-contract-owner-approval.md`](../../docs/integrations/geographic-reference/2026-08-23-trusted-header-contract-owner-approval.md)
+for reviewed revision `b2fc550073c7f48c0c285e2c5bac72b8f5104867`. The Geographic Reference
+REST adapter uses the Postman collection for its route and response semantics and the owner decision
+for exactly one required `Tenant-Id`, `User-Id`, and `Process-Id`. The externally maintained LikeC4
+model still must correct the Party database description so it does not imply customer ownership.
 
 Before implementation, the architecture owner must add an approved LikeC4 component view for
 the Clean Architecture boundaries, ports, adapters, and bootstrap composition; record the upstream
 trusted-header/internal-ingress boundary; and correct Party database ownership. The approved
 Hibernate Reactive execution-model ADR records its transaction/resource consequences. The explicit
 human decision that the service is internal-only remains binding while the remaining architecture
-artifacts are synchronized.
+artifact is synchronized.
 
 ## Complexity Tracking
 
