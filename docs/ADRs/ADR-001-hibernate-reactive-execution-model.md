@@ -1,6 +1,6 @@
 # ADR-001: Hibernate Reactive Execution Model
 
-- **Status**: Proposed — pending architecture-owner approval
+- **Status**: Accepted
 - **Proposed on**: 2026-08-23
 - **Decision owner**: Alex Astudillo — Architecture Owner
 - **Technical reviewers**: Not required — single-maintainer project
@@ -314,11 +314,11 @@ required approval field remains `TBD`.
 |-------|-------------|-------|
 | Architecture owner | Required | Alex Astudillo |
 | Technical reviewer | Optional | Not required — single-maintainer project |
-| Approval date | Required | TBD |
-| Review or Pull Request | Required | TBD |
-| Reviewed ADR revision | Required | TBD |
-| Decision outcome | Required | PENDING |
-| Material conditions or findings | Required; record `None` if there are no findings | TBD |
+| Approval date | Required | 2026-08-23 |
+| Review or Pull Request | Required | [PR #12](https://github.com/astudilloalex/party-registry-service/pull/12) |
+| Reviewed ADR revision | Required | `f7380353273efb891ea09046ba4a9ef9e26bae1c` |
+| Decision outcome | Required | APPROVED |
+| Material conditions or findings | Required; record `None` if there are no findings | Resolved — cancellation timing clarified and Quarkus 3.33 Preview risk recorded |
 
 To accept this ADR, the architecture owner must review the complete decision, resolve every
 material finding, change the status to `Accepted`, set the decision outcome to `APPROVED`, and
@@ -343,3 +343,4 @@ record dated, traceable review evidence for the final ADR revision.
 |------|--------|--------|
 | 2026-08-23 | Proposed | Initial execution-model decision prepared for architecture review |
 | 2026-08-23 | Proposed | Clarified cancellation timing, recorded Quarkus Preview risk, and reset approval evidence for final architecture review |
+| 2026-08-23 | Accepted | Approved by Alex Astudillo as Architecture Owner in PR #12 for reviewed revision `f7380353273efb891ea09046ba4a9ef9e26bae1c` |
