@@ -34,6 +34,9 @@ dependencies {
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("org.flywaydb:flyway-database-postgresql")
 
+    // Personal libraries
+    implementation("com.alexastudillo.libraries:api-response-quarkus:1.0.0-SNAPSHOT")
+
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("io.quarkus:quarkus-test-vertx")
     testImplementation("org.junit.jupiter:junit-jupiter")
