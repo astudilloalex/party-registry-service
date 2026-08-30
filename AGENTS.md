@@ -25,3 +25,19 @@
 - Centralize envelopes and failures through `ApiResponse<T>`, `ResponseManager`, `ApiResponseCode`, `ApiException`, and a global reactive exception handler; resources must not build ad hoc responses or catch cross-cutting exceptions.
 - Preserve the global mappings: `400 bad-request`, `404 not-found`, `405 method-not-allowed`, `409 conflict`/`version-conflict`, `500 server-error`, and `503 dependency-unavailable`. Add resource-specific codes only when declared by OpenAPI. The body status must always equal the HTTP status, including `201 successful` responses.
 - Map malformed JSON, Bean Validation failures, invalid path/query values, unsupported media types or methods, missing resources, expected domain failures, and unexpected exceptions to the standard envelope. Unexpected failures must be logged internally and exposed only as `500 server-error`.
+
+
+## Java validation
+
+After modifying Java code:
+
+1. Check and resolve JDTLS/LSP diagnostics for every modified Java file.
+2. Do not introduce new compiler warnings.
+3. Do not suppress nullability or type-safety warnings with
+   @SuppressWarnings unless the suppression is explicitly justified.
+4. Run:
+   ./gradlew test
+5. Before completing an implementation task, run:
+   ./gradlew build
+6. If LSP diagnostics conflict with Gradle compilation results,
+   investigate the discrepancy instead of ignoring either result.

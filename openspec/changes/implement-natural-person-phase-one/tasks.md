@@ -4,7 +4,7 @@
   - Requirements: Standard API responses
   - Verification: `./gradlew dependencies` resolves one coherent shared-response dependency graph and `./gradlew compileJava` succeeds.
 
-- [ ] 1.2 Configure strict JSON deserialization, shared HTTP failure handling for `/v1/*`, and non-blocking Geographic Reference client URLs and finite timeouts without production fallbacks.
+- [x] 1.2 Configure strict JSON deserialization, shared HTTP failure handling for `/v1/*`, and non-blocking Geographic Reference client URLs and finite timeouts without production fallbacks.
   - Requirements: Natural-person request validation, Birth-country validation, Standard API responses
   - Verification: Configuration tests prove unknown JSON properties are rejected, `/q` remains excluded from business-header handling, and production startup requires the Geographic Reference base URL.
 
