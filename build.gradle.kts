@@ -42,7 +42,6 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
 
     // Personal libraries
-    implementation("com.alexastudillo.libraries:api-response-quarkus:1.0.0-SNAPSHOT")
     implementation("com.alexastudillo.libraries:api-response-quarkus-errors:1.0.0-SNAPSHOT")
 
 

@@ -1,6 +1,6 @@
 ## 1. Foundation and Contract
 
-- [ ] 1.1 Align build dependencies with the reactive and shared-response design, retaining the published `api-response-quarkus-errors` module as the response/error boundary and removing any redundant direct response-module dependency.
+- [x] 1.1 Align build dependencies with the reactive and shared-response design, retaining the published `api-response-quarkus-errors` module as the response/error boundary and removing any redundant direct response-module dependency.
   - Requirements: Standard API responses
   - Verification: `./gradlew dependencies` resolves one coherent shared-response dependency graph and `./gradlew compileJava` succeeds.
 
