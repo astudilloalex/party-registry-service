@@ -12,6 +12,9 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
+  GITHUB_ACTOR: ${{ github.actor }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 jobs:
   build_publish:

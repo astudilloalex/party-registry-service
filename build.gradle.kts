@@ -5,7 +5,14 @@ plugins {
 
 repositories {
     mavenCentral()
-    mavenLocal()
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/astudilloalex/java-shared-libraries")
+        credentials {
+            username = System.getenv("GITHUB_ACTOR") ?: project.findProperty("gpr.user") as String?
+            password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.key") as String?
+        }
+    }
 }
 
 val quarkusPlatformGroupId: String by project
@@ -36,6 +43,8 @@ dependencies {
 
     // Personal libraries
     implementation("com.alexastudillo.libraries:api-response-quarkus:1.0.0-SNAPSHOT")
+    implementation("com.alexastudillo.libraries:api-response-quarkus-errors:1.0.0-SNAPSHOT")
+
 
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("io.quarkus:quarkus-test-vertx")
