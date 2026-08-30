@@ -8,7 +8,7 @@
   - Requirements: Natural-person request validation, Birth-country validation, Standard API responses
   - Verification: Configuration tests prove unknown JSON properties are rejected, `/q` remains excluded from business-header handling, and production startup requires the Geographic Reference base URL.
 
-- [ ] 1.3 Clarify `docs/contracts/party-registry.openapi.yaml` for canonical `Process-Id`, nonblank `Idempotency-Key`, decimal `If-Match`, strict natural-person request properties, PUT/PATCH semantics, `NATURAL_PERSON` response typing, and required `412`, `422`, and `503` behavior.
+- [x] 1.3 Clarify `docs/contracts/party-registry.openapi.yaml` for canonical `Process-Id`, nonblank `Idempotency-Key`, decimal `If-Match`, strict natural-person request properties, PUT/PATCH semantics, `NATURAL_PERSON` response typing, and required `412`, `422`, and `503` behavior.
   - Requirements: Trusted request context, Natural-person request validation, Birth-country validation, Optimistic concurrency, Standard API responses
   - Verification: The OpenAPI parser reports no errors and automated assertions confirm all four natural-person operations and clarified constraints.
 

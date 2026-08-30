@@ -46,7 +46,9 @@ paths:
       operationId: createNaturalPerson
       summary: Crear persona natural
       description: |
-        Crea un party de tipo NATURAL_PERSON junto con su detalle.
+        Creates a party permanently classified as `NATURAL_PERSON` together with its details.
+        Reusing an `Idempotency-Key` with the same effective request returns the original result;
+        reusing it with a different effective request returns `409 conflict`.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
@@ -61,6 +63,9 @@ paths:
       responses:
         '201':
           description: Persona natural creada
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -73,6 +78,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
 
@@ -90,6 +97,9 @@ paths:
       responses:
         '200':
           description: Detalle de persona natural
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -107,6 +117,9 @@ paths:
         - natural-person
       operationId: replaceNaturalPerson
       summary: Reemplazar detalle de persona natural
+      description: |
+        Completely replaces the natural-person details. Omitted optional fields are cleared.
+        The display name is derived again whenever the submitted given or family names change.
       parameters:
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -118,6 +131,9 @@ paths:
       responses:
         '200':
           description: Detalle actualizado
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -128,12 +144,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
     patch:
@@ -141,6 +157,10 @@ paths:
         - natural-person
       operationId: patchNaturalPerson
       summary: Actualización parcial de persona natural
+      description: |
+        Updates only submitted properties. Omitted properties retain their current values, while
+        an explicit `null` clears a nullable property. At least one supported property is required.
+        Changing given or family names derives the display name again.
       parameters:
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -152,6 +172,9 @@ paths:
       responses:
         '200':
           description: Detalle actualizado
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -162,12 +185,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
 
@@ -1363,44 +1386,65 @@ components:
       name: Tenant-Id
       in: header
       required: true
+      description: Trusted tenant identifier. Exactly one canonical UUID value is required.
       schema:
         type: string
         format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     ProcessId:
       name: Process-Id
       in: header
       required: true
+      description: >-
+        Trusted process identifier. Exactly one canonical UUID value is required. An accepted value
+        is echoed unchanged in the response.
       schema:
         type: string
-        maxLength: 128
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     UserId:
       name: User-Id
       in: header
       required: true
+      description: >-
+        Trusted audit subject. Exactly one non-blank value without control characters is required.
       schema:
         type: string
+        minLength: 1
         maxLength: 128
+        pattern: '^(?=.*\S)[^\x00-\x1F\x7F]+$'
     IdempotencyKeyRequired:
       name: Idempotency-Key
       in: header
       required: true
+      description: Exactly one non-blank idempotency key of at most 128 characters is required.
       schema:
         type: string
+        minLength: 1
         maxLength: 128
+        pattern: '.*\S.*'
     IdempotencyKeyOptional:
       name: Idempotency-Key
       in: header
       required: false
+      description: When supplied, the idempotency key must be one non-blank value.
       schema:
         type: string
+        minLength: 1
         maxLength: 128
+        pattern: '.*\S.*'
     IfMatch:
       name: If-Match
       in: header
       required: true
-      description: Versión actual del recurso para control de concurrencia optimista.
+      description: >-
+        Exactly one nonnegative decimal aggregate version is required. A syntactically valid value
+        that does not equal the current version produces `412 precondition-failed`.
       schema:
         type: string
+        minLength: 1
+        pattern: '^(0|[1-9][0-9]*)$'
+        example: '0'
     PartyIdPath:
       name: partyId
       in: path
@@ -1449,6 +1493,9 @@ components:
   responses:
     BadRequest:
       description: Solicitud inválida.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
       content:
         application/json:
           schema:
@@ -1459,6 +1506,9 @@ components:
 
     Unauthorized:
       description: Falta autenticación o credenciales inválidas.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
       content:
         application/json:
           schema:
@@ -1469,6 +1519,9 @@ components:
 
     NotFound:
       description: Recurso no encontrado para el tenant indicado.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
       content:
         application/json:
           schema:
@@ -1479,6 +1532,9 @@ components:
 
     Conflict:
       description: Conflicto de negocio o duplicidad.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
       content:
         application/json:
           schema:
@@ -1488,7 +1544,10 @@ components:
             code: conflict
 
     PreconditionFailed:
-      description: La versión enviada en If-Match no coincide con la actual.
+      description: The valid `If-Match` version does not equal the current aggregate version.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
       content:
         application/json:
           schema:
@@ -1498,7 +1557,11 @@ components:
             code: precondition-failed
 
     UnprocessableEntity:
-      description: La solicitud rompe reglas de negocio.
+      description: >-
+        The resulting lifecycle dates are invalid or the supplied country code is not recognized.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
       content:
         application/json:
           schema:
@@ -1507,8 +1570,24 @@ components:
             status: 422
             code: unprocessable-entity
 
+    DependencyUnavailable:
+      description: Geographic Reference Service validation could not be completed.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            status: 503
+            code: dependency-unavailable
+
     DefaultError:
       description: Error inesperado.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
       content:
         application/json:
           schema:
@@ -1516,6 +1595,16 @@ components:
           example:
             status: 500
             code: server-error
+
+  headers:
+    ProcessIdEcho:
+      description: >-
+        Unchanged accepted `Process-Id`. This header is omitted when the request value is missing,
+        duplicated, or invalid.
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 
   schemas:
     ApiSuccessCode:
@@ -1533,6 +1622,7 @@ components:
           type: integer
         code:
           type: string
+      additionalProperties: false
 
     EmptySuccessResponse:
       type: object
@@ -1696,6 +1786,9 @@ components:
 
     NaturalPersonCreateRequest:
       type: object
+      description: >-
+        Strict natural-person creation representation. Unknown properties are rejected. Omitted or
+        null display names are derived from the validated given and family names.
       required:
         - givenNames
         - familyNames
@@ -1708,10 +1801,12 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+          pattern: '.*\S.*'
         familyNames:
           type: string
           minLength: 1
           maxLength: 200
+          pattern: '.*\S.*'
         preferredName:
           type: string
           maxLength: 200
@@ -1730,9 +1825,13 @@ components:
           minLength: 2
           maxLength: 2
           nullable: true
+      additionalProperties: false
 
     NaturalPersonPutRequest:
       type: object
+      description: >-
+        Complete replacement representation. Omitted optional properties are cleared, and the
+        display name is derived again from the submitted given and family names.
       required:
         - givenNames
         - familyNames
@@ -1741,10 +1840,12 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+          pattern: '.*\S.*'
         familyNames:
           type: string
           minLength: 1
           maxLength: 200
+          pattern: '.*\S.*'
         preferredName:
           type: string
           maxLength: 200
@@ -1763,19 +1864,25 @@ components:
           minLength: 2
           maxLength: 2
           nullable: true
+      additionalProperties: false
 
     NaturalPersonPatchRequest:
       type: object
+      description: >-
+        Presence-aware partial update. Omitted properties are retained and explicit null clears a
+        nullable property. Given and family names cannot be null or blank.
       minProperties: 1
       properties:
         givenNames:
           type: string
           minLength: 1
           maxLength: 200
+          pattern: '.*\S.*'
         familyNames:
           type: string
           minLength: 1
           maxLength: 200
+          pattern: '.*\S.*'
         preferredName:
           type: string
           maxLength: 200
@@ -1794,14 +1901,20 @@ components:
           minLength: 2
           maxLength: 2
           nullable: true
+      additionalProperties: false
 
     NaturalPersonResponse:
       allOf:
         - $ref: '#/components/schemas/PartyBase'
         - type: object
           required:
+            - type
             - naturalPersonDetails
           properties:
+            type:
+              type: string
+              enum:
+                - NATURAL_PERSON
             naturalPersonDetails:
               $ref: '#/components/schemas/NaturalPersonDetails'
 
