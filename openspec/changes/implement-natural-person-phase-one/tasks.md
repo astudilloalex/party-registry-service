@@ -96,11 +96,11 @@
 
 ## 5. Geographic Reference Adapter
 
-- [ ] 5.1 Implement the reactive Geographic Reference REST client and infrastructure-only request/response DTOs for `GET /api/v1/countries/by-alpha2/{alpha2Code}`.
+- [x] 5.1 Implement the reactive Geographic Reference REST client and infrastructure-only request/response DTOs for `GET /api/v1/countries/by-alpha2/{alpha2Code}`.
   - Requirements: Birth-country validation
   - Verification: The client compiles as a Quarkus REST Client returning `Uni`, forwards all trusted context headers, and exposes no remote DTO outside infrastructure.
 
-- [ ] 5.2 Implement `CountryReferencePort` translation for successful references, `404 country-not-found`, dependency `5xx`, malformed responses, connection failures, and timeouts without retries.
+- [x] 5.2 Implement `CountryReferencePort` translation for successful references, `404 country-not-found`, dependency `5xx`, malformed responses, connection failures, and timeouts without retries.
   - Requirements: Birth-country validation
   - Verification: Controlled HTTP-server tests map `200` to valid, `404` to unrecognized, and timeout/connection/`5xx`/malformed responses to dependency unavailable within finite time.
 
