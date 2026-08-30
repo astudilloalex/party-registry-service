@@ -48,6 +48,7 @@ public final class ApplicationException extends RuntimeException {
             case ApplicationFailure.ExpectedVersionMismatch _ -> "Expected version mismatch";
             case ApplicationFailure.UnrecognizedBirthCountry _ -> "Unrecognized birth country";
             case ApplicationFailure.DependencyUnavailable _ -> "Dependency unavailable";
+            case ApplicationFailure.PersistenceFailure _ -> "Persistence operation failed";
             case ApplicationFailure.InvalidBusinessState _ -> "Invalid business state";
         };
     }

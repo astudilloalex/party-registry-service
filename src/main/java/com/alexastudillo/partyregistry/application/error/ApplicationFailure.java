@@ -76,6 +76,12 @@ public sealed interface ApplicationFailure {
     }
 
     /**
+     * Persistence could not complete without exposing database-specific details.
+     */
+    record PersistenceFailure() implements ApplicationFailure {
+    }
+
+    /**
      * The requested operation violates a business invariant of the resulting
      * natural-person state.
      */

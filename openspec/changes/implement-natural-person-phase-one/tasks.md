@@ -70,27 +70,27 @@
 
 ## 4. Reactive Persistence
 
-- [ ] 4.1 Implement Hibernate Reactive persistence entities and mappers for existing `parties`, `natural_person_details`, and new idempotency records, including PostgreSQL enum mappings and `@Version` on the party root.
+- [x] 4.1 Implement Hibernate Reactive persistence entities and mappers for existing `parties`, `natural_person_details`, and new idempotency records, including PostgreSQL enum mappings and `@Version` on the party root.
   - Requirements: Natural-person creation, Natural-person retrieval, Optimistic concurrency, Idempotent natural-person creation
   - Verification: Hibernate validates the Flyway-managed schema and persistence mapping tests round-trip every natural-person and snapshot field.
 
-- [ ] 4.2 Implement tenant-and-type-scoped reactive retrieval joining party and natural-person details without exposing legal or cross-tenant rows.
+- [x] 4.2 Implement tenant-and-type-scoped reactive retrieval joining party and natural-person details without exposing legal or cross-tenant rows.
   - Requirements: Natural-person retrieval, Natural-person and legal-entity exclusivity
   - Verification: PostgreSQL integration tests return the matching natural person and return absence for unknown, cross-tenant, legal-entity, and missing-detail cases as designed.
 
-- [ ] 4.3 Implement transactional natural-person replacement and patch persistence that updates party audit fields, flushes the detail change, increments aggregate version once, and translates optimistic-lock failures.
+- [x] 4.3 Implement transactional natural-person replacement and patch persistence that updates party audit fields, flushes the detail change, increments aggregate version once, and translates optimistic-lock failures.
   - Requirements: Complete natural-person replacement, Partial natural-person update, Optimistic concurrency
   - Verification: Reactive persistence tests prove successful version increments, atomic rollback, audit updates, stale-version failure, and one winner for concurrent same-version writes.
 
-- [ ] 4.4 Implement atomic idempotent creation that persists party, natural-person details, and the versioned application-result snapshot in one reactive transaction.
+- [x] 4.4 Implement atomic idempotent creation that persists party, natural-person details, and the versioned application-result snapshot in one reactive transaction.
   - Requirements: Natural-person creation, Idempotent natural-person creation, Natural-person and legal-entity exclusivity
   - Verification: Integration tests prove one committed aggregate/snapshot, initial version `0`, correct audit fields, and no partial rows after any forced failure.
 
-- [ ] 4.5 Implement named unique-key race recovery that reloads the committed idempotency winner in a new reactive session, replays equal hashes, and emits conflict for unequal hashes.
+- [x] 4.5 Implement named unique-key race recovery that reloads the committed idempotency winner in a new reactive session, replays equal hashes, and emits conflict for unequal hashes.
   - Requirements: Idempotent natural-person creation
   - Verification: Concurrent PostgreSQL tests prove equivalent requests produce one party and identical creation data, while different bodies produce one success and one conflict.
 
-- [ ] 4.6 Translate persistence and constraint failures into transport-neutral failures while preserving cancellation and preventing SQL messages or constraint details from reaching API contracts.
+- [x] 4.6 Translate persistence and constraint failures into transport-neutral failures while preserving cancellation and preventing SQL messages or constraint details from reaching API contracts.
   - Requirements: Natural-person and legal-entity exclusivity, Standard API responses
   - Verification: Adapter tests exercise named optimistic/idempotency constraints and an unexpected database failure without exposing infrastructure exceptions to application results.
 

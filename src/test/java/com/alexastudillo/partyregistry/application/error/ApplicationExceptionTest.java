@@ -41,6 +41,9 @@ class ApplicationExceptionTest {
         var unavailable = new ApplicationFailure.DependencyUnavailable("SERVICE_TIMEOUT");
         assertEquals("Dependency unavailable", new ApplicationException(unavailable).getMessage());
 
+        var persistenceFailure = new ApplicationFailure.PersistenceFailure();
+        assertEquals("Persistence operation failed", new ApplicationException(persistenceFailure).getMessage());
+
         var invalidState = new ApplicationFailure.InvalidBusinessState(DomainViolation.PARTY_ID_REQUIRED);
         assertEquals("Invalid business state", new ApplicationException(invalidState).getMessage());
     }
