@@ -40,31 +40,31 @@
 
 ## 3. Application Layer
 
-- [ ] 3.1 Add application request metadata, create/get/replace/patch commands, presence-aware field updates, natural-person results, idempotency outcomes, and transport-neutral application failures.
+- [x] 3.1 Add application request metadata, create/get/replace/patch commands, presence-aware field updates, natural-person results, idempotency outcomes, and transport-neutral application failures.
   - Requirements: Trusted request context, Natural-person creation, Natural-person retrieval, Complete natural-person replacement, Partial natural-person update
   - Verification: Application contracts compile without REST, HTTP, Jackson, Hibernate, persistence-entity, or `ApiResponse` dependencies.
 
-- [ ] 3.2 Define Mutiny output ports for tenant-scoped natural-person persistence, atomic idempotent creation, and country-reference validation.
+- [x] 3.2 Define Mutiny output ports for tenant-scoped natural-person persistence, atomic idempotent creation, and country-reference validation.
   - Requirements: Birth-country validation, Idempotent natural-person creation, Optimistic concurrency
   - Verification: Port signatures expose only domain/application types and `Uni`, with no concrete database or REST-client types.
 
-- [ ] 3.3 Implement canonical effective-create-command serialization and SHA-256 fingerprinting that treats equivalent omitted/null optional inputs consistently and excludes process/user correlation values.
+- [x] 3.3 Implement canonical effective-create-command serialization and SHA-256 fingerprinting that treats equivalent omitted/null optional inputs consistently and excludes process/user correlation values.
   - Requirements: Idempotent natural-person creation
   - Verification: Unit tests prove deterministic hashes, equivalent request hashes, meaningful-field differences, and tenant/operation scoping behavior.
 
-- [ ] 3.4 Implement `CreateNaturalPersonUseCase` to validate a supplied country, construct the aggregate, and invoke atomic idempotent creation without manual subscription or blocking waits.
+- [x] 3.4 Implement `CreateNaturalPersonUseCase` to validate a supplied country, construct the aggregate, and invoke atomic idempotent creation without manual subscription or blocking waits.
   - Requirements: Birth-country validation, Natural-person creation, Idempotent natural-person creation
   - Verification: Use-case tests cover no-country creation, recognized/unknown/unavailable country, original creation, replay, payload conflict, and propagated cancellation/failure.
 
-- [ ] 3.5 Implement `GetNaturalPersonUseCase` with tenant-scoped retrieval and a single not-found outcome for absent, cross-tenant, and wrong-type parties.
+- [x] 3.5 Implement `GetNaturalPersonUseCase` with tenant-scoped retrieval and a single not-found outcome for absent, cross-tenant, and wrong-type parties.
   - Requirements: Natural-person retrieval, Natural-person and legal-entity exclusivity
   - Verification: Use-case tests return an aggregate only for the requesting tenant's natural person and emit the same not-found failure for all concealed cases.
 
-- [ ] 3.6 Implement `ReplaceNaturalPersonUseCase` to load current state, apply complete replacement, validate a changed country, and persist with the expected version.
+- [x] 3.6 Implement `ReplaceNaturalPersonUseCase` to load current state, apply complete replacement, validate a changed country, and persist with the expected version.
   - Requirements: Complete natural-person replacement, Birth-country validation, Optimistic concurrency
   - Verification: Use-case tests cover success, optional clearing, not-found, country failures, stale version, and no persistence call after validation failure.
 
-- [ ] 3.7 Implement `PatchNaturalPersonUseCase` to load current state, apply only present fields, validate resulting dates and a changed non-null country, and persist with the expected version.
+- [x] 3.7 Implement `PatchNaturalPersonUseCase` to load current state, apply only present fields, validate resulting dates and a changed non-null country, and persist with the expected version.
   - Requirements: Partial natural-person update, Natural-person lifecycle date consistency, Birth-country validation, Optimistic concurrency
   - Verification: Use-case tests cover absent/null/value fields, empty patch rejection, retained values, country clearing/change, not-found, and stale version.
 

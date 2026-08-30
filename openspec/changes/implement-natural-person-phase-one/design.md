@@ -82,7 +82,7 @@ The aggregate factory receives the request evaluation date rather than reading t
 
 **Collaborators:** `NaturalPersonRepository`, `IdempotentNaturalPersonCreationPort`, `CountryReferencePort`, `Clock`, and domain types.
 
-- `CreateNaturalPersonUseCase` validates a non-null country reference when present, builds the aggregate, computes the idempotency fingerprint, and requests one atomic idempotent creation.
+- `CreateNaturalPersonUseCase` computes the idempotency fingerprint and first resolves any completed tenant/key outcome. Equal hashes replay the original result and unequal hashes fail without external validation. Only a new key validates a non-null country reference, builds the aggregate, and requests one atomic idempotent creation.
 - `GetNaturalPersonUseCase` retrieves by tenant, party ID, and natural-person type.
 - `ReplaceNaturalPersonUseCase` loads the current aggregate, applies complete replacement, validates a changed country, and persists with the expected version.
 - `PatchNaturalPersonUseCase` loads the current aggregate, applies presence-aware changes, validates the complete resulting date state and any changed country, and persists with the expected version.
@@ -96,7 +96,7 @@ The use cases emit transport-neutral failures: natural person not found, invalid
 **Collaborators:** Domain aggregates and application commands/results.
 
 - `NaturalPersonRepository` retrieves and updates tenant-scoped aggregates.
-- `IdempotentNaturalPersonCreationPort` atomically persists a new aggregate and its replay snapshot, or returns the previously stored result.
+- `IdempotentNaturalPersonCreationPort` resolves completed tenant/key outcomes before external validation and atomically persists a new aggregate with its replay snapshot when no completed outcome exists.
 - `CountryReferencePort` confirms whether an uppercase alpha-2 code is a valid country reference.
 
 All I/O port methods return `Uni`; the interfaces do not expose Panache entities, Hibernate sessions, REST-client DTOs, SQL exceptions, or API envelopes.
@@ -223,21 +223,29 @@ sequenceDiagram
     C->>A: POST /v1/natural-person
     A->>A: Validate headers and body
     A->>U: Create command and request metadata
-    opt birthCountryCode is present
-        U->>G: Validate alpha-2 reference
-        G-->>U: Valid / not recognized / unavailable
+    U->>P: Find completed result by tenant, key, and request hash
+    P->>D: Read completed idempotency snapshot
+    alt equal hash exists
+        P-->>U: Replayed original result
+    else different hash exists
+        P-->>U: Idempotency conflict
+    else no completed outcome exists
+        opt birthCountryCode is present
+            U->>G: Validate alpha-2 reference with request metadata
+            G-->>U: Valid / not recognized / unavailable
+        end
+        U->>P: Create aggregate with key and request hash
+        P->>D: Begin reactive transaction
+        P->>D: Insert party and natural details
+        P->>D: Insert completed idempotency snapshot
+        D-->>P: Commit aggregate version 0
+        P-->>U: Created or race-recovered replay
     end
-    U->>P: Create aggregate with key and request hash
-    P->>D: Begin reactive transaction
-    P->>D: Insert party and natural details
-    P->>D: Insert completed idempotency snapshot
-    D-->>P: Commit aggregate version 0
-    P-->>U: Created or replayed result
     U-->>A: Natural-person result
     A-->>C: 201 ApiResponse<NaturalPersonResponse>
 ```
 
-If the idempotency unique key loses a concurrent race, the attempted transaction rolls back completely. The adapter then reads the committed idempotency row in a new reactive session: an equal request hash returns the stored result; a different hash emits an idempotency conflict.
+The completed-result preflight guarantees that a retry does not depend on the current availability or response of Geographic Reference Service. It also gives idempotency conflict precedence over validations in a different payload. If concurrent requests both observe no completed outcome, the idempotency unique key remains the race arbiter: the losing transaction rolls back completely, and the adapter reads the committed row in a new reactive session. An equal request hash returns the stored result; a different hash emits an idempotency conflict.
 
 ### Replace or Patch Natural Person
 
@@ -306,6 +314,7 @@ No resource recovers an error into a bare DTO or raw `Response`. No local global
 - Phase one performs no automatic retry. This avoids multiplying latency and load; callers receive `503 dependency-unavailable` and can retry the original operation safely when it is a create with an idempotency key.
 - Country validation is not cached in phase one, preventing stale validity decisions.
 - The idempotency primary key serializes concurrent identical create attempts at the database boundary. A losing transaction is rolled back before replay/conflict resolution.
+- A completed-result idempotency preflight occurs before country validation, so retries replay the immutable original result without depending on current reference-service availability. Database uniqueness still resolves concurrent preflight misses.
 - Optimistic concurrency is enforced by the party version rather than locks held across remote I/O.
 - No blocking call, synchronous wait, manual subscription, or JDBC access is permitted in request processing.
 
@@ -378,6 +387,17 @@ No resource recovers an error into a bare DTO or raw `Response`. No local global
 
 * Hold an application lock, rejected because it is not safe across instances.
 * Commit an in-progress reservation before party creation, rejected because it introduces abandoned-reservation recovery behavior not required by the specification.
+
+### Decision: Resolve completed idempotency outcomes before external validation
+
+**Choice:** Compute the effective-command hash and query for a completed tenant/operation/key outcome before country validation. Equal hashes replay immediately, unequal hashes fail with idempotency conflict, and only absence proceeds to external validation and atomic creation.
+
+**Rationale:** A completed retry must reproduce the original result even when Geographic Reference Service is currently unavailable or its reference data has changed. Conflict detection must likewise remain deterministic for a reused key. The preflight does not replace the database uniqueness arbiter; concurrent requests that both observe absence still converge through atomic creation and named unique-key race recovery.
+
+**Alternatives considered:**
+
+* Validate country before every idempotency lookup, rejected because an identical retry could return `422` or `503` instead of the original `201` and a conflicting retry could avoid the required `409`.
+* Reserve an in-progress idempotency row before validation, rejected because it introduces abandoned-reservation ownership and recovery behavior outside phase one.
 
 ### Decision: Represent PATCH with explicit presence tracking
 
