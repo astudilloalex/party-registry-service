@@ -1,651 +1,1608 @@
-openapi: 3.1.1
+openapi: 3.0.3
 info:
-  title: Party Registry Service API
+  title: Party Management API
   version: 1.0.0
-  description: >-
-    Internal V1 contract for tenant-scoped civil and legal identity. Its synchronous operations
-    follow the Party Registry capabilities modeled in LikeC4. Public fields and constraints come
-    from docs/database/v1-scheme.dbml. Every operation requires the same trusted context headers
-    as Geographic Reference Service and uses its numeric status/code/data response envelope and
-    compact global error handling. Authentication and authorization are upstream concerns.
-servers: []
-security: []
+  description: |
+    Contrato completo para el microservicio de Parties.
+
+    Consideraciones:
+    - Microservicio interno.
+    - Tenant-Id, Process-Id y User-Id son obligatorios.
+    - No se exponen endpoints externos para party_outbox_events.
+    - La expiración de identificadores es manejada por un JOB, no por API.
+    - La búsqueda por prefijo de identificador puede requerir extensión de persistencia.
+servers:
+  - url: /
+
 tags:
-  - name: Parties
-  - name: Nationalities
-  - name: Party Identifiers
+  - name: natural-person
+    description: Personas naturales
+  - name: legal-entity
+    description: Entidades legales
+  - name: parties
+    description: Party raíz
+  - name: nationalities
+    description: Nacionalidades de un party
+  - name: identifier-schemes
+    description: Schemes de identificación
+  - name: party-identifiers
+    description: Identificadores de parties
+  - name: searches
+    description: Búsquedas por identificador
+
 paths:
-  /api/v1/parties:
+  /v1/natural-person:
     post:
-      tags: [Parties]
-      operationId: createParty
-      summary: Create a natural-person or legal-entity Party
+      tags:
+        - natural-person
+      operationId: createNaturalPerson
+      summary: Crear persona natural
+      description: |
+        Crea un party de tipo NATURAL_PERSON junto con su detalle.
+        El party se crea inicialmente en DRAFT.
       parameters:
         - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreatePartyRequest'
-            example:
-              type: NATURAL_PERSON
-              naturalPersonDetails:
-                givenNames: Ana Maria
-                familyNames: Example
-                preferredName: Ana
-                birthDate: '1990-03-15'
-                dateOfDeath: null
-                birthCountryCode: EC
-              nationalities:
-                - countryCode: EC
-                  isPrimary: true
-                  validFrom: '1990-03-15'
-                  validUntil: null
+              $ref: '#/components/schemas/NaturalPersonCreateRequest'
       responses:
         '201':
-          $ref: '#/components/responses/PartyCreated'
+          description: Persona natural creada
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-        '503':
-          $ref: '#/components/responses/DependencyUnavailable'
+          $ref: '#/components/responses/InternalError'
+
+  /v1/natural-person/{partyId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
     get:
-      tags: [Parties]
-      operationId: searchParties
-      summary: Search tenant-scoped Parties using indexed attributes
-      parameters:
-        - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/PartyTypeFilter'
-        - $ref: '#/components/parameters/PartyStatusFilter'
-        - $ref: '#/components/parameters/DisplayNameFilter'
+      tags:
+        - natural-person
+      operationId: getNaturalPerson
+      summary: Obtener persona natural
       responses:
         '200':
-          $ref: '#/components/responses/PartySearchResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /api/v1/parties/{partyId}:
-    get:
-      tags: [Parties]
-      operationId: getPartyById
-      summary: Get one complete tenant-scoped Party representation
-      parameters:
-        - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/PartyId'
-      responses:
-        '200':
-          $ref: '#/components/responses/PartyFound'
+          description: Detalle de persona natural
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags:
+        - natural-person
+      operationId: replaceNaturalPerson
+      summary: Reemplazar detalle de persona natural
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NaturalPersonPutRequest'
+      responses:
+        '200':
+          description: Detalle actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
     patch:
-      tags: [Parties]
+      tags:
+        - natural-person
+      operationId: patchNaturalPerson
+      summary: Actualización parcial de persona natural
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NaturalPersonPatchRequest'
+      responses:
+        '200':
+          description: Detalle actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/legal-entity:
+    post:
+      tags:
+        - legal-entity
+      operationId: createLegalEntity
+      summary: Crear entidad legal
+      description: |
+        Crea un party de tipo LEGAL_ENTITY junto con su detalle.
+        El party se crea inicialmente en DRAFT.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalEntityCreateRequest'
+      responses:
+        '201':
+          description: Entidad legal creada
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/legal-entity/{partyId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - legal-entity
+      operationId: getLegalEntity
+      summary: Obtener entidad legal
+      responses:
+        '200':
+          description: Detalle de entidad legal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags:
+        - legal-entity
+      operationId: replaceLegalEntity
+      summary: Reemplazar detalle de entidad legal
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalEntityPutRequest'
+      responses:
+        '200':
+          description: Detalle actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - legal-entity
+      operationId: patchLegalEntity
+      summary: Actualización parcial de entidad legal
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalEntityPatchRequest'
+      responses:
+        '200':
+          description: Detalle actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties:
+    get:
+      tags:
+        - parties
+      operationId: listParties
+      summary: Listar parties
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PartyType'
+        - name: recordStatus
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PartyRecordStatus'
+        - name: displayNameStartsWith
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 300
+        - name: displayNameContains
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 300
+        - name: createdFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: createdTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/CursorQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Lista de parties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyCollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/search/by-identifier:
+    post:
+      tags:
+        - searches
+      operationId: searchPartyByIdentifier
+      summary: Buscar party por identificador exacto
+      description: |
+        Búsqueda exacta por valor de identificador normalizado.
+        El valor no se expone en respuestas; solo se usa como criterio de búsqueda.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierSearchExactRequest'
+      responses:
+        '200':
+          description: Resultados de búsqueda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/search/by-identifier-prefix:
+    post:
+      tags:
+        - searches
+      operationId: searchPartyByIdentifierPrefix
+      summary: Buscar parties por prefijo de identificador
+      description: |
+        Búsqueda por prefijo de identificador, por ejemplo inicio de cédula.
+        Puede requerir soporte adicional en persistencia.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierSearchPrefixRequest'
+      responses:
+        '200':
+          description: Resultados de búsqueda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - parties
+      operationId: getParty
+      summary: Obtener party completo
+      responses:
+        '200':
+          description: Party completo según tipo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - parties
       operationId: updateParty
-      summary: Update type-matching Party details using optimistic concurrency
+      summary: Actualizar campos básicos del party
       parameters:
-        - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/PartyId'
+        - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdatePartyRequest'
+              $ref: '#/components/schemas/PartyUpdateRequest'
       responses:
         '200':
-          $ref: '#/components/responses/PartyUpdated'
+          description: Party actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-        '503':
-          $ref: '#/components/responses/DependencyUnavailable'
-  /api/v1/parties/{partyId}/status-transitions:
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/activate:
     post:
-      tags: [Parties]
-      operationId: changePartyStatus
-      summary: Change the Party lifecycle state without deleting identity records
+      tags:
+        - parties
+      operationId: activateParty
+      summary: Activar party
       parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
         - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/PartyId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangePartyStatusRequest'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
       responses:
         '200':
-          $ref: '#/components/responses/PartyStatusChanged'
+          description: Party activado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-  /api/v1/parties/{partyId}/nationalities:
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/deactivate:
     post:
-      tags: [Nationalities]
-      operationId: addPartyNationality
-      summary: Add a nationality to a natural-person Party
+      tags:
+        - parties
+      operationId: deactivateParty
+      summary: Desactivar party
       parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
         - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/PartyId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      responses:
+        '200':
+          description: Party desactivado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/archive:
+    post:
+      tags:
+        - parties
+      operationId: archiveParty
+      summary: Archivar party
+      parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      responses:
+        '200':
+          description: Party archivado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/nationalities:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    post:
+      tags:
+        - nationalities
+      operationId: createNationality
+      summary: Crear nacionalidad
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddNationalityRequest'
+              $ref: '#/components/schemas/NationalityCreateRequest'
       responses:
         '201':
-          $ref: '#/components/responses/NationalityCreated'
+          description: Nacionalidad creada
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-        '503':
-          $ref: '#/components/responses/DependencyUnavailable'
-  /api/v1/parties/{partyId}/nationalities/{nationalityId}:
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags:
+        - nationalities
+      operationId: listNationalities
+      summary: Listar nacionalidades
+      parameters:
+        - name: countryCode
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+        - name: isPrimary
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: asOfDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: includeExpired
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/CursorQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Lista de nacionalidades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityCollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/nationalities/{nationalityId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/NationalityIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - nationalities
+      operationId: getNationality
+      summary: Obtener nacionalidad
+      responses:
+        '200':
+          description: Nacionalidad
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     patch:
-      tags: [Nationalities]
-      operationId: updatePartyNationality
-      summary: Update one nationality using the owning Party version
-      parameters:
-        - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/PartyId'
-        - $ref: '#/components/parameters/NationalityId'
+      tags:
+        - nationalities
+      operationId: updateNationality
+      summary: Actualizar vigencia de nacionalidad
+      description: |
+        No existe borrado físico. La finalización se maneja mediante validUntil.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateNationalityRequest'
+              $ref: '#/components/schemas/NationalityUpdateRequest'
       responses:
         '200':
-          $ref: '#/components/responses/NationalityChanged'
+          description: Nacionalidad actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-        '503':
-          $ref: '#/components/responses/DependencyUnavailable'
-  /api/v1/parties/{partyId}/nationalities/{nationalityId}/end:
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/nationalities/{nationalityId}/set-primary:
     post:
-      tags: [Nationalities]
-      operationId: endPartyNationality
-      summary: End a nationality validity interval without deleting its row
+      tags:
+        - nationalities
+      operationId: setPrimaryNationality
+      summary: Marcar nacionalidad primaria
       parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
+        - $ref: '#/components/parameters/NationalityIdPath'
         - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/PartyId'
-        - $ref: '#/components/parameters/NationalityId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EndNationalityRequest'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
       responses:
         '200':
-          $ref: '#/components/responses/NationalityChanged'
+          description: Nacionalidad marcada como primaria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-  /api/v1/party-identifiers:
+          $ref: '#/components/responses/InternalError'
+
+  /v1/identifier-schemes:
     post:
-      tags: [Party Identifiers]
-      operationId: registerPartyIdentifier
-      summary: Normalize, protect and register an official Party identifier
+      tags:
+        - identifier-schemes
+      operationId: createIdentifierScheme
+      summary: Crear scheme de identificación
       parameters:
         - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterPartyIdentifierRequest'
-            example:
-              partyId: 0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1
-              schemeCode: EC_CEDULA
-              value: TEST_IDENTIFIER_VALUE
-              issuerCode: REGISTRO_CIVIL
-              isPrimary: true
-              issuedOn: '2020-01-01'
-              expiresOn: null
+              $ref: '#/components/schemas/IdentifierSchemeCreateRequest'
       responses:
         '201':
-          $ref: '#/components/responses/PartyIdentifierCreated'
+          description: Scheme creado
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags:
+        - identifier-schemes
+      operationId: listIdentifierSchemes
+      summary: Listar schemes de identificación
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - name: issuingCountryCode
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+        - name: category
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IdentifierCategory'
+        - name: applicableSubjectType
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IdentifierSubjectType'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IdentifierSchemeStatus'
+        - $ref: '#/components/parameters/CursorQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Lista de schemes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeCollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/identifier-schemes/by-code/{code}:
+    get:
+      tags:
+        - identifier-schemes
+      operationId: getIdentifierSchemeByCode
+      summary: Obtener scheme por código
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: Scheme encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/identifier-schemes/{schemeId}:
+    parameters:
+      - $ref: '#/components/parameters/IdentifierSchemeIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - identifier-schemes
+      operationId: getIdentifierScheme
+      summary: Obtener scheme por ID
+      responses:
+        '200':
+          description: Scheme encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - identifier-schemes
+      operationId: updateIdentifierScheme
+      summary: Actualizar scheme
+      description: |
+        Si el scheme no está en DRAFT, no se permiten cambios en:
+        code, issuingCountryCode, category, applicableSubjectType.
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierSchemeUpdateRequest'
+      responses:
+        '200':
+          description: Scheme actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-  /api/v1/party-identifiers/{partyIdentifierId}/status-transitions:
+          $ref: '#/components/responses/InternalError'
+
+  /v1/identifier-schemes/{schemeId}/activate:
     post:
-      tags: [Party Identifiers]
-      operationId: changePartyIdentifierStatus
-      summary: Verify, reject, expire or revoke a Party identifier
+      tags:
+        - identifier-schemes
+      operationId: activateIdentifierScheme
+      summary: Activar scheme
       parameters:
+        - $ref: '#/components/parameters/IdentifierSchemeIdPath'
         - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/ProcessId'
-        - $ref: '#/components/parameters/PartyIdentifierId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangeIdentifierStatusRequest'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
       responses:
         '200':
-          $ref: '#/components/responses/PartyIdentifierChanged'
+          description: Scheme activado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
-  /api/v1/party-identifiers/exact-search:
+          $ref: '#/components/responses/InternalError'
+
+  /v1/identifier-schemes/{schemeId}/deprecate:
     post:
-      tags: [Party Identifiers]
-      operationId: findPartyByIdentifier
-      summary: Find a Party using a tenant-isolated exact identifier fingerprint
+      tags:
+        - identifier-schemes
+      operationId: deprecateIdentifierScheme
+      summary: Deprecar scheme
       parameters:
+        - $ref: '#/components/parameters/IdentifierSchemeIdPath'
         - $ref: '#/components/parameters/TenantId'
-        - $ref: '#/components/parameters/UserId'
         - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      responses:
+        '200':
+          description: Scheme deprecado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/identifier-schemes/{schemeId}/retire:
+    post:
+      tags:
+        - identifier-schemes
+      operationId: retireIdentifierScheme
+      summary: Retirar scheme
+      parameters:
+        - $ref: '#/components/parameters/IdentifierSchemeIdPath'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      responses:
+        '200':
+          description: Scheme retirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/identifiers:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    post:
+      tags:
+        - party-identifiers
+      operationId: createPartyIdentifier
+      summary: Crear identificador
+      description: |
+        Crea un identificador para un party.
+        El servicio normaliza, valida, encripta, hashea y enmascara el valor.
+        No se permite actualizar el valor posteriormente.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FindPartyByIdentifierRequest'
+              $ref: '#/components/schemas/PartyIdentifierCreateRequest'
       responses:
-        '200':
-          $ref: '#/components/responses/PartyFoundByIdentifier'
+        '201':
+          description: Identificador creado
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
-          $ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags:
+        - party-identifiers
+      operationId: listPartyIdentifiers
+      summary: Listar identificadores de un party
+      parameters:
+        - name: identifierSchemeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: schemeCode
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PartyIdentifierStatus'
+        - name: isPrimary
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/CursorQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Lista de identificadores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierCollectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/PartyIdentifierIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - party-identifiers
+      operationId: getPartyIdentifier
+      summary: Obtener identificador
+      responses:
+        '200':
+          description: Identificador enmascarado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    patch:
+      tags:
+        - party-identifiers
+      operationId: updatePartyIdentifier
+      summary: Actualizar metadata del identificador
+      description: |
+        Solo permite actualizar metadata. Nunca el valor del identificador.
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyIdentifierUpdateRequest'
+      responses:
+        '200':
+          description: Identificador actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/verify:
+    post:
+      tags:
+        - party-identifiers
+      operationId: verifyPartyIdentifier
+      summary: Verificar identificador
+      parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
+        - $ref: '#/components/parameters/PartyIdentifierIdPath'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      responses:
+        '200':
+          description: Identificador verificado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/reject:
+    post:
+      tags:
+        - party-identifiers
+      operationId: rejectPartyIdentifier
+      summary: Rechazar identificador
+      parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
+        - $ref: '#/components/parameters/PartyIdentifierIdPath'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonActionRequest'
+      responses:
+        '200':
+          description: Identificador rechazado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/revoke:
+    post:
+      tags:
+        - party-identifiers
+      operationId: revokePartyIdentifier
+      summary: Revocar identificador
+      parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
+        - $ref: '#/components/parameters/PartyIdentifierIdPath'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonActionRequest'
+      responses:
+        '200':
+          description: Identificador revocado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/set-primary:
+    post:
+      tags:
+        - party-identifiers
+      operationId: setPrimaryPartyIdentifier
+      summary: Marcar identificador primario
+      parameters:
+        - $ref: '#/components/parameters/PartyIdPath'
+        - $ref: '#/components/parameters/PartyIdentifierIdPath'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPrimaryIdentifierRequest'
+      responses:
+        '200':
+          description: Identificador marcado como primario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   parameters:
     TenantId:
       name: Tenant-Id
       in: header
       required: true
-      description: Trusted tenant UUID. Exactly one occurrence is required.
-      schema:
-        $ref: '#/components/schemas/Uuid'
-    UserId:
-      name: User-Id
-      in: header
-      required: true
-      description: Trusted non-blank audit subject. Exactly one occurrence is required.
       schema:
         type: string
-        minLength: 1
-        maxLength: 128
-        pattern: '.*\S.*'
+        format: uuid
     ProcessId:
       name: Process-Id
       in: header
       required: true
-      description: Trusted process UUID propagated unchanged. Exactly one occurrence is required.
       schema:
-        $ref: '#/components/schemas/Uuid'
-    PartyId:
+        type: string
+        maxLength: 128
+    UserId:
+      name: User-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    IdempotencyKeyRequired:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+    IdempotencyKeyOptional:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: Versión actual del recurso para control de concurrencia optimista.
+      schema:
+        type: string
+    PartyIdPath:
       name: partyId
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/Uuid'
-    NationalityId:
+        type: string
+        format: uuid
+    NationalityIdPath:
       name: nationalityId
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/Uuid'
-    PartyIdentifierId:
-      name: partyIdentifierId
+        type: string
+        format: uuid
+    IdentifierSchemeIdPath:
+      name: schemeId
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/Uuid'
-    Cursor:
+        type: string
+        format: uuid
+    PartyIdentifierIdPath:
+      name: identifierId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CursorQuery:
       name: cursor
       in: query
       required: false
-      description: Opaque continuation cursor from the previous page.
       schema:
         type: string
-        minLength: 1
-        maxLength: 2048
-    Limit:
+        nullable: true
+    LimitQuery:
       name: limit
       in: query
       required: false
       schema:
         type: integer
-        format: int32
         minimum: 1
-        maximum: 100
-        default: 20
-    PartyTypeFilter:
-      name: type
-      in: query
-      required: false
-      schema:
-        $ref: '#/components/schemas/PartyType'
-    PartyStatusFilter:
-      name: status
-      in: query
-      required: false
-      schema:
-        $ref: '#/components/schemas/PartyRecordStatus'
-    DisplayNameFilter:
-      name: displayName
-      in: query
-      required: false
-      schema:
-        type: string
-        minLength: 1
-        maxLength: 300
-  headers:
-    ProcessIdEcho:
-      required: true
-      description: Unchanged echo of the request Process-Id header.
-      schema:
-        $ref: '#/components/schemas/Uuid'
+        maximum: 200
+        default: 50
+
   responses:
-    PartyCreated:
-      description: Party created atomically in DRAFT state.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartyCreatedResponse'
-          example:
-            status: 201
-            code: successful
-            data:
-              partyId: 0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1
-              recordStatus: DRAFT
-              version: 0
-    PartySearchResult:
-      description: Stable tenant-scoped Party page.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartySearchResponse'
-    PartyFound:
-      description: Complete Party representation with masked identifiers only.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartyResponse'
-    PartyUpdated:
-      description: Party details updated using the expected aggregate version.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartyMutationResponse'
-    PartyStatusChanged:
-      description: Party lifecycle status changed.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartyStatusResponse'
-    NationalityCreated:
-      description: Nationality added and owning Party version incremented.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/NationalityCreatedResponse'
-    NationalityChanged:
-      description: Nationality changed and owning Party version incremented.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/NationalityResponse'
-    PartyIdentifierCreated:
-      description: Protected Party identifier created in PENDING_VERIFICATION state.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartyIdentifierCreatedResponse'
-    PartyIdentifierChanged:
-      description: Party identifier status changed using optimistic concurrency.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartyIdentifierResponse'
-    PartyFoundByIdentifier:
-      description: Tenant-scoped Party and masked identifier projection.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/PartyIdentifierLookupResponse'
     BadRequest:
-      description: Invalid or repeated trusted context, path, query, or request body.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
+      description: Solicitud inválida, headers faltantes o validación de formato.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/BadRequestResponse'
-          example:
-            status: 400
-            code: bad-request
+            $ref: '#/components/schemas/Error'
     NotFound:
-      description: Tenant-scoped Party, nationality, identifier, or scheme not found.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
+      description: Recurso no encontrado para el tenant indicado.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/NotFoundResponse'
-          examples:
-            party:
-              value:
-                status: 404
-                code: party-not-found
-            nationality:
-              value:
-                status: 404
-                code: party-nationality-not-found
-            identifier:
-              value:
-                status: 404
-                code: party-identifier-not-found
-            scheme:
-              value:
-                status: 404
-                code: identifier-scheme-not-found
+            $ref: '#/components/schemas/Error'
     Conflict:
-      description: Optimistic concurrency, lifecycle, interval, or uniqueness conflict.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
+      description: Conflicto de negocio, duplicidad o transición inválida.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ConflictResponse'
-          examples:
-            version:
-              value:
-                status: 409
-                code: version-conflict
-            invariant:
-              value:
-                status: 409
-                code: conflict
-    MethodNotAllowed:
-      description: HTTP method is not supported for the target resource.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
+            $ref: '#/components/schemas/Error'
+    PreconditionFailed:
+      description: La versión enviada en If-Match no coincide con la actual.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/MethodNotAllowedResponse'
-          example:
-            status: 405
-            code: method-not-allowed
-    ServerError:
-      description: Unexpected server error without internal or protected details.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: La solicitud es sintácticamente válida pero rompe reglas de negocio.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ServerErrorResponse'
-          example:
-            status: 500
-            code: server-error
-    DependencyUnavailable:
-      description: Required Geographic Reference validation could not complete authoritatively.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Error interno del servicio.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/DependencyUnavailableResponse'
-          example:
-            status: 503
-            code: dependency-unavailable
+            $ref: '#/components/schemas/Error'
+
   schemas:
-    Uuid:
-      type: string
-      format: uuid
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: El payload no cumple las reglas de negocio.
+        traceId:
+          type: string
+          example: 01900000-0000-7000-8000-000000000000
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+          example: displayName
+        message:
+          type: string
+          example: displayName no puede estar vacío.
+
     PartyType:
       type: string
-      enum: [NATURAL_PERSON, LEGAL_ENTITY]
+      enum:
+        - NATURAL_PERSON
+        - LEGAL_ENTITY
+
     PartyRecordStatus:
       type: string
-      enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+      enum:
+        - DRAFT
+        - ACTIVE
+        - INACTIVE
+        - ARCHIVED
+
+    IdentifierCategory:
+      type: string
+      enum:
+        - NATIONAL_ID
+        - TAX_ID
+        - PASSPORT
+        - RESIDENCE_PERMIT
+        - LEGAL_REGISTRATION_NUMBER
+        - OTHER
+
+    IdentifierSubjectType:
+      type: string
+      enum:
+        - NATURAL_PERSON
+        - LEGAL_ENTITY
+        - BOTH
+
+    IdentifierSchemeStatus:
+      type: string
+      enum:
+        - DRAFT
+        - ACTIVE
+        - DEPRECATED
+        - RETIRED
+
     PartyIdentifierStatus:
       type: string
-      enum: [PENDING_VERIFICATION, VERIFIED, REJECTED, EXPIRED, REVOKED]
-    CountryCode:
-      type: string
-      pattern: '^[A-Z]{2}$'
-    ExpectedVersion:
-      type: integer
-      format: int64
-      minimum: 0
-    NaturalPersonDetailsInput:
+      enum:
+        - PENDING_VERIFICATION
+        - VERIFIED
+        - REJECTED
+        - EXPIRED
+        - REVOKED
+
+    PartyBase:
       type: object
-      additionalProperties: false
-      required: [givenNames, familyNames]
+      required:
+        - partyId
+        - type
+        - displayName
+        - recordStatus
+        - version
+        - createdAt
+        - updatedAt
+        - createdBy
+        - updatedBy
+      properties:
+        partyId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PartyType'
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 300
+        recordStatus:
+          $ref: '#/components/schemas/PartyRecordStatus'
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          maxLength: 128
+        updatedBy:
+          type: string
+          maxLength: 128
+
+    PartySummary:
+      type: object
+      required:
+        - partyId
+        - type
+        - displayName
+        - recordStatus
+        - createdAt
+        - version
+      properties:
+        partyId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PartyType'
+        displayName:
+          type: string
+        recordStatus:
+          $ref: '#/components/schemas/PartyRecordStatus'
+        createdAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+
+    PartyCollectionResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartySummary'
+        nextCursor:
+          type: string
+          nullable: true
+
+    NaturalPersonDetails:
+      type: object
+      required:
+        - givenNames
+        - familyNames
       properties:
         givenNames:
           type: string
@@ -656,618 +1613,784 @@ components:
           minLength: 1
           maxLength: 200
         preferredName:
-          type: [string, 'null']
+          type: string
           maxLength: 200
+          nullable: true
         birthDate:
-          type: [string, 'null']
+          type: string
           format: date
+          nullable: true
         dateOfDeath:
-          type: [string, 'null']
+          type: string
           format: date
+          nullable: true
         birthCountryCode:
-          oneOf:
-            - $ref: '#/components/schemas/CountryCode'
-            - type: 'null'
-    LegalEntityDetailsInput:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+          nullable: true
+
+    NaturalPersonCreateRequest:
       type: object
-      additionalProperties: false
-      required: [legalName, incorporationCountryCode]
+      required:
+        - givenNames
+        - familyNames
+      properties:
+        displayName:
+          type: string
+          maxLength: 300
+          nullable: true
+          description: Si no se envía, puede derivarse de givenNames y familyNames.
+        givenNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        familyNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        preferredName:
+          type: string
+          maxLength: 200
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        dateOfDeath:
+          type: string
+          format: date
+          nullable: true
+        birthCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+          nullable: true
+
+    NaturalPersonPutRequest:
+      type: object
+      required:
+        - givenNames
+        - familyNames
+      properties:
+        givenNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        familyNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        preferredName:
+          type: string
+          maxLength: 200
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        dateOfDeath:
+          type: string
+          format: date
+          nullable: true
+        birthCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+          nullable: true
+
+    NaturalPersonPatchRequest:
+      type: object
+      minProperties: 1
+      properties:
+        givenNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        familyNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        preferredName:
+          type: string
+          maxLength: 200
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        dateOfDeath:
+          type: string
+          format: date
+          nullable: true
+        birthCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+          nullable: true
+
+    NaturalPersonResponse:
+      allOf:
+        - $ref: '#/components/schemas/PartyBase'
+        - type: object
+          required:
+            - naturalPersonDetails
+          properties:
+            naturalPersonDetails:
+              $ref: '#/components/schemas/NaturalPersonDetails'
+
+    LegalEntityDetails:
+      type: object
+      required:
+        - legalName
+        - incorporationCountryCode
       properties:
         legalName:
           type: string
           minLength: 1
           maxLength: 300
         tradeName:
-          type: [string, 'null']
+          type: string
           maxLength: 300
+          nullable: true
         legalFormCode:
-          type: [string, 'null']
+          type: string
           maxLength: 64
+          nullable: true
         incorporationCountryCode:
-          $ref: '#/components/schemas/CountryCode'
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
         incorporatedOn:
-          type: [string, 'null']
+          type: string
           format: date
+          nullable: true
         dissolvedOn:
-          type: [string, 'null']
-          format: date
-    NationalityInput:
-      type: object
-      additionalProperties: false
-      required: [countryCode]
-      properties:
-        countryCode:
-          $ref: '#/components/schemas/CountryCode'
-        isPrimary:
-          type: boolean
-          default: false
-        validFrom:
-          type: [string, 'null']
-          format: date
-        validUntil:
-          type: [string, 'null']
-          format: date
-    CreatePartyRequest:
-      oneOf:
-        - $ref: '#/components/schemas/CreateNaturalPersonRequest'
-        - $ref: '#/components/schemas/CreateLegalEntityRequest'
-      discriminator:
-        propertyName: type
-        mapping:
-          NATURAL_PERSON: '#/components/schemas/CreateNaturalPersonRequest'
-          LEGAL_ENTITY: '#/components/schemas/CreateLegalEntityRequest'
-    CreateNaturalPersonRequest:
-      type: object
-      additionalProperties: false
-      required: [type, naturalPersonDetails]
-      properties:
-        type:
-          type: string
-          const: NATURAL_PERSON
-        naturalPersonDetails:
-          $ref: '#/components/schemas/NaturalPersonDetailsInput'
-        nationalities:
-          type: array
-          items:
-            $ref: '#/components/schemas/NationalityInput'
-          default: []
-    CreateLegalEntityRequest:
-      type: object
-      additionalProperties: false
-      required: [type, legalEntityDetails]
-      properties:
-        type:
-          type: string
-          const: LEGAL_ENTITY
-        legalEntityDetails:
-          $ref: '#/components/schemas/LegalEntityDetailsInput'
-    UpdatePartyRequest:
-      oneOf:
-        - $ref: '#/components/schemas/UpdateNaturalPersonRequest'
-        - $ref: '#/components/schemas/UpdateLegalEntityRequest'
-      discriminator:
-        propertyName: type
-        mapping:
-          NATURAL_PERSON: '#/components/schemas/UpdateNaturalPersonRequest'
-          LEGAL_ENTITY: '#/components/schemas/UpdateLegalEntityRequest'
-    UpdateNaturalPersonRequest:
-      type: object
-      additionalProperties: false
-      required: [type, expectedVersion, naturalPersonDetails]
-      properties:
-        type:
-          type: string
-          const: NATURAL_PERSON
-        expectedVersion:
-          $ref: '#/components/schemas/ExpectedVersion'
-        naturalPersonDetails:
-          $ref: '#/components/schemas/NaturalPersonDetailsInput'
-    UpdateLegalEntityRequest:
-      type: object
-      additionalProperties: false
-      required: [type, expectedVersion, legalEntityDetails]
-      properties:
-        type:
-          type: string
-          const: LEGAL_ENTITY
-        expectedVersion:
-          $ref: '#/components/schemas/ExpectedVersion'
-        legalEntityDetails:
-          $ref: '#/components/schemas/LegalEntityDetailsInput'
-    ChangePartyStatusRequest:
-      type: object
-      additionalProperties: false
-      required: [expectedVersion, targetStatus]
-      properties:
-        expectedVersion:
-          $ref: '#/components/schemas/ExpectedVersion'
-        targetStatus:
-          $ref: '#/components/schemas/PartyRecordStatus'
-    AddNationalityRequest:
-      type: object
-      additionalProperties: false
-      required: [expectedVersion, countryCode]
-      properties:
-        expectedVersion:
-          $ref: '#/components/schemas/ExpectedVersion'
-        countryCode:
-          $ref: '#/components/schemas/CountryCode'
-        isPrimary:
-          type: boolean
-          default: false
-        validFrom:
-          type: [string, 'null']
-          format: date
-        validUntil:
-          type: [string, 'null']
-          format: date
-    UpdateNationalityRequest:
-      type: object
-      additionalProperties: false
-      required: [expectedVersion, countryCode, isPrimary, validFrom, validUntil]
-      properties:
-        expectedVersion:
-          $ref: '#/components/schemas/ExpectedVersion'
-        countryCode:
-          $ref: '#/components/schemas/CountryCode'
-        isPrimary:
-          type: boolean
-        validFrom:
-          type: [string, 'null']
-          format: date
-        validUntil:
-          type: [string, 'null']
-          format: date
-    EndNationalityRequest:
-      type: object
-      additionalProperties: false
-      required: [expectedVersion, validUntil]
-      properties:
-        expectedVersion:
-          $ref: '#/components/schemas/ExpectedVersion'
-        validUntil:
           type: string
           format: date
-    RegisterPartyIdentifierRequest:
+          nullable: true
+
+    LegalEntityCreateRequest:
       type: object
-      additionalProperties: false
-      required: [partyId, schemeCode, value]
-      properties:
-        partyId:
-          $ref: '#/components/schemas/Uuid'
-        schemeCode:
-          type: string
-          minLength: 1
-          maxLength: 64
-        value:
-          type: string
-          minLength: 1
-          maxLength: 1024
-          writeOnly: true
-        issuerCode:
-          type: [string, 'null']
-          maxLength: 64
-        isPrimary:
-          type: boolean
-          default: false
-        issuedOn:
-          type: [string, 'null']
-          format: date
-        expiresOn:
-          type: [string, 'null']
-          format: date
-    ChangeIdentifierStatusRequest:
-      type: object
-      additionalProperties: false
-      required: [expectedVersion, targetStatus]
-      properties:
-        expectedVersion:
-          $ref: '#/components/schemas/ExpectedVersion'
-        targetStatus:
-          $ref: '#/components/schemas/PartyIdentifierStatus'
-        verifiedAt:
-          type: [string, 'null']
-          format: date-time
-        expiresOn:
-          type: [string, 'null']
-          format: date
-    FindPartyByIdentifierRequest:
-      type: object
-      additionalProperties: false
-      required: [schemeCode, value]
-      properties:
-        schemeCode:
-          type: string
-          minLength: 1
-          maxLength: 64
-        value:
-          type: string
-          minLength: 1
-          maxLength: 1024
-          writeOnly: true
-    NaturalPersonDetailsData:
-      type: object
-      additionalProperties: false
-      required:
-        - givenNames
-        - familyNames
-        - preferredName
-        - birthDate
-        - dateOfDeath
-        - birthCountryCode
-        - createdAt
-        - createdBy
-        - updatedAt
-        - updatedBy
-      properties:
-        givenNames: {type: string, minLength: 1, maxLength: 200}
-        familyNames: {type: string, minLength: 1, maxLength: 200}
-        preferredName: {type: [string, 'null'], maxLength: 200}
-        birthDate: {type: [string, 'null'], format: date}
-        dateOfDeath: {type: [string, 'null'], format: date}
-        birthCountryCode:
-          oneOf:
-            - $ref: '#/components/schemas/CountryCode'
-            - type: 'null'
-        createdAt: {type: string, format: date-time}
-        createdBy: {type: string, minLength: 1, maxLength: 128}
-        updatedAt: {type: string, format: date-time}
-        updatedBy: {type: string, minLength: 1, maxLength: 128}
-    LegalEntityDetailsData:
-      type: object
-      additionalProperties: false
       required:
         - legalName
-        - tradeName
-        - legalFormCode
         - incorporationCountryCode
-        - incorporatedOn
-        - dissolvedOn
-        - createdAt
-        - createdBy
-        - updatedAt
-        - updatedBy
       properties:
-        legalName: {type: string, minLength: 1, maxLength: 300}
-        tradeName: {type: [string, 'null'], maxLength: 300}
-        legalFormCode: {type: [string, 'null'], maxLength: 64}
-        incorporationCountryCode: {$ref: '#/components/schemas/CountryCode'}
-        incorporatedOn: {type: [string, 'null'], format: date}
-        dissolvedOn: {type: [string, 'null'], format: date}
-        createdAt: {type: string, format: date-time}
-        createdBy: {type: string, minLength: 1, maxLength: 128}
-        updatedAt: {type: string, format: date-time}
-        updatedBy: {type: string, minLength: 1, maxLength: 128}
-    NationalityData:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - countryCode
-        - isPrimary
-        - validFrom
-        - validUntil
-        - createdAt
-        - createdBy
-        - updatedAt
-        - updatedBy
-      properties:
-        id: {$ref: '#/components/schemas/Uuid'}
-        countryCode: {$ref: '#/components/schemas/CountryCode'}
-        isPrimary: {type: boolean}
-        validFrom: {type: [string, 'null'], format: date}
-        validUntil: {type: [string, 'null'], format: date}
-        createdAt: {type: string, format: date-time}
-        createdBy: {type: string, minLength: 1, maxLength: 128}
-        updatedAt: {type: string, format: date-time}
-        updatedBy: {type: string, minLength: 1, maxLength: 128}
-    PartyIdentifierData:
-      type: object
-      description: Safe projection. Encrypted value, fingerprints and key versions never appear.
-      additionalProperties: false
-      required:
-        - id
-        - identifierSchemeId
-        - issuerCode
-        - maskedValue
-        - isPrimary
-        - status
-        - issuedOn
-        - expiresOn
-        - verifiedAt
-        - verifiedBy
-        - createdAt
-        - createdBy
-        - updatedAt
-        - updatedBy
-        - version
-      properties:
-        id: {$ref: '#/components/schemas/Uuid'}
-        identifierSchemeId: {$ref: '#/components/schemas/Uuid'}
-        issuerCode: {type: [string, 'null'], maxLength: 64}
-        maskedValue: {type: string, minLength: 1, maxLength: 64}
-        isPrimary: {type: boolean}
-        status: {$ref: '#/components/schemas/PartyIdentifierStatus'}
-        issuedOn: {type: [string, 'null'], format: date}
-        expiresOn: {type: [string, 'null'], format: date}
-        verifiedAt: {type: [string, 'null'], format: date-time}
-        verifiedBy: {type: [string, 'null'], maxLength: 128}
-        createdAt: {type: string, format: date-time}
-        createdBy: {type: string, minLength: 1, maxLength: 128}
-        updatedAt: {type: string, format: date-time}
-        updatedBy: {type: string, minLength: 1, maxLength: 128}
-        version: {type: integer, format: int64, minimum: 0}
-    PartySummaryData:
-      type: object
-      additionalProperties: false
-      required: [id, type, displayName, recordStatus, version]
-      properties:
-        id: {$ref: '#/components/schemas/Uuid'}
-        type: {$ref: '#/components/schemas/PartyType'}
-        displayName: {type: string, minLength: 1, maxLength: 300}
-        recordStatus: {$ref: '#/components/schemas/PartyRecordStatus'}
-        version: {type: integer, format: int64, minimum: 0}
-    PartyData:
-      oneOf:
-        - $ref: '#/components/schemas/NaturalPersonPartyData'
-        - $ref: '#/components/schemas/LegalEntityPartyData'
-      discriminator:
-        propertyName: type
-        mapping:
-          NATURAL_PERSON: '#/components/schemas/NaturalPersonPartyData'
-          LEGAL_ENTITY: '#/components/schemas/LegalEntityPartyData'
-    NaturalPersonPartyData:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - type
-        - displayName
-        - recordStatus
-        - naturalPersonDetails
-        - nationalities
-        - identifiers
-        - createdAt
-        - createdBy
-        - updatedAt
-        - updatedBy
-        - version
-      properties:
-        id: {$ref: '#/components/schemas/Uuid'}
-        type: {type: string, const: NATURAL_PERSON}
-        displayName: {type: string, minLength: 1, maxLength: 300}
-        recordStatus: {$ref: '#/components/schemas/PartyRecordStatus'}
-        naturalPersonDetails: {$ref: '#/components/schemas/NaturalPersonDetailsData'}
-        nationalities:
-          type: array
-          items: {$ref: '#/components/schemas/NationalityData'}
-        identifiers:
-          type: array
-          items: {$ref: '#/components/schemas/PartyIdentifierData'}
-        createdAt: {type: string, format: date-time}
-        createdBy: {type: string, minLength: 1, maxLength: 128}
-        updatedAt: {type: string, format: date-time}
-        updatedBy: {type: string, minLength: 1, maxLength: 128}
-        version: {type: integer, format: int64, minimum: 0}
-    LegalEntityPartyData:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - type
-        - displayName
-        - recordStatus
-        - legalEntityDetails
-        - nationalities
-        - identifiers
-        - createdAt
-        - createdBy
-        - updatedAt
-        - updatedBy
-        - version
-      properties:
-        id: {$ref: '#/components/schemas/Uuid'}
-        type: {type: string, const: LEGAL_ENTITY}
-        displayName: {type: string, minLength: 1, maxLength: 300}
-        recordStatus: {$ref: '#/components/schemas/PartyRecordStatus'}
-        legalEntityDetails: {$ref: '#/components/schemas/LegalEntityDetailsData'}
-        nationalities:
-          type: array
-          maxItems: 0
-          items: {$ref: '#/components/schemas/NationalityData'}
-        identifiers:
-          type: array
-          items: {$ref: '#/components/schemas/PartyIdentifierData'}
-        createdAt: {type: string, format: date-time}
-        createdBy: {type: string, minLength: 1, maxLength: 128}
-        updatedAt: {type: string, format: date-time}
-        updatedBy: {type: string, minLength: 1, maxLength: 128}
-        version: {type: integer, format: int64, minimum: 0}
-    PartyCreatedData:
-      type: object
-      additionalProperties: false
-      required: [partyId, recordStatus, version]
-      properties:
-        partyId: {$ref: '#/components/schemas/Uuid'}
-        recordStatus: {type: string, const: DRAFT}
-        version: {type: integer, format: int64, const: 0}
-    PartyMutationData:
-      type: object
-      additionalProperties: false
-      required: [partyId, version]
-      properties:
-        partyId: {$ref: '#/components/schemas/Uuid'}
-        version: {type: integer, format: int64, minimum: 1}
-    PartyStatusData:
-      type: object
-      additionalProperties: false
-      required: [partyId, recordStatus, version]
-      properties:
-        partyId: {$ref: '#/components/schemas/Uuid'}
-        recordStatus: {$ref: '#/components/schemas/PartyRecordStatus'}
-        version: {type: integer, format: int64, minimum: 1}
-    NationalityMutationData:
-      type: object
-      additionalProperties: false
-      required: [partyId, partyVersion, nationality]
-      properties:
-        partyId: {$ref: '#/components/schemas/Uuid'}
-        partyVersion: {type: integer, format: int64, minimum: 1}
-        nationality: {$ref: '#/components/schemas/NationalityData'}
-    PartyIdentifierLookupData:
-      type: object
-      additionalProperties: false
-      required:
-        - partyId
-        - partyVersion
-        - partyIdentifierId
-        - maskedValue
-        - identifierStatus
-        - identifierVersion
-      properties:
-        partyId: {$ref: '#/components/schemas/Uuid'}
-        partyVersion: {type: integer, format: int64, minimum: 0}
-        partyIdentifierId: {$ref: '#/components/schemas/Uuid'}
-        maskedValue: {type: string, minLength: 1, maxLength: 64}
-        identifierStatus: {$ref: '#/components/schemas/PartyIdentifierStatus'}
-        identifierVersion: {type: integer, format: int64, minimum: 0}
-    PartyCreatedResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code, data]
-      properties:
-        status: {type: integer, const: 201}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/PartyCreatedData'}
-    PartyMutationResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code, data]
-      properties:
-        status: {type: integer, const: 200}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/PartyMutationData'}
-    PartyStatusResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code, data]
-      properties:
-        status: {type: integer, const: 200}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/PartyStatusData'}
-    PartyResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code, data]
-      properties:
-        status: {type: integer, const: 200}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/PartyData'}
-    PartySearchResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code, data, numberOfElements]
-      properties:
-        status: {type: integer, const: 200}
-        code: {type: string, const: successful}
-        data:
-          type: array
-          maxItems: 100
-          items: {$ref: '#/components/schemas/PartySummaryData'}
-        nextCursor:
+        displayName:
+          type: string
+          maxLength: 300
+          nullable: true
+          description: Si no se envía, puede derivarse de legalName o tradeName.
+        legalName:
           type: string
           minLength: 1
-        numberOfElements:
-          type: integer
-          format: int32
-          minimum: 0
-          maximum: 100
-    NationalityCreatedResponse:
+          maxLength: 300
+        tradeName:
+          type: string
+          maxLength: 300
+          nullable: true
+        legalFormCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        incorporationCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        incorporatedOn:
+          type: string
+          format: date
+          nullable: true
+        dissolvedOn:
+          type: string
+          format: date
+          nullable: true
+
+    LegalEntityPutRequest:
       type: object
-      additionalProperties: false
-      required: [status, code, data]
+      required:
+        - legalName
+        - incorporationCountryCode
       properties:
-        status: {type: integer, const: 201}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/NationalityMutationData'}
+        legalName:
+          type: string
+          minLength: 1
+          maxLength: 300
+        tradeName:
+          type: string
+          maxLength: 300
+          nullable: true
+        legalFormCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        incorporationCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        incorporatedOn:
+          type: string
+          format: date
+          nullable: true
+        dissolvedOn:
+          type: string
+          format: date
+          nullable: true
+
+    LegalEntityPatchRequest:
+      type: object
+      minProperties: 1
+      properties:
+        legalName:
+          type: string
+          minLength: 1
+          maxLength: 300
+        tradeName:
+          type: string
+          maxLength: 300
+          nullable: true
+        legalFormCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        incorporationCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        incorporatedOn:
+          type: string
+          format: date
+          nullable: true
+        dissolvedOn:
+          type: string
+          format: date
+          nullable: true
+
+    LegalEntityResponse:
+      allOf:
+        - $ref: '#/components/schemas/PartyBase'
+        - type: object
+          required:
+            - legalEntityDetails
+          properties:
+            legalEntityDetails:
+              $ref: '#/components/schemas/LegalEntityDetails'
+
+    PartyDetailResponse:
+      description: |
+        Party completo. Dependiendo del type, vendrá naturalPersonDetails
+        o legalEntityDetails.
+      allOf:
+        - $ref: '#/components/schemas/PartyBase'
+        - type: object
+          properties:
+            naturalPersonDetails:
+              $ref: '#/components/schemas/NaturalPersonDetails'
+            legalEntityDetails:
+              $ref: '#/components/schemas/LegalEntityDetails'
+
+    PartyUpdateRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 300
+
+    NationalityCreateRequest:
+      type: object
+      required:
+        - countryCode
+      properties:
+        countryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        isPrimary:
+          type: boolean
+          default: false
+        validFrom:
+          type: string
+          format: date
+          nullable: true
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+
+    NationalityUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        validFrom:
+          type: string
+          format: date
+          nullable: true
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+
     NationalityResponse:
       type: object
-      additionalProperties: false
-      required: [status, code, data]
+      required:
+        - nationalityId
+        - partyId
+        - countryCode
+        - isPrimary
+        - createdAt
+        - updatedAt
       properties:
-        status: {type: integer, const: 200}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/NationalityMutationData'}
-    PartyIdentifierCreatedResponse:
+        nationalityId:
+          type: string
+          format: uuid
+        partyId:
+          type: string
+          format: uuid
+        countryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        isPrimary:
+          type: boolean
+        validFrom:
+          type: string
+          format: date
+          nullable: true
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NationalityCollectionResponse:
       type: object
-      additionalProperties: false
-      required: [status, code, data]
+      required:
+        - items
       properties:
-        status: {type: integer, const: 201}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/PartyIdentifierData'}
-    PartyIdentifierResponse:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NationalityResponse'
+        nextCursor:
+          type: string
+          nullable: true
+
+    IdentifierSchemeCreateRequest:
       type: object
-      additionalProperties: false
-      required: [status, code, data]
+      required:
+        - code
+        - issuingCountryCode
+        - category
+        - applicableSubjectType
+        - name
+        - normalizerKey
+        - validatorKey
       properties:
-        status: {type: integer, const: 200}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/PartyIdentifierData'}
-    PartyIdentifierLookupResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code, data]
-      properties:
-        status: {type: integer, const: 200}
-        code: {type: string, const: successful}
-        data: {$ref: '#/components/schemas/PartyIdentifierLookupData'}
-    BadRequestResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code]
-      properties:
-        status: {type: integer, const: 400}
-        code: {type: string, const: bad-request}
-    NotFoundResponse:
-      type: object
-      additionalProperties: false
-      required: [status, code]
-      properties:
-        status: {type: integer, const: 404}
         code:
           type: string
-          enum:
-            - party-not-found
-            - party-nationality-not-found
-            - party-identifier-not-found
-            - identifier-scheme-not-found
-            - not-found
-    ConflictResponse:
+          minLength: 1
+          maxLength: 64
+        issuingCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        category:
+          $ref: '#/components/schemas/IdentifierCategory'
+        applicableSubjectType:
+          $ref: '#/components/schemas/IdentifierSubjectType'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        normalizerKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        validatorKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        minimumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        maximumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        requiresExpiration:
+          type: boolean
+          default: false
+
+    IdentifierSchemeUpdateRequest:
       type: object
-      additionalProperties: false
-      required: [status, code]
+      minProperties: 1
       properties:
-        status: {type: integer, const: 409}
-        code: {type: string, enum: [conflict, version-conflict]}
-    MethodNotAllowedResponse:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        normalizerKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        validatorKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        minimumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        maximumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        requiresExpiration:
+          type: boolean
+
+    IdentifierSchemeResponse:
       type: object
-      additionalProperties: false
-      required: [status, code]
+      required:
+        - id
+        - code
+        - issuingCountryCode
+        - category
+        - applicableSubjectType
+        - name
+        - normalizerKey
+        - validatorKey
+        - status
+        - version
+        - createdAt
+        - updatedAt
       properties:
-        status: {type: integer, const: 405}
-        code: {type: string, const: method-not-allowed}
-    ServerErrorResponse:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        issuingCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        category:
+          $ref: '#/components/schemas/IdentifierCategory'
+        applicableSubjectType:
+          $ref: '#/components/schemas/IdentifierSubjectType'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        normalizerKey:
+          type: string
+        validatorKey:
+          type: string
+        minimumLength:
+          type: integer
+          nullable: true
+        maximumLength:
+          type: integer
+          nullable: true
+        requiresExpiration:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/IdentifierSchemeStatus'
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    IdentifierSchemeCollectionResponse:
       type: object
-      additionalProperties: false
-      required: [status, code]
+      required:
+        - items
       properties:
-        status: {type: integer, const: 500}
-        code: {type: string, const: server-error}
-    DependencyUnavailableResponse:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IdentifierSchemeResponse'
+        nextCursor:
+          type: string
+          nullable: true
+
+    PartyIdentifierCreateRequest:
       type: object
-      additionalProperties: false
-      required: [status, code]
+      required:
+        - identifierSchemeCode
+        - value
       properties:
-        status: {type: integer, const: 503}
-        code: {type: string, const: dependency-unavailable}
+        identifierSchemeCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        value:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 256
+        issuerCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        issuedOn:
+          type: string
+          format: date
+          nullable: true
+        expiresOn:
+          type: string
+          format: date
+          nullable: true
+        isPrimary:
+          type: boolean
+          default: false
+
+    PartyIdentifierUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        issuerCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        issuedOn:
+          type: string
+          format: date
+          nullable: true
+        expiresOn:
+          type: string
+          format: date
+          nullable: true
+
+    PartyIdentifierResponse:
+      type: object
+      required:
+        - identifierId
+        - partyId
+        - identifierSchemeId
+        - schemeCode
+        - maskedValue
+        - status
+        - isPrimary
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        identifierId:
+          type: string
+          format: uuid
+        partyId:
+          type: string
+          format: uuid
+        identifierSchemeId:
+          type: string
+          format: uuid
+        schemeCode:
+          type: string
+        maskedValue:
+          type: string
+          maxLength: 64
+        status:
+          $ref: '#/components/schemas/PartyIdentifierStatus'
+        isPrimary:
+          type: boolean
+        issuerCode:
+          type: string
+          nullable: true
+        issuedOn:
+          type: string
+          format: date
+          nullable: true
+        expiresOn:
+          type: string
+          format: date
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        verifiedBy:
+          type: string
+          maxLength: 128
+          nullable: true
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PartyIdentifierCollectionResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierResponse'
+        nextCursor:
+          type: string
+          nullable: true
+
+    ReasonActionRequest:
+      type: object
+      properties:
+        reasonCode:
+          type: string
+          maxLength: 64
+        reasonDetail:
+          type: string
+          maxLength: 1000
+
+    SetPrimaryIdentifierRequest:
+      type: object
+      properties:
+        replaceCurrentPrimary:
+          type: boolean
+          default: false
+
+    IdentifierSearchExactRequest:
+      type: object
+      required:
+        - identifierSchemeCode
+        - value
+      properties:
+        identifierSchemeCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        value:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 256
+        identifierStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierStatus'
+        partyRecordStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyRecordStatus'
+
+    IdentifierSearchPrefixRequest:
+      type: object
+      required:
+        - identifierSchemeCode
+        - prefix
+      properties:
+        identifierSchemeCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        prefix:
+          type: string
+          minLength: 1
+          maxLength: 64
+        identifierStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierStatus'
+        partyRecordStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyRecordStatus'
+        cursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+
+    PartyIdentifierSearchIdentifier:
+      type: object
+      required:
+        - identifierId
+        - schemeCode
+        - maskedValue
+        - status
+        - isPrimary
+      properties:
+        identifierId:
+          type: string
+          format: uuid
+        schemeCode:
+          type: string
+        maskedValue:
+          type: string
+        status:
+          $ref: '#/components/schemas/PartyIdentifierStatus'
+        isPrimary:
+          type: boolean
+
+    PartyIdentifierSearchItem:
+      type: object
+      required:
+        - partyId
+        - type
+        - displayName
+        - recordStatus
+        - identifier
+      properties:
+        partyId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PartyType'
+        displayName:
+          type: string
+        recordStatus:
+          $ref: '#/components/schemas/PartyRecordStatus'
+        identifier:
+          $ref: '#/components/schemas/PartyIdentifierSearchIdentifier'
+
+    IdentifierSearchResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierSearchItem'
+        nextCursor:
+          type: string
+          nullable: true
