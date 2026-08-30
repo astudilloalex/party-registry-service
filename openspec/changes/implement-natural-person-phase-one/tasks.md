@@ -22,19 +22,19 @@
 
 ## 2. Domain Model
 
-- [ ] 2.1 Implement framework-independent party and natural-person domain types, including identifiers, party type/status, version, audit values, details, and transport-neutral domain failures, with concise English Javadoc.
+- [x] 2.1 Implement framework-independent party and natural-person domain types, including identifiers, party type/status, version, audit values, details, and transport-neutral domain failures, with concise English Javadoc.
   - Requirements: Natural-person creation, Natural-person retrieval, Natural-person and legal-entity exclusivity
   - Verification: Domain sources compile without imports from Quarkus, Mutiny, Jakarta REST, Jackson, Hibernate, or the shared API-response modules.
 
-- [ ] 2.2 Implement natural-person creation invariants for immutable `NATURAL_PERSON` type, required names, display-name derivation, initial `DRAFT` status/version `0`, lifecycle dates, and exactly one natural-person detail representation.
+- [x] 2.2 Implement natural-person creation invariants for immutable `NATURAL_PERSON` type, required names, display-name derivation, initial `DRAFT` status/version `0`, lifecycle dates, and exactly one natural-person detail representation.
   - Requirements: Natural-person request validation, Natural-person lifecycle date consistency, Natural-person creation, Natural-person and legal-entity exclusivity
   - Verification: Domain unit tests cover explicit/derived display names, blank names, future dates, death-before-birth, valid same-day dates, and fixed party type.
 
-- [ ] 2.3 Implement complete replacement behavior that clears omitted optional values, re-derives display name when names change, validates the complete resulting state, and preserves the original aggregate when validation fails.
+- [x] 2.3 Implement complete replacement behavior that clears omitted optional values, re-derives display name when names change, validates the complete resulting state, and preserves the original aggregate when validation fails.
   - Requirements: Complete natural-person replacement, Natural-person lifecycle date consistency
   - Verification: Domain unit tests prove complete replacement, optional-field clearing, display-name changes, and failure atomicity.
 
-- [ ] 2.4 Implement presence-aware patch behavior for absent, explicit-null, and supplied values, including required-name protection and validation against retained lifecycle values.
+- [x] 2.4 Implement presence-aware patch behavior for absent, explicit-null, and supplied values, including required-name protection and validation against retained lifecycle values.
   - Requirements: Partial natural-person update, Natural-person lifecycle date consistency
   - Verification: Domain/application-value unit tests prove omitted fields remain unchanged, nullable fields clear, required names cannot clear, and mixed retained/changed dates are validated.
 
