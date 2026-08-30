@@ -12,11 +12,11 @@
   - Requirements: Trusted request context, Natural-person request validation, Birth-country validation, Optimistic concurrency, Standard API responses
   - Verification: The OpenAPI parser reports no errors and automated assertions confirm all four natural-person operations and clarified constraints.
 
-- [ ] 1.4 Add immutable Flyway migration `V2__create_api_idempotency_records.sql` with tenant/operation/key uniqueness, request hash, party reference, versioned application-result snapshot, audit fields, and named checks/constraints.
+- [x] 1.4 Add immutable Flyway migration `V2__create_api_idempotency_records.sql` with tenant/operation/key uniqueness, request hash, party reference, versioned application-result snapshot, audit fields, and named checks/constraints.
   - Requirements: Idempotent natural-person creation, Natural-person creation
   - Verification: Flyway applies `V1` and `V2` to a clean PostgreSQL instance, validates both migrations, and rejects duplicate tenant/operation/key rows and malformed hashes.
 
-- [ ] 1.5 Add migration regression tests proving `V1` remains unchanged, Hibernate schema generation stays disabled, and the existing party-type/detail triggers still reject incompatible or dual detail rows after `V2` is applied.
+- [x] 1.5 Add migration regression tests proving `V1` remains unchanged, Hibernate schema generation stays disabled, and the existing party-type/detail triggers still reject incompatible or dual detail rows after `V2` is applied.
   - Requirements: Natural-person and legal-entity exclusivity
   - Verification: PostgreSQL integration tests pass for type immutability, incompatible details, dual details, and migration checksum validation.
 
