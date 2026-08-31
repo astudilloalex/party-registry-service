@@ -132,31 +132,31 @@
 
 ## 7. HTTP Contract Verification
 
-- [ ] 7.1 Add creation contract tests for explicit/derived display names, initial status/version, audit fields, optional values, field validation, date validation, and recognized/unknown/unavailable countries.
+- [x] 7.1 Add creation contract tests for explicit/derived display names, initial status/version, audit fields, optional values, field validation, date validation, and recognized/unknown/unavailable countries.
   - Requirements: Natural-person request validation, Natural-person lifecycle date consistency, Birth-country validation, Natural-person creation
   - Verification: `@QuarkusTest` HTTP scenarios assert exact status/code/data envelopes and no persisted state after rejected requests.
 
-- [ ] 7.2 Add idempotency HTTP tests for missing/duplicate/blank/oversized keys, equal sequential replay, different-body conflict, cross-tenant key independence, and concurrent equal requests.
+- [x] 7.2 Add idempotency HTTP tests for missing/duplicate/blank/oversized keys, equal sequential replay, different-body conflict, cross-tenant key independence, and concurrent equal requests.
   - Requirements: Idempotent natural-person creation
   - Verification: Tests observe one party for equivalent retries, `409 conflict` for mismatched bodies, independent results per tenant, and original creation data on replay.
 
-- [ ] 7.3 Add retrieval contract tests for success, invalid UUID, absent party, cross-tenant party, legal entity, and complete response mapping.
+- [x] 7.3 Add retrieval contract tests for success, invalid UUID, absent party, cross-tenant party, legal entity, and complete response mapping.
   - Requirements: Natural-person retrieval, Natural-person and legal-entity exclusivity, Standard API responses
   - Verification: Tests return `200 successful` only for the matching natural person and identical `404 not-found` envelopes for all concealed records.
 
-- [ ] 7.4 Add PUT contract tests for required body fields, optional clearing, display-name re-derivation, changed-country validation, required `If-Match`, stale version, rollback, and version increment.
+- [x] 7.4 Add PUT contract tests for required body fields, optional clearing, display-name re-derivation, changed-country validation, required `If-Match`, stale version, rollback, and version increment.
   - Requirements: Complete natural-person replacement, Birth-country validation, Optimistic concurrency
   - Verification: HTTP and database assertions prove replacement semantics, exact `400`/`404`/`412`/`422`/`503` mappings, and atomic state/version behavior.
 
-- [ ] 7.5 Add PATCH contract tests for one-field changes, omitted-field preservation, explicit null clearing, empty/unknown-only bodies, resulting-date validation, country changes, and display-name re-derivation.
+- [x] 7.5 Add PATCH contract tests for one-field changes, omitted-field preservation, explicit null clearing, empty/unknown-only bodies, resulting-date validation, country changes, and display-name re-derivation.
   - Requirements: Partial natural-person update, Natural-person lifecycle date consistency, Birth-country validation
   - Verification: HTTP and database assertions prove tri-state semantics, exact failure envelopes, and unchanged state/version on rejection.
 
-- [ ] 7.6 Add concurrent update contract tests proving two requests with one current version yield at most one success and every loser receives `412 precondition-failed` without lost updates.
+- [x] 7.6 Add concurrent update contract tests proving two requests with one current version yield at most one success and every loser receives `412 precondition-failed` without lost updates.
   - Requirements: Optimistic concurrency
   - Verification: Repeated concurrency tests assert final version increases once and final data matches exactly one winning request.
 
-- [ ] 7.7 Add response-boundary regression tests for HTTP/body status equality, process echo, absent error `data`, API DTO-only success data, `405`, dependency failures, and sanitized unexpected errors.
+- [x] 7.7 Add response-boundary regression tests for HTTP/body status equality, process echo, absent error `data`, API DTO-only success data, `405`, dependency failures, and sanitized unexpected errors.
   - Requirements: Trusted request context, Standard API responses
   - Verification: RestAssured assertions cover all standard success/error envelope fields and prove no exception, SQL, stack-trace, domain, or persistence detail leaks.
 

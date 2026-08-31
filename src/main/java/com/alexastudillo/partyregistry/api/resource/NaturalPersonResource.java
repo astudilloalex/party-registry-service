@@ -22,6 +22,7 @@ import com.alexastudillo.partyregistry.application.usecase.PatchNaturalPersonUse
 import com.alexastudillo.partyregistry.application.usecase.ReplaceNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyVersion;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,6 +40,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import org.jboss.resteasy.reactive.RestResponse;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -170,6 +172,18 @@ public class NaturalPersonResource {
                 .map(mapper::toResponse)
                 .map(responseManager::successHttp)
                 .onFailure().transform(errorTranslator::translate);
+    }
+
+    /**
+     * Routes strict JSON binding failures through the shared bad-request
+     * envelope for this resource.
+     *
+     * @param ignoredFailure Jackson request binding failure
+     * @return standard `400 bad-request` response
+     */
+    @ServerExceptionMapper
+    public RestResponse<ApiResponse<Void>> mapInvalidJson(MismatchedInputException ignoredFailure) {
+        return responseManager.errorHttp(CommonResponseCode.BAD_REQUEST);
     }
 
     private CreateNaturalPersonCommand createCommand(
