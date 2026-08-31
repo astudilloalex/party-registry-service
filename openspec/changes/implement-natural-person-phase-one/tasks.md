@@ -106,27 +106,27 @@
 
 ## 6. API Boundary
 
-- [ ] 6.1 Implement service-owned natural-person response codes and an API error translator for not found, idempotency conflict, stale version, invalid business state, unrecognized country, and dependency unavailable.
+- [x] 6.1 Implement service-owned natural-person response codes and an API error translator for not found, idempotency conflict, stale version, invalid business state, unrecognized country, and dependency unavailable.
   - Requirements: Natural-person lifecycle date consistency, Birth-country validation, Idempotent natural-person creation, Optimistic concurrency, Standard API responses
   - Verification: Unit tests map each known failure to its exact status/code and leave unexpected failures for the shared global mapper.
 
-- [ ] 6.2 Implement the single request-context filter for exact header cardinality, canonical UUIDs, safe user identifiers, request metadata, MDC propagation, completion logging, process echo, and owned-context cleanup outside `/q`.
+- [x] 6.2 Implement the single request-context filter for exact header cardinality, canonical UUIDs, safe user identifiers, request metadata, MDC propagation, completion logging, process echo, and owned-context cleanup outside `/q`.
   - Requirements: Trusted request context, Standard API responses
   - Verification: HTTP tests cover valid, missing, duplicate, malformed, oversized, unsafe, and management-path requests plus accepted/invalid process echo behavior and MDC cleanup.
 
-- [ ] 6.3 Implement create, PUT, and PATCH request models with Bean Validation and explicit PATCH presence tracking, including rejection of empty and unknown-only patches.
+- [x] 6.3 Implement create, PUT, and PATCH request models with Bean Validation and explicit PATCH presence tracking, including rejection of empty and unknown-only patches.
   - Requirements: Natural-person request validation, Complete natural-person replacement, Partial natural-person update
   - Verification: Deserialization/validation tests distinguish absent/null/value fields and reject malformed JSON, unsupported fields, blank required names, invalid dates/country codes, and length violations.
 
-- [ ] 6.4 Implement natural-person response records and API mappers from application results, ensuring the API type is always `NATURAL_PERSON` and no domain/persistence object is serialized directly.
+- [x] 6.4 Implement natural-person response records and API mappers from application results, ensuring the API type is always `NATURAL_PERSON` and no domain/persistence object is serialized directly.
   - Requirements: Natural-person creation, Natural-person retrieval, Standard API responses
   - Verification: Mapper tests assert every OpenAPI response field, null handling, audit data, version, and fixed natural-person type.
 
-- [ ] 6.5 Implement `POST`, `GET`, `PUT`, and `PATCH` methods in `NaturalPersonResource` with required request signatures, application delegation, API failure translation, and CDI `ResponseManager` success envelopes.
+- [x] 6.5 Implement `POST`, `GET`, `PUT`, and `PATCH` methods in `NaturalPersonResource` with required request signatures, application delegation, API failure translation, and CDI `ResponseManager` success envelopes.
   - Requirements: Natural-person creation, Natural-person retrieval, Complete natural-person replacement, Partial natural-person update, Standard API responses
   - Verification: Compilation and reflection tests confirm every method returns `Uni<RestResponse<ApiResponse<NaturalPersonResponse>>>`; no method returns a bare DTO, entity, or raw `Response`.
 
-- [ ] 6.6 Configure and verify the shared global error module for malformed JSON, Bean Validation, unsupported methods, authentication failures raised by platform security, and sanitized unexpected failures without adding overlapping local mappers or filters.
+- [x] 6.6 Configure and verify the shared global error module for malformed JSON, Bean Validation, unsupported methods, authentication failures raised by platform security, and sanitized unexpected failures without adding overlapping local mappers or filters.
   - Requirements: Natural-person request validation, Standard API responses
   - Verification: HTTP tests produce `400 bad-request`, `401 unauthorized` through a controlled test security failure, `405 method-not-allowed`, and sanitized `500 server-error` envelopes with matching body/HTTP statuses.
 
