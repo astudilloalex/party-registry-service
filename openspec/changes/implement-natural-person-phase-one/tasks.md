@@ -162,26 +162,26 @@
 
 ## 8. Architecture, Observability, and Delivery Verification
 
-- [ ] 8.1 Add operation metrics, tracing spans, and safe completion logs for natural-person use cases, idempotency outcomes, optimistic conflicts, and Geographic Reference calls while preserving the required MDC log format.
+- [x] 8.1 Add operation metrics, tracing spans, and safe completion logs for natural-person use cases, idempotency outcomes, optimistic conflicts, and Geographic Reference calls while preserving the required MDC log format.
   - Requirements: Trusted request context, Standard API responses
   - Verification: Tests or captured telemetry prove context propagation and expected metric/span/log labels without names, dates, bodies, credentials, or authorization data.
 
-- [ ] 8.2 Add ArchUnit tests enforcing `api`/`infrastructure` to `application`/`domain` dependency direction, domain framework isolation, application infrastructure isolation, and absence of package cycles.
+- [x] 8.2 Add ArchUnit tests enforcing `api`/`infrastructure` to `application`/`domain` dependency direction, domain framework isolation, application infrastructure isolation, and absence of package cycles.
   - Requirements: All natural-person requirements
   - Verification: Architecture tests pass and fail against representative forbidden dependency fixtures or rules.
 
-- [ ] 8.3 Update packaged integration tests to use the current OpenAPI title and `/v1/natural-person` paths, then add representative valid-context, create, retrieve, update, validation, and standard-error smoke coverage.
+- [x] 8.3 Update packaged integration tests to use the current OpenAPI title and `/v1/natural-person` paths, then add representative valid-context, create, retrieve, update, validation, and standard-error smoke coverage.
   - Requirements: Trusted request context, Natural-person creation, Natural-person retrieval, Complete natural-person replacement, Partial natural-person update, Standard API responses
   - Verification: `./gradlew quarkusIntTest` passes against the packaged application with PostgreSQL and controlled Geographic Reference configuration.
 
-- [ ] 8.4 Run the complete JVM verification suite and fix every domain, application, persistence, client, API contract, architecture, migration, and OpenAPI validation failure.
+- [x] 8.4 Run the complete JVM verification suite and fix every domain, application, persistence, client, API contract, architecture, migration, and OpenAPI validation failure.
   - Requirements: All natural-person requirements
   - Verification: `./gradlew clean test quarkusIntTest` completes successfully with no skipped required test group.
 
-- [ ] 8.5 Build and test the native executable, resolving serialization, reflection, resource-packaging, REST-client, Hibernate Reactive, and Flyway issues without weakening contract coverage.
+- [x] 8.5 Build and test the native executable, resolving serialization, reflection, resource-packaging, REST-client, Hibernate Reactive, and Flyway issues without weakening contract coverage.
   - Requirements: All natural-person requirements
   - Verification: `./gradlew buildNative -Dquarkus.native.container-build=true` and `./gradlew testNative -Dquarkus.native.container-build=true` complete successfully.
 
-- [ ] 8.6 Perform final source and contract inspection for English Javadoc on every class/interface/record/enum, prohibited blocking calls, manual subscriptions, JDBC request-path use, resource response signatures, immutable migrations, and unchanged out-of-scope endpoints.
+- [x] 8.6 Perform final source and contract inspection for English Javadoc on every class/interface/record/enum, prohibited blocking calls, manual subscriptions, JDBC request-path use, resource response signatures, immutable migrations, and unchanged out-of-scope endpoints.
   - Requirements: All natural-person requirements
   - Verification: Automated searches and review find no prohibited API signatures or blocking patterns, `V1` has no diff, only scoped OpenAPI operations changed, and every introduced type has concise English Javadoc.

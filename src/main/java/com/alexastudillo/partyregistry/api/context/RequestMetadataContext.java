@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry.api.context;
 
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
+import com.alexastudillo.partyregistry.application.model.IdempotentCreationOutcome;
 import jakarta.enterprise.context.RequestScoped;
 
 import java.util.Objects;
@@ -18,6 +19,7 @@ public class RequestMetadataContext {
     private String path;
     private long startedAtNanos;
     private boolean mdcInitialized;
+    private IdempotentCreationOutcome idempotencyOutcome;
 
     /**
      * Starts completion tracking before request validation occurs.
@@ -85,5 +87,18 @@ public class RequestMetadataContext {
 
     public void markMdcInitialized() {
         this.mdcInitialized = true;
+    }
+
+    /**
+     * Records whether a successful create was original or replayed.
+     *
+     * @param outcome idempotent creation outcome
+     */
+    public void recordIdempotencyOutcome(IdempotentCreationOutcome outcome) {
+        this.idempotencyOutcome = Objects.requireNonNull(outcome, "outcome");
+    }
+
+    public IdempotentCreationOutcome idempotencyOutcome() {
+        return idempotencyOutcome;
     }
 }

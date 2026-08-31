@@ -8,6 +8,9 @@ import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.infrastructure.integration.geographic.adapter.GeographicReferenceAdapter;
 import com.alexastudillo.partyregistry.infrastructure.integration.geographic.client.GeographicReferenceClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -30,6 +33,7 @@ import static com.alexastudillo.partyregistry.infrastructure.integration.geograp
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -46,22 +50,34 @@ class GeographicReferenceAdapterTest {
     @Inject
     CountryReferencePort countryReferencePort;
 
+    @Inject
+    MeterRegistry meterRegistry;
+
     @Test
     void mapsAContractValidResponseAndForwardsTrustedHeadersOnce() {
+        double metricCount = callCount(meterRegistry, "recognized");
         assertTrue(awaitItem(countryReferencePort.isRecognizedCountry(metadata(), "EC")));
         assertEquals(1, GeographicReferenceStubResource.requestCount("EC"));
+        assertEquals(metricCount + 1, callCount(meterRegistry, "recognized"));
+        String traceparent = GeographicReferenceStubResource.traceparent("EC");
+        assertNotNull(traceparent);
+        assertTrue(traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]"));
     }
 
     @Test
     void mapsCountryNotFoundToUnrecognizedWithoutRetry() {
+        double metricCount = callCount(meterRegistry, "not-recognized");
         assertFalse(awaitItem(countryReferencePort.isRecognizedCountry(metadata(), "ZZ")));
         assertEquals(1, GeographicReferenceStubResource.requestCount("ZZ"));
+        assertEquals(metricCount + 1, callCount(meterRegistry, "not-recognized"));
     }
 
     @Test
     void mapsServerFailuresToDependencyUnavailableWithoutRetry() {
+        double metricCount = callCount(meterRegistry, "unavailable");
         assertDependencyUnavailable(countryReferencePort.isRecognizedCountry(metadata(), "SE"));
         assertEquals(1, GeographicReferenceStubResource.requestCount("SE"));
+        assertEquals(metricCount + 1, callCount(meterRegistry, "unavailable"));
     }
 
     @Test
@@ -99,29 +115,33 @@ class GeographicReferenceAdapterTest {
     @Test
     void propagatesCancellationToTheReactiveClient() {
         AtomicBoolean cancelled = new AtomicBoolean();
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
         GeographicReferenceClient client = (tenantId, userId, processId, alpha2Code) -> Uni
                 .createFrom().<jakarta.ws.rs.core.Response>nothing()
                 .onCancellation().invoke(() -> cancelled.set(true));
-        CountryReferencePort adapter = new GeographicReferenceAdapter(client, new ObjectMapper());
+        CountryReferencePort adapter = new GeographicReferenceAdapter(client, new ObjectMapper(), registry);
 
         UniAssertSubscriber<Boolean> subscriber = adapter.isRecognizedCountry(metadata(), "EC")
                 .subscribe().withSubscriber(UniAssertSubscriber.create());
         subscriber.cancel();
 
         assertTrue(cancelled.get());
+        assertEquals(1, callCount(registry, "cancelled"));
     }
 
     @Test
     void preservesWrappedCancellationFailures() {
         CompletionException cancellation = new CompletionException(new CancellationException("cancelled"));
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
         GeographicReferenceClient client = (tenantId, userId, processId, alpha2Code) -> Uni.createFrom()
                 .failure(cancellation);
-        CountryReferencePort adapter = new GeographicReferenceAdapter(client, new ObjectMapper());
+        CountryReferencePort adapter = new GeographicReferenceAdapter(client, new ObjectMapper(), registry);
 
         UniAssertSubscriber<Boolean> subscriber = adapter.isRecognizedCountry(metadata(), "EC")
                 .subscribe().withSubscriber(UniAssertSubscriber.create());
         subscriber.awaitFailure(MAXIMUM_WAIT).assertFailedWith(CompletionException.class);
         assertEquals(cancellation, subscriber.getFailure());
+        assertEquals(1, callCount(registry, "cancelled"));
     }
 
     private static RequestMetadata metadata() {
@@ -153,6 +173,15 @@ class GeographicReferenceAdapterTest {
                 exception.failure());
         assertEquals("geographic-reference", failure.dependencyName());
         assertEquals("Dependency unavailable", exception.getMessage());
+    }
+
+    private static double callCount(MeterRegistry registry, String outcome) {
+        return registry.find("party.registry.geographic.reference.call")
+                .tag("outcome", outcome)
+                .timers()
+                .stream()
+                .mapToLong(Timer::count)
+                .sum();
     }
 
     /**

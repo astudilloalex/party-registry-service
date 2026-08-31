@@ -4,6 +4,7 @@ import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.api.response.contract.ApiResponse;
 import com.alexastudillo.api.response.contract.CommonResponseCode;
 import com.alexastudillo.partyregistry.api.context.RequestMetadataContext;
+import com.alexastudillo.partyregistry.api.observability.NaturalPersonObservability;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 import jakarta.annotation.Priority;
@@ -42,10 +43,14 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
     private static final String TENANT_ID_MDC = "tenantId";
 
     private final RequestMetadataContext metadataContext;
+    private final NaturalPersonObservability observability;
 
     @Inject
-    public RequestContextFilter(RequestMetadataContext metadataContext) {
+    public RequestContextFilter(
+            RequestMetadataContext metadataContext,
+            NaturalPersonObservability observability) {
         this.metadataContext = metadataContext;
+        this.observability = observability;
     }
 
     @Override
@@ -100,17 +105,22 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
     }
 
     private void logCompletion(ContainerResponseContext responseContext) {
-        long durationMillis = Math.max(
-                0L,
-                (System.nanoTime() - metadataContext.startedAtNanos()) / 1_000_000L);
+        long durationNanos = Math.max(0L, System.nanoTime() - metadataContext.startedAtNanos());
+        long durationMillis = durationNanos / 1_000_000L;
         String code = responseContext.getEntity() instanceof ApiResponse<?> response
                 ? response.getCode()
                 : "unavailable";
+        String operation = observability.operationName(metadataContext.method(), metadataContext.path());
+        observability.recordCompletion(
+                operation,
+                responseContext.getStatus(),
+                code,
+                durationNanos,
+                metadataContext.idempotencyOutcome());
         LOGGER.log(
                 System.Logger.Level.INFO,
-                "Request completed method={0} path={1} status={2} code={3} durationMs={4}",
-                metadataContext.method(),
-                metadataContext.path(),
+                "Request completed operation={0} status={1} code={2} durationMs={3}",
+                operation,
                 responseContext.getStatus(),
                 code,
                 durationMillis);

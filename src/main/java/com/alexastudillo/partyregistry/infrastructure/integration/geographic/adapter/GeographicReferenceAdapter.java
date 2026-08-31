@@ -10,14 +10,20 @@ import com.alexastudillo.partyregistry.infrastructure.integration.geographic.dto
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Adapts Geographic Reference HTTP outcomes to the country reference output
@@ -27,6 +33,7 @@ import java.util.concurrent.CancellationException;
 public class GeographicReferenceAdapter implements CountryReferencePort {
 
     private static final String DEPENDENCY_NAME = "geographic-reference";
+    static final String CALL_METRIC = "party.registry.geographic.reference.call";
     private static final String PROCESS_ID_HEADER = "Process-Id";
     private static final String SUCCESSFUL = "successful";
     private static final String COUNTRY_NOT_FOUND = "country-not-found";
@@ -56,25 +63,58 @@ public class GeographicReferenceAdapter implements CountryReferencePort {
 
     private final GeographicReferenceClient client;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
+    private static final System.Logger LOGGER = System.getLogger(GeographicReferenceAdapter.class.getName());
 
+    @Inject
     public GeographicReferenceAdapter(
             @RestClient GeographicReferenceClient client,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            MeterRegistry meterRegistry) {
         this.client = client;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
+    @WithSpan("geographic-reference.validate-country")
     public Uni<Boolean> isRecognizedCountry(RequestMetadata requestMetadata, String alpha2Code) {
-        String processId = requestMetadata.processId().toString();
-        return client.findByAlpha2Code(
-                requestMetadata.tenantId().value().toString(),
-                requestMetadata.userId(),
-                processId,
-                alpha2Code)
-                .map(response -> translateAndClose(response, alpha2Code, processId))
-                .onFailure(this::isTechnicalFailure)
-                .transform(this::dependencyUnavailable);
+        return Uni.createFrom().deferred(() -> {
+            Timer.Sample sample = Timer.start(meterRegistry);
+            AtomicBoolean recorded = new AtomicBoolean();
+            String processId = requestMetadata.processId().toString();
+            return client.findByAlpha2Code(
+                    requestMetadata.tenantId().value().toString(),
+                    requestMetadata.userId(),
+                    processId,
+                    alpha2Code)
+                    .map(response -> translateAndClose(response, alpha2Code, processId))
+                    .onFailure(this::isTechnicalFailure)
+                    .transform(this::dependencyUnavailable)
+                    .onItem().invoke(recognized -> recordCall(
+                            sample,
+                            recorded,
+                            Boolean.TRUE.equals(recognized) ? "recognized" : "not-recognized"))
+                    .onFailure().invoke(failure -> recordCall(
+                            sample,
+                            recorded,
+                            containsCancellation(failure) ? "cancelled" : "unavailable"))
+                    .onCancellation().invoke(() -> recordCall(sample, recorded, "cancelled"));
+        });
+    }
+
+    private void recordCall(Timer.Sample sample, AtomicBoolean recorded, String outcome) {
+        if (!recorded.compareAndSet(false, true)) {
+            return;
+        }
+        sample.stop(Timer.builder(CALL_METRIC)
+                .tag("outcome", outcome)
+                .register(meterRegistry));
+        Span.current().setAttribute("geographic.reference.outcome", outcome);
+        LOGGER.log(
+                System.Logger.Level.INFO,
+                "Geographic Reference call completed outcome={0}",
+                outcome);
     }
 
     private boolean translateAndClose(

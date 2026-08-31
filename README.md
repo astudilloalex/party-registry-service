@@ -1,6 +1,6 @@
 # Party Registry Service
 
-Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. The current baseline establishes the executable platform, database schema, API conventions, and architecture boundaries. Business endpoints are intentionally not implemented yet.
+Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. The current delivery implements the first natural-person phase while the remaining contract endpoint groups stay out of scope.
 
 ## Technology baseline
 
@@ -107,6 +107,13 @@ The approved contract at `docs/contracts/party-registry.openapi.yaml` is package
 - `/q/openapi`
 
 Operational endpoints do not require business context headers. All API requests require exactly one `Tenant-Id`, `User-Id`, and `Process-Id`. Accepted context is propagated through MDC, and `Process-Id` is echoed unchanged. Responses use the standard `status`, `code`, and optional `data` envelope.
+
+The implemented business operations are:
+
+- `POST /v1/natural-person`
+- `GET /v1/natural-person/{partyId}`
+- `PUT /v1/natural-person/{partyId}`
+- `PATCH /v1/natural-person/{partyId}`
 
 The console log format is fixed to:
 

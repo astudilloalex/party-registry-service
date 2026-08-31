@@ -35,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class MigrationRegressionTest {
 
-    private static final String V1_SHA_256 =
-            "7da1a66b7cddb2389da0032c5f3ccef8049e75eaa77783eda37e89758235e4d7";
+    private static final String V1_SHA_256 = "7da1a66b7cddb2389da0032c5f3ccef8049e75eaa77783eda37e89758235e4d7";
+    private static final String V2_SHA_256 = "9dd1164d81535fcebd9b76851e910264a116c8fbf37acdd05a57960f40b3e723";
     private static final String CREATED_BY = "migration-regression-test";
 
     @Inject
@@ -65,13 +65,25 @@ class MigrationRegressionTest {
 
     @Test
     void preservesTheFirstMigrationChecksum() throws IOException, NoSuchAlgorithmException {
-        try (InputStream migration = MigrationRegressionTest.class.getResourceAsStream(
-                "/db/migration/V1__create_party_registry_schema.sql")) {
+        assertMigrationChecksum(
+                "/db/migration/V1__create_party_registry_schema.sql",
+                V1_SHA_256);
+    }
+
+    @Test
+    void preservesTheSecondMigrationChecksum() throws IOException, NoSuchAlgorithmException {
+        assertMigrationChecksum(
+                "/db/migration/V2__create_api_idempotency_records.sql",
+                V2_SHA_256);
+    }
+
+    private static void assertMigrationChecksum(String resource, String expectedHash)
+            throws IOException, NoSuchAlgorithmException {
+        try (InputStream migration = MigrationRegressionTest.class.getResourceAsStream(resource)) {
             assertNotNull(migration);
             String actualHash = HexFormat.of().formatHex(
                     MessageDigest.getInstance("SHA-256").digest(migration.readAllBytes()));
-
-            assertEquals(V1_SHA_256, actualHash);
+            assertEquals(expectedHash, actualHash);
         }
     }
 

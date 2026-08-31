@@ -25,6 +25,7 @@ import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.smallrye.mutiny.Uni;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Validator;
@@ -100,11 +101,13 @@ public class NaturalPersonResource {
      * @return reactive `201 successful` envelope
      */
     @POST
+    @WithSpan("natural-person.create")
     public Uni<RestResponse<ApiResponse<NaturalPersonResponse>>> createNaturalPerson(
             NaturalPersonCreateRequest request,
             @Context HttpHeaders headers) {
         return Uni.createFrom().item(() -> createCommand(request, headers))
                 .flatMap(createUseCase::execute)
+                .invoke(result -> metadataContext.recordIdempotencyOutcome(result.outcome()))
                 .map(result -> mapper.toResponse(result.result()))
                 .map(response -> responseManager.customHttp(NaturalPersonResponseCode.CREATED, response))
                 .onFailure().transform(errorTranslator::translate);
@@ -118,6 +121,7 @@ public class NaturalPersonResource {
      */
     @GET
     @Path("/{partyId}")
+    @WithSpan("natural-person.retrieve")
     public Uni<RestResponse<ApiResponse<NaturalPersonResponse>>> getNaturalPerson(
             @PathParam("partyId") String partyId) {
         return Uni.createFrom().item(() -> new GetNaturalPersonCommand(
@@ -140,6 +144,7 @@ public class NaturalPersonResource {
      */
     @PUT
     @Path("/{partyId}")
+    @WithSpan("natural-person.replace")
     public Uni<RestResponse<ApiResponse<NaturalPersonResponse>>> replaceNaturalPerson(
             @PathParam("partyId") String partyId,
             NaturalPersonPutRequest request,
@@ -163,6 +168,7 @@ public class NaturalPersonResource {
      */
     @PATCH
     @Path("/{partyId}")
+    @WithSpan("natural-person.patch")
     public Uni<RestResponse<ApiResponse<NaturalPersonResponse>>> patchNaturalPerson(
             @PathParam("partyId") String partyId,
             NaturalPersonPatchRequest request,

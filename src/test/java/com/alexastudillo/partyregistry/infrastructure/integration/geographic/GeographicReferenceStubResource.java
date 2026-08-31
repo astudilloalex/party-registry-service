@@ -29,6 +29,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     private static final String BASE_PATH = "/api/v1/countries/by-alpha2/";
     private static final long DELAYED_RESPONSE_MILLIS = 500;
     private static final Map<String, AtomicInteger> REQUEST_COUNTS = new ConcurrentHashMap<>();
+    private static final Map<String, String> TRACEPARENTS = new ConcurrentHashMap<>();
     private static final String SUCCESS_RESPONSE = """
             {
               "status": 200,
@@ -64,6 +65,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     public Map<String, String> start() {
         try {
             REQUEST_COUNTS.clear();
+            TRACEPARENTS.clear();
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             executor = Executors.newVirtualThreadPerTaskExecutor();
             scheduler = Executors.newSingleThreadScheduledExecutor(
@@ -99,6 +101,10 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
         return count == null ? 0 : count.get();
     }
 
+    static String traceparent(String alpha2Code) {
+        return TRACEPARENTS.get(alpha2Code);
+    }
+
     private void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         if (!"GET".equals(exchange.getRequestMethod()) || !path.startsWith(BASE_PATH)) {
@@ -108,6 +114,10 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
 
         String alpha2Code = path.substring(BASE_PATH.length());
         REQUEST_COUNTS.computeIfAbsent(alpha2Code, ignored -> new AtomicInteger()).incrementAndGet();
+        List<String> traceparents = exchange.getRequestHeaders().get("traceparent");
+        if (traceparents != null && traceparents.size() == 1) {
+            TRACEPARENTS.put(alpha2Code, traceparents.getFirst());
+        }
         if (!hasTrustedHeaders(exchange)) {
             send(exchange, 400, "{\"status\":400,\"code\":\"bad-request\"}", true);
             return;
