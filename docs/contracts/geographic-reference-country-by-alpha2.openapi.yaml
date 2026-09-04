@@ -1,0 +1,289 @@
+openapi: 3.1.1
+info:
+  title: Geographic Reference API - Country by ISO alpha-2 code
+  version: 1.0.0
+  description: >-
+    Contract limited to the country lookup by ISO 3166-1 alpha-2 code. The route, response
+    envelope, and country activity values come from Postman collection
+    15834347-d3591c82-bd52-46a9-973d-a7a102d4b9b3, request
+    15834347-ed5c0238-71ab-455a-32b8-e63856198cb5. Request headers are the trusted context
+    required by Party Registry and intentionally replace the headers defined in Postman.
+servers: []
+paths:
+  /api/v1/countries/by-alpha2/{alpha2Code}:
+    get:
+      operationId: getCountryByAlpha2
+      summary: Get a country by its ISO 3166-1 alpha-2 code
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/Alpha2Code'
+      responses:
+        '200':
+          description: Country found
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountryResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  id: 00000000-0000-7000-8000-000000000218
+                  alpha2Code: EC
+                  alpha3Code: ECU
+                  numericCode: '218'
+                  defaultName: Ecuador
+                  officialName: Republic of Ecuador
+                  independent: true
+                  status: ACTIVE
+                  validFrom: '1830-05-13'
+                  validUntil: null
+                  sourceAuthority: ISO
+                  sourceReference: ISO 3166-1
+                  sourceRevision: '2025'
+                  createdAt: '2026-01-01T00:00:00Z'
+                  createdBy: test-fixture
+                  updatedAt: '2026-01-02T00:00:00Z'
+                  updatedBy: test-fixture
+                  version: 2
+        '400':
+          description: Invalid ISO alpha-2 code or request context
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestResponse'
+              example:
+                status: 400
+                code: bad-request
+        '404':
+          description: Country not found
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountryNotFoundResponse'
+              example:
+                status: 404
+                code: country-not-found
+        '500':
+          description: Unexpected server error
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerErrorResponse'
+              example:
+                status: 500
+                code: server-error
+components:
+  parameters:
+    TenantId:
+      name: Tenant-Id
+      in: header
+      required: true
+      description: Trusted tenant identifier. Exactly one occurrence is required.
+      schema:
+        type: string
+        format: uuid
+    UserId:
+      name: User-Id
+      in: header
+      required: true
+      description: >-
+        Trusted audit subject. Exactly one non-blank occurrence with at most 128 characters is
+        required.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '.*\S.*'
+    ProcessId:
+      name: Process-Id
+      in: header
+      required: true
+      description: >-
+        Trusted process identifier. Exactly one occurrence is required and its value is echoed
+        unchanged in the response.
+      schema:
+        type: string
+        format: uuid
+    Alpha2Code:
+      name: alpha2Code
+      in: path
+      required: true
+      description: ISO 3166-1 alpha-2 country code in uppercase.
+      schema:
+        type: string
+        pattern: '^[A-Z]{2}$'
+      example: EC
+  headers:
+    ProcessIdEcho:
+      required: true
+      description: Unchanged echo of the request Process-Id header.
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    CountryActivityStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - DRAFT
+        - DEPRECATED
+        - RETIRED
+    CountryData:
+      type: object
+      required:
+        - id
+        - alpha2Code
+        - alpha3Code
+        - numericCode
+        - defaultName
+        - officialName
+        - independent
+        - status
+        - validFrom
+        - validUntil
+        - sourceAuthority
+        - sourceReference
+        - sourceRevision
+        - createdAt
+        - createdBy
+        - updatedAt
+        - updatedBy
+        - version
+      properties:
+        id:
+          type: string
+          format: uuid
+        alpha2Code:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        alpha3Code:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        numericCode:
+          type: string
+          pattern: '^[0-9]{3}$'
+        defaultName:
+          type: string
+          minLength: 1
+          maxLength: 150
+        officialName:
+          type: string
+          minLength: 1
+          maxLength: 250
+        independent:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/CountryActivityStatus'
+        validFrom:
+          type:
+            - string
+            - 'null'
+          format: date
+        validUntil:
+          type:
+            - string
+            - 'null'
+          format: date
+        sourceAuthority:
+          type: string
+          minLength: 1
+          maxLength: 128
+        sourceReference:
+          type:
+            - string
+            - 'null'
+          maxLength: 300
+        sourceRevision:
+          type:
+            - string
+            - 'null'
+          maxLength: 64
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          minLength: 1
+          maxLength: 128
+        updatedAt:
+          type: string
+          format: date-time
+        updatedBy:
+          type: string
+          minLength: 1
+          maxLength: 128
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+      additionalProperties: false
+    CountryResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+          const: 200
+        code:
+          type: string
+          const: successful
+        data:
+          $ref: '#/components/schemas/CountryData'
+      additionalProperties: false
+    BadRequestResponse:
+      type: object
+      required:
+        - status
+        - code
+      properties:
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: bad-request
+      additionalProperties: false
+    CountryNotFoundResponse:
+      type: object
+      required:
+        - status
+        - code
+      properties:
+        status:
+          type: integer
+          const: 404
+        code:
+          type: string
+          const: country-not-found
+      additionalProperties: false
+    ServerErrorResponse:
+      type: object
+      required:
+        - status
+        - code
+      properties:
+        status:
+          type: integer
+          const: 500
+        code:
+          type: string
+          const: server-error
+      additionalProperties: false

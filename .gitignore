@@ -2,6 +2,11 @@
 .gradle/
 build/
 
+# Java
+target/
+*.class
+*.jar
+
 # Eclipse
 .project
 .classpath
@@ -24,6 +29,9 @@ nb-configuration.xml
 # OSX
 .DS_Store
 
+# Windows
+Thumbs.db
+
 # Vim
 *.swp
 *.swo
@@ -33,7 +41,8 @@ nb-configuration.xml
 *.rej
 
 # Local environment
-.env
+.env*
+*.tmp
 
 # Plugin directory
 /.quarkus/cli/plugins/
