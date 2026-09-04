@@ -46,9 +46,15 @@ paths:
       operationId: createNaturalPerson
       summary: Crear persona natural
       description: |
-        Creates a party permanently classified as `NATURAL_PERSON` together with its details.
+        Creates a party permanently classified as `NATURAL_PERSON`, its details, and exactly one
+        required initial official identifier. The identifier scheme must be `ACTIVE` and compatible
+        with natural persons. The Party, details, initial identifier, and idempotency result are
+        persisted atomically; if any validation or persistence step fails, none of them is created.
+        The initial identifier starts in `PENDING_VERIFICATION`, and its complete value is never
+        returned.
         Reusing an `Idempotency-Key` with the same effective request returns the original result;
-        reusing it with a different effective request returns `409 conflict`.
+        the effective request includes the initial identifier. Reusing the key with a different
+        effective request returns `409 conflict`.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
@@ -62,14 +68,14 @@ paths:
               $ref: '#/components/schemas/NaturalPersonCreateRequest'
       responses:
         '201':
-          description: Persona natural creada
+          description: Persona natural e identificador inicial creados
           headers:
             Process-Id:
               $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NaturalPersonApiResponse'
+                $ref: '#/components/schemas/NaturalPersonCreateApiResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -201,7 +207,13 @@ paths:
       operationId: createLegalEntity
       summary: Crear entidad legal
       description: |
-        Crea un party de tipo LEGAL_ENTITY junto con su detalle.
+        Creates a party permanently classified as `LEGAL_ENTITY`, its details, and exactly one
+        required initial official identifier. The identifier scheme must be `ACTIVE` and compatible
+        with legal entities. The Party, details, initial identifier, and idempotency result are
+        persisted atomically; if any validation or persistence step fails, none of them is created.
+        The initial identifier starts in `PENDING_VERIFICATION`, and its complete value is never
+        returned. The initial identifier is part of the effective request protected by the
+        `Idempotency-Key`.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
@@ -215,11 +227,14 @@ paths:
               $ref: '#/components/schemas/LegalEntityCreateRequest'
       responses:
         '201':
-          description: Entidad legal creada
+          description: Entidad legal e identificador inicial creados
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LegalEntityApiResponse'
+                $ref: '#/components/schemas/LegalEntityCreateApiResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -228,6 +243,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
 
@@ -524,6 +541,10 @@ paths:
         - parties
       operationId: activateParty
       summary: Activar party
+      description: |
+        Activates a Party only when it has at least one official identifier in `VERIFIED` status
+        whose scheme is compatible with the Party type. A Party without a qualifying verified
+        identifier remains in `DRAFT` and returns `422 unprocessable-entity`.
       responses:
         '200':
           description: Party activado
@@ -1082,7 +1103,10 @@ paths:
       tags:
         - party-identifiers
       operationId: createPartyIdentifier
-      summary: Crear identificador
+      summary: Registrar identificador adicional
+      description: |
+        Registers an additional official identifier for an existing Party. Initial Party creation
+        uses the required `initialIdentifier` in the natural-person or legal-entity create request.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
@@ -1787,11 +1811,13 @@ components:
     NaturalPersonCreateRequest:
       type: object
       description: >-
-        Strict natural-person creation representation. Unknown properties are rejected. Omitted or
-        null display names are derived from the validated given and family names.
+        Strict natural-person creation representation. Exactly one initial official identifier is
+        required and participates in idempotency comparison. Unknown properties are rejected.
+        Omitted or null display names are derived from the validated given and family names.
       required:
         - givenNames
         - familyNames
+        - initialIdentifier
       properties:
         displayName:
           type: string
@@ -1825,6 +1851,8 @@ components:
           minLength: 2
           maxLength: 2
           nullable: true
+        initialIdentifier:
+          $ref: '#/components/schemas/InitialPartyIdentifierCreateRequest'
       additionalProperties: false
 
     NaturalPersonPutRequest:
@@ -1932,6 +1960,30 @@ components:
         data:
           $ref: '#/components/schemas/NaturalPersonResponse'
 
+    NaturalPersonCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/NaturalPersonResponse'
+        - type: object
+          required:
+            - initialIdentifier
+          properties:
+            initialIdentifier:
+              $ref: '#/components/schemas/InitialPartyIdentifierResponse'
+
+    NaturalPersonCreateApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/NaturalPersonCreateResponse'
+
     LegalEntityDetails:
       type: object
       required:
@@ -1966,9 +2018,13 @@ components:
 
     LegalEntityCreateRequest:
       type: object
+      description: >-
+        Legal-entity creation representation requiring exactly one initial official identifier.
+        The identifier participates in idempotency comparison.
       required:
         - legalName
         - incorporationCountryCode
+        - initialIdentifier
       properties:
         displayName:
           type: string
@@ -1999,6 +2055,8 @@ components:
           type: string
           format: date
           nullable: true
+        initialIdentifier:
+          $ref: '#/components/schemas/InitialPartyIdentifierCreateRequest'
 
     LegalEntityPutRequest:
       type: object
@@ -2085,6 +2143,30 @@ components:
           $ref: '#/components/schemas/ApiSuccessCode'
         data:
           $ref: '#/components/schemas/LegalEntityResponse'
+
+    LegalEntityCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/LegalEntityResponse'
+        - type: object
+          required:
+            - initialIdentifier
+          properties:
+            initialIdentifier:
+              $ref: '#/components/schemas/InitialPartyIdentifierResponse'
+
+    LegalEntityCreateApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/LegalEntityCreateResponse'
 
     PartyDetailResponse:
       allOf:
@@ -2469,6 +2551,14 @@ components:
           type: integer
           nullable: true
 
+    InitialPartyIdentifierCreateRequest:
+      description: >-
+        Required official identifier supplied during Party creation. The referenced scheme must be
+        active and compatible with the Party type. The complete value is accepted only as input,
+        protected before persistence, and never returned.
+      allOf:
+        - $ref: '#/components/schemas/PartyIdentifierCreateRequest'
+
     PartyIdentifierCreateRequest:
       type: object
       required:
@@ -2577,6 +2667,21 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    InitialPartyIdentifierResponse:
+      description: >-
+        Protected representation of the identifier created atomically with the Party. Its complete
+        value is never exposed and its initial lifecycle status is `PENDING_VERIFICATION`.
+      allOf:
+        - $ref: '#/components/schemas/PartyIdentifierResponse'
+        - type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum:
+                - PENDING_VERIFICATION
 
     PartyIdentifierApiResponse:
       type: object

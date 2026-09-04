@@ -41,6 +41,8 @@ Development defaults to a local `party_registry` database and accepts these over
 ```text
 DEV_DB_USERNAME
 DEV_DB_PASSWORD
+DEV_FLYWAY_DB_USERNAME
+DEV_FLYWAY_DB_PASSWORD
 DEV_DB_REACTIVE_URL
 DEV_DB_JDBC_URL
 ```
@@ -52,6 +54,8 @@ Production requires all of these variables and has no credential fallback:
 ```text
 DB_USERNAME
 DB_PASSWORD
+FLYWAY_DB_USERNAME
+FLYWAY_DB_PASSWORD
 DB_REACTIVE_URL=postgresql://database-host:5432/party_registry
 DB_JDBC_URL=jdbc:postgresql://database-host:5432/party_registry
 ```
