@@ -18,6 +18,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -42,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 @TestProfile(GeographicReferenceAdapterTest.GeographicReferenceProfile.class)
-@QuarkusTestResource(value = GeographicReferenceStubResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(GeographicReferenceStubResource.class)
 class GeographicReferenceAdapterTest {
 
     private static final Duration MAXIMUM_WAIT = Duration.ofSeconds(2);
@@ -52,6 +53,11 @@ class GeographicReferenceAdapterTest {
 
     @Inject
     MeterRegistry meterRegistry;
+
+    @BeforeEach
+    void resetStubObservations() {
+        GeographicReferenceStubResource.resetObservations();
+    }
 
     @Test
     void mapsAContractValidResponseAndForwardsTrustedHeadersOnce() {

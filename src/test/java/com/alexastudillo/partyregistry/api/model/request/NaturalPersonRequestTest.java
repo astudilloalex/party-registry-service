@@ -37,7 +37,8 @@ class NaturalPersonRequestTest {
                 "p".repeat(201),
                 null,
                 null,
-                "zz");
+                "zz",
+                validIdentifier());
         NaturalPersonPutRequest invalidPut = new NaturalPersonPutRequest(
                 null,
                 " ",
@@ -48,6 +49,16 @@ class NaturalPersonRequestTest {
 
         assertEquals(5, validator.validate(invalidCreate).size());
         assertEquals(3, validator.validate(invalidPut).size());
+    }
+
+    private static InitialPartyIdentifierCreateRequest validIdentifier() {
+        return new InitialPartyIdentifierCreateRequest(
+                "NATIONAL_ID",
+                "AB123456",
+                null,
+                null,
+                null,
+                true);
     }
 
     @Test

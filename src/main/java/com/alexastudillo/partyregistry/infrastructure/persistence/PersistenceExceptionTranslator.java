@@ -26,9 +26,11 @@ final class PersistenceExceptionTranslator {
                 return true;
             }
             if (current instanceof ConstraintViolationException constraintFailure
-                    && constraintName.equals(constraintFailure.getConstraintName())
-                    && sqlState.equals(constraintFailure.getSQLException().getSQLState())) {
-                return true;
+                    && constraintName.equals(constraintFailure.getConstraintName())) {
+                var sqlException = constraintFailure.getSQLException();
+                if (sqlException != null && sqlState.equals(sqlException.getSQLState())) {
+                    return true;
+                }
             }
             if (current.getCause() == current) {
                 break;
@@ -53,7 +55,7 @@ final class PersistenceExceptionTranslator {
     }
 
     static boolean requiresTranslation(Throwable failure) {
-        return !(failure instanceof ApplicationException)
+        return !containsApplicationException(failure)
                 && !containsCancellation(failure);
     }
 
@@ -65,6 +67,20 @@ final class PersistenceExceptionTranslator {
         Throwable current = failure;
         while (current != null) {
             if (current instanceof CancellationException) {
+                return true;
+            }
+            if (current.getCause() == current) {
+                break;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private static boolean containsApplicationException(Throwable failure) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current instanceof ApplicationException) {
                 return true;
             }
             if (current.getCause() == current) {

@@ -29,7 +29,59 @@ class ArchitectureRulesTest {
         assertViolation(
                 ArchitectureRules.domainIsFrameworkIndependent(FIXTURE_ROOT + ".isolation"),
                 importFixtures(FIXTURE_ROOT + ".isolation.domain"),
-                "DomainDependingOnMutiny");
+                "DomainDependingOnMutiny",
+                "io.smallrye.mutiny.Uni");
+    }
+
+    @Test
+    void rejectsDomainDependingOnQuarkus() {
+        assertViolation(
+                ArchitectureRules.domainIsFrameworkIndependent(FIXTURE_ROOT + ".isolation"),
+                importFixtures(FIXTURE_ROOT + ".isolation.domain"),
+                "DomainDependingOnQuarkus",
+                "io.quarkus.runtime.StartupEvent");
+    }
+
+    @Test
+    void rejectsDomainDependingOnPersistenceFrameworks() {
+        assertViolation(
+                ArchitectureRules.domainIsFrameworkIndependent(FIXTURE_ROOT + ".isolation"),
+                importFixtures(FIXTURE_ROOT + ".isolation.domain"),
+                "DomainDependingOnPersistence",
+                "io.quarkus.hibernate.reactive.panache.PanacheEntity",
+                "jakarta.persistence.Entity",
+                "org.hibernate.Session");
+    }
+
+    @Test
+    void rejectsDomainDependingOnJackson() {
+        assertViolation(
+                ArchitectureRules.domainIsFrameworkIndependent(FIXTURE_ROOT + ".isolation"),
+                importFixtures(FIXTURE_ROOT + ".isolation.domain"),
+                "DomainDependingOnJackson",
+                "com.fasterxml.jackson.databind.ObjectMapper");
+    }
+
+    @Test
+    void rejectsDomainDependingOnHttpContracts() {
+        assertViolation(
+                ArchitectureRules.domainIsFrameworkIndependent(FIXTURE_ROOT + ".isolation"),
+                importFixtures(FIXTURE_ROOT + ".isolation.domain"),
+                "DomainDependingOnHttpContracts",
+                "com.alexastudillo.api.response.contract.ApiResponse",
+                "jakarta.ws.rs.core.Response",
+                "java.net.http.HttpResponse",
+                "org.jboss.resteasy.reactive.RestResponse");
+    }
+
+    @Test
+    void rejectsDomainDependingOnCryptographicProviders() {
+        assertViolation(
+                ArchitectureRules.domainIsFrameworkIndependent(FIXTURE_ROOT + ".isolation"),
+                importFixtures(FIXTURE_ROOT + ".isolation.domain"),
+                "DomainDependingOnCryptography",
+                "java.security.Provider",
+                "javax.crypto.Cipher");
     }
 
     @Test
@@ -54,10 +106,12 @@ class ArchitectureRulesTest {
                 .importPackages(packageName);
     }
 
-    private static void assertViolation(ArchRule rule, JavaClasses classes, String expectedType) {
+    private static void assertViolation(ArchRule rule, JavaClasses classes, String... expectedFragments) {
         EvaluationResult result = rule.evaluate(classes);
         String report = result.getFailureReport().toString();
         assertTrue(result.hasViolation(), report);
-        assertTrue(report.contains(expectedType), report);
+        for (String expectedFragment : expectedFragments) {
+            assertTrue(report.contains(expectedFragment), report);
+        }
     }
 }

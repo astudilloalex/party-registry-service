@@ -27,7 +27,7 @@ class NaturalPersonApiMapperTest {
     private static final Instant CREATED_AT = Instant.parse("2026-08-29T12:00:00Z");
     private static final Instant UPDATED_AT = Instant.parse("2026-08-30T13:30:00Z");
 
-    private final NaturalPersonApiMapper mapper = new NaturalPersonApiMapper();
+    private final NaturalPersonApiMapper mapper = new NaturalPersonApiMapper(new PartyIdentifierApiMapper());
 
     @Test
     void mapsEveryOpenApiResponseFieldAndFixesTheNaturalPersonType() {

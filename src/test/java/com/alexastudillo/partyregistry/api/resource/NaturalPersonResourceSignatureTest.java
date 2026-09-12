@@ -1,5 +1,6 @@
 package com.alexastudillo.partyregistry.api.resource;
 
+import com.alexastudillo.partyregistry.api.model.response.NaturalPersonCreateResponse;
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonResponse;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.GET;
@@ -29,16 +30,16 @@ class NaturalPersonResourceSignatureTest {
 
     @Test
     void exposesExactlyTheFourApprovedReactiveResourceMethods() {
-        Map<String, Class<? extends Annotation>> methods = Map.of(
-                "createNaturalPerson", POST.class,
-                "getNaturalPerson", GET.class,
-                "replaceNaturalPerson", PUT.class,
-                "patchNaturalPerson", PATCH.class);
+        Map<String, ExpectedMethod> methods = Map.of(
+                "createNaturalPerson", new ExpectedMethod(POST.class, NaturalPersonCreateResponse.class),
+                "getNaturalPerson", new ExpectedMethod(GET.class, NaturalPersonResponse.class),
+                "replaceNaturalPerson", new ExpectedMethod(PUT.class, NaturalPersonResponse.class),
+                "patchNaturalPerson", new ExpectedMethod(PATCH.class, NaturalPersonResponse.class));
 
-        for (Map.Entry<String, Class<? extends Annotation>> expected : methods.entrySet()) {
+        for (Map.Entry<String, ExpectedMethod> expected : methods.entrySet()) {
             Method method = findMethod(expected.getKey());
-            assertTrue(method.isAnnotationPresent(expected.getValue()));
-            assertMandatoryReturnType(method);
+            assertTrue(method.isAnnotationPresent(expected.getValue().annotation()));
+            assertMandatoryReturnType(method, expected.getValue().payloadType());
             assertNotEquals(jakarta.ws.rs.core.Response.class, method.getReturnType());
         }
     }
@@ -50,7 +51,7 @@ class NaturalPersonResourceSignatureTest {
                 .orElseThrow();
     }
 
-    private static void assertMandatoryReturnType(Method method) {
+    private static void assertMandatoryReturnType(Method method, Class<?> expectedPayloadType) {
         ParameterizedType uniType = (ParameterizedType) method.getGenericReturnType();
         assertEquals(Uni.class, uniType.getRawType());
 
@@ -60,6 +61,14 @@ class NaturalPersonResourceSignatureTest {
         ParameterizedType envelopeType = (ParameterizedType) restType.getActualTypeArguments()[0];
         assertEquals(ApiResponse.class, envelopeType.getRawType());
         Type payloadType = envelopeType.getActualTypeArguments()[0];
-        assertEquals(NaturalPersonResponse.class, payloadType);
+        assertEquals(expectedPayloadType, payloadType);
+    }
+
+    /**
+     * Couples one resource annotation with its exact API payload type.
+     */
+    private record ExpectedMethod(
+            Class<? extends Annotation> annotation,
+            Class<?> payloadType) {
     }
 }

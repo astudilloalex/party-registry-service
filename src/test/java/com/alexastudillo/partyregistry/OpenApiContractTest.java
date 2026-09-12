@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the approved static OpenAPI contract and its natural-person clarifications.
+ * Verifies the approved static OpenAPI contract and Party registration requirements.
  */
 class OpenApiContractTest {
 
@@ -95,6 +95,54 @@ class OpenApiContractTest {
     }
 
     @Test
+    void requiresOneStrictInitialIdentifierForPartyRegistration() {
+        Schema<?> naturalPerson = schema("NaturalPersonCreateRequest");
+        Schema<?> legalEntity = schema("LegalEntityCreateRequest");
+        Schema<?> initialIdentifier = schema("InitialPartyIdentifierCreateRequest");
+        Schema<?> identifier = schema("PartyIdentifierCreateRequest");
+
+        assertTrue(naturalPerson.getRequired().contains("initialIdentifier"));
+        assertTrue(legalEntity.getRequired().contains("initialIdentifier"));
+        assertEquals(Boolean.FALSE, naturalPerson.getAdditionalProperties());
+        assertEquals(Boolean.FALSE, legalEntity.getAdditionalProperties());
+        assertEquals(
+                "#/components/schemas/InitialPartyIdentifierCreateRequest",
+                property(naturalPerson, "initialIdentifier").get$ref());
+        assertEquals(
+                "#/components/schemas/InitialPartyIdentifierCreateRequest",
+                property(legalEntity, "initialIdentifier").get$ref());
+        assertEquals("#/components/schemas/PartyIdentifierCreateRequest", initialIdentifier.getAllOf().getFirst().get$ref());
+        assertEquals(Boolean.FALSE, identifier.getAdditionalProperties());
+        assertTrue(identifier.getRequired().containsAll(List.of("identifierSchemeCode", "value")));
+        assertEquals(".*\\S.*", property(identifier, "identifierSchemeCode").getPattern());
+        assertEquals(".*\\S.*", property(identifier, "value").getPattern());
+        assertTrue(property(identifier, "value").getWriteOnly());
+    }
+
+    @Test
+    void usesCreateOnlyResponsesWithProtectedPendingIdentifier() {
+        Operation naturalCreate = openApi.getPaths().get("/v1/natural-person").getPost();
+        Operation legalCreate = openApi.getPaths().get("/v1/legal-entity").getPost();
+        Schema<?> naturalResponse = schema("NaturalPersonCreateResponse");
+        Schema<?> legalResponse = schema("LegalEntityCreateResponse");
+        Schema<?> identifier = schema("PartyIdentifierResponse");
+        Schema<?> initialIdentifier = schema("InitialPartyIdentifierResponse");
+
+        assertResponseSchemaReference(naturalCreate, "201", "NaturalPersonCreateApiResponse");
+        assertResponseSchemaReference(legalCreate, "201", "LegalEntityCreateApiResponse");
+        assertTrue(naturalResponse.getAllOf().get(1).getRequired().contains("initialIdentifier"));
+        assertTrue(legalResponse.getAllOf().get(1).getRequired().contains("initialIdentifier"));
+        assertTrue(identifier.getRequired().containsAll(List.of(
+                "identifierId", "partyId", "identifierSchemeId", "schemeCode", "maskedValue",
+                "status", "isPrimary", "version", "createdAt", "updatedAt")));
+        assertNull(identifier.getProperties().get("value"));
+        assertNull(identifier.getProperties().get("normalizedValue"));
+        assertNull(identifier.getProperties().get("encryptedValue"));
+        assertNull(identifier.getProperties().get("fingerprint"));
+        assertEquals(List.of("PENDING_VERIFICATION"), property(initialIdentifier.getAllOf().get(1), "status").getEnum());
+    }
+
+    @Test
     void fixesNaturalPersonResponseType() {
         Schema<?> response = schema("NaturalPersonResponse");
         Schema<?> naturalPersonShape = response.getAllOf().get(1);
@@ -106,14 +154,34 @@ class OpenApiContractTest {
     }
 
     @Test
-    void declaresNaturalPersonBusinessAndDependencyFailures() {
-        Operation create = openApi.getPaths().get("/v1/natural-person").getPost();
+    void declaresRegistrationAndActivationFailures() {
+        Operation naturalCreate = openApi.getPaths().get("/v1/natural-person").getPost();
+        Operation legalCreate = openApi.getPaths().get("/v1/legal-entity").getPost();
+        Operation identifierCreate = openApi.getPaths().get("/v1/parties/{partyId}/identifiers").getPost();
+        Operation activate = openApi.getPaths().get("/v1/parties/{partyId}/activate").getPost();
         PathItem itemPath = openApi.getPaths().get("/v1/natural-person/{partyId}");
         Operation replace = itemPath.getPut();
         Operation patch = itemPath.getPatch();
 
-        assertResponseReference(create, "422", "UnprocessableEntity");
-        assertResponseReference(create, "503", "DependencyUnavailable");
+        for (Operation create : List.of(naturalCreate, legalCreate)) {
+            assertResponseReference(create, "400", "BadRequest");
+            assertResponseReference(create, "409", "Conflict");
+            assertResponseReference(create, "422", "UnprocessableEntity");
+            assertResponseReference(create, "503", "DependencyUnavailable");
+        }
+
+        assertResponseReference(identifierCreate, "404", "NotFound");
+        assertResponseReference(identifierCreate, "409", "Conflict");
+        assertResponseReference(identifierCreate, "422", "UnprocessableEntity");
+        assertResponseReference(identifierCreate, "503", "DependencyUnavailable");
+
+        assertResponseReference(activate, "400", "BadRequest");
+        assertResponseReference(activate, "404", "NotFound");
+        assertResponseReference(activate, "409", "Conflict");
+        assertResponseReference(activate, "412", "PreconditionFailed");
+        assertResponseReference(activate, "422", "UnprocessableEntity");
+        assertTrue(activate.getDescription().contains("VERIFIED"));
+        assertTrue(activate.getDescription().contains("422 unprocessable-entity"));
 
         for (Operation update : List.of(replace, patch)) {
             assertResponseReference(update, "412", "PreconditionFailed");
@@ -141,6 +209,9 @@ class OpenApiContractTest {
         assertEquals("uuid", echoSchema.getFormat());
         assertEquals(CANONICAL_UUID_PATTERN, echoSchema.getPattern());
         assertHasProcessIdEcho(openApi.getPaths().get("/v1/natural-person").getPost(), "201");
+        assertHasProcessIdEcho(openApi.getPaths().get("/v1/legal-entity").getPost(), "201");
+        assertHasProcessIdEcho(openApi.getPaths().get("/v1/parties/{partyId}/identifiers").getPost(), "201");
+        assertHasProcessIdEcho(openApi.getPaths().get("/v1/parties/{partyId}/activate").getPost(), "200");
         assertHasProcessIdEcho(itemPath.getGet(), "200");
         assertHasProcessIdEcho(itemPath.getPut(), "200");
         assertHasProcessIdEcho(itemPath.getPatch(), "200");
@@ -163,6 +234,15 @@ class OpenApiContractTest {
 
         assertNotNull(response);
         assertEquals("#/components/responses/" + componentName, response.get$ref());
+    }
+
+    private static void assertResponseSchemaReference(Operation operation, String status, String componentName) {
+        ApiResponse response = operation.getResponses().get(status);
+
+        assertNotNull(response);
+        assertEquals(
+                "#/components/schemas/" + componentName,
+                response.getContent().get("application/json").getSchema().get$ref());
     }
 
     private static void assertHasProcessIdEcho(Operation operation, String status) {

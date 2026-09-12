@@ -1,9 +1,11 @@
 package com.alexastudillo.partyregistry.architecture;
 
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.CompositeArchRule;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
@@ -13,6 +15,20 @@ import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.sli
 final class ArchitectureRules {
 
     static final String PRODUCTION_ROOT = "com.alexastudillo.partyregistry";
+    private static final String[] FORBIDDEN_DOMAIN_PACKAGES = {
+            "io.smallrye.mutiny..",
+            "io.quarkus..",
+            "org.hibernate..",
+            "jakarta.persistence..",
+            "javax.persistence..",
+            "com.fasterxml.jackson..",
+            "jakarta.ws.rs..",
+            "org.jboss.resteasy..",
+            "java.net.http..",
+            "com.alexastudillo.api.response..",
+            "java.security..",
+            "javax.crypto.."
+    };
 
     private ArchitectureRules() {
     }
@@ -33,12 +49,15 @@ final class ArchitectureRules {
     }
 
     static ArchRule domainIsFrameworkIndependent(String rootPackage) {
-        return classes()
-                .that().resideInAPackage(rootPackage + ".domain..")
-                .should().onlyDependOnClassesThat(resideInAnyPackage(
-                        rootPackage + ".domain..",
-                        "java..",
-                        "org.jspecify.annotations.."));
+        return CompositeArchRule.of(classes()
+                        .that().resideInAPackage(rootPackage + ".domain..")
+                        .should().onlyDependOnClassesThat(resideInAnyPackage(
+                                rootPackage + ".domain..",
+                                "java..",
+                                "org.jspecify.annotations..")))
+                .and(noClasses()
+                        .that().resideInAPackage(rootPackage + ".domain..")
+                        .should().dependOnClassesThat(resideInAnyPackage(FORBIDDEN_DOMAIN_PACKAGES)));
     }
 
     static ArchRule applicationIsIsolated(String rootPackage) {

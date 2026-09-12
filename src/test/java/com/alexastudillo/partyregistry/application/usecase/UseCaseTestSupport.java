@@ -2,12 +2,8 @@ package com.alexastudillo.partyregistry.application.usecase;
 
 import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
-import com.alexastudillo.partyregistry.application.model.IdempotentCreationOutcome;
-import com.alexastudillo.partyregistry.application.model.IdempotentCreationResult;
-import com.alexastudillo.partyregistry.application.model.NaturalPersonResult;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.port.CountryReferencePort;
-import com.alexastudillo.partyregistry.application.port.IdempotentNaturalPersonCreationPort;
 import com.alexastudillo.partyregistry.application.port.NaturalPersonRepository;
 import com.alexastudillo.partyregistry.domain.model.AuditInfo;
 import com.alexastudillo.partyregistry.domain.model.NaturalPerson;
@@ -156,46 +152,6 @@ final class UseCaseTestSupport {
         }
     }
 
-    /**
-     * Records idempotent creation calls and returns a configurable outcome.
-     */
-    static final class CreationPortDouble implements IdempotentNaturalPersonCreationPort {
-
-        Function<CreationCall, Uni<IdempotentCreationResult>> behavior = call -> Uni.createFrom()
-                .item(new IdempotentCreationResult(
-                        NaturalPersonResult.fromAggregate(call.naturalPerson()),
-                        IdempotentCreationOutcome.CREATED));
-        Function<PreflightCall, Uni<Optional<IdempotentCreationResult>>> preflightBehavior = call -> Uni
-                .createFrom().item(Optional.empty());
-        final List<PreflightCall> preflightCalls = new ArrayList<>();
-        final List<CreationCall> calls = new ArrayList<>();
-
-        @Override
-        public Uni<Optional<IdempotentCreationResult>> findCompleted(
-                TenantId tenantId,
-                String idempotencyKey,
-                String requestHash) {
-            PreflightCall call = new PreflightCall(tenantId, idempotencyKey, requestHash);
-            preflightCalls.add(call);
-            return preflightBehavior.apply(call);
-        }
-
-        @Override
-        public Uni<IdempotentCreationResult> createIdempotently(
-                TenantId tenantId,
-                String idempotencyKey,
-                String requestHash,
-                NaturalPerson naturalPerson) {
-            CreationCall call = new CreationCall(
-                    tenantId,
-                    idempotencyKey,
-                    requestHash,
-                    naturalPerson);
-            calls.add(call);
-            return behavior.apply(call);
-        }
-    }
-
     /** Records one repository lookup. */
     record FindCall(TenantId tenantId, PartyId partyId) {
     }
@@ -208,15 +164,4 @@ final class UseCaseTestSupport {
     record CountryCall(RequestMetadata requestMetadata, String alpha2Code) {
     }
 
-    /** Records one completed-result idempotency lookup. */
-    record PreflightCall(TenantId tenantId, String idempotencyKey, String requestHash) {
-    }
-
-    /** Records one atomic idempotent creation attempt. */
-    record CreationCall(
-            TenantId tenantId,
-            String idempotencyKey,
-            String requestHash,
-            NaturalPerson naturalPerson) {
-    }
 }

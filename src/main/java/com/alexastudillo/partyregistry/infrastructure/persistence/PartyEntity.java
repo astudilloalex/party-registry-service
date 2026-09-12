@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry.infrastructure.persistence;
 
 import com.alexastudillo.partyregistry.domain.model.AuditInfo;
+import com.alexastudillo.partyregistry.domain.model.Party;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
 import jakarta.persistence.CascadeType;
@@ -17,6 +18,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -65,6 +67,9 @@ public class PartyEntity {
     @OneToOne(mappedBy = "party", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     private NaturalPersonDetailsEntity naturalPersonDetails;
 
+    @OneToOne(mappedBy = "party", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    private LegalEntityDetailsEntity legalEntityDetails;
+
     protected PartyEntity() {
     }
 
@@ -89,8 +94,45 @@ public class PartyEntity {
     }
 
     void attachNaturalPersonDetails(NaturalPersonDetailsEntity details) {
+        if (type != PartyType.NATURAL_PERSON) {
+            throw new IllegalStateException("Natural-person details require a natural-person Party");
+        }
+        if (legalEntityDetails != null) {
+            throw new IllegalStateException("Party already has legal-entity details");
+        }
         naturalPersonDetails = details;
         details.attachTo(this);
+    }
+
+    void attachLegalEntityDetails(LegalEntityDetailsEntity details) {
+        if (type != PartyType.LEGAL_ENTITY) {
+            throw new IllegalStateException("Legal-entity details require a legal-entity Party");
+        }
+        if (naturalPersonDetails != null) {
+            throw new IllegalStateException("Party already has natural-person details");
+        }
+        legalEntityDetails = details;
+        details.attachTo(this);
+    }
+
+    void applyActivation(Party activated) {
+        Objects.requireNonNull(activated, "activated");
+        AuditInfo activatedAudit = activated.auditInfo();
+        if (!id.equals(activated.partyId().value())
+                || !tenantId.equals(activated.tenantId().value())
+                || type != activated.type()
+                || !displayName.equals(activated.displayName())
+                || recordStatus != PartyRecordStatus.DRAFT
+                || activated.recordStatus() != PartyRecordStatus.ACTIVE
+                || version == Long.MAX_VALUE
+                || activated.version().value() != version + 1
+                || !createdAt.equals(activatedAudit.createdAt())
+                || !createdBy.equals(activatedAudit.createdBy())) {
+            throw new IllegalArgumentException("Activated Party does not match the persisted aggregate");
+        }
+        recordStatus = activated.recordStatus();
+        updatedAt = activatedAudit.updatedAt();
+        updatedBy = activatedAudit.updatedBy();
     }
 
     UUID id() {
@@ -135,6 +177,10 @@ public class PartyEntity {
 
     NaturalPersonDetailsEntity naturalPersonDetails() {
         return naturalPersonDetails;
+    }
+
+    LegalEntityDetailsEntity legalEntityDetails() {
+        return legalEntityDetails;
     }
 
 }

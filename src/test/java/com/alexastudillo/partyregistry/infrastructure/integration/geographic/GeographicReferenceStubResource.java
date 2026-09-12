@@ -64,8 +64,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     @Override
     public Map<String, String> start() {
         try {
-            REQUEST_COUNTS.clear();
-            TRACEPARENTS.clear();
+            resetObservations();
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             executor = Executors.newVirtualThreadPerTaskExecutor();
             scheduler = Executors.newSingleThreadScheduledExecutor(
@@ -103,6 +102,11 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
 
     static String traceparent(String alpha2Code) {
         return TRACEPARENTS.get(alpha2Code);
+    }
+
+    static void resetObservations() {
+        REQUEST_COUNTS.clear();
+        TRACEPARENTS.clear();
     }
 
     private void handle(HttpExchange exchange) throws IOException {

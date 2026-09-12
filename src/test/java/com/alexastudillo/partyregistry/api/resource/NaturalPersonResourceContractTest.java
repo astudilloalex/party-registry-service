@@ -1,12 +1,8 @@
 package com.alexastudillo.partyregistry.api.resource;
 
 import com.alexastudillo.partyregistry.api.filter.RequestContextFilter;
-import com.alexastudillo.partyregistry.application.command.CreateNaturalPersonCommand;
-import com.alexastudillo.partyregistry.infrastructure.integration.geographic.GeographicReferenceStubResource;
-import io.quarkus.test.common.QuarkusTestResource;
+import com.alexastudillo.partyregistry.application.command.RegisterNaturalPersonCommand;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
 import io.quarkus.vertx.VertxContextSupport;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -45,8 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * controlled Geographic Reference boundary.
  */
 @QuarkusTest
-@TestProfile(NaturalPersonResourceContractTest.ContractProfile.class)
-@QuarkusTestResource(value = GeographicReferenceStubResource.class, restrictToAnnotatedClass = true)
 class NaturalPersonResourceContractTest {
 
     private static final String TENANT_ID = "0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1";
@@ -68,7 +62,8 @@ class NaturalPersonResourceContractTest {
             "updatedAt",
             "createdBy",
             "updatedBy",
-            "naturalPersonDetails");
+            "naturalPersonDetails",
+            "initialIdentifier");
     private static final Set<String> COMPLETE_DETAILS_FIELDS = Set.of(
             "givenNames",
             "familyNames",
@@ -76,6 +71,22 @@ class NaturalPersonResourceContractTest {
             "birthDate",
             "dateOfDeath",
             "birthCountryCode");
+    private static final Set<String> COMPLETE_IDENTIFIER_FIELDS = Set.of(
+            "identifierId",
+            "partyId",
+            "identifierSchemeId",
+            "schemeCode",
+            "maskedValue",
+            "status",
+            "isPrimary",
+            "issuerCode",
+            "issuedOn",
+            "expiresOn",
+            "verifiedAt",
+            "verifiedBy",
+            "version",
+            "createdAt",
+            "updatedAt");
 
     private static final String COMPLETE_CREATE_BODY = """
             {
@@ -119,6 +130,16 @@ class NaturalPersonResourceContractTest {
         assertEquals("1815-12-10", explicitDetails.get("birthDate"));
         assertEquals("1852-11-27", explicitDetails.get("dateOfDeath"));
         assertEquals("EC", explicitDetails.get("birthCountryCode"));
+
+        Map<String, Object> identifier = nested(explicit, "initialIdentifier");
+        assertEquals(COMPLETE_IDENTIFIER_FIELDS, identifier.keySet());
+        assertEquals(explicit.get("partyId"), identifier.get("partyId"));
+        assertEquals("TEST_NATURAL_ACTIVE", identifier.get("schemeCode"));
+        assertEquals("PENDING_VERIFICATION", identifier.get("status"));
+        assertEquals(true, identifier.get("isPrimary"));
+        assertFalse(identifier.containsKey("value"));
+        assertFalse(identifier.containsKey("encryptedValue"));
+        assertFalse(identifier.containsKey("normalizedValueHash"));
     }
 
     @Test
@@ -154,6 +175,18 @@ class NaturalPersonResourceContractTest {
     void verifiesCreationValidationCountryOutcomesAndAtomicRejection() {
         UUID tenantId = UUID.fromString(TENANT_ID);
         UUID validationTenant = UUID.randomUUID();
+
+        String missingIdentifierKey = key("missing-identifier");
+        long partiesBeforeMissingIdentifier = countParties(validationTenant);
+        assertError(
+                request(validationTenant)
+                        .header(IDEMPOTENCY_KEY_HEADER, missingIdentifierKey)
+                        .body("{\"givenNames\":\"Ada\",\"familyNames\":\"Lovelace\"}")
+                        .post(RESOURCE_PATH),
+                400,
+                "bad-request");
+        assertEquals(partiesBeforeMissingIdentifier, countParties(validationTenant));
+        assertEquals(0, countIdempotencyRecords(validationTenant, missingIdentifierKey));
 
         assertRejectedCreationDoesNotPersist(
                 validationTenant,
@@ -233,6 +266,7 @@ class NaturalPersonResourceContractTest {
         Map<String, Object> replay = assertSuccess(create(replayTenant, replayKey, body), 201);
         assertEquals(original, replay);
         assertEquals(1, countParties(replayTenant));
+        assertEquals(1, countIdentifiers(replayTenant));
         assertEquals(1, countIdempotencyRecords(replayTenant, replayKey));
 
         assertError(
@@ -270,6 +304,7 @@ class NaturalPersonResourceContractTest {
         UUID partyId = UUID.fromString(string(first, "partyId"));
         assertEquals(1, countParties(concurrentTenant));
         assertEquals(1, countDetails(partyId));
+        assertEquals(1, countIdentifiers(concurrentTenant));
         assertEquals(1, countIdempotencyRecords(concurrentTenant, concurrentKey));
     }
 
@@ -675,8 +710,18 @@ class NaturalPersonResourceContractTest {
                   and record.id.idempotencyKey = :idempotencyKey
                 """, Long.class)
                 .setParameter("tenantId", tenantId)
-                .setParameter("operation", CreateNaturalPersonCommand.OPERATION)
+                .setParameter("operation", RegisterNaturalPersonCommand.OPERATION)
                 .setParameter("idempotencyKey", idempotencyKey)
+                .getSingleResult()));
+    }
+
+    private long countIdentifiers(UUID tenantId) {
+        return awaitReactive(() -> sessionFactory.withSession(session -> session.createQuery("""
+                select count(identifier)
+                from PartyIdentifierEntity identifier
+                where identifier.tenantId = :tenantId
+                """, Long.class)
+                .setParameter("tenantId", tenantId)
                 .getSingleResult()));
     }
 
@@ -738,8 +783,32 @@ class NaturalPersonResourceContractTest {
     private static Response create(UUID tenantId, String idempotencyKey, String body) {
         return request(tenantId)
                 .header(IDEMPOTENCY_KEY_HEADER, idempotencyKey)
-                .body(body)
+                .body(withInitialIdentifier(body, idempotencyKey))
                 .post(RESOURCE_PATH);
+    }
+
+    private static String withInitialIdentifier(String body, String idempotencyKey) {
+        int closingBrace = body.lastIndexOf('}');
+        if (closingBrace < 0 || body.contains("\"initialIdentifier\"")) {
+            return body;
+        }
+        String prefix = body.substring(0, closingBrace);
+        String separator = prefix.stripTrailing().endsWith("{") ? "" : ",";
+        return prefix + separator + """
+                "initialIdentifier":{
+                  "identifierSchemeCode":"TEST_NATURAL_ACTIVE",
+                  "value":"%s",
+                  "isPrimary":true
+                }}
+                """.formatted(identifierValue(idempotencyKey));
+    }
+
+    private static String identifierValue(String idempotencyKey) {
+        String alphanumeric = idempotencyKey.replaceAll("[^A-Za-z0-9]", "");
+        if (alphanumeric.length() < 6) {
+            return "ABC123";
+        }
+        return alphanumeric.substring(Math.max(0, alphanumeric.length() - 18));
     }
 
     private static Response put(
@@ -871,8 +940,10 @@ class NaturalPersonResourceContractTest {
     private static void assertEquivalentData(
             Map<String, Object> expected,
             Map<String, Object> actual) {
-        assertEquals(expected.keySet(), actual.keySet());
-        for (Map.Entry<String, Object> entry : expected.entrySet()) {
+        Map<String, Object> ordinaryExpected = new LinkedHashMap<>(expected);
+        ordinaryExpected.remove("initialIdentifier");
+        assertEquals(ordinaryExpected.keySet(), actual.keySet());
+        for (Map.Entry<String, Object> entry : ordinaryExpected.entrySet()) {
             if (entry.getKey().equals("createdAt") || entry.getKey().equals("updatedAt")) {
                 assertTimestampEquivalent(entry.getValue(), actual.get(entry.getKey()));
             } else {
@@ -898,15 +969,4 @@ class NaturalPersonResourceContractTest {
         return Collections.unmodifiableMap(result);
     }
 
-    /**
-     * Enables the controlled unexpected-failure probe while retaining real
-     * persistence.
-     */
-    public static final class ContractProfile implements QuarkusTestProfile {
-
-        @Override
-        public Map<String, String> getConfigOverrides() {
-            return Map.of("party-registry.error-verification.enabled", "true");
-        }
-    }
 }
