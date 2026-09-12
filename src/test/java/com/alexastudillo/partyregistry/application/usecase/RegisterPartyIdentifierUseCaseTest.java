@@ -203,7 +203,7 @@ class RegisterPartyIdentifierUseCaseTest {
             var protectedValue = RegistrationUseCaseTestSupport.protectedValue();
             fixture.protectionPort.behavior = ignored -> protectedValue;
             InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
-                    "TEST-SCHEME", completeValue, null, null, TODAY.plusYears(1), false);
+                    "TEST-SCHEME", completeValue, null, null, null, false);
 
             var result = awaitItem(fixture.useCase.execute(command(input)));
 
@@ -217,7 +217,7 @@ class RegisterPartyIdentifierUseCaseTest {
             assertSame(protectedValue,
                     fixture.registrationPort.candidates.getFirst().identifier().protectedValue());
             assertEquals(PartyIdentifierStatus.PENDING_VERIFICATION, result.status());
-            assertEquals(TODAY.plusYears(1), result.expiresOn());
+            assertNull(result.expiresOn());
         }
     }
 
@@ -337,10 +337,19 @@ class RegisterPartyIdentifierUseCaseTest {
     }
 
     @Test
+    void acceptsAPassportWithoutExpirationEvenWithLegacyRequiredMetadata() {
+        RegistrationFixture fixture = passportFixture();
+        var result = awaitItem(fixture.useCase.execute(command(new InitialPartyIdentifierInput(
+                "TEST-SCHEME", "AB0123456", null, null, null, false))));
+
+        assertEquals(1, fixture.protectionPort.requests.size());
+        assertEquals(1, fixture.registrationPort.candidates.size());
+        assertEquals(PartyIdentifierStatus.PENDING_VERIFICATION, result.status());
+        assertNull(result.expiresOn());
+    }
+
+    @Test
     void rejectsPassportDatesAndLegalEntitiesBeforeProtectionOrPersistence() {
-        assertIdentifierViolation(passportFixture(), new InitialPartyIdentifierInput(
-                "TEST-SCHEME", "AB0123456", null, null, null, false),
-                DomainViolation.IDENTIFIER_EXPIRATION_REQUIRED);
         assertIdentifierViolation(passportFixture(), new InitialPartyIdentifierInput(
                 "TEST-SCHEME", "AB0123456", null, null, TODAY.minusDays(1), false),
                 DomainViolation.IDENTIFIER_EXPIRED);

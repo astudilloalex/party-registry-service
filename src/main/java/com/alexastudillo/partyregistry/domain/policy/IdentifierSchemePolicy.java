@@ -73,7 +73,7 @@ public final class IdentifierSchemePolicy {
     }
 
     /**
-     * Enforces required expiration and rejects identifiers already expired on evaluation.
+     * Accepts an absent expiration for every scheme and rejects supplied dates already expired on evaluation.
      *
      * @param scheme selected scheme
      * @param expiresOn optional expiration date
@@ -92,11 +92,6 @@ public final class IdentifierSchemePolicy {
             throw new DomainValidationException(
                     DomainViolation.EVALUATION_DATE_REQUIRED,
                     "Evaluation date is required");
-        }
-        if (scheme.requiresExpiration() && expiresOn == null) {
-            throw new DomainValidationException(
-                    DomainViolation.IDENTIFIER_EXPIRATION_REQUIRED,
-                    "Identifier expiration is required by the scheme");
         }
         if (expiresOn != null && expiresOn.isBefore(evaluatedOn)) {
             throw new DomainValidationException(

@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -148,6 +149,18 @@ class OpenApiContractTest {
         assertEquals(".*\\S.*", property(identifier, "identifierSchemeCode").getPattern());
         assertEquals(".*\\S.*", property(identifier, "value").getPattern());
         assertTrue(property(identifier, "value").getWriteOnly());
+    }
+
+    @Test
+    void documentsExpirationAsOptionalForEveryIdentifier() {
+        Schema<?> identifier = schema("PartyIdentifierCreateRequest");
+        assertFalse(identifier.getRequired().contains("expiresOn"));
+        assertEquals(Boolean.TRUE, property(identifier, "expiresOn").getNullable());
+        assertTrue(identifier.getDescription().contains("optional for all document types"));
+        for (String name : List.of("IdentifierSchemeCreateRequest", "IdentifierSchemeUpdateRequest",
+                "IdentifierSchemeResponse")) {
+            assertEquals(Boolean.TRUE, property(schema(name), "requiresExpiration").getDeprecated());
+        }
     }
 
     @Test

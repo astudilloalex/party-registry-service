@@ -170,7 +170,7 @@ class IdentifierSchemePolicyTest {
     }
 
     @Test
-    void enforcesExpirationRequirementAndEvaluationDate() {
+    void acceptsMissingExpirationRegardlessOfLegacyMetadataAndValidatesSuppliedDates() {
         IdentifierScheme required = scheme(
                 IdentifierSchemeStatus.ACTIVE,
                 IdentifierSubjectType.BOTH,
@@ -180,8 +180,7 @@ class IdentifierSchemePolicyTest {
 
         POLICY.validateExpiration(required, EVALUATED_ON, EVALUATED_ON);
         POLICY.validateExpiration(required, EVALUATED_ON.plusDays(1), EVALUATED_ON);
-        assertViolation(DomainViolation.IDENTIFIER_EXPIRATION_REQUIRED,
-                () -> POLICY.validateExpiration(required, null, EVALUATED_ON));
+        POLICY.validateExpiration(required, null, EVALUATED_ON);
         assertViolation(DomainViolation.IDENTIFIER_EXPIRED,
                 () -> POLICY.validateExpiration(required, EVALUATED_ON.minusDays(1), EVALUATED_ON));
         assertViolation(DomainViolation.EVALUATION_DATE_REQUIRED,

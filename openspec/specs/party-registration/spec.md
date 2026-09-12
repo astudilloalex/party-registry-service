@@ -85,7 +85,7 @@ THEN THE Party Registry SHALL reject the registration with HTTP `422` and code `
 WHEN an eligible initial identifier is evaluated,
 THE Party Registry SHALL require its complete value, length, format, issuing metadata, and validity dates to satisfy the selected scheme and the request evaluation date.
 
-IF the identifier fails scheme normalization or validation, exceeds scheme length limits, has incoherent validity dates, omits an expiration required by the scheme, or is already expired,
+IF the identifier fails scheme normalization or validation, exceeds scheme length limits, has incoherent validity dates, or is already expired,
 THEN THE Party Registry SHALL reject the registration with HTTP `422` and code `unprocessable-entity` without creating a Party or identifier.
 
 IF a dependency required to validate or protect the identifier is unavailable,
@@ -104,11 +104,12 @@ THEN THE Party Registry SHALL reject the registration with HTTP `503` and code `
 - **THEN** the response has HTTP status `422` and code `unprocessable-entity`
 - **AND** no Party or identifier from the request is created
 
-#### Scenario: Required expiration is missing
+#### Scenario: Expiration is omitted or null
 
-- **GIVEN** the selected scheme requires expiration and `expiresOn` is absent
+- **GIVEN** an otherwise valid identifier has an omitted or null `expiresOn`, regardless of legacy scheme expiration metadata
 - **WHEN** the Party registration is submitted
-- **THEN** the response has HTTP status `422` and code `unprocessable-entity`
+- **THEN** the registration is accepted without an expiration date
+- **AND** the identifier remains pending verification
 
 #### Scenario: Identifier is already expired
 
@@ -305,6 +306,7 @@ THE Party Registry SHALL include the identifier ID, Party ID, scheme ID, scheme 
 
 WHEN a Party already exists,
 THE Party Registry SHALL continue to accept eligible additional identifiers through `POST /v1/parties/{partyId}/identifiers` without recreating or reclassifying the Party.
+Expiration SHALL be optional for every additional identifier, regardless of legacy scheme metadata. Supplied dates SHALL still satisfy date-order and non-expiration rules.
 
 #### Scenario: Additional identifier is registered after creation
 

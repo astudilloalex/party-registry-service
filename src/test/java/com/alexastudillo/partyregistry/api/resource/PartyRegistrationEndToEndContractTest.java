@@ -118,11 +118,6 @@ class PartyRegistrationEndToEndContractTest {
                         422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/natural-person",
-                        naturalBody("Missing Expiry", "TEST_BOTH_EXPIRING",
-                                identifierValue("NE"), null, null),
-                        422, UNPROCESSABLE_ENTITY),
-                new RejectedRegistration(
-                        "/v1/natural-person",
                         naturalBody("Expired Value", "TEST_BOTH_EXPIRING",
                                 identifierValue("NX"), null, "2000-01-01"),
                         422, UNPROCESSABLE_ENTITY),
@@ -160,11 +155,6 @@ class PartyRegistrationEndToEndContractTest {
                         422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/legal-entity",
-                        legalBody("Missing Expiry Ltd", "TEST_BOTH_EXPIRING",
-                                identifierValue("LE"), null, null),
-                        422, UNPROCESSABLE_ENTITY),
-                new RejectedRegistration(
-                        "/v1/legal-entity",
                         legalBody("Expired Value Ltd", "TEST_BOTH_EXPIRING",
                                 identifierValue("LX"), null, "2000-01-01"),
                         422, UNPROCESSABLE_ENTITY));
@@ -180,23 +170,23 @@ class PartyRegistrationEndToEndContractTest {
     }
 
     @Test
-    void registersANormalizedEcuadorNationalIdUsingTheProductionScheme() {
+    void registersANormalizedEcuadorNationalIdWithoutExpiration() {
         UUID tenantId = UUID.randomUUID();
         RegistrationRows initialRows = registrationRows(tenantId);
-        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
         String completeValue = "  0100000009  ";
         String idempotencyKey = key("ecuador-national-id");
 
         Map<String, Object> created = assertSafeRegistration(
                 post(tenantId, "/v1/natural-person", idempotencyKey,
-                        naturalBody("Ecuador National ID", "EC_NATIONAL_ID", completeValue, null, expiresOn)),
+                        naturalBody("Ecuador National ID", "EC_NATIONAL_ID", completeValue, null, null)
+                                .replace("\"value\":", "\"expiresOn\":null,\"value\":")),
                 "NATURAL_PERSON",
                 "EC_NATIONAL_ID",
                 completeValue);
 
         Map<String, Object> identifier = nested(created, "initialIdentifier");
         assertEquals("******0009", identifier.get("maskedValue"));
-        assertEquals(expiresOn, identifier.get("expiresOn"));
+        assertNull(identifier.get("expiresOn"));
         assertEquals(initialRows.plus(new RegistrationRows(1, 1, 0, 1, 1, 2)), registrationRows(tenantId));
         assertConfidential(loadSnapshot(tenantId, idempotencyKey), completeValue, "0100000009");
         List<String> payloads = loadOutboxPayloads(
@@ -205,6 +195,30 @@ class PartyRegistrationEndToEndContractTest {
                 UUID.fromString(string(identifier, "identifierId")));
         assertEquals(2, payloads.size());
         payloads.forEach(payload -> assertConfidential(payload, completeValue, "0100000009"));
+    }
+
+    @Test
+    void acceptsMissingExpirationForPassportsAndLegacySchemesOnBothPartyTypes() {
+        for (String scheme : List.of("EC_PASSPORT", "TEST_BOTH_EXPIRING")) {
+            for (String type : List.of("NATURAL_PERSON", "LEGAL_ENTITY")) {
+                if (scheme.equals("EC_PASSPORT") && type.equals("LEGAL_ENTITY")) {
+                    continue;
+                }
+                UUID tenantId = UUID.randomUUID();
+                RegistrationRows before = registrationRows(tenantId);
+                String value = identifierValue("NOEXPIRY");
+                boolean natural = type.equals("NATURAL_PERSON");
+                String body = natural
+                        ? naturalBody("Optional Expiration", scheme, value, null, null)
+                        : legalBody("Optional Expiration Ltd", scheme, value, null, null);
+                Map<String, Object> created = assertSafeRegistration(
+                        post(tenantId, natural ? "/v1/natural-person" : "/v1/legal-entity", key("no-expiry"), body),
+                        type, scheme, value);
+                assertNull(nested(created, "initialIdentifier").get("expiresOn"));
+                assertEquals(before.plus(new RegistrationRows(1, natural ? 1 : 0, natural ? 0 : 1, 1, 1, 2)),
+                        registrationRows(tenantId));
+            }
+        }
     }
 
     @Test
@@ -325,9 +339,6 @@ class PartyRegistrationEndToEndContractTest {
                         400, "identifier-value-too-long"),
                 new RejectedRegistration("/v1/natural-person",
                         naturalBody("Expanded Passport", "EC_PASSPORT", "\u00df".repeat(129), null, expiresOn),
-                        422, "identifier-validation-failure"),
-                new RejectedRegistration("/v1/natural-person",
-                        naturalBody("Missing Expiration", "EC_PASSPORT", "AB0123456", null, null),
                         422, "identifier-validation-failure"),
                 new RejectedRegistration("/v1/natural-person",
                         naturalBody("Expired Passport", "EC_PASSPORT", "AB0123456", null, "2000-01-01"),

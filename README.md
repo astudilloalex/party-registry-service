@@ -25,7 +25,7 @@ ArchUnit verifies layer direction, framework isolation for the inner layers, and
 
 ## Database
 
-Flyway is the only schema authority. The immutable production migrations are `src/main/resources/db/migration/V1__create_party_registry_schema.sql` and `src/main/resources/db/migration/V2__create_api_idempotency_records.sql`. The initial schema is derived from `docs/database/v1-scheme.dbml`.
+Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, and V4 makes expiration optional. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.
 
 The application configures the same PostgreSQL database through two access paths:
 
@@ -87,9 +87,9 @@ The application validates and loads all key material at startup and fails closed
 
 ### Identifier-scheme catalog
 
-A fresh production database contains no active identifier schemes. The `TEST_*` schemes under `src/test/resources/db/test-migration` are deterministic test fixtures and must never be deployed to production.
+A fresh production database includes active Ecuadorian national-ID, taxpayer-ID, and passport schemes from V3. V4 clears historical expiration requirements without changing scheme identity or status. The `TEST_*` schemes under `src/test/resources/db/test-migration` are deterministic test fixtures and must never be deployed to production.
 
-Before accepting registration traffic, provision an independently approved, jurisdiction-specific catalog containing the supported scheme codes, Party-type applicability, lifecycle state, normalizer and validator keys, length constraints, and expiration policy. If the catalog ships with this service, add it only as a new immutable, reviewed Flyway migration under `src/main/resources/db/migration`. Do not run manual DDL/DML, edit `V1` or `V2`, or invent country-specific schemes without data-steward approval.
+Before accepting registration traffic, provision an independently approved, jurisdiction-specific catalog containing the supported scheme codes, Party-type applicability, lifecycle state, normalizer and validator keys, and length constraints. Expiration is optional for every document, including catalogs retaining legacy `requiresExpiration=true` metadata. Supplied expiration dates must not precede the evaluation date or a supplied issue date. Catalog changes must use new reviewed Flyway migrations; never run manual DDL/DML or edit applied migrations.
 
 Deploy the approved catalog before enabling create traffic. Unknown, inactive, incompatible, or internally unsupported schemes are rejected by design.
 

@@ -64,6 +64,7 @@ class MigrationRegressionTest {
                 "1", "db/migration/V1__create_party_registry_schema.sql",
                 "2", "db/migration/V2__create_api_idempotency_records.sql",
                 "3", "db/migration/V3__seed_ecuador_identifier_schemes.sql",
+                "4", "db/migration/V4__make_identifier_expiration_optional.sql",
                 "1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql"),
                 appliedMigrations);
         assertDoesNotThrow(flyway::validate);
@@ -109,13 +110,14 @@ class MigrationRegressionTest {
                     assertEquals(length, result.getInt("minimum_length"));
                     assertEquals(length, result.getInt("maximum_length"));
                 }
-                assertEquals(!code.equals("EC_TAX_ID"), result.getBoolean("requires_expiration"));
+                assertFalse(result.getBoolean("requires_expiration"));
                 assertEquals("ACTIVE", result.getString("status"));
                 assertNotNull(result.getTimestamp("created_at"));
-                assertEquals(result.getTimestamp("created_at"), result.getTimestamp("updated_at"));
+                assertNotNull(result.getTimestamp("updated_at"));
+                assertFalse(result.getTimestamp("updated_at").before(result.getTimestamp("created_at")));
                 assertEquals("system", result.getString("created_by"));
                 assertEquals("system", result.getString("updated_by"));
-                assertEquals(0L, result.getLong("version"));
+                assertEquals(code.equals("EC_TAX_ID") ? 0L : 1L, result.getLong("version"));
             }
         }
         assertEquals(Set.of("EC_NATIONAL_ID", "EC_TAX_ID", "EC_PASSPORT"), codes);

@@ -2542,6 +2542,8 @@ components:
         requiresExpiration:
           type: boolean
           default: false
+          deprecated: true
+          description: Legacy metadata only. Expiration is optional for every document, regardless of this value.
 
     IdentifierSchemeUpdateRequest:
       type: object
@@ -2573,6 +2575,8 @@ components:
           minimum: 1
         requiresExpiration:
           type: boolean
+          deprecated: true
+          description: Legacy metadata only. Expiration is optional for every document, regardless of this value.
 
     IdentifierSchemeResponse:
       type: object
@@ -2619,6 +2623,8 @@ components:
           nullable: true
         requiresExpiration:
           type: boolean
+          deprecated: true
+          description: Legacy metadata only; a historical true value does not make expiresOn mandatory.
         status:
           $ref: '#/components/schemas/IdentifierSchemeStatus'
         version:
@@ -2691,6 +2697,10 @@ components:
 
     PartyIdentifierCreateRequest:
       type: object
+      description: >-
+        Expiration is optional for all document types, including national IDs, tax IDs, and passports.
+        Omitted or null expiresOn values are accepted regardless of legacy requiresExpiration metadata.
+        A supplied expiration must not precede the evaluation date or a supplied issuedOn date.
       required:
         - identifierSchemeCode
         - value

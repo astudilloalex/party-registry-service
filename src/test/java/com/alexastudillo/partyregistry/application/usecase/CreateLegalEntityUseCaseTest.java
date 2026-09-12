@@ -37,6 +37,7 @@ import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSup
 import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSupport.awaitItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -81,6 +82,21 @@ class CreateLegalEntityUseCaseTest {
                 ObservedOperation.APPLICATION_LEGAL_ENTITY_REGISTRATION,
                 OperationOutcome.CREATED),
                 fixture.observationPort.completedCalls().getFirst());
+    }
+
+    @Test
+    void acceptsMissingExpirationEvenWithLegacyRequiredMetadata() {
+        RegistrationFixture fixture = new RegistrationFixture();
+        fixture.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
+                IdentifierSchemeStatus.ACTIVE, IdentifierSubjectType.BOTH, 4, 16, true)));
+        InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
+                "TEST-SCHEME", "AB123456", null, null, null, false);
+
+        var result = awaitItem(fixture.useCase.execute(command(input)));
+
+        assertEquals(1, fixture.protectionPort.requests.size());
+        assertEquals(1, fixture.registrationPort.legalCandidates.size());
+        assertNull(result.initialIdentifier().expiresOn());
     }
 
     @Test

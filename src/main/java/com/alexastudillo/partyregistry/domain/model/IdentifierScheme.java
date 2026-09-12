@@ -7,6 +7,7 @@ import java.time.Instant;
 
 /**
  * Defines the stable identity, lifecycle, and processing rules of an official identifier scheme.
+ * The legacy requiresExpiration property is retained for persisted catalogs but never makes expiration mandatory.
  */
 public record IdentifierScheme(
         IdentifierSchemeId id,

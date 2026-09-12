@@ -40,6 +40,7 @@ import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSup
 import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSupport.awaitItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -227,7 +228,7 @@ class CreateNaturalPersonUseCaseTest {
         }
 
         @Test
-        void rejectsValidityDateRequiredExpirationAndExpiredValuesBeforeProtection() {
+        void rejectsInvalidOrExpiredSuppliedDatesBeforeProtection() {
                 RegistrationFixture dateOrder = new RegistrationFixture();
                 InitialPartyIdentifierInput incoherent = new InitialPartyIdentifierInput(
                                 "TEST-SCHEME",
@@ -241,20 +242,6 @@ class CreateNaturalPersonUseCaseTest {
                                 command(incoherent),
                                 DomainViolation.IDENTIFIER_VALIDITY_DATE_ORDER);
 
-                RegistrationFixture required = new RegistrationFixture();
-                required.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
-                                IdentifierSchemeStatus.ACTIVE,
-                                IdentifierSubjectType.BOTH,
-                                4,
-                                16,
-                                true)));
-                InitialPartyIdentifierInput missingExpiration = new InitialPartyIdentifierInput(
-                                "TEST-SCHEME", COMPLETE_VALUE, null, null, null, false);
-                assertIdentifierViolation(
-                                required,
-                                command(missingExpiration),
-                                DomainViolation.IDENTIFIER_EXPIRATION_REQUIRED);
-
                 RegistrationFixture expired = new RegistrationFixture();
                 InitialPartyIdentifierInput alreadyExpired = new InitialPartyIdentifierInput(
                                 "TEST-SCHEME",
@@ -267,6 +254,21 @@ class CreateNaturalPersonUseCaseTest {
                                 expired,
                                 command(alreadyExpired),
                                 DomainViolation.IDENTIFIER_EXPIRED);
+        }
+
+        @Test
+        void acceptsMissingExpirationEvenWithLegacyRequiredMetadata() {
+                RegistrationFixture fixture = new RegistrationFixture();
+                fixture.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
+                                IdentifierSchemeStatus.ACTIVE, IdentifierSubjectType.BOTH, 4, 16, true)));
+                InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
+                                "TEST-SCHEME", COMPLETE_VALUE, null, null, null, false);
+
+                var result = awaitItem(fixture.useCase.execute(command(input)));
+
+                assertEquals(1, fixture.protectionPort.requests.size());
+                assertEquals(1, fixture.registrationPort.naturalCandidates.size());
+                assertNull(result.initialIdentifier().expiresOn());
         }
 
         @Test
