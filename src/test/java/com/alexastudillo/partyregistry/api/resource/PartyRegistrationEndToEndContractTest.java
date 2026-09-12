@@ -223,6 +223,51 @@ class PartyRegistrationEndToEndContractTest {
     }
 
     @Test
+    void registersNormalizedEcuadorTaxIdsForBothPartyTypesUsingTheProductionScheme() {
+        for (String partyType : List.of("NATURAL_PERSON", "LEGAL_ENTITY")) {
+            UUID tenantId = UUID.randomUUID();
+            RegistrationRows initialRows = registrationRows(tenantId);
+            boolean naturalPerson = partyType.equals("NATURAL_PERSON");
+            String value = naturalPerson ? "0100000009001" : "1790000000001";
+            String completeValue = "  " + value + "  ";
+            String path = naturalPerson ? "/v1/natural-person" : "/v1/legal-entity";
+            String body = naturalPerson
+                    ? naturalBody("Ecuador Tax ID", "EC_TAX_ID", completeValue, null, null)
+                    : legalBody("Ecuador Tax ID Ltd", "EC_TAX_ID", completeValue, null, null);
+
+            Map<String, Object> created = assertSafeRegistration(
+                    post(tenantId, path, key("ecuador-tax-id"), body),
+                    partyType,
+                    "EC_TAX_ID",
+                    completeValue);
+
+            Map<String, Object> identifier = nested(created, "initialIdentifier");
+            assertEquals("*********" + value.substring(9), identifier.get("maskedValue"));
+            assertNull(identifier.get("expiresOn"));
+            assertEquals(initialRows.plus(new RegistrationRows(
+                    1, naturalPerson ? 1 : 0, naturalPerson ? 0 : 1, 1, 1, 2)), registrationRows(tenantId));
+        }
+    }
+
+    @Test
+    void rejectsAnEcuadorTaxIdSuffixWithoutLeakingTheValueOrPersistingRows() {
+        UUID tenantId = UUID.randomUUID();
+        RegistrationRows initialRows = registrationRows(tenantId);
+        String value = "1790000000002";
+        for (String path : List.of("/v1/natural-person", "/v1/legal-entity")) {
+            String body = path.equals("/v1/natural-person")
+                    ? naturalBody("Invalid Ecuador Tax ID", "EC_TAX_ID", value, null, null)
+                    : legalBody("Invalid Ecuador Tax ID Ltd", "EC_TAX_ID", value, null, null);
+
+            Response response = post(tenantId, path, key("ecuador-invalid-tax-suffix"), body);
+
+            assertError(response, 422, "identifier-validation-failure");
+            assertConfidential(response.asString(), value, value);
+            assertEquals(initialRows, registrationRows(tenantId));
+        }
+    }
+
+    @Test
     void commitsAndReplaysNaturalAndLegalRegistrationsAsAtomicSafeOutcomes() {
         UUID tenantId = UUID.fromString(TENANT_ID);
         RegistrationRows initialRows = registrationRows(tenantId);

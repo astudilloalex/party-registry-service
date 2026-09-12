@@ -31,10 +31,11 @@ class IdentifierRuleCatalogTest {
     @Test
     void exposesOnlyExplicitVersionedRuleKeys() {
         assertEquals(Set.of("TRIM_UPPERCASE_V1"), catalog.supportedNormalizerKeys());
-        assertEquals(Set.of("ALPHANUMERIC_V1", "EC_NATIONAL_ID_V1"), catalog.supportedValidatorKeys());
+        assertEquals(Set.of("ALPHANUMERIC_V1", "EC_NATIONAL_ID_V1", "EC_TAX_ID_V1"), catalog.supportedValidatorKeys());
         assertEquals(new IdentifierRuleVersion(1), StandardIdentifierNormalizer.TRIM_UPPERCASE_V1.version());
         assertEquals(new IdentifierRuleVersion(1), StandardIdentifierValidator.ALPHANUMERIC_V1.version());
         assertEquals(new IdentifierRuleVersion(1), StandardIdentifierValidator.EC_NATIONAL_ID_V1.version());
+        assertEquals(new IdentifierRuleVersion(1), StandardIdentifierValidator.EC_TAX_ID_V1.version());
     }
 
     @Test
@@ -97,6 +98,42 @@ class IdentifierRuleCatalogTest {
         assertViolation(DomainViolation.IDENTIFIER_VALUE_REQUIRED, () -> catalog.evaluate(scheme, "  "));
         assertViolation(DomainViolation.IDENTIFIER_VALUE_INVALID, () -> catalog.evaluate(scheme, "1710034064"));
         assertViolation(DomainViolation.IDENTIFIER_VALUE_INVALID, () -> catalog.evaluate(scheme, "171003 065"));
+    }
+
+    @Test
+    void ecuadorTaxIdValidatorAcceptsStructureWithoutInferringTypeOrRequiringAChecksum() {
+        IdentifierValidator validator = StandardIdentifierValidator.EC_TAX_ID_V1;
+
+        // These synthetic fixtures are structurally acceptable, not verified taxpayer registrations.
+        for (String value : new String[] {"0100000009001", "1790000000001", "1760000000001", "1780000000001"}) {
+            assertTrue(validator.isValid(value), value);
+        }
+    }
+
+    @Test
+    void ecuadorTaxIdValidatorRejectsInvalidLengthCharactersAndSuffix() {
+        IdentifierValidator validator = StandardIdentifierValidator.EC_TAX_ID_V1;
+
+        for (String value : new String[] {
+                null, "", "179000000001", "17900000000001", " 1790000000001 ",
+                "1790000000000", "1790000000002", "1790000000999", "179000000A001",
+                "+790000000001", "179000000 001", "179000000-001", "179000000\n001", "1790000000001\n",
+                "\uFF11790000000001", "\u0661790000000001"}) {
+            assertFalse(validator.isValid(value), String.valueOf(value));
+        }
+    }
+
+    @Test
+    void catalogNormalizesEcuadorTaxIdsBeforeApplyingStructuralValidation() {
+        IdentifierScheme scheme = scheme("TRIM_UPPERCASE_V1", "EC_TAX_ID_V1");
+
+        assertEquals(new IdentifierRuleResult(
+                "0100000009001", new IdentifierRuleVersion(1), new IdentifierRuleVersion(1)),
+                catalog.evaluate(scheme, " \t0100000009001\n "));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_REQUIRED, () -> catalog.evaluate(scheme, null));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_REQUIRED, () -> catalog.evaluate(scheme, "  "));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_INVALID, () -> catalog.evaluate(scheme, "1790000000002"));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_INVALID, () -> catalog.evaluate(scheme, "179000000A001"));
     }
 
     @Test

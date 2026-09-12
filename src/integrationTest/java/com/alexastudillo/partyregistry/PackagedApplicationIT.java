@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Verifies packaged JVM and native artifacts and their cross-cutting HTTP
@@ -213,6 +214,67 @@ class PackagedApplicationIT {
         assertError(response, 422, "identifier-validation-failure");
         assertEquals(Set.of("status", "code"), response.jsonPath().getMap("$").keySet());
         response.then().body(not(containsString("1710034064")));
+    }
+
+    @Test
+    void packagedApplicationRegistersALegalEntityWithANormalizedEcuadorTaxId() {
+        Response response = validRequest()
+                .header("Idempotency-Key", "packaged-ecuador-tax-id-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "legalName": "Packaged Ecuador Tax ID Ltd",
+                          "incorporationCountryCode": "EC",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "EC_TAX_ID",
+                            "value": "  1790000000001  ",
+                            "isPrimary": true
+                          }
+                        }
+                        """)
+                .when().post("/v1/legal-entity")
+                .then()
+                .statusCode(201)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(201))
+                .body("code", equalTo("successful"))
+                .body("data.type", equalTo("LEGAL_ENTITY"))
+                .body("data.recordStatus", equalTo("DRAFT"))
+                .body("data.initialIdentifier.schemeCode", equalTo("EC_TAX_ID"))
+                .body("data.initialIdentifier.status", equalTo("PENDING_VERIFICATION"))
+                .body("data.initialIdentifier.maskedValue", equalTo("*********0001"))
+                .body("data.initialIdentifier", not(hasKey("value")))
+                .body("data.initialIdentifier", not(hasKey("normalizedValue")))
+                .body("data.initialIdentifier", not(hasKey("encryptedValue")))
+                .body("data.initialIdentifier", not(hasKey("normalizedValueHash")))
+                .body("data.initialIdentifier", not(hasKey("encryptionKeyVersion")))
+                .body(not(containsString("1790000000001")))
+                .extract().response();
+
+        assertEquals(Set.of("status", "code", "data"), response.jsonPath().getMap("$").keySet());
+        assertNull(response.path("data.initialIdentifier.expiresOn"));
+    }
+
+    @Test
+    void packagedApplicationRejectsAnEcuadorTaxIdSuffixWithoutLeakingTheValue() {
+        Response response = validRequest()
+                .header("Idempotency-Key", "packaged-ecuador-invalid-tax-suffix-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "legalName": "Packaged Invalid Ecuador Tax ID Ltd",
+                          "incorporationCountryCode": "EC",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "EC_TAX_ID",
+                            "value": "1790000000002"
+                          }
+                        }
+                        """)
+                .when().post("/v1/legal-entity");
+
+        assertError(response, 422, "identifier-validation-failure");
+        assertEquals(Set.of("status", "code"), response.jsonPath().getMap("$").keySet());
+        response.then().body(not(containsString("1790000000002")));
     }
 
     @Test

@@ -19,7 +19,9 @@ public final class IdentifierRuleCatalog {
             StandardIdentifierValidator.ALPHANUMERIC_V1.key(),
             StandardIdentifierValidator.ALPHANUMERIC_V1,
             StandardIdentifierValidator.EC_NATIONAL_ID_V1.key(),
-            StandardIdentifierValidator.EC_NATIONAL_ID_V1);
+            StandardIdentifierValidator.EC_NATIONAL_ID_V1,
+            StandardIdentifierValidator.EC_TAX_ID_V1.key(),
+            StandardIdentifierValidator.EC_TAX_ID_V1);
 
     /**
      * Normalizes and validates a complete value using the scheme's exact versioned rule keys.

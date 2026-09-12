@@ -36,6 +36,21 @@ public enum StandardIdentifierValidator implements IdentifierValidator {
             }
             return (10 - sum % 10) % 10 == normalizedValue.charAt(9) - '0';
         }
+    },
+    /**
+     * Checks the thirteen-digit RUC structure and universal 001 suffix from RUC
+     * Regulation Article 3.
+     * SRI-assigned numbers do not universally follow a checksum algorithm; this
+     * does not verify issuance.
+     *
+     * @see <a href="https://www.sri.gob.ec/facturacion-electronica">SRI warning on
+     *      RUC algorithm validation</a>
+     */
+    EC_TAX_ID_V1(new IdentifierRuleVersion(1)) {
+        @Override
+        public boolean isValid(String normalizedValue) {
+            return normalizedValue != null && normalizedValue.matches("\\d{10}001");
+        }
     };
 
     private final IdentifierRuleVersion version;

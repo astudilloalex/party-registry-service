@@ -37,6 +37,7 @@ import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSup
 import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSupport.awaitItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -233,6 +234,66 @@ class RegisterPartyIdentifierUseCaseTest {
                     "EC_NATIONAL_ID_V1")));
             InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
                     "TEST-SCHEME", value, null, null, TODAY.plusYears(1), false);
+
+            assertIdentifierViolation(fixture, input, DomainViolation.IDENTIFIER_VALUE_INVALID);
+
+            assertEquals(List.of("partyLookup", "scheme"), fixture.order);
+        }
+    }
+
+    @Test
+    void preservesNormalizedEcuadorTaxIdsForBothPartyTypesWithoutExpiration() {
+        for (PartyType partyType : List.of(PartyType.NATURAL_PERSON, PartyType.LEGAL_ENTITY)) {
+            for (String value : List.of("0100000009001", "1790000000001")) {
+                RegistrationFixture fixture = new RegistrationFixture();
+                fixture.partyLookup.behavior = ignored -> Uni.createFrom().item(Optional.of(partyType));
+                fixture.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
+                        IdentifierSchemeStatus.ACTIVE,
+                        IdentifierSubjectType.BOTH,
+                        13,
+                        13,
+                        false,
+                        "TRIM_UPPERCASE_V1",
+                        "EC_TAX_ID_V1")));
+                String completeValue = "  " + value + "  ";
+                var protectedValue = RegistrationUseCaseTestSupport.protectedValue();
+                fixture.protectionPort.behavior = ignored -> protectedValue;
+                InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
+                        "TEST-SCHEME", completeValue, null, null, null, false);
+
+                var result = awaitItem(fixture.useCase.execute(command(input)));
+
+                assertEquals(List.of("partyLookup", "scheme", "protect", "registerIdentifier"), fixture.order);
+                assertEquals(1, fixture.protectionPort.requests.size());
+                var protectionRequest = fixture.protectionPort.requests.getFirst();
+                assertEquals(completeValue, protectionRequest.completeValue());
+                assertEquals(value, protectionRequest.normalizedValue());
+                assertEquals(1, protectionRequest.normalizationVersion().value());
+                assertEquals(1, fixture.registrationPort.candidates.size());
+                var candidate = fixture.registrationPort.candidates.getFirst();
+                assertEquals(partyType, candidate.partyType());
+                assertSame(protectedValue, candidate.identifier().protectedValue());
+                assertEquals(PartyIdentifierStatus.PENDING_VERIFICATION, result.status());
+                assertNull(result.expiresOn());
+            }
+        }
+    }
+
+    @Test
+    void rejectsMalformedEcuadorTaxIdsBeforeProtectionOrPersistence() {
+        for (String value : List.of(
+                "010000009001", "00100000009001", "010000000A001", "\u0660100000009001", "0100000009002")) {
+            RegistrationFixture fixture = new RegistrationFixture();
+            fixture.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
+                    IdentifierSchemeStatus.ACTIVE,
+                    IdentifierSubjectType.BOTH,
+                    13,
+                    13,
+                    false,
+                    "TRIM_UPPERCASE_V1",
+                    "EC_TAX_ID_V1")));
+            InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
+                    "TEST-SCHEME", value, null, null, null, false);
 
             assertIdentifierViolation(fixture, input, DomainViolation.IDENTIFIER_VALUE_INVALID);
 
