@@ -63,9 +63,9 @@ class MigrationRegressionTest {
         assertEquals(Map.of(
                 "1", "db/migration/V1__create_party_registry_schema.sql",
                 "2", "db/migration/V2__create_api_idempotency_records.sql",
+                "3", "db/migration/V3__seed_ecuador_identifier_schemes.sql",
                 "1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql"),
                 appliedMigrations);
-        assertFalse(appliedMigrations.containsKey("3"));
         assertDoesNotThrow(flyway::validate);
 
         try (Connection connection = dataSource.getConnection();
@@ -75,6 +75,49 @@ class MigrationRegressionTest {
             result.next();
             assertEquals("api_idempotency_records", result.getString(1));
         }
+    }
+
+    @Test
+    void seedsEcuadorSchemesAsDraftsWithDatabaseGeneratedIds() throws SQLException {
+        Set<String> codes = new HashSet<>();
+        Set<UUID> ids = new HashSet<>();
+        try (Connection connection = dataSource.getConnection();
+                Statement statement = connection.createStatement();
+                var result = statement.executeQuery("""
+                        SELECT * FROM identifier_schemes
+                        WHERE code IN ('EC_NATIONAL_ID', 'EC_TAX_ID', 'EC_PASSPORT')
+                        """)) {
+            while (result.next()) {
+                String code = result.getString("code");
+                assertTrue(codes.add(code));
+                UUID id = result.getObject("id", UUID.class);
+                assertNotNull(id);
+                assertEquals(7, id.version());
+                assertTrue(ids.add(id));
+                assertEquals("EC", result.getString("issuing_country_code"));
+                assertEquals(code.substring(3), result.getString("category"));
+                assertEquals(code.equals("EC_TAX_ID") ? "BOTH" : "NATURAL_PERSON",
+                        result.getString("applicable_subject_type"));
+                assertEquals("TRIM_UPPERCASE_V1", result.getString("normalizer_key"));
+                assertEquals("ALPHANUMERIC_V1", result.getString("validator_key"));
+                if (code.equals("EC_PASSPORT")) {
+                    assertNull(result.getObject("minimum_length"));
+                    assertNull(result.getObject("maximum_length"));
+                } else {
+                    int length = code.equals("EC_NATIONAL_ID") ? 10 : 13;
+                    assertEquals(length, result.getInt("minimum_length"));
+                    assertEquals(length, result.getInt("maximum_length"));
+                }
+                assertEquals(!code.equals("EC_TAX_ID"), result.getBoolean("requires_expiration"));
+                assertEquals("DRAFT", result.getString("status"));
+                assertNotNull(result.getTimestamp("created_at"));
+                assertEquals(result.getTimestamp("created_at"), result.getTimestamp("updated_at"));
+                assertEquals("system", result.getString("created_by"));
+                assertEquals("system", result.getString("updated_by"));
+                assertEquals(0L, result.getLong("version"));
+            }
+        }
+        assertEquals(Set.of("EC_NATIONAL_ID", "EC_TAX_ID", "EC_PASSPORT"), codes);
     }
 
     @Test
