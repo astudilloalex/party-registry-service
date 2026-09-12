@@ -21,21 +21,22 @@ public class PartyIdentifierPersistenceMapper {
 
     PartyIdentifierEntity toEntity(PartyIdentifier identifier) {
         Objects.requireNonNull(identifier, "identifier");
-        return new PartyIdentifierEntity(
-                identifier.identifierId().value(),
-                identifier.tenantId().value(),
-                identifier.partyId().value(),
-                identifier.identifierSchemeId().value(),
-                identifier.issuerCode(),
-                identifier.protectedValue(),
-                identifier.isPrimary(),
-                identifier.status(),
-                identifier.issuedOn(),
-                identifier.expiresOn(),
-                identifier.verifiedAt(),
-                identifier.verifiedBy(),
-                identifier.auditInfo(),
-                identifier.version().value());
+        return PartyIdentifierEntity.builder()
+                .id(identifier.identifierId().value())
+                .tenantId(identifier.tenantId().value())
+                .partyId(identifier.partyId().value())
+                .identifierSchemeId(identifier.identifierSchemeId().value())
+                .issuerCode(identifier.issuerCode())
+                .protectedValue(identifier.protectedValue())
+                .primary(identifier.isPrimary())
+                .status(identifier.status())
+                .issuedOn(identifier.issuedOn())
+                .expiresOn(identifier.expiresOn())
+                .verifiedAt(identifier.verifiedAt())
+                .verifiedBy(identifier.verifiedBy())
+                .auditInfo(identifier.auditInfo())
+                .version(identifier.version().value())
+                .build();
     }
 
     PartyIdentifier toDomain(PartyIdentifierEntity entity) {

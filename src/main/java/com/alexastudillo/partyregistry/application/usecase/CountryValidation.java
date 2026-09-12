@@ -10,8 +10,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 
 /**
- * Coordinates country-reference checks shared by natural-person write use
- * cases.
+ * Coordinates country-reference checks shared by Party write use cases.
  */
 final class CountryValidation {
 
@@ -32,5 +31,16 @@ final class CountryValidation {
                         ? Uni.createFrom().voidItem()
                         : Uni.createFrom().failure(new ApplicationException(
                                 new ApplicationFailure.UnrecognizedBirthCountry(resultingCode))));
+    }
+
+    static Uni<Void> validateIncorporationCountry(
+            CountryReferencePort countryReferencePort,
+            RequestMetadata requestMetadata,
+            String countryCode) {
+        return countryReferencePort.isRecognizedCountry(requestMetadata, countryCode)
+                .onItem().transformToUni(recognized -> Boolean.TRUE.equals(recognized)
+                        ? Uni.createFrom().voidItem()
+                        : Uni.createFrom().failure(new ApplicationException(
+                                new ApplicationFailure.UnrecognizedIncorporationCountry(countryCode))));
     }
 }

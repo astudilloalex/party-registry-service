@@ -16,22 +16,23 @@ public class IdentifierSchemePersistenceMapper {
 
     IdentifierSchemeEntity toEntity(IdentifierScheme scheme) {
         Objects.requireNonNull(scheme, "scheme");
-        return new IdentifierSchemeEntity(
-                scheme.id().value(),
-                scheme.code(),
-                scheme.issuingCountryCode(),
-                scheme.category(),
-                scheme.applicableSubjectType(),
-                scheme.name(),
-                scheme.description(),
-                scheme.normalizerKey(),
-                scheme.validatorKey(),
-                toSmallint(scheme.minimumLength(), "minimumLength"),
-                toSmallint(scheme.maximumLength(), "maximumLength"),
-                scheme.requiresExpiration(),
-                scheme.status(),
-                scheme.auditInfo(),
-                scheme.version().value());
+        return IdentifierSchemeEntity.builder()
+                .id(scheme.id().value())
+                .code(scheme.code())
+                .issuingCountryCode(scheme.issuingCountryCode())
+                .category(scheme.category())
+                .applicableSubjectType(scheme.applicableSubjectType())
+                .name(scheme.name())
+                .description(scheme.description())
+                .normalizerKey(scheme.normalizerKey())
+                .validatorKey(scheme.validatorKey())
+                .minimumLength(toSmallint(scheme.minimumLength(), "minimumLength"))
+                .maximumLength(toSmallint(scheme.maximumLength(), "maximumLength"))
+                .requiresExpiration(scheme.requiresExpiration())
+                .status(scheme.status())
+                .auditInfo(scheme.auditInfo())
+                .version(scheme.version().value())
+                .build();
     }
 
     IdentifierScheme toDomain(IdentifierSchemeEntity entity) {

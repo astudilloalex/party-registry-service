@@ -12,7 +12,7 @@ import java.util.Objects;
  * Represents one tenant-scoped party permanently classified as a natural
  * person.
  */
-public final class NaturalPerson {
+public final class NaturalPerson implements Party {
 
     private static final int MAX_DISPLAY_NAME_LENGTH = 300;
     private static final String DETAILS_REQUIRED_MESSAGE = "Natural-person details are required";
@@ -205,30 +205,54 @@ public final class NaturalPerson {
                 auditInfo.updated(occurredAt, updatedBy));
     }
 
+    @Override
+    public NaturalPerson activate(Instant occurredAt, String updatedBy) {
+        if (recordStatus != PartyRecordStatus.DRAFT) {
+            throw new DomainValidationException(
+                    DomainViolation.PARTY_ACTIVATION_INVALID_STATE,
+                    "Only a draft Party can be activated");
+        }
+        return new NaturalPerson(
+                partyId,
+                tenantId,
+                displayName,
+                PartyRecordStatus.ACTIVE,
+                version.next(),
+                auditInfo.updated(occurredAt, updatedBy),
+                details);
+    }
+
+    @Override
     public PartyId partyId() {
         return partyId;
     }
 
+    @Override
     public TenantId tenantId() {
         return tenantId;
     }
 
+    @Override
     public PartyType type() {
         return PartyType.NATURAL_PERSON;
     }
 
+    @Override
     public String displayName() {
         return displayName;
     }
 
+    @Override
     public PartyRecordStatus recordStatus() {
         return recordStatus;
     }
 
+    @Override
     public PartyVersion version() {
         return version;
     }
 
+    @Override
     public AuditInfo auditInfo() {
         return auditInfo;
     }
