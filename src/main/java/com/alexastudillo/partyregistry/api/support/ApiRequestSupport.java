@@ -1,7 +1,7 @@
 package com.alexastudillo.partyregistry.api.support;
 
 import com.alexastudillo.api.response.application.ApiResponseException;
-import com.alexastudillo.api.response.contract.CommonResponseCode;
+import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -10,10 +10,10 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.core.HttpHeaders;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -26,6 +26,8 @@ public class ApiRequestSupport {
     public static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
     public static final String IF_MATCH_HEADER = "If-Match";
 
+    private static final System.Logger LOGGER = System.getLogger(ApiRequestSupport.class.getName());
+    private static final String PARTY_ID_FIELD = "partyId";
     private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 128;
     private static final Pattern NONNEGATIVE_DECIMAL = Pattern.compile("0|[1-9]\\d*");
 
@@ -45,11 +47,23 @@ public class ApiRequestSupport {
      */
     public <T> T validateBody(T request) {
         if (request == null) {
-            throw badRequest();
+            throw badRequest(PartyResponseCode.REQUEST_BODY_REQUIRED, "body");
         }
-        Set<ConstraintViolation<T>> violations = validator.validate(request);
+        // The public envelope carries one code: required fields precede other constraints, then paths sort alphabetically.
+        List<ConstraintViolation<T>> violations = validator.validate(request).stream()
+                .sorted(Comparator.comparing((ConstraintViolation<T> violation) ->
+                        !violation.getMessageTemplate().endsWith("-required"))
+                        .thenComparing(violation -> violation.getPropertyPath().toString())
+                        .thenComparing(ConstraintViolation::getMessageTemplate))
+                .toList();
         if (!violations.isEmpty()) {
-            throw badRequest();
+            for (ConstraintViolation<T> violation : violations) {
+                PartyResponseCode code = validationCode(violation);
+                LOGGER.log(System.Logger.Level.WARNING,
+                        "Request rejected status=400 code={0} source=validateBody model={1} field={2} rule={0}",
+                        code.getCode(), request.getClass().getSimpleName(), violation.getPropertyPath());
+            }
+            throw new ApiResponseException(validationCode(violations.getFirst()));
         }
         return request;
     }
@@ -59,16 +73,16 @@ public class ApiRequestSupport {
      */
     public PartyId parsePartyId(String value) {
         if (value == null) {
-            throw badRequest();
+            throw badRequest(PartyResponseCode.PARTY_ID_INVALID, PARTY_ID_FIELD);
         }
         try {
             UUID parsed = UUID.fromString(value);
             if (!parsed.toString().equals(value)) {
-                throw badRequest();
+                throw badRequest(PartyResponseCode.PARTY_ID_INVALID, PARTY_ID_FIELD);
             }
             return new PartyId(parsed);
-        } catch (IllegalArgumentException exception) {
-            throw badRequest(exception);
+        } catch (IllegalArgumentException _) {
+            throw badRequest(PartyResponseCode.PARTY_ID_INVALID, PARTY_ID_FIELD);
         }
     }
 
@@ -76,7 +90,8 @@ public class ApiRequestSupport {
      * Reads exactly one nonblank bounded idempotency key.
      */
     public String requireIdempotencyKey(HttpHeaders headers) {
-        return readIdempotencyKey(headers, true).orElseThrow(ApiRequestSupport::badRequest);
+        return readIdempotencyKey(headers, true)
+                .orElseThrow(() -> badRequest(PartyResponseCode.IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_HEADER));
     }
 
     /**
@@ -91,14 +106,14 @@ public class ApiRequestSupport {
      * Reads exactly one canonical nonnegative decimal expected version.
      */
     public PartyVersion requireExpectedVersion(HttpHeaders headers) {
-        String value = requireSingleHeader(headers, IF_MATCH_HEADER);
+        String value = requireVersionHeader(headers);
         if (!NONNEGATIVE_DECIMAL.matcher(value).matches()) {
-            throw badRequest();
+            throw badRequest(PartyResponseCode.IF_MATCH_INVALID, IF_MATCH_HEADER);
         }
         try {
             return new PartyVersion(Long.parseLong(value));
-        } catch (NumberFormatException exception) {
-            throw badRequest(exception);
+        } catch (NumberFormatException _) {
+            throw badRequest(PartyResponseCode.IF_MATCH_OUT_OF_RANGE, IF_MATCH_HEADER);
         }
     }
 
@@ -106,42 +121,58 @@ public class ApiRequestSupport {
         List<String> values = headerValues(headers, IDEMPOTENCY_KEY_HEADER);
         if (values.isEmpty()) {
             if (required) {
-                throw badRequest();
+                throw badRequest(PartyResponseCode.IDEMPOTENCY_KEY_REQUIRED, IDEMPOTENCY_KEY_HEADER);
             }
             return Optional.empty();
         }
         if (values.size() != 1) {
-            throw badRequest();
+            throw badRequest(PartyResponseCode.IDEMPOTENCY_KEY_DUPLICATED, IDEMPOTENCY_KEY_HEADER);
         }
         String value = values.getFirst();
-        if (value == null || value.isBlank()
-                || value.codePointCount(0, value.length()) > MAX_IDEMPOTENCY_KEY_LENGTH) {
-            throw badRequest();
+        if (value == null || value.isBlank()) {
+            throw badRequest(PartyResponseCode.IDEMPOTENCY_KEY_BLANK, IDEMPOTENCY_KEY_HEADER);
+        }
+        if (value.codePointCount(0, value.length()) > MAX_IDEMPOTENCY_KEY_LENGTH) {
+            throw badRequest(PartyResponseCode.IDEMPOTENCY_KEY_TOO_LONG, IDEMPOTENCY_KEY_HEADER);
         }
         return Optional.of(value);
     }
 
-    private static String requireSingleHeader(HttpHeaders headers, String headerName) {
-        List<String> values = headerValues(headers, headerName);
-        if (values.size() != 1 || values.getFirst() == null || values.getFirst().isBlank()) {
-            throw badRequest();
+    private static String requireVersionHeader(HttpHeaders headers) {
+        List<String> values = headerValues(headers, IF_MATCH_HEADER);
+        if (values.isEmpty()) {
+            throw badRequest(PartyResponseCode.IF_MATCH_REQUIRED, IF_MATCH_HEADER);
+        }
+        if (values.size() != 1) {
+            throw badRequest(PartyResponseCode.IF_MATCH_DUPLICATED, IF_MATCH_HEADER);
+        }
+        if (values.getFirst() == null || values.getFirst().isBlank()) {
+            throw badRequest(PartyResponseCode.IF_MATCH_INVALID, IF_MATCH_HEADER);
         }
         return values.getFirst();
     }
 
     private static List<String> headerValues(HttpHeaders headers, String headerName) {
         if (headers == null) {
-            throw badRequest();
+            throw badRequest(PartyResponseCode.BAD_REQUEST, headerName);
         }
         List<String> values = headers.getRequestHeader(headerName);
         return values == null ? List.of() : values;
     }
 
-    private static ApiResponseException badRequest() {
-        return new ApiResponseException(CommonResponseCode.BAD_REQUEST);
+    private static PartyResponseCode validationCode(ConstraintViolation<?> violation) {
+        for (PartyResponseCode code : PartyResponseCode.values()) {
+            if (code.getStatus() == 400 && code.getCode().equals(violation.getMessageTemplate())) {
+                return code;
+            }
+        }
+        return PartyResponseCode.BAD_REQUEST;
     }
 
-    private static ApiResponseException badRequest(Throwable cause) {
-        return new ApiResponseException(CommonResponseCode.BAD_REQUEST, cause);
+    private static ApiResponseException badRequest(PartyResponseCode code, String field) {
+        LOGGER.log(System.Logger.Level.WARNING,
+                "Request rejected status=400 code={0} source=request-validation field={1} rule={0}",
+                code.getCode(), field);
+        return new ApiResponseException(code);
     }
 }

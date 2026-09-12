@@ -1524,7 +1524,55 @@ components:
 
   responses:
     BadRequest:
-      description: Solicitud inválida.
+      description: |
+        Invalid request. The error body contains only `status` and one stable `code`; it never
+        includes `data`, field errors, rejected values, exception messages, or internal details.
+
+        For deserialized body validation, rules whose codes end in `-required` take precedence,
+        followed by lexicographic Jakarta Validation property path, then lexicographic rule code.
+        The first violation supplies the public code. Body validation precedes operation-header
+        validation. This ordering does not supersede trusted-context filters or framework checks.
+
+        Body codes apply only to the corresponding properties and operations:
+        - `request-body-required`: a required request body is missing or null.
+        - `display-name-too-long`: `displayName` exceeds 300 characters on Party creation.
+        - `given-names-required`, `family-names-required`: natural-person names are missing, null,
+          or blank when required; on PATCH, these rules apply only to submitted names.
+        - `given-names-too-long`, `family-names-too-long`, `preferred-name-too-long`: the
+          corresponding natural-person name exceeds 200 characters.
+        - `birth-country-code-invalid`: a supplied `birthCountryCode` is not two uppercase letters.
+        - `initial-identifier-required`: `initialIdentifier` is missing or null on Party creation.
+        - `identifier-scheme-code-required`, `identifier-value-required`: `identifierSchemeCode`
+          or `value` is missing, null, or blank in an initial or additional identifier.
+        - `identifier-scheme-code-too-long`, `identifier-value-too-long`, `issuer-code-too-long`:
+          the corresponding identifier property exceeds 64, 256, or 64 characters, respectively.
+        - `legal-name-required`: `legalName` is missing, null, or blank on legal-entity creation.
+        - `legal-name-invalid`: `legalName` falls outside the 1-300 character length range.
+        - `trade-name-too-long`, `legal-form-code-too-long`: on legal-entity creation, `tradeName`
+          exceeds 300 characters or `legalFormCode` exceeds 64 characters, respectively.
+        - `incorporation-country-code-required`: `incorporationCountryCode` is missing or null
+          on legal-entity creation.
+        - `incorporation-country-code-invalid`: on legal-entity creation,
+          `incorporationCountryCode` is not two uppercase letters.
+        - `patch-property-required`: a natural-person PATCH contains no supported property.
+
+        Path and operation-header codes apply where the corresponding input is validated:
+        - `party-id-invalid`: `partyId` is not a canonical lowercase UUID.
+        - `idempotency-key-required`: a required `Idempotency-Key` is absent.
+        - `idempotency-key-duplicated`: more than one `Idempotency-Key` value is supplied.
+        - `idempotency-key-blank`: a supplied `Idempotency-Key` is blank.
+        - `idempotency-key-too-long`: `Idempotency-Key` exceeds 128 Unicode code points.
+        - `if-match-required`: a required `If-Match` is absent.
+        - `if-match-duplicated`: more than one `If-Match` value is supplied.
+        - `if-match-invalid`: `If-Match` is blank or does not match `^(0|[1-9][0-9]*)$`.
+        - `if-match-out-of-range`: a syntactically valid `If-Match` exceeds 9223372036854775807.
+        Optional idempotency keys may be omitted, but supplied values must pass the same checks.
+
+        `bad-request` remains the fallback for trusted-context header/filter failures, framework
+        request failures, and validation rules without a mapped public code. Natural-person JSON
+        binding failures handled by the reader interceptor, including unknown properties and
+        invalid JSON values, also remain `bad-request`. These validation codes do not replace
+        existing framework or business error codes or change their HTTP statuses.
       headers:
         Process-Id:
           $ref: '#/components/headers/ProcessIdEcho'
@@ -1532,9 +1580,42 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiErrorResponse'
-          example:
-            status: 400
-            code: bad-request
+          examples:
+            fallback:
+              summary: Trusted-context, framework, or natural-person JSON binding failure
+              value:
+                status: 400
+                code: bad-request
+            requiredBody:
+              summary: Required body is missing or null
+              value:
+                status: 400
+                code: request-body-required
+            requiredNames:
+              summary: Both names are blank; familyNames precedes givenNames by property path
+              value:
+                status: 400
+                code: family-names-required
+            initialIdentifier:
+              summary: Initial identifier is missing, even if an operation header is also invalid
+              value:
+                status: 400
+                code: initial-identifier-required
+            invalidPartyId:
+              summary: Party identifier is not a canonical lowercase UUID
+              value:
+                status: 400
+                code: party-id-invalid
+            requiredIdempotencyKey:
+              summary: Valid body but required idempotency key is absent
+              value:
+                status: 400
+                code: idempotency-key-required
+            versionOutOfRange:
+              summary: Decimal If-Match value exceeds the supported version range
+              value:
+                status: 400
+                code: if-match-out-of-range
 
     Unauthorized:
       description: Falta autenticación o credenciales inválidas.

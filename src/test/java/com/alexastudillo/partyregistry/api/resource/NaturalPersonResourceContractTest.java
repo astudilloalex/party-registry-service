@@ -49,6 +49,9 @@ class NaturalPersonResourceContractTest {
     private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
     private static final String IF_MATCH_HEADER = "If-Match";
     private static final String RESOURCE_PATH = "/v1/natural-person";
+    private static final String FAMILY_NAMES_REQUIRED = "family-names-required";
+    private static final String PARTY_ID_INVALID = "party-id-invalid";
+    private static final String IF_MATCH_REQUIRED = "if-match-required";
     private static final Duration MAXIMUM_WAIT = Duration.ofSeconds(10);
     private static final Set<String> SUCCESS_ENVELOPE_FIELDS = Set.of("status", "code", "data");
     private static final Set<String> ERROR_ENVELOPE_FIELDS = Set.of("status", "code");
@@ -169,7 +172,7 @@ class NaturalPersonResourceContractTest {
                         .body("{\"givenNames\":\"Ada\",\"familyNames\":\"Lovelace\"}")
                         .post(RESOURCE_PATH),
                 400,
-                "bad-request");
+                "initial-identifier-required");
         assertEquals(partiesBeforeMissingIdentifier, countParties(validationTenant));
         assertEquals(0, countIdempotencyRecords(validationTenant, missingIdentifierKey));
 
@@ -178,13 +181,13 @@ class NaturalPersonResourceContractTest {
                 key("missing-name"),
                 "{\"givenNames\":\"Ada\"}",
                 400,
-                "bad-request");
+                FAMILY_NAMES_REQUIRED);
         assertRejectedCreationDoesNotPersist(
                 validationTenant,
                 key("invalid-country-format"),
                 "{\"givenNames\":\"Ada\",\"familyNames\":\"Lovelace\",\"birthCountryCode\":\"ecu\"}",
                 400,
-                "bad-request");
+                "birth-country-code-invalid");
         assertRejectedCreationDoesNotPersist(
                 validationTenant,
                 key("unknown-property"),
@@ -226,19 +229,19 @@ class NaturalPersonResourceContractTest {
     @Test
     void verifiesIdempotencyHeaderValidationAndNonPersistence() {
         UUID invalidTenant = UUID.randomUUID();
-        String body = createBody("Idempotent", "Person", null);
+        String body = withInitialIdentifier(createBody("Idempotent", "Person", null), "header-validation");
         long initialRows = countParties(invalidTenant);
 
-        assertError(request(invalidTenant).body(body).post(RESOURCE_PATH), 400, "bad-request");
+        assertError(request(invalidTenant).body(body).post(RESOURCE_PATH), 400, "idempotency-key-required");
         assertError(
                 request(invalidTenant)
                         .header(IDEMPOTENCY_KEY_HEADER, "duplicate", "duplicate")
                         .body(body)
                         .post(RESOURCE_PATH),
                 400,
-                "bad-request");
-        assertError(create(invalidTenant, "   ", body), 400, "bad-request");
-        assertError(create(invalidTenant, "x".repeat(129), body), 400, "bad-request");
+                "idempotency-key-duplicated");
+        assertError(create(invalidTenant, "   ", body), 400, "idempotency-key-blank");
+        assertError(create(invalidTenant, "x".repeat(129), body), 400, "idempotency-key-too-long");
         assertEquals(initialRows, countParties(invalidTenant));
     }
 
@@ -302,7 +305,7 @@ class NaturalPersonResourceContractTest {
         String partyId = string(created, "partyId");
 
         assertEquivalentData(created, getData(tenantId, partyId));
-        assertError(request(tenantId).get(RESOURCE_PATH + "/not-a-uuid"), 400, "bad-request");
+        assertError(request(tenantId).get(RESOURCE_PATH + "/not-a-uuid"), 400, PARTY_ID_INVALID);
 
         Map<String, Object> absent = assertError(
                 request(tenantId).get(RESOURCE_PATH + "/" + UUID.randomUUID()),
@@ -341,17 +344,18 @@ class NaturalPersonResourceContractTest {
                 201);
         String partyId = string(created, "partyId");
         Map<String, Object> persistedBeforeReplacement = getData(tenantId, partyId);
+        String replacementBody = "{\"givenNames\":\"Grace\",\"familyNames\":\"Hopper\"}";
 
         assertError(
                 put(tenantId, partyId, "0", "{\"givenNames\":\"Grace\"}"),
                 400,
-                "bad-request");
+                FAMILY_NAMES_REQUIRED);
         assertError(
                 request(tenantId)
-                        .body("{\"givenNames\":\"Grace\",\"familyNames\":\"Hopper\"}")
+                        .body(replacementBody)
                         .put(RESOURCE_PATH + "/" + partyId),
                 400,
-                "bad-request");
+                IF_MATCH_REQUIRED);
         assertError(
                 put(
                         tenantId,
@@ -363,20 +367,24 @@ class NaturalPersonResourceContractTest {
         assertError(
                 request(tenantId)
                         .header(IF_MATCH_HEADER, "0", "0")
-                        .body("{\"givenNames\":\"Grace\",\"familyNames\":\"Hopper\"}")
+                        .body(replacementBody)
                         .put(RESOURCE_PATH + "/" + partyId),
                 400,
-                "bad-request");
-        for (String malformedVersion : List.of("-1", "01", "1.0", "9223372036854775808")) {
+                "if-match-duplicated");
+        for (String malformedVersion : List.of("-1", "01", "1.0")) {
             assertError(
                     put(
                             tenantId,
                             partyId,
                             malformedVersion,
-                            "{\"givenNames\":\"Grace\",\"familyNames\":\"Hopper\"}"),
+                            replacementBody),
                     400,
-                    "bad-request");
+                    "if-match-invalid");
         }
+        assertError(
+                put(tenantId, partyId, "9223372036854775808", replacementBody),
+                400,
+                "if-match-out-of-range");
         assertEquals(persistedBeforeReplacement, getData(tenantId, partyId));
     }
 
@@ -500,7 +508,7 @@ class NaturalPersonResourceContractTest {
                         .body("{\"preferredName\":\"Kathy\"}")
                         .patch(RESOURCE_PATH + "/" + partyId),
                 400,
-                "bad-request");
+                IF_MATCH_REQUIRED);
 
         Map<String, Object> preferred = assertSuccess(
                 patch(tenantId, partyId, "0", "{\"preferredName\":\"Kathy\"}"),
@@ -550,7 +558,7 @@ class NaturalPersonResourceContractTest {
         String partyId = string(created, "partyId");
         Map<String, Object> persistedBeforePatch = getData(tenantId, partyId);
 
-        assertError(patch(tenantId, partyId, "0", "{}"), 400, "bad-request");
+        assertError(patch(tenantId, partyId, "0", "{}"), 400, "patch-property-required");
         assertError(
                 patch(tenantId, partyId, "0", "{\"unsupported\":\"value\"}"),
                 400,
@@ -627,7 +635,7 @@ class NaturalPersonResourceContractTest {
         assertSanitizedError(
                 request(tenantId).get(RESOURCE_PATH + "/invalid-id"),
                 400,
-                "bad-request");
+                PARTY_ID_INVALID);
         assertSanitizedError(
                 request(tenantId).get(RESOURCE_PATH + "/" + UUID.randomUUID()),
                 404,

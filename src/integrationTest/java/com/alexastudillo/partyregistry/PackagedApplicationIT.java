@@ -117,7 +117,7 @@ class PackagedApplicationIT {
                         .body("{}")
                         .when().post("/v1/natural-person"),
                 400,
-                "bad-request");
+                "family-names-required");
         assertError(
                 validRequest().when().get(
                         "/v1/natural-person/00000000-0000-7000-8000-000000000999"),
@@ -245,7 +245,7 @@ class PackagedApplicationIT {
                         .body(identifierBody(identifierValue("PM")))
                         .when().post("/v1/parties/{partyId}/identifiers", partyId),
                 400,
-                "bad-request");
+                "idempotency-key-required");
 
         validRequest()
                 .header("If-Match", "0")

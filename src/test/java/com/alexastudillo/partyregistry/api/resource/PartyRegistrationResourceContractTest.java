@@ -112,7 +112,7 @@ class PartyRegistrationResourceContractTest {
                         .body(body)
                         .post("/v1/parties/" + partyId + "/identifiers"),
                 400,
-                "bad-request");
+                "idempotency-key-required");
         assertError(
                 post(
                         UUID.randomUUID(),
@@ -138,12 +138,12 @@ class PartyRegistrationResourceContractTest {
         String partyId = string(party, "partyId");
         String path = "/v1/parties/" + partyId + "/activate";
 
-        assertError(request(tenantId).post(path), 400, "bad-request");
-        assertError(request(tenantId).header(IF_MATCH_HEADER, "01").post(path), 400, "bad-request");
+        assertError(request(tenantId).post(path), 400, "if-match-required");
+        assertError(request(tenantId).header(IF_MATCH_HEADER, "01").post(path), 400, "if-match-invalid");
         assertError(
                 request(tenantId).header(IF_MATCH_HEADER, "0", "0").post(path),
                 400,
-                "bad-request");
+                "if-match-duplicated");
         assertError(request(tenantId).header(IF_MATCH_HEADER, "0").post(path), 422, "unprocessable-entity");
 
         markIdentifierVerified(UUID.fromString(partyId));

@@ -4,6 +4,8 @@ import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.partyregistry.api.model.request.InitialPartyIdentifierCreateRequest;
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonCreateRequest;
 import jakarta.validation.Validation;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
@@ -26,6 +28,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ApiRequestSupportTest {
 
+    private static final String PARTY_ID_INVALID = "party-id-invalid";
+    private static final String GIVEN_NAMES_REQUIRED = "given-names-required";
+    private static final String FAMILY_NAMES_REQUIRED = "family-names-required";
+    private static final String IDENTIFIER_VALUE_REQUIRED = "identifier-value-required";
+    private static final String DISPLAY_NAME_TOO_LONG = "display-name-too-long";
+    private static final String BAD_REQUEST = "bad-request";
+    private static final String VALID_GIVEN_NAMES = "Ada";
+    private static final String VALID_FAMILY_NAMES = "Lovelace";
+    private static final String VALID_SCHEME_CODE = "TEST_NATURAL_ACTIVE";
+    private static final String VALID_IDENTIFIER_VALUE = "AB123456";
+    private static final String VALID_TEXT = "valid";
+
     private final ApiRequestSupport support = new ApiRequestSupport(
             Validation.buildDefaultValidatorFactory().getValidator());
 
@@ -33,20 +47,49 @@ class ApiRequestSupportTest {
     void validatesNestedBodies() {
         NaturalPersonCreateRequest valid = new NaturalPersonCreateRequest(
                 null,
-                "Ada",
-                "Lovelace",
+                VALID_GIVEN_NAMES,
+                VALID_FAMILY_NAMES,
                 null,
                 null,
                 null,
                 null,
                 new InitialPartyIdentifierCreateRequest(
-                        "TEST_NATURAL_ACTIVE", "AB123456", null, null, null, false));
+                        VALID_SCHEME_CODE, VALID_IDENTIFIER_VALUE, null, null, null, false));
         NaturalPersonCreateRequest invalid = new NaturalPersonCreateRequest(
-                null, "Ada", "Lovelace", null, null, null, null, null);
+                null, VALID_GIVEN_NAMES, VALID_FAMILY_NAMES, null, null, null, null, null);
 
         assertEquals(valid, support.validateBody(valid));
-        assertBadRequest(() -> support.validateBody(invalid));
-        assertBadRequest(() -> support.validateBody(null));
+        assertBadRequest(() -> support.validateBody(invalid), "initial-identifier-required");
+        assertBadRequest(() -> support.validateBody(null), "request-body-required");
+    }
+
+    @Test
+    void distinguishesMissingInitialIdentifierSchemeAndValue() {
+        assertBadRequest(() -> support.validateBody(new NaturalPersonCreateRequest(
+                null, VALID_GIVEN_NAMES, VALID_FAMILY_NAMES, null, null, null, null,
+                new InitialPartyIdentifierCreateRequest(null, VALID_IDENTIFIER_VALUE, null, null, null, false))),
+                "identifier-scheme-code-required");
+        assertBadRequest(() -> support.validateBody(new NaturalPersonCreateRequest(
+                null, VALID_GIVEN_NAMES, VALID_FAMILY_NAMES, null, null, null, null,
+                new InitialPartyIdentifierCreateRequest(VALID_SCHEME_CODE, null, null, null, null, false))),
+                IDENTIFIER_VALUE_REQUIRED);
+    }
+
+    @Test
+    void selectsMultipleViolationsByRequiredSuffixThenPathThenMessageTemplate() {
+        String oversized = "long";
+        assertBadRequest(() -> support.validateBody(new OrderedValidationRequest(oversized, "", "")),
+                GIVEN_NAMES_REQUIRED);
+        assertBadRequest(() -> support.validateBody(new OrderedValidationRequest(oversized, VALID_TEXT, "")),
+                FAMILY_NAMES_REQUIRED);
+        assertBadRequest(() -> support.validateBody(new OrderedValidationRequest(oversized, VALID_TEXT, VALID_TEXT)),
+                DISPLAY_NAME_TOO_LONG);
+    }
+
+    @Test
+    void fallsBackForUnknownAndNon400ValidationMessages() {
+        assertBadRequest(() -> support.validateBody(new UnmappedValidationRequest("", VALID_TEXT)), BAD_REQUEST);
+        assertBadRequest(() -> support.validateBody(new UnmappedValidationRequest(VALID_TEXT, "")), BAD_REQUEST);
     }
 
     @Test
@@ -58,12 +101,12 @@ class ApiRequestSupportTest {
         assertEquals("operation-key", support.requireIdempotencyKey(valid));
         assertTrue(support.optionalIdempotencyKey(absent).isEmpty());
         assertEquals("operation-key", support.optionalIdempotencyKey(valid).orElseThrow());
-        assertBadRequest(() -> support.requireIdempotencyKey(absent));
-        assertBadRequest(() -> support.optionalIdempotencyKey(duplicate));
+        assertBadRequest(() -> support.requireIdempotencyKey(absent), "idempotency-key-required");
+        assertBadRequest(() -> support.optionalIdempotencyKey(duplicate), "idempotency-key-duplicated");
         assertBadRequest(() -> support.requireIdempotencyKey(
-                headers(ApiRequestSupport.IDEMPOTENCY_KEY_HEADER, " ")));
+                headers(ApiRequestSupport.IDEMPOTENCY_KEY_HEADER, " ")), "idempotency-key-blank");
         assertBadRequest(() -> support.requireIdempotencyKey(
-                headers(ApiRequestSupport.IDEMPOTENCY_KEY_HEADER, "x".repeat(129))));
+                headers(ApiRequestSupport.IDEMPOTENCY_KEY_HEADER, "x".repeat(129))), "idempotency-key-too-long");
     }
 
     @Test
@@ -71,17 +114,19 @@ class ApiRequestSupportTest {
         String partyId = "0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1";
 
         assertEquals(UUID.fromString(partyId), support.parsePartyId(partyId).value());
-        assertBadRequest(() -> support.parsePartyId(partyId.toUpperCase(Locale.ROOT)));
-        assertBadRequest(() -> support.parsePartyId("not-a-uuid"));
+        assertBadRequest(() -> support.parsePartyId(partyId.toUpperCase(Locale.ROOT)), PARTY_ID_INVALID);
+        assertBadRequest(() -> support.parsePartyId("not-a-uuid"), PARTY_ID_INVALID);
         assertEquals(0, support.requireExpectedVersion(headers(ApiRequestSupport.IF_MATCH_HEADER, "0")).value());
         assertEquals(42, support.requireExpectedVersion(headers(ApiRequestSupport.IF_MATCH_HEADER, "42")).value());
-        for (String malformed : List.of("-1", "01", "1.0", "9223372036854775808", " ")) {
+        for (String malformed : List.of("-1", "01", "1.0", " ")) {
             assertBadRequest(() -> support.requireExpectedVersion(
-                    headers(ApiRequestSupport.IF_MATCH_HEADER, malformed)));
+                    headers(ApiRequestSupport.IF_MATCH_HEADER, malformed)), "if-match-invalid");
         }
-        assertBadRequest(() -> support.requireExpectedVersion(new StubHttpHeaders()));
         assertBadRequest(() -> support.requireExpectedVersion(
-                headers(ApiRequestSupport.IF_MATCH_HEADER, "1", "2")));
+                headers(ApiRequestSupport.IF_MATCH_HEADER, "9223372036854775808")), "if-match-out-of-range");
+        assertBadRequest(() -> support.requireExpectedVersion(new StubHttpHeaders()), "if-match-required");
+        assertBadRequest(() -> support.requireExpectedVersion(
+                headers(ApiRequestSupport.IF_MATCH_HEADER, "1", "2")), "if-match-duplicated");
     }
 
     private static StubHttpHeaders headers(String name, String... values) {
@@ -92,10 +137,27 @@ class ApiRequestSupportTest {
         return headers;
     }
 
-    private static void assertBadRequest(Runnable action) {
+    private static void assertBadRequest(Runnable action, String expectedCode) {
         ApiResponseException exception = assertThrows(ApiResponseException.class, action::run);
-        assertEquals("bad-request", exception.getResponseCode().getCode());
+        assertEquals(expectedCode, exception.getResponseCode().getCode());
         assertEquals(400, exception.getResponseCode().getStatus());
+    }
+
+    /**
+     * Makes each validation ordering criterion compete with the next criterion.
+     */
+    private record OrderedValidationRequest(
+            @Size(max = 1, message = DISPLAY_NAME_TOO_LONG) String alpha,
+            @NotBlank(message = IDENTIFIER_VALUE_REQUIRED) @NotBlank(message = GIVEN_NAMES_REQUIRED) String beta,
+            @NotBlank(message = FAMILY_NAMES_REQUIRED) String gamma) {
+    }
+
+    /**
+     * Exercises fallback when a constraint message is not a public 400 code.
+     */
+    private record UnmappedValidationRequest(
+            @NotBlank(message = "private-validation-detail") String unknown,
+            @NotBlank(message = "conflict") String non400) {
     }
 
     /**

@@ -1,7 +1,6 @@
 package com.alexastudillo.partyregistry.api.resource;
 
 import com.alexastudillo.api.response.contract.ApiResponse;
-import com.alexastudillo.api.response.contract.CommonResponseCode;
 import com.alexastudillo.api.response.infrastructure.quarkus.ResponseManager;
 import com.alexastudillo.partyregistry.api.context.RequestMetadataContext;
 import com.alexastudillo.partyregistry.api.error.PartyApiErrorTranslator;
@@ -22,7 +21,6 @@ import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUs
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ReplaceNaturalPersonUseCase;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.smallrye.mutiny.Uni;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
@@ -40,7 +38,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import org.jboss.resteasy.reactive.RestResponse;
-import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /**
  * Exposes reactive natural-person operations through the approved REST
@@ -173,18 +170,6 @@ public class NaturalPersonResource {
                 .map(mapper::toResponse)
                 .map(responseManager::successHttp)
                 .onFailure().transform(errorTranslator::translate);
-    }
-
-    /**
-     * Routes strict JSON binding failures through the shared bad-request
-     * envelope for this resource.
-     *
-     * @param ignoredFailure Jackson request binding failure
-     * @return standard `400 bad-request` response
-     */
-    @ServerExceptionMapper
-    public RestResponse<ApiResponse<Void>> mapInvalidJson(MismatchedInputException ignoredFailure) {
-        return responseManager.errorHttp(CommonResponseCode.BAD_REQUEST);
     }
 
     private RegisterNaturalPersonCommand createCommand(

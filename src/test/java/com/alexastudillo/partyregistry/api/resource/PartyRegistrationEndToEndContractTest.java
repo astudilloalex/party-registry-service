@@ -51,6 +51,10 @@ class PartyRegistrationEndToEndContractTest {
     private static final String PROCESS_ID = "0198ce2b-d6a3-7d6e-80ba-d97b21d793e5";
     private static final String USER_ID = "geographic-reference-adapter-test";
     private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+    private static final String INITIAL_IDENTIFIER_REQUIRED = "initial-identifier-required";
+    private static final String IDENTIFIER_SCHEME_CODE_REQUIRED = "identifier-scheme-code-required";
+    private static final String IDENTIFIER_VALUE_REQUIRED = "identifier-value-required";
+    private static final String UNPROCESSABLE_ENTITY = "unprocessable-entity";
     private static final Duration MAXIMUM_WAIT = Duration.ofSeconds(10);
     private static final Set<String> SUCCESS_ENVELOPE_FIELDS = Set.of("status", "code", "data");
     private static final Set<String> ERROR_ENVELOPE_FIELDS = Set.of("status", "code");
@@ -81,94 +85,94 @@ class PartyRegistrationEndToEndContractTest {
                 new RejectedRegistration(
                         "/v1/natural-person",
                         "{\"givenNames\":\"Missing\",\"familyNames\":\"Identifier\"}",
-                        400),
+                        400, INITIAL_IDENTIFIER_REQUIRED),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Blank Scheme", " ", "ABC123", null, null),
-                        400),
+                        400, IDENTIFIER_SCHEME_CODE_REQUIRED),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Blank Value", "TEST_NATURAL_ACTIVE", " ", null, null),
-                        400),
+                        400, IDENTIFIER_VALUE_REQUIRED),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Unknown Scheme", "UNKNOWN_SCHEME", identifierValue("NU"),
                                 null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Inactive Scheme", "TEST_BOTH_DRAFT", identifierValue("ND"),
                                 null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Wrong Subject", "TEST_LEGAL_ACTIVE", identifierValue("NS"),
                                 null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Invalid Value", "TEST_NATURAL_ACTIVE", "ABC-123", null,
                                 null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Missing Expiry", "TEST_BOTH_EXPIRING",
                                 identifierValue("NE"), null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Expired Value", "TEST_BOTH_EXPIRING",
                                 identifierValue("NX"), null, "2000-01-01"),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         "{\"legalName\":\"Missing Identifier Ltd\",\"incorporationCountryCode\":\"EC\"}",
-                        400),
+                        400, INITIAL_IDENTIFIER_REQUIRED),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Blank Scheme Ltd", " ", "ABC123", null, null),
-                        400),
+                        400, IDENTIFIER_SCHEME_CODE_REQUIRED),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Blank Value Ltd", "TEST_LEGAL_ACTIVE", " ", null, null),
-                        400),
+                        400, IDENTIFIER_VALUE_REQUIRED),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Unknown Scheme Ltd", "UNKNOWN_SCHEME", identifierValue("LU"),
                                 null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Inactive Scheme Ltd", "TEST_BOTH_DRAFT",
                                 identifierValue("LD"), null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Wrong Subject Ltd", "TEST_NATURAL_ACTIVE",
                                 identifierValue("LS"), null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Invalid Value Ltd", "TEST_LEGAL_ACTIVE", "ABC-123", null,
                                 null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Missing Expiry Ltd", "TEST_BOTH_EXPIRING",
                                 identifierValue("LE"), null, null),
-                        422),
+                        422, UNPROCESSABLE_ENTITY),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Expired Value Ltd", "TEST_BOTH_EXPIRING",
                                 identifierValue("LX"), null, "2000-01-01"),
-                        422));
+                        422, UNPROCESSABLE_ENTITY));
 
         RegistrationRows initialRows = registrationRows(tenantId);
         for (RejectedRegistration registration : registrations) {
             assertError(
                     post(tenantId, registration.path(), key("rejected"), registration.body()),
                     registration.status(),
-                    registration.status() == 400 ? "bad-request" : "unprocessable-entity");
+                    registration.code());
             assertEquals(initialRows, registrationRows(tenantId));
         }
     }
@@ -666,7 +670,7 @@ class PartyRegistrationEndToEndContractTest {
     /**
      * Describes one rejected HTTP registration case.
      */
-    private record RejectedRegistration(String path, String body, int status) {
+    private record RejectedRegistration(String path, String body, int status, String code) {
     }
 
     /**
