@@ -1,5 +1,6 @@
 package com.alexastudillo.partyregistry.infrastructure.persistence;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -32,7 +33,7 @@ public class ApiIdempotencyRecordEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "result_snapshot", nullable = false, columnDefinition = "jsonb")
-    private NaturalPersonResultSnapshot resultSnapshot;
+    private JsonNode resultSnapshot;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -47,15 +48,14 @@ public class ApiIdempotencyRecordEntity {
             ApiIdempotencyRecordId id,
             String requestHash,
             UUID partyId,
-            short resultSnapshotSchemaVersion,
-            NaturalPersonResultSnapshot resultSnapshot,
+            IdempotencyResultSnapshot resultSnapshot,
             Instant createdAt,
             String createdBy) {
         this.id = id;
         this.requestHash = requestHash;
         this.partyId = partyId;
-        this.resultSnapshotSchemaVersion = resultSnapshotSchemaVersion;
-        this.resultSnapshot = resultSnapshot;
+        this.resultSnapshotSchemaVersion = resultSnapshot.schemaVersion();
+        this.resultSnapshot = resultSnapshot.payload();
         this.createdAt = createdAt;
         this.createdBy = createdBy;
     }
@@ -72,7 +72,7 @@ public class ApiIdempotencyRecordEntity {
         return resultSnapshotSchemaVersion;
     }
 
-    NaturalPersonResultSnapshot resultSnapshot() {
-        return resultSnapshot;
+    IdempotencyResultSnapshot resultSnapshot() {
+        return new IdempotencyResultSnapshot(resultSnapshotSchemaVersion, resultSnapshot);
     }
 }

@@ -102,30 +102,25 @@ public class PartyOutboxEventPersistenceMapper {
             UUID aggregateId,
             long aggregateVersion,
             Map<String, String> payload) {
-        return new PartyOutboxEventEntity(
-                event.eventId(),
-                event.tenantId().value(),
-                aggregateType,
-                aggregateId,
-                aggregateVersion,
-                event.eventType(),
-                event.eventSchemaVersion(),
-                payload,
-                event.occurredAt(),
-                event.correlationId().toString(),
-                null,
-                PartyOutboxStatus.PENDING,
-                0,
-                null,
-                null,
-                null,
-                null,
-                null,
-                event.occurredAt(),
-                event.createdBy(),
-                event.occurredAt(),
-                event.createdBy(),
-                0);
+        return PartyOutboxEventEntity.builder()
+                .id(event.eventId())
+                .tenantId(event.tenantId().value())
+                .aggregateType(aggregateType)
+                .aggregateId(aggregateId)
+                .aggregateVersion(aggregateVersion)
+                .eventType(event.eventType())
+                .eventSchemaVersion(event.eventSchemaVersion())
+                .payload(payload)
+                .occurredAt(event.occurredAt())
+                .correlationId(event.correlationId().toString())
+                .status(PartyOutboxStatus.PENDING)
+                .publishAttempts(0)
+                .createdAt(event.occurredAt())
+                .createdBy(event.createdBy())
+                .updatedAt(event.occurredAt())
+                .updatedBy(event.createdBy())
+                .version(0)
+                .build();
     }
 
     private static PartyCreatedOutboxCandidate toPartyCreatedCandidate(

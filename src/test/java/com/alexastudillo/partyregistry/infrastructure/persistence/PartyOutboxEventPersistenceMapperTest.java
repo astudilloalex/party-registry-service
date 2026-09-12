@@ -123,30 +123,30 @@ class PartyOutboxEventPersistenceMapperTest {
         Instant nextAttemptAt = OCCURRED_AT.plusSeconds(30);
         Instant lastAttemptAt = OCCURRED_AT.plusSeconds(10);
         Instant updatedAt = OCCURRED_AT.plusSeconds(11);
-        PartyOutboxEventEntity entity = new PartyOutboxEventEntity(
-                EVENT_ID,
-                TENANT_ID.value(),
-                PartyOutboxAggregateType.PARTY,
-                PARTY_ID.value(),
-                3,
-                PartyActivatedOutboxCandidate.EVENT_TYPE,
-                (short) 1,
-                Map.of("partyType", "NATURAL_PERSON", "status", "ACTIVE"),
-                OCCURRED_AT,
-                CORRELATION_ID.toString(),
-                "cause-1",
-                PartyOutboxStatus.FAILED,
-                4,
-                nextAttemptAt,
-                lastAttemptAt,
-                null,
-                "broker-unavailable",
-                "sanitized detail",
-                OCCURRED_AT,
-                "creator",
-                updatedAt,
-                "publisher",
-                5);
+        PartyOutboxEventEntity entity = PartyOutboxEventEntity.builder()
+                .id(EVENT_ID)
+                .tenantId(TENANT_ID.value())
+                .aggregateType(PartyOutboxAggregateType.PARTY)
+                .aggregateId(PARTY_ID.value())
+                .aggregateVersion(3)
+                .eventType(PartyActivatedOutboxCandidate.EVENT_TYPE)
+                .eventSchemaVersion((short) 1)
+                .payload(Map.of("partyType", "NATURAL_PERSON", "status", "ACTIVE"))
+                .occurredAt(OCCURRED_AT)
+                .correlationId(CORRELATION_ID.toString())
+                .causationId("cause-1")
+                .status(PartyOutboxStatus.FAILED)
+                .publishAttempts(4)
+                .nextAttemptAt(nextAttemptAt)
+                .lastAttemptAt(lastAttemptAt)
+                .lastErrorCode("broker-unavailable")
+                .lastErrorDetail("sanitized detail")
+                .createdAt(OCCURRED_AT)
+                .createdBy("creator")
+                .updatedAt(updatedAt)
+                .updatedBy("publisher")
+                .version(5)
+                .build();
 
         assertEquals("cause-1", entity.causationId());
         assertEquals(PartyOutboxStatus.FAILED, entity.status());

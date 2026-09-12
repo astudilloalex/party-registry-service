@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Verifies attempt-stable lease, retry, publication, and terminal entity transitions.
+ * Verifies attempt-stable lease, retry, publication, and terminal entity
+ * transitions.
  */
 class PartyOutboxEventEntityDeliveryStateTest {
 
@@ -21,8 +22,9 @@ class PartyOutboxEventEntityDeliveryStateTest {
     @Test
     void claimIncrementsAttemptsExactlyOnceAndInstallsAFiniteLease() {
         PartyOutboxEventEntity entity = pendingEntity(null, 0, null);
+        Duration leaseDuration = Duration.ofSeconds(30);
 
-        entity.claimForPublication(NOW, Duration.ofSeconds(30), "outbox-publisher");
+        entity.claimForPublication(NOW, leaseDuration, "outbox-publisher");
 
         assertEquals(PartyOutboxStatus.PENDING, entity.status());
         assertEquals(1, entity.publishAttempts());
@@ -33,7 +35,7 @@ class PartyOutboxEventEntityDeliveryStateTest {
         assertNull(entity.lastErrorDetail());
         assertThrows(
                 IllegalStateException.class,
-                () -> entity.claimForPublication(NOW, Duration.ofSeconds(30), "outbox-publisher"));
+                () -> entity.claimForPublication(NOW, leaseDuration, "outbox-publisher"));
     }
 
     @Test
@@ -61,17 +63,19 @@ class PartyOutboxEventEntityDeliveryStateTest {
         PartyOutboxEventEntity entity = pendingEntity(null, 0, null);
         entity.claimForPublication(NOW, Duration.ofSeconds(30), "outbox-publisher");
 
-        entity.markPublished(1, NOW.plusSeconds(1), "outbox-publisher");
+        Instant publishedAt = NOW.plusSeconds(1);
+        entity.markPublished(1, publishedAt, "outbox-publisher");
 
         assertEquals(PartyOutboxStatus.PUBLISHED, entity.status());
-        assertEquals(NOW.plusSeconds(1), entity.publishedAt());
+        assertEquals(publishedAt, entity.publishedAt());
         assertNull(entity.nextAttemptAt());
         assertNull(entity.lastErrorCode());
+        Instant failedAt = NOW.plusSeconds(2);
         assertThrows(
                 IllegalStateException.class,
                 () -> entity.markFailed(
                         1,
-                        NOW.plusSeconds(2),
+                        failedAt,
                         "broker-unavailable",
                         "outbox-publisher"));
     }
@@ -94,47 +98,49 @@ class PartyOutboxEventEntityDeliveryStateTest {
     @Test
     void rejectsFutureClaimsStaleAttemptsAndUnboundedErrorCodes() {
         PartyOutboxEventEntity leased = pendingEntity(NOW.plusSeconds(1), 1, null);
+        Duration leaseDuration = Duration.ofSeconds(30);
         assertThrows(
                 IllegalStateException.class,
-                () -> leased.claimForPublication(NOW, Duration.ofSeconds(30), "outbox-publisher"));
+                () -> leased.claimForPublication(NOW, leaseDuration, "outbox-publisher"));
 
         PartyOutboxEventEntity claimed = pendingEntity(null, 0, null);
-        claimed.claimForPublication(NOW, Duration.ofSeconds(30), "outbox-publisher");
+        claimed.claimForPublication(NOW, leaseDuration, "outbox-publisher");
+        Instant publishedAt = NOW.plusSeconds(1);
         assertThrows(
                 IllegalStateException.class,
-                () -> claimed.markPublished(2, NOW.plusSeconds(1), "outbox-publisher"));
+                () -> claimed.markPublished(2, publishedAt, "outbox-publisher"));
+        Instant failedAt = NOW.plusSeconds(1);
+        String unboundedErrorCode = "x".repeat(65);
         assertThrows(
                 IllegalArgumentException.class,
-                () -> claimed.markFailed(1, NOW.plusSeconds(1), "x".repeat(65), "outbox-publisher"));
+                () -> claimed.markFailed(1, failedAt, unboundedErrorCode, "outbox-publisher"));
     }
 
     private static PartyOutboxEventEntity pendingEntity(
             Instant nextAttemptAt,
             int publishAttempts,
             String lastErrorCode) {
-        return new PartyOutboxEventEntity(
-                UUID.fromString("01991bd0-8000-7000-8000-000000000001"),
-                UUID.fromString("01991bd0-8000-7000-8000-000000000002"),
-                PartyOutboxAggregateType.PARTY,
-                UUID.fromString("01991bd0-8000-7000-8000-000000000003"),
-                0,
-                "party.created.v1",
-                (short) 1,
-                Map.of("partyType", "NATURAL_PERSON"),
-                NOW.minusSeconds(10),
-                "01991bd0-8000-7000-8000-000000000004",
-                null,
-                PartyOutboxStatus.PENDING,
-                publishAttempts,
-                nextAttemptAt,
-                null,
-                null,
-                lastErrorCode,
-                "detail-that-must-be-cleared",
-                NOW.minusSeconds(10),
-                "creator",
-                NOW.minusSeconds(10),
-                "creator",
-                0);
+        return PartyOutboxEventEntity.builder()
+                .id(UUID.fromString("01991bd0-8000-7000-8000-000000000001"))
+                .tenantId(UUID.fromString("01991bd0-8000-7000-8000-000000000002"))
+                .aggregateType(PartyOutboxAggregateType.PARTY)
+                .aggregateId(UUID.fromString("01991bd0-8000-7000-8000-000000000003"))
+                .aggregateVersion(0)
+                .eventType("party.created.v1")
+                .eventSchemaVersion((short) 1)
+                .payload(Map.of("partyType", "NATURAL_PERSON"))
+                .occurredAt(NOW.minusSeconds(10))
+                .correlationId("01991bd0-8000-7000-8000-000000000004")
+                .status(PartyOutboxStatus.PENDING)
+                .publishAttempts(publishAttempts)
+                .nextAttemptAt(nextAttemptAt)
+                .lastErrorCode(lastErrorCode)
+                .lastErrorDetail("detail-that-must-be-cleared")
+                .createdAt(NOW.minusSeconds(10))
+                .createdBy("creator")
+                .updatedAt(NOW.minusSeconds(10))
+                .updatedBy("creator")
+                .version(0)
+                .build();
     }
 }

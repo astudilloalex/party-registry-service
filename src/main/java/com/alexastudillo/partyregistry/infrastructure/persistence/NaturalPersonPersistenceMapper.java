@@ -38,10 +38,19 @@ public class NaturalPersonPersistenceMapper {
 
     NaturalPerson toDomain(PartyEntity party) {
         Objects.requireNonNull(party, "party");
-        if (party.type() != PartyType.NATURAL_PERSON || party.naturalPersonDetails() == null) {
+        if (party.type() != PartyType.NATURAL_PERSON
+                || party.naturalPersonDetails() == null
+                || party.legalEntityDetails() != null) {
             throw new IllegalStateException("Persistence row is not a complete natural person");
         }
-        NaturalPersonDetailsEntity details = party.naturalPersonDetails();
+        return toDomain(party, party.naturalPersonDetails());
+    }
+
+    NaturalPerson toDomain(PartyEntity party, NaturalPersonDetailsEntity details) {
+        Objects.requireNonNull(party, "party");
+        if (party.type() != PartyType.NATURAL_PERSON || details == null) {
+            throw new IllegalStateException("Persistence row is not a complete natural person");
+        }
         return NaturalPerson.restore(
                 new PartyId(party.id()),
                 new TenantId(party.tenantId()),

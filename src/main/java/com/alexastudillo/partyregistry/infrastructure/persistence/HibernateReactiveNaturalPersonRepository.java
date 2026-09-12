@@ -50,7 +50,8 @@ public class HibernateReactiveNaturalPersonRepository implements NaturalPersonRe
     public Uni<Optional<NaturalPerson>> findByTenantAndId(TenantId tenantId, PartyId partyId) {
         Uni<Optional<NaturalPerson>> operation = sessionFactory
                 .withSession(session -> findEntity(session, tenantId, partyId)
-                        .map(entity -> Optional.ofNullable(entity).map(mapper::toDomain)));
+                        .map(entity -> Optional.ofNullable(entity)
+                                .map(value -> mapper.toDomain(value, value.naturalPersonDetails()))));
         return translateUnexpected(operation);
     }
 
@@ -81,7 +82,9 @@ public class HibernateReactiveNaturalPersonRepository implements NaturalPersonRe
                                 PersistenceExceptionTranslator.toApplicationException(
                                         new IllegalStateException(
                                                 "Updated natural person cannot be reloaded")))
-                        : Uni.createFrom().item(mapper.toDomain(entity))));
+                        : Uni.createFrom().item(mapper.toDomain(
+                                entity,
+                                entity.naturalPersonDetails()))));
 
         return operation
                 .onFailure(PersistenceExceptionTranslator::isOptimisticLock)
