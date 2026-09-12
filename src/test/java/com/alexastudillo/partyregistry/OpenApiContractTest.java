@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -74,6 +77,34 @@ class OpenApiContractTest {
         assertTrue(ifMatch.getRequired());
         assertEquals("^(0|[1-9][0-9]*)$", ifMatch.getSchema().getPattern());
         assertTrue(ifMatch.getDescription().contains("nonnegative decimal aggregate version"));
+    }
+
+    @Test
+    void documentsSpecificTrustedHeaderCodesWithoutExpandingTheErrorEnvelope() {
+        Set<String> expectedCodes = Set.of(
+                "process-id-required", "process-id-duplicated", "process-id-invalid",
+                "tenant-id-required", "tenant-id-duplicated", "tenant-id-invalid",
+                "user-id-required", "user-id-duplicated", "user-id-blank", "user-id-too-long", "user-id-unsafe");
+        ApiResponse badRequest = openApi.getComponents().getResponses().get("BadRequest");
+        for (String code : expectedCodes) {
+            assertTrue(badRequest.getDescription().contains("`" + code + "`"), code);
+            PartyResponseCode declared = PartyResponseCode.valueOf(code.toUpperCase(Locale.ROOT)
+                    .replace('-', '_'));
+            assertEquals(code, declared.getCode());
+            assertEquals(400, declared.getStatus());
+        }
+        assertTrue(badRequest.getDescription().contains("Process-Id, Tenant-Id,"));
+        Schema<?> error = schema("ApiErrorResponse");
+        assertEquals(Set.of("status", "code"), error.getProperties().keySet());
+        assertEquals(Boolean.FALSE, error.getAdditionalProperties());
+        var examples = badRequest.getContent().get("application/json").getExamples();
+        for (String name : List.of("requiredTenant", "invalidProcess", "duplicatedUser")) {
+            JsonNode value = assertInstanceOf(JsonNode.class, examples.get(name).getValue());
+            assertEquals(2, value.size());
+            assertEquals(400, value.get("status").intValue());
+            assertTrue(expectedCodes.contains(value.get("code").textValue()));
+        }
+        assertEquals("^(?=.*\\S)[^\\x00-\\x1F\\x7F-\\x9F]+$", parameter("UserId").getSchema().getPattern());
     }
 
     @Test

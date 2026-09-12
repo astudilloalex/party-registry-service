@@ -1418,7 +1418,9 @@ components:
       name: Tenant-Id
       in: header
       required: true
-      description: Trusted tenant identifier. Exactly one canonical UUID value is required.
+      description: >-
+        Trusted tenant identifier. Exactly one canonical UUID value is required.
+        Failures return `tenant-id-required`, `tenant-id-duplicated`, or `tenant-id-invalid`.
       schema:
         type: string
         format: uuid
@@ -1430,6 +1432,7 @@ components:
       description: >-
         Trusted process identifier. Exactly one canonical UUID value is required. An accepted value
         is echoed unchanged in the response.
+        Failures return `process-id-required`, `process-id-duplicated`, or `process-id-invalid`.
       schema:
         type: string
         format: uuid
@@ -1440,11 +1443,14 @@ components:
       required: true
       description: >-
         Trusted audit subject. Exactly one non-blank value without control characters is required.
+        The limit is 128 Unicode code points. C0, DEL, and C1 control characters are prohibited.
+        Failures return `user-id-required`, `user-id-duplicated`, `user-id-blank`,
+        `user-id-too-long`, or `user-id-unsafe`.
       schema:
         type: string
         minLength: 1
         maxLength: 128
-        pattern: '^(?=.*\S)[^\x00-\x1F\x7F]+$'
+        pattern: '^(?=.*\S)[^\x00-\x1F\x7F-\x9F]+$'
     IdempotencyKeyRequired:
       name: Idempotency-Key
       in: header
@@ -1533,6 +1539,25 @@ components:
         The first violation supplies the public code. Body validation precedes operation-header
         validation. This ordering does not supersede trusted-context filters or framework checks.
 
+        Trusted-context headers are validated before the body in this order: Process-Id, Tenant-Id,
+        then User-Id. The first failing header/rule supplies the public code. Within each header,
+        absence precedes duplicate detection, then value validation. Header names are case-insensitive.
+        These checks do not apply to `/q` management endpoints.
+        - `process-id-required`, `tenant-id-required`, `user-id-required`: the header is absent
+          or has no value entry. A supplied empty string is instead validated as a blank value.
+        - `process-id-duplicated`, `tenant-id-duplicated`, `user-id-duplicated`: more than one
+          value is supplied for the corresponding header, even if the values are equal.
+        - `process-id-invalid`, `tenant-id-invalid`: the value is blank, malformed, or not a
+          canonical lowercase UUID. Whitespace is not trimmed and unresolved variables are invalid.
+        - `user-id-blank`: the supplied User-Id is empty or whitespace-only.
+        - `user-id-too-long`: User-Id exceeds 128 Unicode code points.
+        - `user-id-unsafe`: User-Id contains a C0, DEL, or C1 control character.
+        User-Id value checks run in blank, length, then control-character order.
+        An accepted Process-Id is echoed even when a later header fails; missing, duplicated,
+        or invalid Process-Id values are never echoed. Logs identify the fixed header name and rule,
+        never the rejected value or parser exception. Only validated values enter request MDC;
+        partially initialized context is also cleared when the response completes.
+
         Body codes apply only to the corresponding properties and operations:
         - `request-body-required`: a required request body is missing or null.
         - `display-name-too-long`: `displayName` exceeds 300 characters on Party creation.
@@ -1568,8 +1593,8 @@ components:
         - `if-match-out-of-range`: a syntactically valid `If-Match` exceeds 9223372036854775807.
         Optional idempotency keys may be omitted, but supplied values must pass the same checks.
 
-        `bad-request` remains the fallback for trusted-context header/filter failures, framework
-        request failures, and validation rules without a mapped public code. Natural-person JSON
+        `bad-request` remains the fallback for framework request failures and validation rules
+        without a mapped public code. Natural-person JSON
         binding failures handled by the reader interceptor, including unknown properties and
         invalid JSON values, also remain `bad-request`. These validation codes do not replace
         existing framework or business error codes or change their HTTP statuses.
@@ -1582,10 +1607,25 @@ components:
             $ref: '#/components/schemas/ApiErrorResponse'
           examples:
             fallback:
-              summary: Trusted-context, framework, or natural-person JSON binding failure
+              summary: Framework or natural-person JSON binding failure
               value:
                 status: 400
                 code: bad-request
+            requiredTenant:
+              summary: Process-Id is valid but Tenant-Id is missing
+              value:
+                status: 400
+                code: tenant-id-required
+            invalidProcess:
+              summary: Process-Id is not a canonical lowercase UUID
+              value:
+                status: 400
+                code: process-id-invalid
+            duplicatedUser:
+              summary: Process-Id and Tenant-Id are valid but User-Id appears more than once
+              value:
+                status: 400
+                code: user-id-duplicated
             requiredBody:
               summary: Required body is missing or null
               value:

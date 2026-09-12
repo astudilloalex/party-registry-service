@@ -97,7 +97,7 @@ public class PartyHttpObservability {
                 CODE_TAG, code)
                 .record(Math.max(0L, durationNanos), TimeUnit.NANOSECONDS);
 
-        if ("bad-request".equals(code) || "unprocessable-entity".equals(code)) {
+        if (status == 400 || "unprocessable-entity".equals(code)) {
             meterRegistry.counter(VALIDATION_METRIC, OPERATION_TAG, operation, CODE_TAG, code)
                     .increment();
         }

@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -68,6 +69,23 @@ class PartyHttpObservabilityTest {
                 .tag(PartyHttpObservability.OPERATION_TAG, "unmatched")
                 .timers()
                 .size());
+    }
+
+    @Test
+    void countsSpecificHeaderValidationCodesWithoutLosingOperationMetrics() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        try {
+            PartyHttpObservability observability = new PartyHttpObservability(registry);
+            for (String code : List.of("process-id-required", "process-id-invalid", "tenant-id-duplicated",
+                    "user-id-blank", "user-id-unsafe")) {
+                observability.recordCompletion("create", 400, code, 10, null);
+                assertEquals(1, counterCount(registry, PartyHttpObservability.VALIDATION_METRIC,
+                        PartyHttpObservability.OPERATION_TAG, "create", PartyHttpObservability.CODE_TAG, code));
+                assertEquals(1, timerCount(registry, "create", "failure", code));
+            }
+        } finally {
+            registry.close();
+        }
     }
 
     @Test

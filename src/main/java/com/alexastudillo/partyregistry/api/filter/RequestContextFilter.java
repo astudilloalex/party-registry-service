@@ -2,8 +2,8 @@ package com.alexastudillo.partyregistry.api.filter;
 
 import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.api.response.contract.ApiResponse;
-import com.alexastudillo.api.response.contract.CommonResponseCode;
 import com.alexastudillo.partyregistry.api.context.RequestMetadataContext;
+import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
 import com.alexastudillo.partyregistry.api.observability.PartyHttpObservability;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
@@ -41,6 +41,7 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
     private static final String PROCESS_ID_MDC = "processId";
     private static final String USER_ID_MDC = "userId";
     private static final String TENANT_ID_MDC = "tenantId";
+    private static final int MAX_USER_LENGTH = 128;
 
     private final RequestMetadataContext metadataContext;
     private final PartyHttpObservability observability;
@@ -60,25 +61,28 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
             return;
         }
 
+        clearOwnedMdc();
         metadataContext.start(requestContext.getMethod(), path);
-        try {
-            MultivaluedMap<String, String> headers = requestContext.getHeaders();
+        MultivaluedMap<String, String> headers = requestContext.getHeaders();
 
-            String processIdValue = requireSingle(headers, PROCESS_ID_HEADER);
-            UUID processId = parseCanonicalUuid(processIdValue);
-            metadataContext.acceptProcessId(processIdValue);
+        String processIdValue = requireSingle(headers, PROCESS_ID_HEADER,
+                PartyResponseCode.PROCESS_ID_REQUIRED, PartyResponseCode.PROCESS_ID_DUPLICATED);
+        UUID processId = parseCanonicalUuid(processIdValue, PROCESS_ID_HEADER, PartyResponseCode.PROCESS_ID_INVALID);
+        metadataContext.acceptProcessId(processIdValue);
+        // Retain only validated correlation context when a later header fails; the response filter owns cleanup.
+        MDC.put(PROCESS_ID_MDC, processIdValue);
+        metadataContext.markMdcInitialized();
 
-            String tenantIdValue = requireSingle(headers, TENANT_ID_HEADER);
-            UUID tenantId = parseCanonicalUuid(tenantIdValue);
-            String userId = requireSingle(headers, USER_ID_HEADER);
+        String tenantIdValue = requireSingle(headers, TENANT_ID_HEADER,
+                PartyResponseCode.TENANT_ID_REQUIRED, PartyResponseCode.TENANT_ID_DUPLICATED);
+        UUID tenantId = parseCanonicalUuid(tenantIdValue, TENANT_ID_HEADER, PartyResponseCode.TENANT_ID_INVALID);
+        MDC.put(TENANT_ID_MDC, tenantIdValue);
+        String userId = requireSingle(headers, USER_ID_HEADER,
+                PartyResponseCode.USER_ID_REQUIRED, PartyResponseCode.USER_ID_DUPLICATED);
+        validateUserId(userId);
 
-            RequestMetadata metadata = new RequestMetadata(new TenantId(tenantId), userId, processId);
-            metadataContext.initialize(metadata);
-            putMdc(metadata);
-            metadataContext.markMdcInitialized();
-        } catch (IllegalArgumentException exception) {
-            throw new ApiResponseException(CommonResponseCode.BAD_REQUEST, exception);
-        }
+        metadataContext.initialize(new RequestMetadata(new TenantId(tenantId), userId, processId));
+        MDC.put(USER_ID_MDC, userId);
     }
 
     @Override
@@ -135,26 +139,54 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
         return path.equals("/q") || path.startsWith("/q/");
     }
 
-    private static String requireSingle(MultivaluedMap<String, String> headers, String name) {
+    private static String requireSingle(
+            MultivaluedMap<String, String> headers,
+            String name,
+            PartyResponseCode requiredCode,
+            PartyResponseCode duplicatedCode) {
         List<String> values = headers.get(name);
-        if (values == null || values.size() != 1 || values.getFirst() == null) {
-            throw new IllegalArgumentException(name + " must occur exactly once");
+        if (values == null || values.isEmpty()) {
+            throw reject(name, requiredCode);
+        }
+        if (values.size() > 1) {
+            throw reject(name, duplicatedCode);
+        }
+        if (values.getFirst() == null) {
+            throw reject(name, requiredCode);
         }
         return values.getFirst();
     }
 
-    private static UUID parseCanonicalUuid(String value) {
-        UUID parsed = UUID.fromString(value);
+    private static UUID parseCanonicalUuid(String value, String header, PartyResponseCode invalidCode) {
+        UUID parsed;
+        try {
+            parsed = UUID.fromString(value);
+        } catch (IllegalArgumentException _) {
+            throw reject(header, invalidCode);
+        }
         if (!parsed.toString().equals(value)) {
-            throw new IllegalArgumentException("UUID header must use canonical lowercase form");
+            throw reject(header, invalidCode);
         }
         return parsed;
     }
 
-    private static void putMdc(RequestMetadata metadata) {
-        MDC.put(PROCESS_ID_MDC, metadata.processId().toString());
-        MDC.put(USER_ID_MDC, metadata.userId());
-        MDC.put(TENANT_ID_MDC, metadata.tenantId().value().toString());
+    private static void validateUserId(String userId) {
+        if (userId.isBlank()) {
+            throw reject(USER_ID_HEADER, PartyResponseCode.USER_ID_BLANK);
+        }
+        if (userId.codePointCount(0, userId.length()) > MAX_USER_LENGTH) {
+            throw reject(USER_ID_HEADER, PartyResponseCode.USER_ID_TOO_LONG);
+        }
+        if (userId.chars().anyMatch(Character::isISOControl)) {
+            throw reject(USER_ID_HEADER, PartyResponseCode.USER_ID_UNSAFE);
+        }
+    }
+
+    private static ApiResponseException reject(String header, PartyResponseCode code) {
+        LOGGER.log(System.Logger.Level.WARNING,
+                "Request rejected status=400 code={0} source=request-context header={1} rule={0}",
+                code.getCode(), header);
+        return new ApiResponseException(code);
     }
 
     static void clearOwnedMdc() {

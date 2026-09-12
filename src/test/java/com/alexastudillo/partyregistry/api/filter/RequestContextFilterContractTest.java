@@ -9,6 +9,9 @@ import org.jboss.logging.MDC;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -47,22 +50,13 @@ class RequestContextFilterContractTest {
 
     @Test
     void rejectsMissingAndDuplicateHeaders() {
-        given()
-                .header(RequestContextFilter.USER_ID_HEADER, USER_ID)
-                .header(RequestContextFilter.PROCESS_ID_HEADER, PROCESS_ID)
-                .when().get("/v1/not-implemented")
-                .then()
-                .statusCode(400)
-                .body("code", equalTo("bad-request"));
-
-        given()
-                .header(RequestContextFilter.TENANT_ID_HEADER, TENANT_ID, TENANT_ID)
-                .header(RequestContextFilter.USER_ID_HEADER, USER_ID)
-                .header(RequestContextFilter.PROCESS_ID_HEADER, PROCESS_ID)
-                .when().get("/v1/not-implemented")
-                .then()
-                .statusCode(400)
-                .body("code", equalTo("bad-request"));
+        for (String header : List.of("Process-Id", "Tenant-Id", "User-Id")) {
+            String prefix = header.toLowerCase(Locale.ROOT);
+            String echo = header.equals("Process-Id") ? null : PROCESS_ID;
+            assertRejection(requestWithout(header), prefix + "-required", echo);
+            assertRejection(requestWithout(header).header(header, "SensitiveOne", "SensitiveTwo"),
+                    prefix + "-duplicated", echo);
+        }
     }
 
     @Test
@@ -75,7 +69,8 @@ class RequestContextFilterContractTest {
                 .then()
                 .statusCode(400)
                 .header(RequestContextFilter.PROCESS_ID_HEADER, PROCESS_ID)
-                .body("code", equalTo("bad-request"));
+                .body("status", equalTo(400))
+                .body("code", equalTo("tenant-id-invalid"));
 
         given()
                 .header(RequestContextFilter.TENANT_ID_HEADER, TENANT_ID)
@@ -85,13 +80,16 @@ class RequestContextFilterContractTest {
                 .then()
                 .statusCode(400)
                 .header(RequestContextFilter.PROCESS_ID_HEADER, nullValue())
-                .body("code", equalTo("bad-request"));
+                .body("status", equalTo(400))
+                .body("code", equalTo("process-id-invalid"));
     }
 
     @Test
     void rejectsBlankAndOversizedUsersOverHttp() {
-        assertInvalidUser("   ");
-        assertInvalidUser("a".repeat(129));
+        assertRejection(requestWithout("User-Id").header("User-Id", "   "),
+                "user-id-blank", PROCESS_ID);
+        assertRejection(requestWithout("User-Id").header("User-Id", "a".repeat(129)),
+                "user-id-too-long", PROCESS_ID);
     }
 
     @Test
@@ -131,16 +129,32 @@ class RequestContextFilterContractTest {
                 .header(RequestContextFilter.PROCESS_ID_HEADER, PROCESS_ID);
     }
 
-    private static void assertInvalidUser(String userId) {
-        given()
-                .header(RequestContextFilter.TENANT_ID_HEADER, TENANT_ID)
-                .header(RequestContextFilter.USER_ID_HEADER, userId)
-                .header(RequestContextFilter.PROCESS_ID_HEADER, PROCESS_ID)
-                .when().get("/v1/not-implemented")
-                .then()
-                .statusCode(400)
-                .body("status", equalTo(400))
-                .body("code", equalTo("bad-request"));
+    @Test
+    void acceptsCaseInsensitiveHeaderNamesAndPreservesRejectionPrecedence() {
+        given().header("tenant-id", TENANT_ID).header("process-id", PROCESS_ID).header("user-id", USER_ID)
+                .get("/v1/not-implemented").then().statusCode(404).header("Process-Id", PROCESS_ID);
+        assertRejection(given(), "process-id-required", null);
+        assertRejection(given().header("Process-Id", PROCESS_ID), "tenant-id-required", PROCESS_ID);
+        assertRejection(requestWithout("Process-Id").header("Process-Id", "{{SensitiveProcess}}"),
+                "process-id-invalid", null);
+        validRequest().get("/v1/not-implemented").then().statusCode(404).header("Process-Id", PROCESS_ID);
+    }
+
+    private static void assertRejection(RequestSpecification request, String expectedCode, String expectedEcho) {
+        var response = request.get("/v1/not-implemented");
+        assertEquals(400, response.statusCode());
+        assertEquals(expectedEcho, response.header("Process-Id"));
+        assertEquals(Map.of("status", 400, "code", expectedCode), response.jsonPath().getMap("$"));
+    }
+
+    private static RequestSpecification requestWithout(String excludedHeader) {
+        RequestSpecification request = given();
+        Map.of("Tenant-Id", TENANT_ID, "Process-Id", PROCESS_ID, "User-Id", USER_ID).forEach((header, value) -> {
+            if (!header.equals(excludedHeader)) {
+                request.header(header, value);
+            }
+        });
+        return request;
     }
 
 }

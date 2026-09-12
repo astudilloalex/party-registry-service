@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Timeout;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -44,6 +45,23 @@ class PackagedApplicationIT {
         given().when().get("/q/openapi").then()
                 .statusCode(200)
                 .body(containsString("Party Management API"));
+    }
+
+    @Test
+    void packagedApplicationExplainsContextHeaderFailuresBeforeBodyValidation() {
+        Response missingTenant = given().header("Process-Id", PROCESS_ID).header("User-Id", USER_ID)
+                .contentType(JSON).body("{}").post("/v1/natural-person");
+        assertError(missingTenant, 400, "tenant-id-required");
+        assertEquals(Set.of("status", "code"), missingTenant.jsonPath().getMap("$").keySet());
+
+        Response invalidProcess = given().header("Tenant-Id", TENANT_ID).header("User-Id", USER_ID)
+                .header("Process-Id", "{{SensitiveProcess}}")
+                .contentType(JSON).body("{}").post("/v1/natural-person");
+        assertEquals(400, invalidProcess.statusCode());
+        assertNull(invalidProcess.header("Process-Id"));
+        assertEquals(Map.of("status", 400, "code", "process-id-invalid"),
+                invalidProcess.jsonPath().getMap("$"));
+        invalidProcess.then().body(not(containsString("Sensitive")));
     }
 
     @Test
