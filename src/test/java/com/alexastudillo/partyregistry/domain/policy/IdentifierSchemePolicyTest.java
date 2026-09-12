@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,11 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies identifier-scheme identity, lifecycle eligibility, compatibility, and value limits.
+ * Verifies identifier-scheme identity, lifecycle eligibility, compatibility,
+ * and value limits.
  */
 class IdentifierSchemePolicyTest {
 
-    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, 8, 30);
+    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, Month.AUGUST, 30);
     private static final IdentifierSchemePolicy POLICY = new IdentifierSchemePolicy();
 
     @Test
@@ -110,7 +112,8 @@ class IdentifierSchemePolicyTest {
                 IdentifierSchemeStatus.RETIRED }) {
             IdentifierScheme inactive = scheme(status, IdentifierSubjectType.BOTH, null, null, false);
             assertViolation(DomainViolation.IDENTIFIER_SCHEME_INACTIVE,
-                    () -> POLICY.requireRegistrationEligibility(inactive, PartyType.NATURAL_PERSON));
+                    () -> POLICY.requireRegistrationEligibility(inactive,
+                            PartyType.NATURAL_PERSON));
         }
         IdentifierScheme incompatible = scheme(
                 IdentifierSchemeStatus.ACTIVE,
@@ -139,6 +142,31 @@ class IdentifierSchemePolicyTest {
                 () -> POLICY.validateNormalizedLength(scheme, "A123456"));
         assertViolation(DomainViolation.IDENTIFIER_VALUE_REQUIRED,
                 () -> POLICY.validateNormalizedLength(scheme, "  "));
+    }
+
+    @Test
+    void composesExistingRulesForPermissivePassportAdmission() {
+        IdentifierScheme passport = scheme(
+                IdentifierSchemeStatus.ACTIVE, IdentifierSubjectType.NATURAL_PERSON, 1, 256, true);
+        IdentifierRuleCatalog catalog = new IdentifierRuleCatalog();
+
+        POLICY.requireRegistrationEligibility(passport, PartyType.NATURAL_PERSON);
+        for (String value : new String[] { "a", "0001234567", "  ab0123456  ", "x".repeat(256) }) {
+            IdentifierRuleResult result = catalog.evaluate(passport, value);
+            POLICY.validateNormalizedLength(passport, result.normalizedValue());
+        }
+        assertEquals("AB0123456", catalog.evaluate(passport, "  ab0123456  ").normalizedValue());
+        assertEquals("SS", catalog.evaluate(passport, "\u00df").normalizedValue());
+        for (String value : new String[] { "AB-123", "AB 123", "P<ECU123", "AB/123", "\uFF111234" }) {
+            assertViolation(DomainViolation.IDENTIFIER_VALUE_INVALID,
+                    () -> catalog.evaluate(passport, value));
+        }
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_REQUIRED, () -> catalog.evaluate(passport, "  "));
+        for (String value : new String[] { "A".repeat(257), "\u00df".repeat(129) }) {
+            String normalizedValue = catalog.evaluate(passport, value).normalizedValue();
+            assertViolation(DomainViolation.IDENTIFIER_VALUE_TOO_LONG,
+                    () -> POLICY.validateNormalizedLength(passport, normalizedValue));
+        }
     }
 
     @Test

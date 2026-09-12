@@ -268,6 +268,87 @@ class PartyRegistrationEndToEndContractTest {
     }
 
     @Test
+    void registersInitialAndAdditionalPassportsAndRejectsNormalizedDuplicates() {
+        UUID tenantId = UUID.randomUUID();
+        RegistrationRows initialRows = registrationRows(tenantId);
+        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
+        String value = "  ab0123456  ";
+        String idempotencyKey = key("ecuador-passport");
+        Map<String, Object> created = assertSafeRegistration(
+                post(tenantId, "/v1/natural-person", idempotencyKey,
+                        naturalBody("Passport Holder", "EC_PASSPORT", value, null, expiresOn)),
+                "NATURAL_PERSON", "EC_PASSPORT", value);
+
+        Map<String, Object> identifier = nested(created, "initialIdentifier");
+        assertEquals("*****3456", identifier.get("maskedValue"));
+        assertEquals(expiresOn, identifier.get("expiresOn"));
+        assertNull(identifier.get("verifiedAt"));
+        assertConfidential(loadSnapshot(tenantId, idempotencyKey), value, "AB0123456");
+
+        String additionalValue = "  cd0123456  ";
+        Response additional = post(tenantId, "/v1/parties/" + created.get("partyId") + "/identifiers",
+                key("additional-passport"), identifierBody("EC_PASSPORT", additionalValue, expiresOn));
+        Map<String, Object> additionalIdentifier = assertSuccess(additional, 201);
+        assertEquals("EC_PASSPORT", additionalIdentifier.get("schemeCode"));
+        assertEquals("PENDING_VERIFICATION", additionalIdentifier.get("status"));
+        assertEquals("*****3456", additionalIdentifier.get("maskedValue"));
+        assertNull(additionalIdentifier.get("verifiedAt"));
+        assertConfidential(additional.asString(), additionalValue, "CD0123456");
+        RegistrationRows registeredRows = initialRows.plus(new RegistrationRows(1, 1, 0, 1, 2, 3));
+        assertEquals(registeredRows, registrationRows(tenantId));
+
+        Response duplicate = post(tenantId, "/v1/natural-person", key("duplicate-passport"),
+                naturalBody("Duplicate Passport", "EC_PASSPORT", "AB0123456", null, expiresOn));
+        assertError(duplicate, 422, "identifier-uniqueness-conflict");
+        assertConfidential(duplicate.asString(), value, "AB0123456");
+        assertEquals(registeredRows, registrationRows(tenantId));
+    }
+
+    @Test
+    void enforcesPassportAdmissionLimitsWithoutPersistingRejectedRegistrations() {
+        UUID tenantId = UUID.randomUUID();
+        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
+        String maximumValue = "X".repeat(252) + "9876";
+        Map<String, Object> created = assertSafeRegistration(
+                post(tenantId, "/v1/natural-person", key("maximum-passport"),
+                        naturalBody("Maximum Passport", "EC_PASSPORT", maximumValue, null, expiresOn)),
+                "NATURAL_PERSON", "EC_PASSPORT", maximumValue);
+        assertEquals("*".repeat(60) + "9876", nested(created, "initialIdentifier").get("maskedValue"));
+        RegistrationRows registeredRows = registrationRows(tenantId);
+
+        for (RejectedRegistration registration : List.of(
+                new RejectedRegistration("/v1/natural-person",
+                        naturalBody("Empty Passport", "EC_PASSPORT", "", null, expiresOn),
+                        400, IDENTIFIER_VALUE_REQUIRED),
+                new RejectedRegistration("/v1/natural-person",
+                        naturalBody("Long Passport", "EC_PASSPORT", "A".repeat(257), null, expiresOn),
+                        400, "identifier-value-too-long"),
+                new RejectedRegistration("/v1/natural-person",
+                        naturalBody("Expanded Passport", "EC_PASSPORT", "\u00df".repeat(129), null, expiresOn),
+                        422, "identifier-validation-failure"),
+                new RejectedRegistration("/v1/natural-person",
+                        naturalBody("Missing Expiration", "EC_PASSPORT", "AB0123456", null, null),
+                        422, "identifier-validation-failure"),
+                new RejectedRegistration("/v1/natural-person",
+                        naturalBody("Expired Passport", "EC_PASSPORT", "AB0123456", null, "2000-01-01"),
+                        422, "identifier-validation-failure"),
+                new RejectedRegistration("/v1/legal-entity",
+                        legalBody("Passport Entity", "EC_PASSPORT", "AB0123456", null, expiresOn),
+                        422, "incompatible-identifier-scheme"))) {
+            assertError(post(tenantId, registration.path(), key("rejected-passport"), registration.body()),
+                    registration.status(), registration.code());
+            assertEquals(registeredRows, registrationRows(tenantId));
+        }
+        for (String invalidValue : List.of("AB-0123456", "AB 0123456", "P<ECU0123456")) {
+            Response response = post(tenantId, "/v1/natural-person", key("invalid-passport"),
+                    naturalBody("Invalid Passport", "EC_PASSPORT", invalidValue, null, expiresOn));
+            assertError(response, 422, "identifier-validation-failure");
+            assertConfidential(response.asString(), invalidValue, invalidValue);
+            assertEquals(registeredRows, registrationRows(tenantId));
+        }
+    }
+
+    @Test
     void commitsAndReplaysNaturalAndLegalRegistrationsAsAtomicSafeOutcomes() {
         UUID tenantId = UUID.fromString(TENANT_ID);
         RegistrationRows initialRows = registrationRows(tenantId);

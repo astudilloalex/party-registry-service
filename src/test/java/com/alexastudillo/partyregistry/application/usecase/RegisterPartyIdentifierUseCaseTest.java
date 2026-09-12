@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static com.alexastudillo.partyregistry.application.usecase.RegistrationUseCaseTestSupport.COMPLETE_VALUE;
@@ -302,6 +303,62 @@ class RegisterPartyIdentifierUseCaseTest {
     }
 
     @Test
+    void registersStructurallyAcceptablePassportsWithoutVerifyingThem() {
+        for (String value : List.of("a", "0001234567", "  ab0123456  ", "x".repeat(256))) {
+            RegistrationFixture fixture = passportFixture();
+            InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
+                    "TEST-SCHEME", value, null, null, TODAY, false);
+
+            var result = awaitItem(fixture.useCase.execute(command(input)));
+
+            assertEquals(List.of("partyLookup", "scheme", "protect", "registerIdentifier"), fixture.order);
+            assertEquals(1, fixture.protectionPort.requests.size());
+            var protectionRequest = fixture.protectionPort.requests.getFirst();
+            assertEquals(value, protectionRequest.completeValue());
+            assertEquals(value.strip().toUpperCase(Locale.ROOT), protectionRequest.normalizedValue());
+            assertEquals(1, fixture.registrationPort.candidates.size());
+            assertEquals(PartyIdentifierStatus.PENDING_VERIFICATION, result.status());
+            assertNull(result.verifiedAt());
+            assertEquals(TODAY, result.expiresOn());
+        }
+    }
+
+    @Test
+    void rejectsPassportFormatAndLengthBeforeProtectionOrPersistence() {
+        for (String value : List.of("AB-123", "AB 123", "P<ECU123", "AB/123")) {
+            assertIdentifierViolation(passportFixture(), new InitialPartyIdentifierInput(
+                    "TEST-SCHEME", value, null, null, TODAY.plusDays(1), false),
+                    DomainViolation.IDENTIFIER_VALUE_INVALID);
+        }
+        for (String value : List.of("A".repeat(257), "\u00df".repeat(129))) {
+            assertIdentifierViolation(passportFixture(), new InitialPartyIdentifierInput(
+                    "TEST-SCHEME", value, null, null, TODAY, false), DomainViolation.IDENTIFIER_VALUE_TOO_LONG);
+        }
+    }
+
+    @Test
+    void rejectsPassportDatesAndLegalEntitiesBeforeProtectionOrPersistence() {
+        assertIdentifierViolation(passportFixture(), new InitialPartyIdentifierInput(
+                "TEST-SCHEME", "AB0123456", null, null, null, false),
+                DomainViolation.IDENTIFIER_EXPIRATION_REQUIRED);
+        assertIdentifierViolation(passportFixture(), new InitialPartyIdentifierInput(
+                "TEST-SCHEME", "AB0123456", null, null, TODAY.minusDays(1), false),
+                DomainViolation.IDENTIFIER_EXPIRED);
+        assertIdentifierViolation(passportFixture(), new InitialPartyIdentifierInput(
+                "TEST-SCHEME", "AB0123456", null, TODAY.plusDays(2), TODAY.plusDays(1), false),
+                DomainViolation.IDENTIFIER_VALIDITY_DATE_ORDER);
+
+        RegistrationFixture legal = passportFixture();
+        legal.partyLookup.behavior = ignored -> Uni.createFrom().item(Optional.of(PartyType.LEGAL_ENTITY));
+        assertInstanceOf(ApplicationFailure.IncompatibleIdentifierScheme.class,
+                awaitFailure(legal.useCase.execute(command(new InitialPartyIdentifierInput(
+                        "TEST-SCHEME", "AB0123456", null, null, TODAY, false)))));
+        assertEquals(List.of("partyLookup", "scheme"), legal.order);
+        assertTrue(legal.protectionPort.requests.isEmpty());
+        assertNoPersistence(legal);
+    }
+
+    @Test
     void propagatesProtectionFailureAndDuplicateIdentifierConflict() {
         RegistrationFixture protection = new RegistrationFixture();
         protection.protectionPort.behavior = ignored -> {
@@ -320,6 +377,13 @@ class RegisterPartyIdentifierUseCaseTest {
                 ApplicationFailure.IdentifierUniquenessConflict.class,
                 awaitFailure(duplicate.useCase.execute(command(identifier("TEST-SCHEME")))));
         assertEquals(1, duplicate.registrationPort.candidates.size());
+    }
+
+    private static RegistrationFixture passportFixture() {
+        RegistrationFixture fixture = new RegistrationFixture();
+        fixture.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
+                IdentifierSchemeStatus.ACTIVE, IdentifierSubjectType.NATURAL_PERSON, 1, 256, true)));
+        return fixture;
     }
 
     private static RegisterPartyIdentifierCommand command(InitialPartyIdentifierInput identifierInput) {

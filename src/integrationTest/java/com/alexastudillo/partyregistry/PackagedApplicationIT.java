@@ -278,6 +278,69 @@ class PackagedApplicationIT {
     }
 
     @Test
+    void packagedApplicationRegistersANormalizedPassportWithPendingVerification() {
+        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
+        Response response = validRequest()
+                .header("Idempotency-Key", "packaged-ecuador-passport-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "givenNames": "Packaged",
+                          "familyNames": "Passport Holder",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "EC_PASSPORT",
+                            "value": "  ab0123456  ",
+                            "expiresOn": "%s"
+                          }
+                        }
+                        """.formatted(expiresOn))
+                .when().post("/v1/natural-person")
+                .then()
+                .statusCode(201)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(201))
+                .body("code", equalTo("successful"))
+                .body("data.type", equalTo("NATURAL_PERSON"))
+                .body("data.recordStatus", equalTo("DRAFT"))
+                .body("data.initialIdentifier.schemeCode", equalTo("EC_PASSPORT"))
+                .body("data.initialIdentifier.status", equalTo("PENDING_VERIFICATION"))
+                .body("data.initialIdentifier.maskedValue", equalTo("*****3456"))
+                .body("data.initialIdentifier.expiresOn", equalTo(expiresOn))
+                .body("data.initialIdentifier", not(hasKey("value")))
+                .body("data.initialIdentifier", not(hasKey("normalizedValue")))
+                .body("data.initialIdentifier", not(hasKey("encryptedValue")))
+                .body("data.initialIdentifier", not(hasKey("normalizedValueHash")))
+                .body(not(containsString("ab0123456")))
+                .body(not(containsString("AB0123456")))
+                .extract().response();
+
+        assertEquals(Set.of("status", "code", "data"), response.jsonPath().getMap("$").keySet());
+        assertNull(response.path("data.initialIdentifier.verifiedAt"));
+    }
+
+    @Test
+    void packagedApplicationRejectsAPassportWithoutExpiration() {
+        Response response = validRequest()
+                .header("Idempotency-Key", "packaged-passport-missing-expiration-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "givenNames": "Packaged",
+                          "familyNames": "Missing Passport Expiration",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "EC_PASSPORT",
+                            "value": "CD0123456"
+                          }
+                        }
+                        """)
+                .when().post("/v1/natural-person");
+
+        assertError(response, 422, "identifier-validation-failure");
+        assertEquals(Set.of("status", "code"), response.jsonPath().getMap("$").keySet());
+        response.then().body(not(containsString("CD0123456")));
+    }
+
+    @Test
     void packagedApplicationExecutesRegistrationAndActivationFlows() {
         String naturalValue = identifierValue("PN");
         String naturalKey = "packaged-natural-" + UUID.randomUUID();

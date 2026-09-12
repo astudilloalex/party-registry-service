@@ -78,7 +78,7 @@ class MigrationRegressionTest {
     }
 
     @Test
-    void seedsEcuadorSchemesWithOnlyPassportsInDraftAndDatabaseGeneratedIds() throws SQLException {
+    void seedsActiveEcuadorSchemesWithDatabaseGeneratedIds() throws SQLException {
         Set<String> codes = new HashSet<>();
         Set<UUID> ids = new HashSet<>();
         try (Connection connection = dataSource.getConnection();
@@ -102,15 +102,15 @@ class MigrationRegressionTest {
                 assertEquals(code.equals("EC_PASSPORT") ? "ALPHANUMERIC_V1" : code + "_V1",
                         result.getString("validator_key"));
                 if (code.equals("EC_PASSPORT")) {
-                    assertNull(result.getObject("minimum_length"));
-                    assertNull(result.getObject("maximum_length"));
+                    assertEquals(1, result.getInt("minimum_length"));
+                    assertEquals(256, result.getInt("maximum_length"));
                 } else {
                     int length = code.equals("EC_NATIONAL_ID") ? 10 : 13;
                     assertEquals(length, result.getInt("minimum_length"));
                     assertEquals(length, result.getInt("maximum_length"));
                 }
                 assertEquals(!code.equals("EC_TAX_ID"), result.getBoolean("requires_expiration"));
-                assertEquals(code.equals("EC_PASSPORT") ? "DRAFT" : "ACTIVE", result.getString("status"));
+                assertEquals("ACTIVE", result.getString("status"));
                 assertNotNull(result.getTimestamp("created_at"));
                 assertEquals(result.getTimestamp("created_at"), result.getTimestamp("updated_at"));
                 assertEquals("system", result.getString("created_by"));
