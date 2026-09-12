@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.application.error;
 
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 
+import java.io.Serial;
 import java.util.Objects;
 
 /**
@@ -9,6 +10,8 @@ import java.util.Objects;
  */
 public final class ApplicationException extends RuntimeException {
 
+    @Serial
+    private static final long serialVersionUID = 1L;
     private static final String FAILURE = "failure";
 
     private final transient ApplicationFailure applicationFailure;
@@ -47,8 +50,19 @@ public final class ApplicationException extends RuntimeException {
             case ApplicationFailure.IdempotencyKeyConflict _ -> "Idempotency key conflict";
             case ApplicationFailure.ExpectedVersionMismatch _ -> "Expected version mismatch";
             case ApplicationFailure.UnrecognizedBirthCountry _ -> "Unrecognized birth country";
+            case ApplicationFailure.UnrecognizedIncorporationCountry _ -> "Unrecognized incorporation country";
+            case ApplicationFailure.UnknownIdentifierScheme _ -> "Unknown identifier scheme";
+            case ApplicationFailure.InactiveIdentifierScheme _ -> "Inactive identifier scheme";
+            case ApplicationFailure.IncompatibleIdentifierScheme _ -> "Incompatible identifier scheme";
+            case ApplicationFailure.IdentifierValidationFailure _ -> "Identifier validation failed";
+            case ApplicationFailure.IdentifierUniquenessConflict _ -> "Identifier uniqueness conflict";
+            case ApplicationFailure.PartyNotFound _ -> "Party not found";
+            case ApplicationFailure.InvalidPartyLifecycle _ -> "Invalid Party lifecycle transition";
+            case ApplicationFailure.StalePartyVersion _ -> "Stale Party version";
+            case ApplicationFailure.MissingQualifyingIdentifier _ -> "Qualifying Party identifier required";
             case ApplicationFailure.DependencyUnavailable _ -> "Dependency unavailable";
             case ApplicationFailure.PersistenceFailure _ -> "Persistence operation failed";
+            case ApplicationFailure.IdentifierCatalogFailure _ -> "Identifier catalog is internally inconsistent";
             case ApplicationFailure.InvalidBusinessState _ -> "Invalid business state";
         };
     }

@@ -3,6 +3,9 @@ package com.alexastudillo.partyregistry;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import org.flywaydb.core.Flyway;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -47,10 +50,25 @@ public final class PackagedGeographicReferenceResource implements QuarkusTestRes
 
     private HttpServer server;
     private ExecutorService executor;
+    private PostgreSQLContainer database;
 
     @Override
     public Map<String, String> start() {
         try {
+            database = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+            database.withDatabaseName("party_registry_integration");
+            database.withUsername("party_registry_test");
+            database.withPassword("party_registry_test");
+            database.start();
+            Flyway.configure()
+                    .dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword())
+                    .locations(
+                            "filesystem:src/main/resources/db/migration",
+                            "filesystem:src/test/resources/db/test-migration",
+                            "filesystem:src/integrationTest/resources/db/test-migration")
+                    .load()
+                    .migrate();
+
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             executor = Executors.newVirtualThreadPerTaskExecutor();
             server.setExecutor(executor);
@@ -58,8 +76,24 @@ public final class PackagedGeographicReferenceResource implements QuarkusTestRes
             server.start();
             return Map.of(
                     "quarkus.rest-client.geographic-reference.url",
-                    "http://127.0.0.1:" + server.getAddress().getPort());
-        } catch (IOException exception) {
+                    "http://127.0.0.1:" + server.getAddress().getPort(),
+                    "quarkus.datasource.devservices.enabled",
+                    "false",
+                    "quarkus.datasource.jdbc.url",
+                    database.getJdbcUrl(),
+                    "quarkus.datasource.reactive.url",
+                    "postgresql://" + database.getHost() + ":" + database.getMappedPort(5432)
+                            + "/" + database.getDatabaseName(),
+                    "quarkus.datasource.username",
+                    database.getUsername(),
+                    "quarkus.datasource.password",
+                    database.getPassword(),
+                    "quarkus.flyway.migrate-at-start",
+                    "false",
+                    "party-registry.outbox.mode",
+                    "stored-only");
+        } catch (IOException | RuntimeException exception) {
+            stop();
             throw new IllegalStateException("Cannot start packaged Geographic Reference server", exception);
         }
     }
@@ -71,6 +105,9 @@ public final class PackagedGeographicReferenceResource implements QuarkusTestRes
         }
         if (executor != null) {
             executor.close();
+        }
+        if (database != null) {
+            database.stop();
         }
     }
 

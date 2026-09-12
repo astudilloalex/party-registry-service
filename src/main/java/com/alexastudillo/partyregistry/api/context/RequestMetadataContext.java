@@ -1,7 +1,7 @@
 package com.alexastudillo.partyregistry.api.context;
 
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
-import com.alexastudillo.partyregistry.application.model.IdempotentCreationOutcome;
+import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import jakarta.enterprise.context.RequestScoped;
 
 import java.util.Objects;
@@ -19,7 +19,7 @@ public class RequestMetadataContext {
     private String path;
     private long startedAtNanos;
     private boolean mdcInitialized;
-    private IdempotentCreationOutcome idempotencyOutcome;
+    private PartyRegistrationOutcome idempotencyOutcome;
 
     /**
      * Starts completion tracking before request validation occurs.
@@ -94,11 +94,11 @@ public class RequestMetadataContext {
      *
      * @param outcome idempotent creation outcome
      */
-    public void recordIdempotencyOutcome(IdempotentCreationOutcome outcome) {
+    public void recordIdempotencyOutcome(PartyRegistrationOutcome outcome) {
         this.idempotencyOutcome = Objects.requireNonNull(outcome, "outcome");
     }
 
-    public IdempotentCreationOutcome idempotencyOutcome() {
+    public PartyRegistrationOutcome idempotencyOutcome() {
         return idempotencyOutcome;
     }
 }

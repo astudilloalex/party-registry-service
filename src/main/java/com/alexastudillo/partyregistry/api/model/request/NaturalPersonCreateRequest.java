@@ -1,6 +1,8 @@
 package com.alexastudillo.partyregistry.api.model.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
@@ -17,5 +19,6 @@ public record NaturalPersonCreateRequest(
         @Nullable @Size(max = 200, message = "preferred-name-too-long") String preferredName,
         @Nullable LocalDate birthDate,
         @Nullable LocalDate dateOfDeath,
-        @Nullable @Pattern(regexp = "^[A-Z]{2}$", message = "birth-country-code-invalid") String birthCountryCode) {
+        @Nullable @Pattern(regexp = "^[A-Z]{2}$", message = "birth-country-code-invalid") String birthCountryCode,
+        @NotNull(message = "initial-identifier-required") @Valid InitialPartyIdentifierCreateRequest initialIdentifier) {
 }

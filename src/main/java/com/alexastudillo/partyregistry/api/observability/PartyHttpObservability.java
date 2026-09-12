@@ -1,6 +1,6 @@
 package com.alexastudillo.partyregistry.api.observability;
 
-import com.alexastudillo.partyregistry.application.model.IdempotentCreationOutcome;
+import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -9,15 +9,15 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Records bounded operational telemetry for natural-person HTTP requests.
+ * Records bounded operational telemetry for implemented Party HTTP requests.
  */
 @ApplicationScoped
-public class NaturalPersonObservability {
+public class PartyHttpObservability {
 
-    static final String OPERATION_METRIC = "party.registry.natural.person.operation";
-    static final String VALIDATION_METRIC = "party.registry.natural.person.validation.failures";
-    static final String IDEMPOTENCY_METRIC = "party.registry.natural.person.idempotency";
-    static final String OPTIMISTIC_CONFLICT_METRIC = "party.registry.natural.person.optimistic.conflicts";
+    static final String OPERATION_METRIC = "party.registry.http.operation";
+    static final String VALIDATION_METRIC = "party.registry.http.validation.failures";
+    static final String IDEMPOTENCY_METRIC = "party.registry.http.idempotency";
+    static final String OPTIMISTIC_CONFLICT_METRIC = "party.registry.http.optimistic.conflicts";
     static final String UNMATCHED_OPERATION = "unmatched";
 
     static final String OPERATION_TAG = "operation";
@@ -26,10 +26,14 @@ public class NaturalPersonObservability {
 
     private static final String NATURAL_PERSON_PATH = "/v1/natural-person";
     private static final String NATURAL_PERSON_ITEM_PREFIX = NATURAL_PERSON_PATH + "/";
+    private static final String LEGAL_ENTITY_PATH = "/v1/legal-entity";
+    private static final String PARTY_ITEM_PREFIX = "/v1/parties/";
+    private static final String IDENTIFIERS_SUFFIX = "/identifiers";
+    private static final String ACTIVATE_SUFFIX = "/activate";
 
     private final MeterRegistry meterRegistry;
 
-    public NaturalPersonObservability(MeterRegistry meterRegistry) {
+    public PartyHttpObservability(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
     }
 
@@ -44,6 +48,15 @@ public class NaturalPersonObservability {
     public String operationName(String method, String path) {
         if (NATURAL_PERSON_PATH.equals(path) && "POST".equals(method)) {
             return "create";
+        }
+        if (LEGAL_ENTITY_PATH.equals(path) && "POST".equals(method)) {
+            return "create-legal-entity";
+        }
+        if ("POST".equals(method) && isPartyOperationPath(path, IDENTIFIERS_SUFFIX)) {
+            return "register-identifier";
+        }
+        if ("POST".equals(method) && isPartyOperationPath(path, ACTIVATE_SUFFIX)) {
+            return "activate";
         }
         if (path.startsWith(NATURAL_PERSON_ITEM_PREFIX)
                 && path.indexOf('/', NATURAL_PERSON_ITEM_PREFIX.length()) < 0) {
@@ -71,7 +84,7 @@ public class NaturalPersonObservability {
             int status,
             String code,
             long durationNanos,
-            IdempotentCreationOutcome idempotencyOutcome) {
+            PartyRegistrationOutcome idempotencyOutcome) {
         if (UNMATCHED_OPERATION.equals(operation)) {
             return;
         }
@@ -88,7 +101,7 @@ public class NaturalPersonObservability {
             meterRegistry.counter(VALIDATION_METRIC, OPERATION_TAG, operation, CODE_TAG, code)
                     .increment();
         }
-        if ("create".equals(operation)) {
+        if ("create".equals(operation) || "create-legal-entity".equals(operation)) {
             if (idempotencyOutcome != null) {
                 meterRegistry.counter(
                         IDEMPOTENCY_METRIC,
@@ -99,7 +112,7 @@ public class NaturalPersonObservability {
                         .increment();
             }
         }
-        if (("replace".equals(operation) || "patch".equals(operation))
+        if (("replace".equals(operation) || "patch".equals(operation) || "activate".equals(operation))
                 && "precondition-failed".equals(code)) {
             meterRegistry.counter(OPTIMISTIC_CONFLICT_METRIC, OPERATION_TAG, operation)
                     .increment();
@@ -109,5 +122,13 @@ public class NaturalPersonObservability {
                 .setAttribute("party.operation", operation)
                 .setAttribute("party.outcome", outcome)
                 .setAttribute("party.response.code", code);
+    }
+
+    private static boolean isPartyOperationPath(String path, String suffix) {
+        if (!path.startsWith(PARTY_ITEM_PREFIX) || !path.endsWith(suffix)) {
+            return false;
+        }
+        String partyId = path.substring(PARTY_ITEM_PREFIX.length(), path.length() - suffix.length());
+        return !partyId.isEmpty() && partyId.indexOf('/') < 0;
     }
 }

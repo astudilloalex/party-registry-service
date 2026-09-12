@@ -4,7 +4,7 @@ import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.api.response.contract.ApiResponse;
 import com.alexastudillo.api.response.contract.CommonResponseCode;
 import com.alexastudillo.partyregistry.api.context.RequestMetadataContext;
-import com.alexastudillo.partyregistry.api.observability.NaturalPersonObservability;
+import com.alexastudillo.partyregistry.api.observability.PartyHttpObservability;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 import jakarta.annotation.Priority;
@@ -43,12 +43,12 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
     private static final String TENANT_ID_MDC = "tenantId";
 
     private final RequestMetadataContext metadataContext;
-    private final NaturalPersonObservability observability;
+    private final PartyHttpObservability observability;
 
     @Inject
     public RequestContextFilter(
             RequestMetadataContext metadataContext,
-            NaturalPersonObservability observability) {
+            PartyHttpObservability observability) {
         this.metadataContext = metadataContext;
         this.observability = observability;
     }
