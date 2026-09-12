@@ -123,23 +123,8 @@ class NaturalPersonResourceContractTest {
         assertEquals(explicit.get("createdAt"), explicit.get("updatedAt"));
         assertEquals(7, UUID.fromString(string(explicit, "partyId")).version());
 
-        Map<String, Object> explicitDetails = nested(explicit, "naturalPersonDetails");
-        assertEquals("Ada", explicitDetails.get("givenNames"));
-        assertEquals("Lovelace", explicitDetails.get("familyNames"));
-        assertEquals("Ada", explicitDetails.get("preferredName"));
-        assertEquals("1815-12-10", explicitDetails.get("birthDate"));
-        assertEquals("1852-11-27", explicitDetails.get("dateOfDeath"));
-        assertEquals("EC", explicitDetails.get("birthCountryCode"));
-
-        Map<String, Object> identifier = nested(explicit, "initialIdentifier");
-        assertEquals(COMPLETE_IDENTIFIER_FIELDS, identifier.keySet());
-        assertEquals(explicit.get("partyId"), identifier.get("partyId"));
-        assertEquals("TEST_NATURAL_ACTIVE", identifier.get("schemeCode"));
-        assertEquals("PENDING_VERIFICATION", identifier.get("status"));
-        assertEquals(true, identifier.get("isPrimary"));
-        assertFalse(identifier.containsKey("value"));
-        assertFalse(identifier.containsKey("encryptedValue"));
-        assertFalse(identifier.containsKey("normalizedValueHash"));
+        assertExplicitNaturalPersonDetails(explicit);
+        assertInitialIdentifier(explicit);
     }
 
     @Test
@@ -710,7 +695,7 @@ class NaturalPersonResourceContractTest {
                   and record.id.idempotencyKey = :idempotencyKey
                 """, Long.class)
                 .setParameter("tenantId", tenantId)
-                .setParameter("operation", RegisterNaturalPersonCommand.OPERATION)
+                .setParameter("operation", RegisterNaturalPersonCommand.OPERATION_NAME)
                 .setParameter("idempotencyKey", idempotencyKey)
                 .getSingleResult()));
     }
@@ -967,6 +952,28 @@ class NaturalPersonResourceContractTest {
             result.put((String) entry.getKey(), entry.getValue());
         }
         return Collections.unmodifiableMap(result);
+    }
+
+    private static void assertExplicitNaturalPersonDetails(Map<String, Object> explicit) {
+        Map<String, Object> explicitDetails = nested(explicit, "naturalPersonDetails");
+        assertEquals("Ada", explicitDetails.get("givenNames"));
+        assertEquals("Lovelace", explicitDetails.get("familyNames"));
+        assertEquals("Ada", explicitDetails.get("preferredName"));
+        assertEquals("1815-12-10", explicitDetails.get("birthDate"));
+        assertEquals("1852-11-27", explicitDetails.get("dateOfDeath"));
+        assertEquals("EC", explicitDetails.get("birthCountryCode"));
+    }
+
+    private static void assertInitialIdentifier(Map<String, Object> explicit) {
+        Map<String, Object> identifier = nested(explicit, "initialIdentifier");
+        assertEquals(COMPLETE_IDENTIFIER_FIELDS, identifier.keySet());
+        assertEquals(explicit.get("partyId"), identifier.get("partyId"));
+        assertEquals("TEST_NATURAL_ACTIVE", identifier.get("schemeCode"));
+        assertEquals("PENDING_VERIFICATION", identifier.get("status"));
+        assertEquals(true, identifier.get("isPrimary"));
+        assertFalse(identifier.containsKey("value"));
+        assertFalse(identifier.containsKey("encryptedValue"));
+        assertFalse(identifier.containsKey("normalizedValueHash"));
     }
 
 }

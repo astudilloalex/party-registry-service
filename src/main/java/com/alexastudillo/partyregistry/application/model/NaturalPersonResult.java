@@ -31,7 +31,7 @@ public record NaturalPersonResult(
         Instant createdAt,
         String createdBy,
         Instant updatedAt,
-        String updatedBy) {
+        String updatedBy) implements PartyDetailsResult {
 
     public NaturalPersonResult {
         Objects.requireNonNull(partyId, "partyId");

@@ -1,34 +1,33 @@
 package com.alexastudillo.partyregistry.api.resource;
 
-import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.api.response.contract.ApiResponse;
 import com.alexastudillo.api.response.contract.CommonResponseCode;
 import com.alexastudillo.api.response.infrastructure.quarkus.ResponseManager;
 import com.alexastudillo.partyregistry.api.context.RequestMetadataContext;
-import com.alexastudillo.partyregistry.api.error.NaturalPersonApiErrorTranslator;
-import com.alexastudillo.partyregistry.api.error.NaturalPersonResponseCode;
+import com.alexastudillo.partyregistry.api.error.PartyApiErrorTranslator;
+import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
 import com.alexastudillo.partyregistry.api.mapper.NaturalPersonApiMapper;
+import com.alexastudillo.partyregistry.api.mapper.PartyIdentifierApiMapper;
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonCreateRequest;
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonPatchRequest;
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonPutRequest;
+import com.alexastudillo.partyregistry.api.model.response.NaturalPersonCreateResponse;
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonResponse;
-import com.alexastudillo.partyregistry.application.command.CreateNaturalPersonCommand;
+import com.alexastudillo.partyregistry.api.support.ApiRequestSupport;
 import com.alexastudillo.partyregistry.application.command.GetNaturalPersonCommand;
 import com.alexastudillo.partyregistry.application.command.PatchNaturalPersonCommand;
+import com.alexastudillo.partyregistry.application.command.RegisterNaturalPersonCommand;
 import com.alexastudillo.partyregistry.application.command.ReplaceNaturalPersonCommand;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ReplaceNaturalPersonUseCase;
-import com.alexastudillo.partyregistry.domain.model.PartyId;
-import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.smallrye.mutiny.Uni;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.validation.Validator;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
@@ -43,9 +42,6 @@ import jakarta.ws.rs.core.MediaType;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
-import java.util.List;
-import java.util.UUID;
-
 /**
  * Exposes reactive natural-person operations through the approved REST
  * contract.
@@ -57,19 +53,16 @@ import java.util.UUID;
 @IfBuildProperty(name = "quarkus.hibernate-orm.enabled", stringValue = "true", enableIfMissing = true)
 public class NaturalPersonResource {
 
-    private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
-    private static final String IF_MATCH_HEADER = "If-Match";
-    private static final int MAX_IDEMPOTENCY_KEY_LENGTH = 128;
-
     private final CreateNaturalPersonUseCase createUseCase;
     private final GetNaturalPersonUseCase getUseCase;
     private final ReplaceNaturalPersonUseCase replaceUseCase;
     private final PatchNaturalPersonUseCase patchUseCase;
     private final RequestMetadataContext metadataContext;
     private final NaturalPersonApiMapper mapper;
-    private final NaturalPersonApiErrorTranslator errorTranslator;
+    private final PartyIdentifierApiMapper identifierMapper;
+    private final PartyApiErrorTranslator errorTranslator;
     private final ResponseManager responseManager;
-    private final Validator validator;
+    private final ApiRequestSupport requestSupport;
 
     @Inject
     public NaturalPersonResource(
@@ -79,18 +72,20 @@ public class NaturalPersonResource {
             PatchNaturalPersonUseCase patchUseCase,
             RequestMetadataContext metadataContext,
             NaturalPersonApiMapper mapper,
-            NaturalPersonApiErrorTranslator errorTranslator,
+            PartyIdentifierApiMapper identifierMapper,
+            PartyApiErrorTranslator errorTranslator,
             ResponseManager responseManager,
-            Validator validator) {
+            ApiRequestSupport requestSupport) {
         this.createUseCase = createUseCase;
         this.getUseCase = getUseCase;
         this.replaceUseCase = replaceUseCase;
         this.patchUseCase = patchUseCase;
         this.metadataContext = metadataContext;
         this.mapper = mapper;
+        this.identifierMapper = identifierMapper;
         this.errorTranslator = errorTranslator;
         this.responseManager = responseManager;
-        this.validator = validator;
+        this.requestSupport = requestSupport;
     }
 
     /**
@@ -102,14 +97,14 @@ public class NaturalPersonResource {
      */
     @POST
     @WithSpan("natural-person.create")
-    public Uni<RestResponse<ApiResponse<NaturalPersonResponse>>> createNaturalPerson(
+    public Uni<RestResponse<ApiResponse<NaturalPersonCreateResponse>>> createNaturalPerson(
             NaturalPersonCreateRequest request,
             @Context HttpHeaders headers) {
         return Uni.createFrom().item(() -> createCommand(request, headers))
                 .flatMap(createUseCase::execute)
                 .invoke(result -> metadataContext.recordIdempotencyOutcome(result.outcome()))
-                .map(result -> mapper.toResponse(result.result()))
-                .map(response -> responseManager.customHttp(NaturalPersonResponseCode.CREATED, response))
+                .map(mapper::toCreateResponse)
+                .map(response -> responseManager.customHttp(PartyResponseCode.CREATED, response))
                 .onFailure().transform(errorTranslator::translate);
     }
 
@@ -126,7 +121,7 @@ public class NaturalPersonResource {
             @PathParam("partyId") String partyId) {
         return Uni.createFrom().item(() -> new GetNaturalPersonCommand(
                 metadataContext.metadata(),
-                parsePartyId(partyId)))
+                requestSupport.parsePartyId(partyId)))
                 .flatMap(getUseCase::execute)
                 .map(mapper::toResponse)
                 .map(responseManager::successHttp)
@@ -192,16 +187,12 @@ public class NaturalPersonResource {
         return responseManager.errorHttp(CommonResponseCode.BAD_REQUEST);
     }
 
-    private CreateNaturalPersonCommand createCommand(
+    private RegisterNaturalPersonCommand createCommand(
             NaturalPersonCreateRequest request,
             HttpHeaders headers) {
-        NaturalPersonCreateRequest validRequest = validate(request);
-        String idempotencyKey = requireSingleHeader(headers, IDEMPOTENCY_KEY_HEADER);
-        if (idempotencyKey.isBlank()
-                || idempotencyKey.codePointCount(0, idempotencyKey.length()) > MAX_IDEMPOTENCY_KEY_LENGTH) {
-            throw badRequest();
-        }
-        return new CreateNaturalPersonCommand(
+        NaturalPersonCreateRequest validRequest = requestSupport.validateBody(request);
+        String idempotencyKey = requestSupport.requireIdempotencyKey(headers);
+        return new RegisterNaturalPersonCommand(
                 metadataContext.metadata(),
                 idempotencyKey,
                 validRequest.displayName(),
@@ -210,18 +201,19 @@ public class NaturalPersonResource {
                 validRequest.preferredName(),
                 validRequest.birthDate(),
                 validRequest.dateOfDeath(),
-                validRequest.birthCountryCode());
+                validRequest.birthCountryCode(),
+                identifierMapper.toInput(validRequest.initialIdentifier()));
     }
 
     private ReplaceNaturalPersonCommand replaceCommand(
             String partyId,
             NaturalPersonPutRequest request,
             HttpHeaders headers) {
-        NaturalPersonPutRequest validRequest = validate(request);
+        NaturalPersonPutRequest validRequest = requestSupport.validateBody(request);
         return new ReplaceNaturalPersonCommand(
                 metadataContext.metadata(),
-                parsePartyId(partyId),
-                parseExpectedVersion(headers),
+                requestSupport.parsePartyId(partyId),
+                requestSupport.requireExpectedVersion(headers),
                 validRequest.givenNames(),
                 validRequest.familyNames(),
                 validRequest.preferredName(),
@@ -234,58 +226,11 @@ public class NaturalPersonResource {
             String partyId,
             NaturalPersonPatchRequest request,
             HttpHeaders headers) {
-        NaturalPersonPatchRequest validRequest = validate(request);
+        NaturalPersonPatchRequest validRequest = requestSupport.validateBody(request);
         return new PatchNaturalPersonCommand(
                 metadataContext.metadata(),
-                parsePartyId(partyId),
-                parseExpectedVersion(headers),
+                requestSupport.parsePartyId(partyId),
+                requestSupport.requireExpectedVersion(headers),
                 validRequest.toPatch());
-    }
-
-    private <T> T validate(T request) {
-        if (request == null || !validator.validate(request).isEmpty()) {
-            throw badRequest();
-        }
-        return request;
-    }
-
-    private static PartyId parsePartyId(String value) {
-        try {
-            UUID parsed = UUID.fromString(value);
-            if (!parsed.toString().equals(value)) {
-                throw badRequest();
-            }
-            return new PartyId(parsed);
-        } catch (IllegalArgumentException exception) {
-            throw badRequest(exception);
-        }
-    }
-
-    private static PartyVersion parseExpectedVersion(HttpHeaders headers) {
-        String value = requireSingleHeader(headers, IF_MATCH_HEADER);
-        if (!value.matches("^(0|[1-9]\\d*)$")) {
-            throw badRequest();
-        }
-        try {
-            return new PartyVersion(Long.parseLong(value));
-        } catch (NumberFormatException exception) {
-            throw badRequest(exception);
-        }
-    }
-
-    private static String requireSingleHeader(HttpHeaders headers, String name) {
-        List<String> values = headers.getRequestHeader(name);
-        if (values == null || values.size() != 1 || values.getFirst() == null) {
-            throw badRequest();
-        }
-        return values.getFirst();
-    }
-
-    private static ApiResponseException badRequest() {
-        return new ApiResponseException(CommonResponseCode.BAD_REQUEST);
-    }
-
-    private static ApiResponseException badRequest(Throwable cause) {
-        return new ApiResponseException(CommonResponseCode.BAD_REQUEST, cause);
     }
 }

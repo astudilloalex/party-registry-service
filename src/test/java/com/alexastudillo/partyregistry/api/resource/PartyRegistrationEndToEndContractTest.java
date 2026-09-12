@@ -39,7 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies complete registration and confidentiality behavior through HTTP and PostgreSQL.
+ * Verifies complete registration and confidentiality behavior through HTTP and
+ * PostgreSQL.
  */
 @QuarkusTest
 @TestProfile(StoredOutboxTestProfile.class)
@@ -91,27 +92,33 @@ class PartyRegistrationEndToEndContractTest {
                         400),
                 new RejectedRegistration(
                         "/v1/natural-person",
-                        naturalBody("Unknown Scheme", "UNKNOWN_SCHEME", identifierValue("NU"), null, null),
+                        naturalBody("Unknown Scheme", "UNKNOWN_SCHEME", identifierValue("NU"),
+                                null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/natural-person",
-                        naturalBody("Inactive Scheme", "TEST_BOTH_DRAFT", identifierValue("ND"), null, null),
+                        naturalBody("Inactive Scheme", "TEST_BOTH_DRAFT", identifierValue("ND"),
+                                null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/natural-person",
-                        naturalBody("Wrong Subject", "TEST_LEGAL_ACTIVE", identifierValue("NS"), null, null),
+                        naturalBody("Wrong Subject", "TEST_LEGAL_ACTIVE", identifierValue("NS"),
+                                null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/natural-person",
-                        naturalBody("Invalid Value", "TEST_NATURAL_ACTIVE", "ABC-123", null, null),
+                        naturalBody("Invalid Value", "TEST_NATURAL_ACTIVE", "ABC-123", null,
+                                null),
                         422),
                 new RejectedRegistration(
                         "/v1/natural-person",
-                        naturalBody("Missing Expiry", "TEST_BOTH_EXPIRING", identifierValue("NE"), null, null),
+                        naturalBody("Missing Expiry", "TEST_BOTH_EXPIRING",
+                                identifierValue("NE"), null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/natural-person",
-                        naturalBody("Expired Value", "TEST_BOTH_EXPIRING", identifierValue("NX"), null, "2000-01-01"),
+                        naturalBody("Expired Value", "TEST_BOTH_EXPIRING",
+                                identifierValue("NX"), null, "2000-01-01"),
                         422),
                 new RejectedRegistration(
                         "/v1/legal-entity",
@@ -127,27 +134,33 @@ class PartyRegistrationEndToEndContractTest {
                         400),
                 new RejectedRegistration(
                         "/v1/legal-entity",
-                        legalBody("Unknown Scheme Ltd", "UNKNOWN_SCHEME", identifierValue("LU"), null, null),
+                        legalBody("Unknown Scheme Ltd", "UNKNOWN_SCHEME", identifierValue("LU"),
+                                null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/legal-entity",
-                        legalBody("Inactive Scheme Ltd", "TEST_BOTH_DRAFT", identifierValue("LD"), null, null),
+                        legalBody("Inactive Scheme Ltd", "TEST_BOTH_DRAFT",
+                                identifierValue("LD"), null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/legal-entity",
-                        legalBody("Wrong Subject Ltd", "TEST_NATURAL_ACTIVE", identifierValue("LS"), null, null),
+                        legalBody("Wrong Subject Ltd", "TEST_NATURAL_ACTIVE",
+                                identifierValue("LS"), null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/legal-entity",
-                        legalBody("Invalid Value Ltd", "TEST_LEGAL_ACTIVE", "ABC-123", null, null),
+                        legalBody("Invalid Value Ltd", "TEST_LEGAL_ACTIVE", "ABC-123", null,
+                                null),
                         422),
                 new RejectedRegistration(
                         "/v1/legal-entity",
-                        legalBody("Missing Expiry Ltd", "TEST_BOTH_EXPIRING", identifierValue("LE"), null, null),
+                        legalBody("Missing Expiry Ltd", "TEST_BOTH_EXPIRING",
+                                identifierValue("LE"), null, null),
                         422),
                 new RejectedRegistration(
                         "/v1/legal-entity",
-                        legalBody("Expired Value Ltd", "TEST_BOTH_EXPIRING", identifierValue("LX"), null, "2000-01-01"),
+                        legalBody("Expired Value Ltd", "TEST_BOTH_EXPIRING",
+                                identifierValue("LX"), null, "2000-01-01"),
                         422));
 
         RegistrationRows initialRows = registrationRows(tenantId);
@@ -212,7 +225,8 @@ class PartyRegistrationEndToEndContractTest {
                         tenantId,
                         "/v1/natural-person",
                         naturalKey,
-                        naturalBody("Atomic Natural", "TEST_NATURAL_ACTIVE", identifierValue("NC"), null, null)),
+                        naturalBody("Atomic Natural", "TEST_NATURAL_ACTIVE",
+                                identifierValue("NC"), null, null)),
                 409,
                 "conflict");
         assertError(
@@ -220,7 +234,8 @@ class PartyRegistrationEndToEndContractTest {
                         tenantId,
                         "/v1/legal-entity",
                         legalKey,
-                        legalBody("Atomic Legal Ltd", "TEST_LEGAL_ACTIVE", identifierValue("LC"), null, null)),
+                        legalBody("Atomic Legal Ltd", "TEST_LEGAL_ACTIVE",
+                                identifierValue("LC"), null, null)),
                 409,
                 "conflict");
         assertEquals(completeRows, registrationRows(tenantId));
@@ -241,7 +256,8 @@ class PartyRegistrationEndToEndContractTest {
                         tenantId,
                         "/v1/natural-person",
                         key("natural-duplicate"),
-                        naturalBody("Natural Duplicate", "TEST_NATURAL_ACTIVE", "duplicaten1234", null, null)),
+                        naturalBody("Natural Duplicate", "TEST_NATURAL_ACTIVE",
+                                "duplicaten1234", null, null)),
                 409,
                 "conflict");
         assertEquals(afterNaturalOwner, registrationRows(tenantId));
@@ -258,7 +274,8 @@ class PartyRegistrationEndToEndContractTest {
                         tenantId,
                         "/v1/legal-entity",
                         key("legal-duplicate"),
-                        legalBody("Legal Duplicate Ltd", "TEST_LEGAL_ACTIVE", "duplicatel1234", null, null)),
+                        legalBody("Legal Duplicate Ltd", "TEST_LEGAL_ACTIVE", "duplicatel1234",
+                                null, null)),
                 409,
                 "conflict");
         assertEquals(afterLegalOwner, registrationRows(tenantId));
@@ -268,7 +285,8 @@ class PartyRegistrationEndToEndContractTest {
                         tenantId,
                         "/v1/natural-person",
                         key("natural-dependency"),
-                        naturalBody("Natural Dependency", "TEST_NATURAL_ACTIVE", identifierValue("NF"), "SE", null)),
+                        naturalBody("Natural Dependency", "TEST_NATURAL_ACTIVE",
+                                identifierValue("NF"), "SE", null)),
                 503,
                 "dependency-unavailable");
         assertEquals(afterLegalOwner, registrationRows(tenantId));
@@ -277,7 +295,8 @@ class PartyRegistrationEndToEndContractTest {
                         tenantId,
                         "/v1/legal-entity",
                         key("legal-dependency"),
-                        legalBody("Legal Dependency Ltd", "TEST_LEGAL_ACTIVE", identifierValue("LF"), "SE", null)),
+                        legalBody("Legal Dependency Ltd", "TEST_LEGAL_ACTIVE",
+                                identifierValue("LF"), "SE", null)),
                 503,
                 "dependency-unavailable");
         assertEquals(afterLegalOwner, registrationRows(tenantId));
@@ -365,7 +384,8 @@ class PartyRegistrationEndToEndContractTest {
             String partyType,
             String schemeCode,
             String forbiddenValue) {
-        assertConfidential(response.asString(), forbiddenValue, forbiddenValue.strip().toUpperCase(Locale.ROOT));
+        assertConfidential(response.asString(), forbiddenValue,
+                forbiddenValue.strip().toUpperCase(Locale.ROOT));
         Map<String, Object> data = assertSuccess(response, 201);
         assertEquals(partyType, data.get("type"));
         assertEquals("DRAFT", data.get("recordStatus"));
@@ -386,21 +406,24 @@ class PartyRegistrationEndToEndContractTest {
 
     private RegistrationRows registrationRows(UUID tenantId) {
         return new RegistrationRows(
-                count("select count(party) from PartyEntity party where party.tenantId = :tenantId", tenantId),
+                count("select count(party) from PartyEntity party where party.tenantId = :tenantId",
+                        tenantId),
                 count("""
                         select count(details)
                         from NaturalPersonDetailsEntity details
                         where details.partyId in (
                             select party.id from PartyEntity party where party.tenantId = :tenantId
                         )
-                        """, tenantId),
+                        """,
+                        tenantId),
                 count("""
                         select count(details)
                         from LegalEntityDetailsEntity details
                         where details.partyId in (
                             select party.id from PartyEntity party where party.tenantId = :tenantId
                         )
-                        """, tenantId),
+                        """,
+                        tenantId),
                 count("""
                         select count(record)
                         from ApiIdempotencyRecordEntity record
@@ -456,7 +479,7 @@ class PartyRegistrationEndToEndContractTest {
                           and idempotency_key = :idempotencyKey
                         """, String.class)
                 .setParameter("tenantId", tenantId)
-                .setParameter("operation", RegisterNaturalPersonCommand.OPERATION)
+                .setParameter("operation", RegisterNaturalPersonCommand.OPERATION_NAME)
                 .setParameter("idempotencyKey", idempotencyKey)
                 .getSingleResult()));
     }
@@ -552,27 +575,29 @@ class PartyRegistrationEndToEndContractTest {
     private static Handler capturingHandler(List<String> capturedLogs) {
         return new Handler() {
             @Override
-            public void publish(LogRecord record) {
-                if (record == null) {
+            public void publish(LogRecord logRecord) {
+                if (logRecord == null) {
                     return;
                 }
                 List<String> parts = new ArrayList<>();
-                parts.add(record.getMessage());
-                if (record.getParameters() != null) {
-                    parts.add(Arrays.toString(record.getParameters()));
+                parts.add(logRecord.getMessage());
+                if (logRecord.getParameters() != null) {
+                    parts.add(Arrays.toString(logRecord.getParameters()));
                 }
-                if (record.getThrown() != null) {
-                    parts.add(record.getThrown().toString());
+                if (logRecord.getThrown() != null) {
+                    parts.add(logRecord.getThrown().toString());
                 }
                 capturedLogs.add(String.join(" ", parts));
             }
 
             @Override
             public void flush() {
+                //
             }
 
             @Override
             public void close() {
+                //
             }
         };
     }
