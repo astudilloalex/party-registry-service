@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -175,6 +177,49 @@ class PartyRegistrationEndToEndContractTest {
                     registration.code());
             assertEquals(initialRows, registrationRows(tenantId));
         }
+    }
+
+    @Test
+    void registersANormalizedEcuadorNationalIdUsingTheProductionScheme() {
+        UUID tenantId = UUID.randomUUID();
+        RegistrationRows initialRows = registrationRows(tenantId);
+        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
+        String completeValue = "  0100000009  ";
+        String idempotencyKey = key("ecuador-national-id");
+
+        Map<String, Object> created = assertSafeRegistration(
+                post(tenantId, "/v1/natural-person", idempotencyKey,
+                        naturalBody("Ecuador National ID", "EC_NATIONAL_ID", completeValue, null, expiresOn)),
+                "NATURAL_PERSON",
+                "EC_NATIONAL_ID",
+                completeValue);
+
+        Map<String, Object> identifier = nested(created, "initialIdentifier");
+        assertEquals("******0009", identifier.get("maskedValue"));
+        assertEquals(expiresOn, identifier.get("expiresOn"));
+        assertEquals(initialRows.plus(new RegistrationRows(1, 1, 0, 1, 1, 2)), registrationRows(tenantId));
+        assertConfidential(loadSnapshot(tenantId, idempotencyKey), completeValue, "0100000009");
+        List<String> payloads = loadOutboxPayloads(
+                tenantId,
+                UUID.fromString(string(created, "partyId")),
+                UUID.fromString(string(identifier, "identifierId")));
+        assertEquals(2, payloads.size());
+        payloads.forEach(payload -> assertConfidential(payload, completeValue, "0100000009"));
+    }
+
+    @Test
+    void rejectsAnEcuadorNationalIdChecksumWithoutLeakingTheValueOrPersistingRows() {
+        UUID tenantId = UUID.randomUUID();
+        RegistrationRows initialRows = registrationRows(tenantId);
+        String value = "1710034064";
+        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
+
+        Response response = post(tenantId, "/v1/natural-person", key("ecuador-invalid-checksum"),
+                naturalBody("Invalid Ecuador National ID", "EC_NATIONAL_ID", value, null, expiresOn));
+
+        assertError(response, 422, "identifier-validation-failure");
+        assertConfidential(response.asString(), value, value);
+        assertEquals(initialRows, registrationRows(tenantId));
     }
 
     @Test

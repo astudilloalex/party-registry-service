@@ -31,9 +31,10 @@ class IdentifierRuleCatalogTest {
     @Test
     void exposesOnlyExplicitVersionedRuleKeys() {
         assertEquals(Set.of("TRIM_UPPERCASE_V1"), catalog.supportedNormalizerKeys());
-        assertEquals(Set.of("ALPHANUMERIC_V1"), catalog.supportedValidatorKeys());
+        assertEquals(Set.of("ALPHANUMERIC_V1", "EC_NATIONAL_ID_V1"), catalog.supportedValidatorKeys());
         assertEquals(new IdentifierRuleVersion(1), StandardIdentifierNormalizer.TRIM_UPPERCASE_V1.version());
         assertEquals(new IdentifierRuleVersion(1), StandardIdentifierValidator.ALPHANUMERIC_V1.version());
+        assertEquals(new IdentifierRuleVersion(1), StandardIdentifierValidator.EC_NATIONAL_ID_V1.version());
     }
 
     @Test
@@ -59,6 +60,43 @@ class IdentifierRuleCatalogTest {
         assertFalse(validator.isValid("ABC-123"));
         assertFalse(validator.isValid("ABC 123"));
         assertFalse(validator.isValid("abc123"));
+    }
+
+    @Test
+    void ecuadorNationalIdValidatorAcceptsTerritorialBoundariesAndModuloTenCheckDigits() {
+        IdentifierValidator validator = StandardIdentifierValidator.EC_NATIONAL_ID_V1;
+
+        // Synthetic numbers exercise leading zeros, prefix 30, product reduction, and check digit zero.
+        for (String value : new String[] {"0100000009", "2400000002", "3000000004", "1710034065", "0190000000"}) {
+            assertTrue(validator.isValid(value), value);
+        }
+    }
+
+    @Test
+    void ecuadorNationalIdValidatorRejectsInvalidFormatPrefixAndChecksum() {
+        IdentifierValidator validator = StandardIdentifierValidator.EC_NATIONAL_ID_V1;
+
+        for (String value : new String[] {
+                null, "", "171003406", "17100340650", " 1710034065 ",
+                "171003406A", "A710034065", "+710034065", "171003 065", "171003-065", "171003406\n",
+                "\uFF11\uFF17\uFF11\uFF10\uFF10\uFF13\uFF14\uFF10\uFF16\uFF15",
+                "\u0661\u0667\u0661\u0660\u0660\u0663\u0664\u0660\u0666\u0665",
+                "0000000000", "2500000001", "2900000007", "3100000003", "1710034064"}) {
+            assertFalse(validator.isValid(value), String.valueOf(value));
+        }
+    }
+
+    @Test
+    void catalogNormalizesEcuadorNationalIdsBeforeApplyingTheSelectedValidator() {
+        IdentifierScheme scheme = scheme("TRIM_UPPERCASE_V1", "EC_NATIONAL_ID_V1");
+
+        assertEquals(new IdentifierRuleResult(
+                "0100000009", new IdentifierRuleVersion(1), new IdentifierRuleVersion(1)),
+                catalog.evaluate(scheme, " \t0100000009\n "));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_REQUIRED, () -> catalog.evaluate(scheme, null));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_REQUIRED, () -> catalog.evaluate(scheme, "  "));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_INVALID, () -> catalog.evaluate(scheme, "1710034064"));
+        assertViolation(DomainViolation.IDENTIFIER_VALUE_INVALID, () -> catalog.evaluate(scheme, "171003 065"));
     }
 
     @Test

@@ -7,7 +7,10 @@ import io.restassured.specification.RequestSpecification;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -15,6 +18,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Verifies packaged JVM and native artifacts and their cross-cutting HTTP
@@ -145,6 +149,70 @@ class PackagedApplicationIT {
                         .when().post("/v1/natural-person"),
                 503,
                 "dependency-unavailable");
+    }
+
+    @Test
+    void packagedApplicationRegistersANormalizedEcuadorNationalId() {
+        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
+        Response response = validRequest()
+                .header("Idempotency-Key", "packaged-ecuador-national-id-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "givenNames": "Packaged",
+                          "familyNames": "Ecuador National ID",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "EC_NATIONAL_ID",
+                            "value": "  0190000000  ",
+                            "expiresOn": "%s",
+                            "isPrimary": true
+                          }
+                        }
+                        """.formatted(expiresOn))
+                .when().post("/v1/natural-person")
+                .then()
+                .statusCode(201)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(201))
+                .body("code", equalTo("successful"))
+                .body("data.type", equalTo("NATURAL_PERSON"))
+                .body("data.recordStatus", equalTo("DRAFT"))
+                .body("data.initialIdentifier.schemeCode", equalTo("EC_NATIONAL_ID"))
+                .body("data.initialIdentifier.status", equalTo("PENDING_VERIFICATION"))
+                .body("data.initialIdentifier.maskedValue", equalTo("******0000"))
+                .body("data.initialIdentifier.expiresOn", equalTo(expiresOn))
+                .body("data.initialIdentifier", not(hasKey("value")))
+                .body("data.initialIdentifier", not(hasKey("normalizedValue")))
+                .body("data.initialIdentifier", not(hasKey("encryptedValue")))
+                .body("data.initialIdentifier", not(hasKey("normalizedValueHash")))
+                .body(not(containsString("0190000000")))
+                .extract().response();
+
+        assertEquals(Set.of("status", "code", "data"), response.jsonPath().getMap("$").keySet());
+    }
+
+    @Test
+    void packagedApplicationRejectsAnEcuadorNationalIdChecksumWithoutLeakingTheValue() {
+        String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
+        Response response = validRequest()
+                .header("Idempotency-Key", "packaged-ecuador-invalid-checksum-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "givenNames": "Packaged",
+                          "familyNames": "Invalid Ecuador National ID",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "EC_NATIONAL_ID",
+                            "value": "1710034064",
+                            "expiresOn": "%s"
+                          }
+                        }
+                        """.formatted(expiresOn))
+                .when().post("/v1/natural-person");
+
+        assertError(response, 422, "identifier-validation-failure");
+        assertEquals(Set.of("status", "code"), response.jsonPath().getMap("$").keySet());
+        response.then().body(not(containsString("1710034064")));
     }
 
     @Test

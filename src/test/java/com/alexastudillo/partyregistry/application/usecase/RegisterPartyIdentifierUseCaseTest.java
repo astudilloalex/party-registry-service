@@ -186,6 +186,61 @@ class RegisterPartyIdentifierUseCaseTest {
     }
 
     @Test
+    void preservesNormalizedEcuadorNationalIdsBeforeProtectionAndPersistence() {
+        for (String value : List.of("0100000009", "2400000002", "3000000004", "0190000000", "1710034065")) {
+            RegistrationFixture fixture = new RegistrationFixture();
+            fixture.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
+                    IdentifierSchemeStatus.ACTIVE,
+                    IdentifierSubjectType.NATURAL_PERSON,
+                    10,
+                    10,
+                    true,
+                    "TRIM_UPPERCASE_V1",
+                    "EC_NATIONAL_ID_V1")));
+            String completeValue = "  " + value + "  ";
+            var protectedValue = RegistrationUseCaseTestSupport.protectedValue();
+            fixture.protectionPort.behavior = ignored -> protectedValue;
+            InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
+                    "TEST-SCHEME", completeValue, null, null, TODAY.plusYears(1), false);
+
+            var result = awaitItem(fixture.useCase.execute(command(input)));
+
+            assertEquals(List.of("partyLookup", "scheme", "protect", "registerIdentifier"), fixture.order);
+            assertEquals(1, fixture.protectionPort.requests.size());
+            var protectionRequest = fixture.protectionPort.requests.getFirst();
+            assertEquals(completeValue, protectionRequest.completeValue());
+            assertEquals(value, protectionRequest.normalizedValue());
+            assertEquals(1, protectionRequest.normalizationVersion().value());
+            assertEquals(1, fixture.registrationPort.candidates.size());
+            assertSame(protectedValue,
+                    fixture.registrationPort.candidates.getFirst().identifier().protectedValue());
+            assertEquals(PartyIdentifierStatus.PENDING_VERIFICATION, result.status());
+            assertEquals(TODAY.plusYears(1), result.expiresOn());
+        }
+    }
+
+    @Test
+    void rejectsEcuadorNationalIdChecksumAndPrefixBeforeProtectionOrPersistence() {
+        for (String value : List.of("1710034064", "2500000001")) {
+            RegistrationFixture fixture = new RegistrationFixture();
+            fixture.schemeRepository.behavior = code -> Uni.createFrom().item(Optional.of(scheme(
+                    IdentifierSchemeStatus.ACTIVE,
+                    IdentifierSubjectType.NATURAL_PERSON,
+                    10,
+                    10,
+                    true,
+                    "TRIM_UPPERCASE_V1",
+                    "EC_NATIONAL_ID_V1")));
+            InitialPartyIdentifierInput input = new InitialPartyIdentifierInput(
+                    "TEST-SCHEME", value, null, null, TODAY.plusYears(1), false);
+
+            assertIdentifierViolation(fixture, input, DomainViolation.IDENTIFIER_VALUE_INVALID);
+
+            assertEquals(List.of("partyLookup", "scheme"), fixture.order);
+        }
+    }
+
+    @Test
     void propagatesProtectionFailureAndDuplicateIdentifierConflict() {
         RegistrationFixture protection = new RegistrationFixture();
         protection.protectionPort.behavior = ignored -> {

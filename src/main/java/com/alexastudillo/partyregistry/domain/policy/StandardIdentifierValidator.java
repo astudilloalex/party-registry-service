@@ -6,7 +6,37 @@ import com.alexastudillo.partyregistry.domain.model.IdentifierRuleVersion;
  * Enumerates the explicitly supported versioned identifier validators.
  */
 public enum StandardIdentifierValidator implements IdentifierValidator {
-    ALPHANUMERIC_V1(new IdentifierRuleVersion(1));
+    ALPHANUMERIC_V1(new IdentifierRuleVersion(1)) {
+        @Override
+        public boolean isValid(String normalizedValue) {
+            return normalizedValue != null && normalizedValue.matches("^[A-Z0-9]+$");
+        }
+    },
+    EC_NATIONAL_ID_V1(new IdentifierRuleVersion(1)) {
+        @Override
+        public boolean isValid(String normalizedValue) {
+            if (normalizedValue == null || normalizedValue.length() != 10) {
+                return false;
+            }
+            int sum = 0;
+            for (int index = 0; index < 10; index++) {
+                char character = normalizedValue.charAt(index);
+                if (character < '0' || character > '9') {
+                    return false;
+                }
+                if (index < 9) {
+                    int product = (character - '0') * (index % 2 == 0 ? 2 : 1);
+                    sum += product > 9 ? product - 9 : product;
+                }
+            }
+            int territorialPrefix = (normalizedValue.charAt(0) - '0') * 10
+                    + normalizedValue.charAt(1) - '0';
+            if ((territorialPrefix < 1 || territorialPrefix > 24) && territorialPrefix != 30) {
+                return false;
+            }
+            return (10 - sum % 10) % 10 == normalizedValue.charAt(9) - '0';
+        }
+    };
 
     private final IdentifierRuleVersion version;
 
@@ -22,10 +52,5 @@ public enum StandardIdentifierValidator implements IdentifierValidator {
     @Override
     public IdentifierRuleVersion version() {
         return version;
-    }
-
-    @Override
-    public boolean isValid(String normalizedValue) {
-        return normalizedValue != null && normalizedValue.matches("^[A-Z0-9]+$");
     }
 }
