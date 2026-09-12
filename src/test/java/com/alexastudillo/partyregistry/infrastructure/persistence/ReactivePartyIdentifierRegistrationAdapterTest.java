@@ -593,23 +593,23 @@ class ReactivePartyIdentifierRegistrationAdapterTest {
             String normalizedValueHash,
             boolean primary) {
         PartyIdentifierId identifierId = new PartyIdentifierId(UUID.randomUUID());
-        PartyIdentifier identifier = PartyIdentifier.create(
-                identifierId,
-                party.tenantId(),
-                party.partyId(),
-                scheme.id(),
-                new ProtectedIdentifierValue(
+        PartyIdentifier identifier = PartyIdentifier.builder()
+                .identifierId(identifierId)
+                .tenantId(party.tenantId())
+                .partyId(party.partyId())
+                .identifierSchemeId(scheme.id())
+                .protectedValue(new ProtectedIdentifierValue(
                         "v1.protected." + identifierId.value(),
                         1,
                         normalizedValueHash,
                         "********" + normalizedValueHash.substring(60),
-                        new IdentifierRuleVersion(1)),
-                "ISSUER",
-                ISSUED_ON,
-                EXPIRES_ON,
-                primary,
-                OCCURRED_AT,
-                USER_ID);
+                        new IdentifierRuleVersion(1)))
+                .issuerCode("ISSUER")
+                .issuedOn(ISSUED_ON)
+                .expiresOn(EXPIRES_ON)
+                .primary(primary)
+                .created(OCCURRED_AT, USER_ID)
+                .build();
         OutboxEventCandidate event = new PartyIdentifierCreatedOutboxCandidate(
                 UUID.randomUUID(),
                 identifier.tenantId(),

@@ -548,6 +548,9 @@ paths:
       responses:
         '200':
           description: Party activado
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -1118,6 +1121,9 @@ paths:
       responses:
         '201':
           description: Identificador creado
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -1132,6 +1138,8 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
     get:
@@ -2057,6 +2065,7 @@ components:
           nullable: true
         initialIdentifier:
           $ref: '#/components/schemas/InitialPartyIdentifierCreateRequest'
+      additionalProperties: false
 
     LegalEntityPutRequest:
       type: object
@@ -2569,11 +2578,13 @@ components:
           type: string
           minLength: 1
           maxLength: 64
+          pattern: '.*\S.*'
         value:
           type: string
           writeOnly: true
           minLength: 1
           maxLength: 256
+          pattern: '.*\S.*'
         issuerCode:
           type: string
           maxLength: 64
@@ -2589,6 +2600,7 @@ components:
         isPrimary:
           type: boolean
           default: false
+      additionalProperties: false
 
     PartyIdentifierUpdateRequest:
       type: object

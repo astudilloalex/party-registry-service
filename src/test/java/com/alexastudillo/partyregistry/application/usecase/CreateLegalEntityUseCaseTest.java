@@ -19,10 +19,12 @@ import com.alexastudillo.partyregistry.domain.model.PartyType;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSchemePolicy;
 import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
+
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies legal-entity registration with an independent required initial identifier.
+ * Verifies legal-entity registration with an independent required initial
+ * identifier.
  */
 class CreateLegalEntityUseCaseTest {
 
@@ -74,9 +77,9 @@ class CreateLegalEntityUseCaseTest {
         assertEquals(METADATA,
                 fixture.registrationPort.legalCandidates.getFirst().requestMetadata());
         assertEquals(new RecordingOperationObserver.CompletedCall(
-                        METADATA,
-                        ObservedOperation.APPLICATION_LEGAL_ENTITY_REGISTRATION,
-                        OperationOutcome.CREATED),
+                METADATA,
+                ObservedOperation.APPLICATION_LEGAL_ENTITY_REGISTRATION,
+                OperationOutcome.CREATED),
                 fixture.observationPort.completedCalls().getFirst());
     }
 
@@ -89,7 +92,8 @@ class CreateLegalEntityUseCaseTest {
         replay.countryPort.behavior = (metadata, code) -> dependencyFailure("geographic-reference");
         replay.schemeRepository.behavior = code -> dependencyFailure("identifier-scheme-catalog");
         replay.protectionPort.behavior = ignored -> {
-            throw new ApplicationException(new ApplicationFailure.DependencyUnavailable("identifier-protection"));
+            throw new ApplicationException(
+                    new ApplicationFailure.DependencyUnavailable("identifier-protection"));
         };
 
         PartyRegistrationResult result = awaitItem(replay.useCase.execute(command(identifier("TEST-SCHEME"))));
@@ -116,7 +120,8 @@ class CreateLegalEntityUseCaseTest {
 
         RegistrationFixture changed = new RegistrationFixture();
         changed.registrationPort.completedBehavior = call -> Uni.createFrom().failure(
-                new ApplicationException(new ApplicationFailure.IdempotencyKeyConflict(call.idempotencyKey())));
+                new ApplicationException(
+                        new ApplicationFailure.IdempotencyKeyConflict(call.idempotencyKey())));
         assertInstanceOf(
                 ApplicationFailure.IdempotencyKeyConflict.class,
                 awaitFailure(changed.useCase.execute(command(identifier("TEST-SCHEME")))));
@@ -196,7 +201,8 @@ class CreateLegalEntityUseCaseTest {
     void propagatesProtectionAndDuplicateConflictsWithoutPartialRegistration() {
         RegistrationFixture protection = new RegistrationFixture();
         protection.protectionPort.behavior = ignored -> {
-            throw new ApplicationException(new ApplicationFailure.DependencyUnavailable("identifier-protection"));
+            throw new ApplicationException(
+                    new ApplicationFailure.DependencyUnavailable("identifier-protection"));
         };
         assertInstanceOf(
                 ApplicationFailure.DependencyUnavailable.class,
@@ -223,7 +229,7 @@ class CreateLegalEntityUseCaseTest {
                 "Analytical Engines",
                 "LTD",
                 "GB",
-                LocalDate.of(1843, 1, 1),
+                LocalDate.of(1843, Month.JANUARY, 1),
                 null,
                 identifierInput);
     }
@@ -238,29 +244,32 @@ class CreateLegalEntityUseCaseTest {
                 new ApplicationFailure.DependencyUnavailable(dependencyName)));
     }
 
-    /** Bundles recording doubles for one isolated legal-entity registration test. */
+    /**
+     * Bundles recording doubles for one isolated legal-entity registration test.
+     */
     private static final class RegistrationFixture {
 
         final List<String> order = new ArrayList<>();
-        final RegistrationUseCaseTestSupport.FingerprintDouble fingerprintPort =
-                new RegistrationUseCaseTestSupport.FingerprintDouble(order);
-        final RegistrationUseCaseTestSupport.PartyRegistrationPortDouble registrationPort =
-                new RegistrationUseCaseTestSupport.PartyRegistrationPortDouble(order);
-        final RegistrationUseCaseTestSupport.CountryDouble countryPort =
-                new RegistrationUseCaseTestSupport.CountryDouble(order);
-        final RegistrationUseCaseTestSupport.SchemeDouble schemeRepository =
-                new RegistrationUseCaseTestSupport.SchemeDouble(order);
-        final RegistrationUseCaseTestSupport.ProtectionDouble protectionPort =
-                new RegistrationUseCaseTestSupport.ProtectionDouble(order);
+        final RegistrationUseCaseTestSupport.FingerprintDouble fingerprintPort = new RegistrationUseCaseTestSupport.FingerprintDouble(
+                order);
+        final RegistrationUseCaseTestSupport.PartyRegistrationPortDouble registrationPort = new RegistrationUseCaseTestSupport.PartyRegistrationPortDouble(
+                order);
+        final RegistrationUseCaseTestSupport.CountryDouble countryPort = new RegistrationUseCaseTestSupport.CountryDouble(
+                order);
+        final RegistrationUseCaseTestSupport.SchemeDouble schemeRepository = new RegistrationUseCaseTestSupport.SchemeDouble(
+                order);
+        final RegistrationUseCaseTestSupport.ProtectionDouble protectionPort = new RegistrationUseCaseTestSupport.ProtectionDouble(
+                order);
         final RecordingOperationObserver observationPort = new RecordingOperationObserver();
         final CreateLegalEntityUseCase useCase = new CreateLegalEntityUseCase(
                 fingerprintPort,
                 registrationPort,
                 countryPort,
-                schemeRepository,
-                new IdentifierRuleCatalog(),
-                new IdentifierSchemePolicy(),
-                protectionPort,
+                new PartyIdentifierPreparation(
+                        schemeRepository,
+                        new IdentifierRuleCatalog(),
+                        new IdentifierSchemePolicy(),
+                        protectionPort),
                 RegistrationUseCaseTestSupport.CLOCK,
                 observationPort);
     }

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
@@ -18,7 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies PartyIdentifier independence, protected state, and initial lifecycle invariants.
+ * Verifies PartyIdentifier independence, protected state, and initial lifecycle
+ * invariants.
  */
 class PartyIdentifierTest {
 
@@ -31,22 +33,22 @@ class PartyIdentifierTest {
     private static final IdentifierSchemeId SCHEME_ID = new IdentifierSchemeId(
             UUID.fromString("0198d111-08f1-7e48-b291-399bbb9cd605"));
     private static final Instant CREATED_AT = Instant.parse("2026-08-30T10:00:00Z");
-    private static final LocalDate ISSUED_ON = LocalDate.of(2026, 1, 1);
-    private static final LocalDate EXPIRES_ON = LocalDate.of(2030, 1, 1);
+    private static final LocalDate ISSUED_ON = LocalDate.of(2026, Month.JANUARY, 1);
+    private static final LocalDate EXPIRES_ON = LocalDate.of(2030, Month.JANUARY, 1);
 
     @Test
     void createsPendingNonPrimaryIdentifierAtVersionZeroByDefault() {
-        PartyIdentifier identifier = PartyIdentifier.create(
-                IDENTIFIER_ID,
-                TENANT_ID,
-                PARTY_ID,
-                SCHEME_ID,
-                protectedValue(),
-                "AUTHORITY",
-                ISSUED_ON,
-                EXPIRES_ON,
-                CREATED_AT,
-                "creator");
+        PartyIdentifier identifier = PartyIdentifier.builder()
+                .identifierId(IDENTIFIER_ID)
+                .tenantId(TENANT_ID)
+                .partyId(PARTY_ID)
+                .identifierSchemeId(SCHEME_ID)
+                .protectedValue(protectedValue())
+                .issuerCode("AUTHORITY")
+                .issuedOn(ISSUED_ON)
+                .expiresOn(EXPIRES_ON)
+                .created(CREATED_AT, "creator")
+                .build();
 
         assertEquals(IDENTIFIER_ID, identifier.identifierId());
         assertEquals(TENANT_ID, identifier.tenantId());
@@ -62,18 +64,15 @@ class PartyIdentifierTest {
 
     @Test
     void preservesAnExplicitPrimaryFlag() {
-        PartyIdentifier identifier = PartyIdentifier.create(
-                IDENTIFIER_ID,
-                TENANT_ID,
-                PARTY_ID,
-                SCHEME_ID,
-                protectedValue(),
-                null,
-                null,
-                null,
-                true,
-                CREATED_AT,
-                "creator");
+        PartyIdentifier identifier = PartyIdentifier.builder()
+                .identifierId(IDENTIFIER_ID)
+                .tenantId(TENANT_ID)
+                .partyId(PARTY_ID)
+                .identifierSchemeId(SCHEME_ID)
+                .protectedValue(protectedValue())
+                .primary(true)
+                .created(CREATED_AT, "creator")
+                .build();
 
         assertTrue(identifier.isPrimary());
     }
@@ -81,29 +80,26 @@ class PartyIdentifierTest {
     @Test
     void rejectsIncoherentValidityDatesAndOversizedIssuer() {
         assertViolation(DomainViolation.IDENTIFIER_VALIDITY_DATE_ORDER,
-                () -> PartyIdentifier.create(
-                        IDENTIFIER_ID,
-                        TENANT_ID,
-                        PARTY_ID,
-                        SCHEME_ID,
-                        protectedValue(),
-                        null,
-                        EXPIRES_ON,
-                        ISSUED_ON,
-                        CREATED_AT,
-                        "creator"));
+                () -> PartyIdentifier.builder()
+                        .identifierId(IDENTIFIER_ID)
+                        .tenantId(TENANT_ID)
+                        .partyId(PARTY_ID)
+                        .identifierSchemeId(SCHEME_ID)
+                        .protectedValue(protectedValue())
+                        .issuedOn(EXPIRES_ON)
+                        .expiresOn(ISSUED_ON)
+                        .created(CREATED_AT, "creator")
+                        .build());
         assertViolation(DomainViolation.IDENTIFIER_ISSUER_CODE_TOO_LONG,
-                () -> PartyIdentifier.create(
-                        IDENTIFIER_ID,
-                        TENANT_ID,
-                        PARTY_ID,
-                        SCHEME_ID,
-                        protectedValue(),
-                        "I".repeat(65),
-                        null,
-                        null,
-                        CREATED_AT,
-                        "creator"));
+                () -> PartyIdentifier.builder()
+                        .identifierId(IDENTIFIER_ID)
+                        .tenantId(TENANT_ID)
+                        .partyId(PARTY_ID)
+                        .identifierSchemeId(SCHEME_ID)
+                        .protectedValue(protectedValue())
+                        .issuerCode("I".repeat(65))
+                        .created(CREATED_AT, "creator")
+                        .build());
     }
 
     @Test
@@ -192,7 +188,8 @@ class PartyIdentifierTest {
         return Arrays.stream(partyClass.getDeclaredFields())
                 .anyMatch(field -> field.getType() == PartyIdentifier.class
                         || field.getType().isArray()
-                                && field.getType().componentType() == PartyIdentifier.class
+                                && field.getType()
+                                        .componentType() == PartyIdentifier.class
                         || Collection.class.isAssignableFrom(field.getType()));
     }
 
@@ -202,21 +199,22 @@ class PartyIdentifierTest {
             boolean primary,
             Instant verifiedAt,
             String verifiedBy) {
-        return PartyIdentifier.restore(
-                IDENTIFIER_ID,
-                TENANT_ID,
-                PARTY_ID,
-                SCHEME_ID,
-                protectedValue(),
-                "AUTHORITY",
-                ISSUED_ON,
-                expiresOn,
-                primary,
-                status,
-                verifiedAt,
-                verifiedBy,
-                new PartyIdentifierVersion(3),
-                AuditInfo.initial(CREATED_AT, "creator"));
+        return PartyIdentifier.builder()
+                .identifierId(IDENTIFIER_ID)
+                .tenantId(TENANT_ID)
+                .partyId(PARTY_ID)
+                .identifierSchemeId(SCHEME_ID)
+                .protectedValue(protectedValue())
+                .issuerCode("AUTHORITY")
+                .issuedOn(ISSUED_ON)
+                .expiresOn(expiresOn)
+                .primary(primary)
+                .status(status)
+                .verifiedAt(verifiedAt)
+                .verifiedBy(verifiedBy)
+                .version(new PartyIdentifierVersion(3))
+                .auditInfo(AuditInfo.initial(CREATED_AT, "creator"))
+                .build();
     }
 
     private static ProtectedIdentifierValue protectedValue() {

@@ -1,6 +1,6 @@
 # Party Registry Service
 
-Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. The current delivery implements the first natural-person phase while the remaining contract endpoint groups stay out of scope.
+Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. It registers natural persons and legal entities with one required initial official identifier, supports independently managed additional identifiers, and activates draft Parties from verified identifier evidence.
 
 ## Technology baseline
 
@@ -25,7 +25,7 @@ ArchUnit verifies layer direction, framework isolation for the inner layers, and
 
 ## Database
 
-Flyway is the only schema authority. The initial immutable migration is located at `src/main/resources/db/migration/V1__create_party_registry_schema.sql` and is derived from `docs/database/v1-scheme.dbml`.
+Flyway is the only schema authority. The immutable production migrations are `src/main/resources/db/migration/V1__create_party_registry_schema.sql` and `src/main/resources/db/migration/V2__create_api_idempotency_records.sql`. The initial schema is derived from `docs/database/v1-scheme.dbml`.
 
 The application configures the same PostgreSQL database through two access paths:
 
@@ -58,9 +58,44 @@ FLYWAY_DB_USERNAME
 FLYWAY_DB_PASSWORD
 DB_REACTIVE_URL=postgresql://database-host:5432/party_registry
 DB_JDBC_URL=jdbc:postgresql://database-host:5432/party_registry
+GEOGRAPHIC_REFERENCE_BASE_URL=https://geographic-reference.example
+RABBITMQ_HOST=rabbitmq-host
+RABBITMQ_USERNAME=party-registry
+RABBITMQ_PASSWORD=<secret reference>
 ```
 
+`RABBITMQ_PORT` defaults to `5672`, and `RABBITMQ_VIRTUAL_HOST` defaults to `/`. `PARTY_OUTBOX_MODE` accepts `disabled`, `stored-only`, or `published` and defaults to `disabled`. The `published` mode requires a reachable RabbitMQ broker and publisher permissions for the configured exchange and routing key.
+
 `OTEL_EXPORTER_OTLP_ENDPOINT` configures the collector endpoint. Trace export is disabled by default and can be enabled with `OTEL_TRACES_EXPORTER`.
+
+## Release prerequisites
+
+Registration cannot be enabled safely until both prerequisites below are satisfied.
+
+### Identifier-protection secrets
+
+Provision these values through the deployment secret manager before starting the application:
+
+```text
+PARTY_IDENTIFIER_ENCRYPTION_KEY_V1=<base64-encoded 32-byte AES key>
+PARTY_IDENTIFIER_CURRENT_ENCRYPTION_KEY_VERSION=1
+PARTY_IDENTIFIER_INDEX_HMAC_KEY=<base64-encoded 32-byte HMAC key>
+PARTY_REGISTRATION_IDEMPOTENCY_HMAC_KEY=<base64-encoded 32-byte HMAC key>
+```
+
+The application validates and loads all key material at startup and fails closed when it is absent or invalid. Do not place production keys in source code, container images, configuration defaults, logs, or migration files. The identifier-index HMAC key is long-lived because the current schema has no fingerprint-key version column; rotating it requires an approved forward migration with dual-fingerprint support. Retain every encryption key version needed to read existing ciphertext before changing the current encryption-key version.
+
+### Identifier-scheme catalog
+
+A fresh production database contains no active identifier schemes. The `TEST_*` schemes under `src/test/resources/db/test-migration` are deterministic test fixtures and must never be deployed to production.
+
+Before accepting registration traffic, provision an independently approved, jurisdiction-specific catalog containing the supported scheme codes, Party-type applicability, lifecycle state, normalizer and validator keys, length constraints, and expiration policy. If the catalog ships with this service, add it only as a new immutable, reviewed Flyway migration under `src/main/resources/db/migration`. Do not run manual DDL/DML, edit `V1` or `V2`, or invent country-specific schemes without data-steward approval.
+
+Deploy the approved catalog before enabling create traffic. Unknown, inactive, incompatible, or internally unsupported schemes are rejected by design.
+
+### Rollback
+
+Registration writes version-two idempotency snapshots and persists Party and PartyIdentifier as separate aggregate roots. Do not delete or rewrite Party, identifier, idempotency, or outbox rows during rollback. An older identifier-free application cannot satisfy the current request contract or decode the new replay result, so rollback requires stopping create traffic or restoring another contract-compatible application version.
 
 ## Running and verification
 
@@ -115,9 +150,16 @@ Operational endpoints do not require business context headers. All API requests 
 The implemented business operations are:
 
 - `POST /v1/natural-person`
+- `POST /v1/legal-entity`
 - `GET /v1/natural-person/{partyId}`
 - `PUT /v1/natural-person/{partyId}`
 - `PATCH /v1/natural-person/{partyId}`
+- `POST /v1/parties/{partyId}/identifiers`
+- `POST /v1/parties/{partyId}/activate`
+
+Natural-person and legal-entity creation require exactly one `initialIdentifier`. The Party starts in `DRAFT`, and its independently persisted initial identifier starts in `PENDING_VERIFICATION`. Activation requires at least one compatible, non-expired `VERIFIED` identifier and exact optimistic-concurrency input through `If-Match`.
+
+Complete and normalized identifier values never appear in API responses, idempotency snapshots, integration events, metrics, traces, or logs. Public responses expose only approved identifier metadata such as IDs, scheme code, masked value, status, and version.
 
 The console log format is fixed to:
 

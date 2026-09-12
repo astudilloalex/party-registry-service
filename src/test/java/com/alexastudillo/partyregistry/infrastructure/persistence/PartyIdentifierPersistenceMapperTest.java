@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -29,7 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies protected PartyIdentifier persistence mapping without plaintext state.
+ * Verifies protected PartyIdentifier persistence mapping without plaintext
+ * state.
  */
 class PartyIdentifierPersistenceMapperTest {
 
@@ -49,21 +51,22 @@ class PartyIdentifierPersistenceMapperTest {
     @Test
     void roundTripsProtectedValueValidityVerificationVersionAndAuditFields() {
         Instant verifiedAt = Instant.parse("2026-09-02T09:00:00Z");
-        PartyIdentifier original = PartyIdentifier.restore(
-                IDENTIFIER_ID,
-                TENANT_ID,
-                PARTY_ID,
-                SCHEME_ID,
-                protectedValue(),
-                "HMPO",
-                LocalDate.of(2025, 6, 1),
-                LocalDate.of(2035, 6, 1),
-                true,
-                PartyIdentifierStatus.VERIFIED,
-                verifiedAt,
-                "verifier",
-                new PartyIdentifierVersion(6),
-                new AuditInfo(CREATED_AT, "creator", UPDATED_AT, "updater"));
+        PartyIdentifier original = PartyIdentifier.builder()
+                .identifierId(IDENTIFIER_ID)
+                .tenantId(TENANT_ID)
+                .partyId(PARTY_ID)
+                .identifierSchemeId(SCHEME_ID)
+                .protectedValue(protectedValue())
+                .issuerCode("HMPO")
+                .issuedOn(LocalDate.of(2025, Month.JUNE, 1))
+                .expiresOn(LocalDate.of(2035, Month.JUNE, 1))
+                .primary(true)
+                .status(PartyIdentifierStatus.VERIFIED)
+                .verifiedAt(verifiedAt)
+                .verifiedBy("verifier")
+                .version(new PartyIdentifierVersion(6))
+                .auditInfo(new AuditInfo(CREATED_AT, "creator", UPDATED_AT, "updater"))
+                .build();
 
         PartyIdentifierEntity entity = mapper.toEntity(original);
         PartyIdentifier restored = mapper.toDomain(entity);
@@ -77,17 +80,14 @@ class PartyIdentifierPersistenceMapperTest {
 
     @Test
     void preservesNullableIssuerValidityAndVerificationFields() {
-        PartyIdentifier original = PartyIdentifier.create(
-                IDENTIFIER_ID,
-                TENANT_ID,
-                PARTY_ID,
-                SCHEME_ID,
-                protectedValue(),
-                null,
-                null,
-                null,
-                CREATED_AT,
-                "creator");
+        PartyIdentifier original = PartyIdentifier.builder()
+                .identifierId(IDENTIFIER_ID)
+                .tenantId(TENANT_ID)
+                .partyId(PARTY_ID)
+                .identifierSchemeId(SCHEME_ID)
+                .protectedValue(protectedValue())
+                .created(CREATED_AT, "creator")
+                .build();
 
         PartyIdentifier restored = mapper.toDomain(mapper.toEntity(original));
 

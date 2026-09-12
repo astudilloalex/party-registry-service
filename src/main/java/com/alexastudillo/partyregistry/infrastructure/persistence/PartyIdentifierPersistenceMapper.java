@@ -41,29 +41,30 @@ public class PartyIdentifierPersistenceMapper {
 
     PartyIdentifier toDomain(PartyIdentifierEntity entity) {
         Objects.requireNonNull(entity, "entity");
-        return PartyIdentifier.restore(
-                new PartyIdentifierId(entity.id()),
-                new TenantId(entity.tenantId()),
-                new PartyId(entity.partyId()),
-                new IdentifierSchemeId(entity.identifierSchemeId()),
-                new ProtectedIdentifierValue(
+        return PartyIdentifier.builder()
+                .identifierId(new PartyIdentifierId(entity.id()))
+                .tenantId(new TenantId(entity.tenantId()))
+                .partyId(new PartyId(entity.partyId()))
+                .identifierSchemeId(new IdentifierSchemeId(entity.identifierSchemeId()))
+                .protectedValue(new ProtectedIdentifierValue(
                         entity.encryptedValue(),
                         entity.encryptionKeyVersion(),
                         entity.normalizedValueHash(),
                         entity.maskedValue(),
-                        new IdentifierRuleVersion(entity.normalizationVersion())),
-                entity.issuerCode(),
-                entity.issuedOn(),
-                entity.expiresOn(),
-                entity.isPrimary(),
-                entity.status(),
-                entity.verifiedAt(),
-                entity.verifiedBy(),
-                new PartyIdentifierVersion(entity.version()),
-                new AuditInfo(
+                        new IdentifierRuleVersion(entity.normalizationVersion())))
+                .issuerCode(entity.issuerCode())
+                .issuedOn(entity.issuedOn())
+                .expiresOn(entity.expiresOn())
+                .primary(entity.isPrimary())
+                .status(entity.status())
+                .verifiedAt(entity.verifiedAt())
+                .verifiedBy(entity.verifiedBy())
+                .version(new PartyIdentifierVersion(entity.version()))
+                .auditInfo(new AuditInfo(
                         entity.createdAt(),
                         entity.createdBy(),
                         entity.updatedAt(),
-                        entity.updatedBy()));
+                        entity.updatedBy()))
+                .build();
     }
 }

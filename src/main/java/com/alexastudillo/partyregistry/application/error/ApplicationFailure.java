@@ -1,7 +1,10 @@
 package com.alexastudillo.partyregistry.application.error;
 
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
+import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
+import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
+import com.alexastudillo.partyregistry.domain.model.PartyType;
 import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 
@@ -19,7 +22,7 @@ public sealed interface ApplicationFailure {
     record NaturalPersonNotFound(PartyId partyId, TenantId tenantId) implements ApplicationFailure {
 
         public NaturalPersonNotFound {
-            Objects.requireNonNull(partyId, "partyId");
+            requirePartyId(partyId);
             Objects.requireNonNull(tenantId, "tenantId");
         }
     }
@@ -64,6 +67,119 @@ public sealed interface ApplicationFailure {
     }
 
     /**
+     * The Geographic Reference Service does not recognize a supplied incorporation
+     * country code.
+     */
+    record UnrecognizedIncorporationCountry(String incorporationCountryCode) implements ApplicationFailure {
+
+        public UnrecognizedIncorporationCountry {
+            if (incorporationCountryCode == null || incorporationCountryCode.isBlank()) {
+                throw new IllegalArgumentException("Incorporation country code is required");
+            }
+        }
+    }
+
+    /**
+     * No identifier scheme exists for the submitted stable code.
+     */
+    record UnknownIdentifierScheme(String schemeCode) implements ApplicationFailure {
+
+        public UnknownIdentifierScheme {
+            requireText(schemeCode, "Identifier scheme code is required");
+        }
+    }
+
+    /**
+     * The resolved identifier scheme does not permit new registrations.
+     */
+    record InactiveIdentifierScheme(IdentifierSchemeId schemeId) implements ApplicationFailure {
+
+        public InactiveIdentifierScheme {
+            requireSchemeId(schemeId);
+        }
+    }
+
+    /**
+     * The resolved identifier scheme cannot identify the requested Party type.
+     */
+    record IncompatibleIdentifierScheme(
+            IdentifierSchemeId schemeId,
+            PartyType partyType) implements ApplicationFailure {
+
+        public IncompatibleIdentifierScheme {
+            requireSchemeId(schemeId);
+            Objects.requireNonNull(partyType, "partyType");
+        }
+    }
+
+    /**
+     * The submitted identifier violates one of its semantic scheme rules.
+     */
+    record IdentifierValidationFailure(DomainViolation violation) implements ApplicationFailure {
+
+        public IdentifierValidationFailure {
+            Objects.requireNonNull(violation, "violation");
+        }
+    }
+
+    /**
+     * Another active identifier already owns the same tenant-scoped scheme value.
+     */
+    record IdentifierUniquenessConflict(IdentifierSchemeId schemeId) implements ApplicationFailure {
+
+        public IdentifierUniquenessConflict {
+            requireSchemeId(schemeId);
+        }
+    }
+
+    /**
+     * The requested Party is absent or belongs to another tenant.
+     */
+    record PartyNotFound(PartyId partyId, TenantId tenantId) implements ApplicationFailure {
+
+        public PartyNotFound {
+            requirePartyId(partyId);
+            Objects.requireNonNull(tenantId, "tenantId");
+        }
+    }
+
+    /**
+     * The Party's current lifecycle state does not permit the requested transition.
+     */
+    record InvalidPartyLifecycle(
+            PartyId partyId,
+            PartyRecordStatus currentStatus) implements ApplicationFailure {
+
+        public InvalidPartyLifecycle {
+            requirePartyId(partyId);
+            Objects.requireNonNull(currentStatus, "currentStatus");
+        }
+    }
+
+    /**
+     * The activation request used a Party version that is no longer current.
+     */
+    record StalePartyVersion(
+            PartyVersion expectedVersion,
+            PartyVersion currentVersion) implements ApplicationFailure {
+
+        public StalePartyVersion {
+            Objects.requireNonNull(expectedVersion, "expectedVersion");
+            Objects.requireNonNull(currentVersion, "currentVersion");
+        }
+    }
+
+    /**
+     * The Party has no verified, compatible, non-expired identifier for activation.
+     */
+    record MissingQualifyingIdentifier(PartyId partyId) implements ApplicationFailure {
+
+        public MissingQualifyingIdentifier {
+            requirePartyId(partyId);
+        }
+    }
+
+    /**
      * A required external dependency cannot currently complete the operation.
      */
     record DependencyUnavailable(String dependencyName) implements ApplicationFailure {
@@ -82,6 +198,12 @@ public sealed interface ApplicationFailure {
     }
 
     /**
+     * Active identifier-scheme data references an unsupported internal rule.
+     */
+    record IdentifierCatalogFailure() implements ApplicationFailure {
+    }
+
+    /**
      * The requested operation violates a business invariant of the resulting
      * natural-person state.
      */
@@ -89,6 +211,20 @@ public sealed interface ApplicationFailure {
 
         public InvalidBusinessState {
             Objects.requireNonNull(violation, "violation");
+        }
+    }
+
+    private static void requirePartyId(PartyId partyId) {
+        Objects.requireNonNull(partyId, "partyId");
+    }
+
+    private static void requireSchemeId(IdentifierSchemeId schemeId) {
+        Objects.requireNonNull(schemeId, "schemeId");
+    }
+
+    private static void requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
         }
     }
 }

@@ -246,10 +246,11 @@ class RegisterPartyIdentifierUseCaseTest {
         final RegisterPartyIdentifierUseCase useCase = new RegisterPartyIdentifierUseCase(
                 partyLookup,
                 registrationPort,
-                schemeRepository,
-                new IdentifierRuleCatalog(),
-                new IdentifierSchemePolicy(),
-                protectionPort,
+                new PartyIdentifierPreparation(
+                        schemeRepository,
+                        new IdentifierRuleCatalog(),
+                        new IdentifierSchemePolicy(),
+                        protectionPort),
                 RegistrationUseCaseTestSupport.CLOCK,
                 observationPort);
     }

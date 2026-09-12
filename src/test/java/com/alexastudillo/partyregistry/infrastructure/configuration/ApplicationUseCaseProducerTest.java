@@ -53,6 +53,7 @@ class ApplicationUseCaseProducerTest {
                 IdentifierSchemeRepository.class,
                 IdentifierProtectionPort.class,
                 OperationObservationPort.class), CreateLegalEntityUseCase.class);
+        assertEquals(1, CreateLegalEntityUseCase.class.getDeclaredConstructors().length);
         assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod(
                 "registerPartyIdentifierUseCase",
                 PartyLookupPort.class,

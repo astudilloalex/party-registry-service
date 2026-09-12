@@ -15,6 +15,7 @@ import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseC
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchNaturalPersonUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PartyIdentifierPreparation;
 import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ReplaceNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
@@ -47,10 +48,11 @@ public class ApplicationUseCaseProducer {
                 fingerprintPort,
                 registrationPort,
                 countryReferencePort,
-                schemeRepository,
-                new IdentifierRuleCatalog(),
-                new IdentifierSchemePolicy(),
-                protectionPort,
+                new PartyIdentifierPreparation(
+                        schemeRepository,
+                        new IdentifierRuleCatalog(),
+                        new IdentifierSchemePolicy(),
+                        protectionPort),
                 UTC_CLOCK,
                 observationPort);
     }
@@ -67,10 +69,11 @@ public class ApplicationUseCaseProducer {
                 fingerprintPort,
                 registrationPort,
                 countryReferencePort,
-                schemeRepository,
-                new IdentifierRuleCatalog(),
-                new IdentifierSchemePolicy(),
-                protectionPort,
+                new PartyIdentifierPreparation(
+                        schemeRepository,
+                        new IdentifierRuleCatalog(),
+                        new IdentifierSchemePolicy(),
+                        protectionPort),
                 UTC_CLOCK,
                 observationPort);
     }
@@ -85,10 +88,11 @@ public class ApplicationUseCaseProducer {
         return new RegisterPartyIdentifierUseCase(
                 partyLookupPort,
                 registrationPort,
-                schemeRepository,
-                new IdentifierRuleCatalog(),
-                new IdentifierSchemePolicy(),
-                protectionPort,
+                new PartyIdentifierPreparation(
+                        schemeRepository,
+                        new IdentifierRuleCatalog(),
+                        new IdentifierSchemePolicy(),
+                        protectionPort),
                 UTC_CLOCK,
                 observationPort);
     }

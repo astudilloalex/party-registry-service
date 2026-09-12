@@ -305,22 +305,22 @@ class PartyRegistrationContractTest {
         }
 
         private static PartyIdentifier identifier(PartyId partyId) {
-                return PartyIdentifier.create(
-                                new PartyIdentifierId(UUID.randomUUID()),
-                                TENANT_ID,
-                                partyId,
-                                SCHEME_ID,
-                                new ProtectedIdentifierValue(
+                return PartyIdentifier.builder()
+                                .identifierId(new PartyIdentifierId(UUID.randomUUID()))
+                                .tenantId(TENANT_ID)
+                                .partyId(partyId)
+                                .identifierSchemeId(SCHEME_ID)
+                                .protectedValue(new ProtectedIdentifierValue(
                                                 CIPHERTEXT,
                                                 1,
                                                 VALUE_HASH,
                                                 "********1234",
-                                                new IdentifierRuleVersion(1)),
-                                "issuer",
-                                TODAY.minusYears(1),
-                                TODAY.plusYears(5),
-                                NOW,
-                                "operator");
+                                                new IdentifierRuleVersion(1)))
+                                .issuerCode("issuer")
+                                .issuedOn(TODAY.minusYears(1))
+                                .expiresOn(TODAY.plusYears(5))
+                                .created(NOW, "operator")
+                                .build();
         }
 
         private static IdentifierScheme scheme() {

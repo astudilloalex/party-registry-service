@@ -43,6 +43,7 @@ import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,13 +53,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies concrete transaction adapters observe only subscribed terminal outcomes.
+ * Verifies concrete transaction adapters observe only subscribed terminal
+ * outcomes.
  */
 class PersistenceAdapterObservabilityTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
     private static final Instant NOW = Instant.parse("2026-09-04T18:00:00Z");
-    private static final LocalDate TODAY = LocalDate.of(2026, 9, 4);
+    private static final LocalDate TODAY = LocalDate.of(2026, Month.SEPTEMBER, 4);
     private static final TenantId TENANT_ID = new TenantId(
             UUID.fromString("01991ebd-6800-7000-8000-000000000001"));
     private static final RequestMetadata METADATA = new RequestMetadata(
@@ -202,11 +204,10 @@ class PersistenceAdapterObservabilityTest {
     private static HibernateReactiveIdempotentPartyRegistrationAdapter registrationAdapter(
             Mutiny.SessionFactory sessionFactory,
             RecordingOperationObserver observer) {
-        PartyRegistrationIdempotencyPersistence idempotencyPersistence =
-                new PartyRegistrationIdempotencyPersistence(
-                        sessionFactory,
-                        new FingerprintDouble(),
-                        new IdempotencyResultSnapshotCodec());
+        PartyRegistrationIdempotencyPersistence idempotencyPersistence = new PartyRegistrationIdempotencyPersistence(
+                sessionFactory,
+                new FingerprintDouble(),
+                new IdempotencyResultSnapshotCodec());
         return new HibernateReactiveIdempotentPartyRegistrationAdapter(
                 sessionFactory,
                 new NaturalPersonPersistenceMapper(),
@@ -222,7 +223,7 @@ class PersistenceAdapterObservabilityTest {
     private static Mutiny.SessionFactory sessionFactory(Uni<?> outcome) {
         return (Mutiny.SessionFactory) Proxy.newProxyInstance(
                 PersistenceAdapterObservabilityTest.class.getClassLoader(),
-                new Class<?>[]{Mutiny.SessionFactory.class},
+                new Class<?>[] { Mutiny.SessionFactory.class },
                 (proxy, method, arguments) -> {
                     if (method.getName().equals("withTransaction")) {
                         return outcome;
@@ -258,7 +259,7 @@ class PersistenceAdapterObservabilityTest {
                         null,
                         "LTD",
                         "GB",
-                        LocalDate.of(1843, 1, 1),
+                        LocalDate.of(1843, Month.JANUARY, 1),
                         null),
                 TODAY,
                 NOW,
@@ -292,7 +293,7 @@ class PersistenceAdapterObservabilityTest {
                         "Ada",
                         "Lovelace",
                         null,
-                        LocalDate.of(1815, 12, 10),
+                        LocalDate.of(1815, Month.DECEMBER, 10),
                         null,
                         "GB"),
                 TODAY,
@@ -301,23 +302,20 @@ class PersistenceAdapterObservabilityTest {
     }
 
     private static PartyIdentifier identifier(PartyId partyId) {
-        return PartyIdentifier.create(
-                new PartyIdentifierId(UUID.randomUUID()),
-                TENANT_ID,
-                partyId,
-                SCHEME.id(),
-                new ProtectedIdentifierValue(
+        return PartyIdentifier.builder()
+                .identifierId(new PartyIdentifierId(UUID.randomUUID()))
+                .tenantId(TENANT_ID)
+                .partyId(partyId)
+                .identifierSchemeId(SCHEME.id())
+                .protectedValue(new ProtectedIdentifierValue(
                         "v1.protected",
                         1,
                         "c".repeat(64),
                         "**1234",
-                        new IdentifierRuleVersion(1)),
-                null,
-                null,
-                TODAY.plusYears(1),
-                false,
-                NOW,
-                METADATA.userId());
+                        new IdentifierRuleVersion(1)))
+                .expiresOn(TODAY.plusYears(1))
+                .created(NOW, METADATA.userId())
+                .build();
     }
 
     private static IdentifierScheme scheme() {
@@ -389,7 +387,8 @@ class PersistenceAdapterObservabilityTest {
     }
 
     /**
-     * Supplies constant-time comparison behavior needed by idempotency persistence construction.
+     * Supplies constant-time comparison behavior needed by idempotency persistence
+     * construction.
      */
     private static final class FingerprintDouble implements RegistrationFingerprintPort {
 

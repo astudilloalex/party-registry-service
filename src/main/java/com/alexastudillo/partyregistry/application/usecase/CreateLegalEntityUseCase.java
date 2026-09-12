@@ -1,9 +1,10 @@
 package com.alexastudillo.partyregistry.application.usecase;
 
+import com.alexastudillo.partyregistry.application.command.RegisterLegalEntityCommand;
 import com.alexastudillo.partyregistry.application.command.RegisterNaturalPersonCommand;
 import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
-import com.alexastudillo.partyregistry.application.model.NaturalPersonRegistrationCandidate;
+import com.alexastudillo.partyregistry.application.model.LegalEntityRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.ObservedOperation;
 import com.alexastudillo.partyregistry.application.model.OutboxEventCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyCreatedOutboxCandidate;
@@ -18,8 +19,8 @@ import com.alexastudillo.partyregistry.application.observability.OperationObserv
 import com.alexastudillo.partyregistry.application.support.UuidV7;
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.model.IdentifierScheme;
-import com.alexastudillo.partyregistry.domain.model.NaturalPerson;
-import com.alexastudillo.partyregistry.domain.model.NaturalPersonDetails;
+import com.alexastudillo.partyregistry.domain.model.LegalEntity;
+import com.alexastudillo.partyregistry.domain.model.LegalEntityDetails;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifier;
 import io.smallrye.mutiny.Uni;
@@ -32,19 +33,19 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Registers natural-person and initial-identifier aggregates as one idempotent outcome.
+ * Registers legal-entity and initial-identifier aggregates as one idempotent outcome.
  */
-public final class CreateNaturalPersonUseCase {
+public final class CreateLegalEntityUseCase {
 
-    private final CountryReferencePort countryReferencePort;
-    private final Clock clock;
     private final RegistrationFingerprintPort fingerprintPort;
     private final IdempotentPartyRegistrationPort registrationPort;
+    private final CountryReferencePort countryReferencePort;
     private final PartyIdentifierPreparation identifierPreparation;
+    private final Clock clock;
     private final OperationObservationPort observationPort;
 
     /**
-     * Creates the identifier-required registration workflow from application ports and policies.
+     * Creates the legal-entity registration workflow from application ports and policies.
      *
      * @param fingerprintPort keyed effective-request fingerprinting
      * @param registrationPort atomic Party registration
@@ -53,33 +54,32 @@ public final class CreateNaturalPersonUseCase {
      * @param clock operation clock
      * @param observationPort bounded operation observation
      */
-    public CreateNaturalPersonUseCase(
+    public CreateLegalEntityUseCase(
             RegistrationFingerprintPort fingerprintPort,
             IdempotentPartyRegistrationPort registrationPort,
             CountryReferencePort countryReferencePort,
             PartyIdentifierPreparation identifierPreparation,
             Clock clock,
             OperationObservationPort observationPort) {
-        this.countryReferencePort = Objects.requireNonNull(countryReferencePort, "countryReferencePort");
-        this.clock = Objects.requireNonNull(clock, "clock");
         this.fingerprintPort = Objects.requireNonNull(fingerprintPort, "fingerprintPort");
         this.registrationPort = Objects.requireNonNull(registrationPort, "registrationPort");
+        this.countryReferencePort = Objects.requireNonNull(countryReferencePort, "countryReferencePort");
         this.identifierPreparation = Objects.requireNonNull(identifierPreparation, "identifierPreparation");
+        this.clock = Objects.requireNonNull(clock, "clock");
         this.observationPort = Objects.requireNonNull(observationPort, "observationPort");
     }
 
     /**
-     * Registers or replays a natural person with one required initial identifier.
+     * Registers or replays a legal entity with one required initial identifier.
      *
-     * @param command identifier-required natural-person registration
+     * @param command identifier-required legal-entity registration
      * @return the created or replayed safe registration result
      */
-    public Uni<PartyRegistrationResult> execute(RegisterNaturalPersonCommand command) {
+    public Uni<PartyRegistrationResult> execute(RegisterLegalEntityCommand command) {
         Objects.requireNonNull(command, "command");
-
         return OperationObservation.observe(
                 command.requestMetadata(),
-                ObservedOperation.APPLICATION_NATURAL_PERSON_REGISTRATION,
+                ObservedOperation.APPLICATION_LEGAL_ENTITY_REGISTRATION,
                 observationPort,
                 () -> Uni.createFrom().item(() -> fingerprintPort.fingerprint(command))
                         .flatMap(fingerprint -> registrationPort.findCompleted(
@@ -94,7 +94,7 @@ public final class CreateNaturalPersonUseCase {
     }
 
     private Uni<PartyRegistrationResult> rejectLegacyKeyAndRegister(
-            RegisterNaturalPersonCommand command,
+            RegisterLegalEntityCommand command,
             String fingerprint) {
         return registrationPort.hasCompletedKey(
                 command.tenantId(),
@@ -107,46 +107,44 @@ public final class CreateNaturalPersonUseCase {
     }
 
     private Uni<PartyRegistrationResult> registerNew(
-            RegisterNaturalPersonCommand command,
+            RegisterLegalEntityCommand command,
             String fingerprint) {
         Instant occurredAt = clock.instant();
         LocalDate evaluatedOn = LocalDate.ofInstant(occurredAt, ZoneOffset.UTC);
 
-        return buildNaturalPerson(command, occurredAt, evaluatedOn)
-                .call(ignored -> CountryValidation.validateChangedCountry(
+        return buildLegalEntity(command, occurredAt, evaluatedOn)
+                .call(ignored -> CountryValidation.validateIncorporationCountry(
                         countryReferencePort,
                         command.requestMetadata(),
-                        null,
-                        command.birthCountryCode()))
-                .flatMap(naturalPerson -> identifierPreparation
-                        .findEligibleScheme(
-                                command.initialIdentifier().identifierSchemeCode(),
-                                naturalPerson.type())
+                        command.incorporationCountryCode()))
+                .flatMap(legalEntity -> identifierPreparation.findEligibleScheme(
+                        command.initialIdentifier().identifierSchemeCode(),
+                        legalEntity.type())
                         .map(scheme -> registrationCandidate(
                                 command,
                                 fingerprint,
-                                naturalPerson,
+                                legalEntity,
                                 scheme,
                                 occurredAt,
                                 evaluatedOn)))
-                .flatMap(registrationPort::registerNaturalPerson);
+                .flatMap(registrationPort::registerLegalEntity);
     }
 
-    private Uni<NaturalPerson> buildNaturalPerson(
-            RegisterNaturalPersonCommand command,
+    private static Uni<LegalEntity> buildLegalEntity(
+            RegisterLegalEntityCommand command,
             Instant occurredAt,
             LocalDate evaluatedOn) {
-        return Uni.createFrom().item(() -> NaturalPerson.create(
+        return Uni.createFrom().item(() -> LegalEntity.create(
                 new PartyId(UuidV7.generate(occurredAt)),
                 command.tenantId(),
                 command.displayName(),
-                new NaturalPersonDetails(
-                        command.givenNames(),
-                        command.familyNames(),
-                        command.preferredName(),
-                        command.birthDate(),
-                        command.dateOfDeath(),
-                        command.birthCountryCode()),
+                new LegalEntityDetails(
+                        command.legalName(),
+                        command.tradeName(),
+                        command.legalFormCode(),
+                        command.incorporationCountryCode(),
+                        command.incorporatedOn(),
+                        command.dissolvedOn()),
                 evaluatedOn,
                 occurredAt,
                 command.requestMetadata().userId()))
@@ -154,44 +152,44 @@ public final class CreateNaturalPersonUseCase {
                 .transform(ApplicationException::of);
     }
 
-    private NaturalPersonRegistrationCandidate registrationCandidate(
-            RegisterNaturalPersonCommand command,
+    private LegalEntityRegistrationCandidate registrationCandidate(
+            RegisterLegalEntityCommand command,
             String fingerprint,
-            NaturalPerson naturalPerson,
+            LegalEntity legalEntity,
             IdentifierScheme scheme,
             Instant occurredAt,
             LocalDate evaluatedOn) {
         PartyIdentifier identifier = identifierPreparation.createIdentifier(
                 command.tenantId(),
-                naturalPerson.partyId(),
+                legalEntity.partyId(),
                 scheme,
                 command.initialIdentifier(),
                 evaluatedOn,
                 occurredAt,
                 command.requestMetadata().userId());
-        return new NaturalPersonRegistrationCandidate(
+        return new LegalEntityRegistrationCandidate(
                 command.requestMetadata(),
                 command.idempotencyKey(),
                 fingerprint,
-                naturalPerson,
+                legalEntity,
                 scheme,
                 identifier,
-                registrationEvents(naturalPerson, identifier, scheme, command, occurredAt));
+                registrationEvents(legalEntity, identifier, scheme, command, occurredAt));
     }
 
     private static List<OutboxEventCandidate> registrationEvents(
-            NaturalPerson naturalPerson,
+            LegalEntity legalEntity,
             PartyIdentifier identifier,
             IdentifierScheme scheme,
-            RegisterNaturalPersonCommand command,
+            RegisterLegalEntityCommand command,
             Instant occurredAt) {
         return List.of(
                 new PartyCreatedOutboxCandidate(
                         UuidV7.generate(occurredAt),
-                        naturalPerson.tenantId(),
-                        naturalPerson.partyId(),
-                        naturalPerson.version(),
-                        naturalPerson.type(),
+                        legalEntity.tenantId(),
+                        legalEntity.partyId(),
+                        legalEntity.version(),
+                        legalEntity.type(),
                         occurredAt,
                         command.requestMetadata().processId(),
                         command.requestMetadata().userId()),

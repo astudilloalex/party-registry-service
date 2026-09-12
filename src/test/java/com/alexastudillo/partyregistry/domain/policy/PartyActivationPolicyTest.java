@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Verifies qualifying identifier semantics and immutable Party activation transitions.
+ * Verifies qualifying identifier semantics and immutable Party activation
+ * transitions.
  */
 class PartyActivationPolicyTest {
 
@@ -47,7 +49,7 @@ class PartyActivationPolicyTest {
             UUID.fromString("0198ce2b-d6a3-7d6e-80ba-d97b21d793e5"));
     private static final IdentifierSchemeId SCHEME_ID = new IdentifierSchemeId(
             UUID.fromString("0198d111-08f1-7e48-b291-399bbb9cd605"));
-    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, 8, 30);
+    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, Month.AUGUST, 30);
     private static final Instant CREATED_AT = Instant.parse("2026-08-30T10:00:00Z");
     private static final Instant ACTIVATED_AT = Instant.parse("2026-08-30T11:00:00Z");
     private static final PartyActivationPolicy POLICY = new PartyActivationPolicy();
@@ -143,7 +145,8 @@ class PartyActivationPolicyTest {
                 draftParty(),
                 List.of(new PartyIdentifierEvidence(
                         identifier,
-                        scheme(IdentifierSchemeStatus.ACTIVE, IdentifierSubjectType.NATURAL_PERSON))),
+                        scheme(IdentifierSchemeStatus.ACTIVE,
+                                IdentifierSubjectType.NATURAL_PERSON))),
                 EVALUATED_ON,
                 ACTIVATED_AT,
                 "activator");
@@ -165,8 +168,10 @@ class PartyActivationPolicyTest {
         Party activated = POLICY.activate(
                 legalEntity,
                 List.of(new PartyIdentifierEvidence(
-                        identifier(PartyIdentifierStatus.VERIFIED, EVALUATED_ON.plusDays(1), false),
-                        scheme(IdentifierSchemeStatus.ACTIVE, IdentifierSubjectType.LEGAL_ENTITY))),
+                        identifier(PartyIdentifierStatus.VERIFIED, EVALUATED_ON.plusDays(1),
+                                false),
+                        scheme(IdentifierSchemeStatus.ACTIVE,
+                                IdentifierSubjectType.LEGAL_ENTITY))),
                 EVALUATED_ON,
                 ACTIVATED_AT,
                 "activator");
@@ -195,21 +200,21 @@ class PartyActivationPolicyTest {
 
     @Test
     void identifierMustBelongToThePartyAndSelectedScheme() {
-        PartyIdentifier otherPartyIdentifier = PartyIdentifier.restore(
-                new PartyIdentifierId(UUID.fromString("0198d15c-0557-7a16-a6a8-e3f0ddb5b744")),
-                TENANT_ID,
-                new PartyId(UUID.fromString("0198d3e5-2fbf-7560-922e-5b586b245d1f")),
-                SCHEME_ID,
-                protectedValue(),
-                null,
-                null,
-                EVALUATED_ON.plusDays(1),
-                false,
-                PartyIdentifierStatus.VERIFIED,
-                CREATED_AT,
-                "verifier",
-                PartyIdentifierVersion.initial(),
-                AuditInfo.initial(CREATED_AT, "creator"));
+        PartyIdentifier otherPartyIdentifier = PartyIdentifier.builder()
+                .identifierId(new PartyIdentifierId(
+                        UUID.fromString("0198d15c-0557-7a16-a6a8-e3f0ddb5b744")))
+                .tenantId(TENANT_ID)
+                .partyId(new PartyId(UUID.fromString("0198d3e5-2fbf-7560-922e-5b586b245d1f")))
+                .identifierSchemeId(SCHEME_ID)
+                .protectedValue(protectedValue())
+                .expiresOn(EVALUATED_ON.plusDays(1))
+                .primary(false)
+                .status(PartyIdentifierStatus.VERIFIED)
+                .verifiedAt(CREATED_AT)
+                .verifiedBy("verifier")
+                .version(PartyIdentifierVersion.initial())
+                .auditInfo(AuditInfo.initial(CREATED_AT, "creator"))
+                .build();
 
         assertIneligible(
                 otherPartyIdentifier,
@@ -246,21 +251,21 @@ class PartyActivationPolicyTest {
             boolean primary) {
         Instant verifiedAt = status == PartyIdentifierStatus.VERIFIED ? CREATED_AT : null;
         String verifiedBy = status == PartyIdentifierStatus.VERIFIED ? "verifier" : null;
-        return PartyIdentifier.restore(
-                new PartyIdentifierId(UUID.fromString("0198d15c-0557-7a16-a6a8-e3f0ddb5b744")),
-                TENANT_ID,
-                PARTY_ID,
-                SCHEME_ID,
-                protectedValue(),
-                null,
-                null,
-                expiresOn,
-                primary,
-                status,
-                verifiedAt,
-                verifiedBy,
-                PartyIdentifierVersion.initial(),
-                AuditInfo.initial(CREATED_AT, "creator"));
+        return PartyIdentifier.builder()
+                .identifierId(new PartyIdentifierId(
+                        UUID.fromString("0198d15c-0557-7a16-a6a8-e3f0ddb5b744")))
+                .tenantId(TENANT_ID)
+                .partyId(PARTY_ID)
+                .identifierSchemeId(SCHEME_ID)
+                .protectedValue(protectedValue())
+                .expiresOn(expiresOn)
+                .primary(primary)
+                .status(status)
+                .verifiedAt(verifiedAt)
+                .verifiedBy(verifiedBy)
+                .version(PartyIdentifierVersion.initial())
+                .auditInfo(AuditInfo.initial(CREATED_AT, "creator"))
+                .build();
     }
 
     private static IdentifierScheme scheme(

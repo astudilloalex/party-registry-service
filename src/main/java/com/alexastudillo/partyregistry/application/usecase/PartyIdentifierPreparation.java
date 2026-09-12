@@ -27,14 +27,14 @@ import java.util.Objects;
 /**
  * Applies the shared eligibility, rule, and protection workflow for new Party identifiers.
  */
-final class PartyIdentifierPreparation {
+public final class PartyIdentifierPreparation {
 
     private final IdentifierSchemeRepository schemeRepository;
     private final IdentifierRuleCatalog ruleCatalog;
     private final IdentifierSchemePolicy schemePolicy;
     private final IdentifierProtectionPort protectionPort;
 
-    PartyIdentifierPreparation(
+    public PartyIdentifierPreparation(
             IdentifierSchemeRepository schemeRepository,
             IdentifierRuleCatalog ruleCatalog,
             IdentifierSchemePolicy schemePolicy,
@@ -78,18 +78,18 @@ final class PartyIdentifierPreparation {
                     input.value(),
                     rules.normalizedValue(),
                     rules.normalizationVersion()));
-            return PartyIdentifier.create(
-                    identifierId,
-                    tenantId,
-                    partyId,
-                    scheme.id(),
-                    protectedValue,
-                    input.issuerCode(),
-                    input.issuedOn(),
-                    input.expiresOn(),
-                    input.isPrimary(),
-                    occurredAt,
-                    createdBy);
+            return PartyIdentifier.builder()
+                    .identifierId(identifierId)
+                    .tenantId(tenantId)
+                    .partyId(partyId)
+                    .identifierSchemeId(scheme.id())
+                    .protectedValue(protectedValue)
+                    .issuerCode(input.issuerCode())
+                    .issuedOn(input.issuedOn())
+                    .expiresOn(input.expiresOn())
+                    .primary(input.isPrimary())
+                    .created(occurredAt, createdBy)
+                    .build();
         } catch (DomainValidationException exception) {
             throw identifierFailure(exception);
         }

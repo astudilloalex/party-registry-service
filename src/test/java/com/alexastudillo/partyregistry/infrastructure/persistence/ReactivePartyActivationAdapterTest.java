@@ -45,6 +45,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +65,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies tenant-scoped Party activation, rollback, and concurrency against PostgreSQL.
+ * Verifies tenant-scoped Party activation, rollback, and concurrency against
+ * PostgreSQL.
  */
 @QuarkusTest
 @TestProfile(PersistenceTestProfile.class)
@@ -74,7 +76,7 @@ class ReactivePartyActivationAdapterTest {
     private static final Duration REACTIVE_TIMEOUT = Duration.ofSeconds(15);
     private static final Instant CREATED_AT = Instant.parse("2026-09-04T09:00:00.123456Z");
     private static final Instant ACTIVATED_AT = Instant.parse("2026-09-04T10:00:00.654321Z");
-    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, 9, 4);
+    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, Month.SEPTEMBER, 4);
     private static final LocalDate FUTURE_EXPIRATION = EVALUATED_ON.plusYears(5);
     private static final String CREATOR = "activation-fixture";
     private static final String ACTIVATOR = "activation-operator";
@@ -157,7 +159,8 @@ class ReactivePartyActivationAdapterTest {
                         EVALUATED_ON.minusDays(1),
                         true),
                 fixture(
-                        naturalParty(tenantId, PartyRecordStatus.DRAFT, "Incompatible Evidence"),
+                        naturalParty(tenantId, PartyRecordStatus.DRAFT,
+                                "Incompatible Evidence"),
                         IdentifierSchemeTestFixtures.LEGAL_ACTIVE_ID,
                         PartyIdentifierStatus.VERIFIED,
                         FUTURE_EXPIRATION,
@@ -507,7 +510,8 @@ class ReactivePartyActivationAdapterTest {
             for (ActivationFixture fixture : fixtures) {
                 sequence = sequence.call(() -> session.persist(toEntity(fixture.party())));
                 for (PartyIdentifier identifier : fixture.identifiers()) {
-                    sequence = sequence.call(() -> session.persist(identifierMapper.toEntity(identifier)));
+                    sequence = sequence.call(
+                            () -> session.persist(identifierMapper.toEntity(identifier)));
                 }
             }
             if (event != null) {
@@ -589,26 +593,28 @@ class ReactivePartyActivationAdapterTest {
             boolean primary) {
         PartyIdentifierId identifierId = new PartyIdentifierId(UUID.randomUUID());
         boolean verified = status == PartyIdentifierStatus.VERIFIED;
-        return PartyIdentifier.restore(
-                identifierId,
-                party.tenantId(),
-                party.partyId(),
-                new com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId(schemeId),
-                new ProtectedIdentifierValue(
+        return PartyIdentifier.builder()
+                .identifierId(identifierId)
+                .tenantId(party.tenantId())
+                .partyId(party.partyId())
+                .identifierSchemeId(new com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId(
+                        schemeId))
+                .protectedValue(new ProtectedIdentifierValue(
                         "v1.test-ciphertext." + identifierId.value(),
                         1,
                         UUID.randomUUID().toString().replace("-", "").repeat(2),
                         "********1234",
-                        new IdentifierRuleVersion(1)),
-                "TEST-ISSUER",
-                EVALUATED_ON.minusYears(1),
-                expiresOn,
-                primary,
-                status,
-                verified ? CREATED_AT.plusSeconds(1) : null,
-                verified ? "fixture-verifier" : null,
-                PartyIdentifierVersion.initial(),
-                AuditInfo.initial(CREATED_AT, CREATOR));
+                        new IdentifierRuleVersion(1)))
+                .issuerCode("TEST-ISSUER")
+                .issuedOn(EVALUATED_ON.minusYears(1))
+                .expiresOn(expiresOn)
+                .primary(primary)
+                .status(status)
+                .verifiedAt(verified ? CREATED_AT.plusSeconds(1) : null)
+                .verifiedBy(verified ? "fixture-verifier" : null)
+                .version(PartyIdentifierVersion.initial())
+                .auditInfo(AuditInfo.initial(CREATED_AT, CREATOR))
+                .build();
     }
 
     private static NaturalPerson naturalParty(
@@ -626,7 +632,7 @@ class ReactivePartyActivationAdapterTest {
                         displayName,
                         "Family",
                         "Preferred",
-                        LocalDate.of(1990, 1, 1),
+                        LocalDate.of(1990, Month.JANUARY, 1),
                         null,
                         "EC"));
     }
@@ -647,7 +653,7 @@ class ReactivePartyActivationAdapterTest {
                         "Trading Name",
                         "LTD",
                         "EC",
-                        LocalDate.of(2000, 1, 1),
+                        LocalDate.of(2000, Month.JANUARY, 1),
                         null));
     }
 
