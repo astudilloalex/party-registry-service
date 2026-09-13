@@ -4,6 +4,7 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven {
         name = "GitHubPackages"
@@ -35,6 +36,8 @@ dependencies {
     implementation("io.quarkus:quarkus-smallrye-health")
     implementation("io.quarkus:quarkus-micrometer-registry-prometheus")
     implementation("io.quarkus:quarkus-opentelemetry")
+    implementation("io.quarkus:quarkus-messaging-rabbitmq")
+    implementation("io.quarkus:quarkus-scheduler")
 
     // JDBC is present only for Flyway's operational migration boundary.
     implementation("io.quarkus:quarkus-flyway")
@@ -96,6 +99,7 @@ tasks.processResources {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    maxHeapSize = "2g"
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
 
