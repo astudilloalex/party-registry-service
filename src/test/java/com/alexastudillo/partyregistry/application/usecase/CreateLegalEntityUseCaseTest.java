@@ -29,7 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static com.alexastudillo.partyregistry.application.usecase.RegistrationUseCaseTestSupport.COMPLETE_VALUE;
 import static com.alexastudillo.partyregistry.application.usecase.RegistrationUseCaseTestSupport.METADATA;
+import static com.alexastudillo.partyregistry.application.usecase.RegistrationUseCaseTestSupport.NORMALIZED_VALUE;
 import static com.alexastudillo.partyregistry.application.usecase.RegistrationUseCaseTestSupport.TODAY;
 import static com.alexastudillo.partyregistry.application.usecase.RegistrationUseCaseTestSupport.identifier;
 import static com.alexastudillo.partyregistry.application.usecase.RegistrationUseCaseTestSupport.scheme;
@@ -38,6 +40,7 @@ import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSup
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -62,8 +65,9 @@ class CreateLegalEntityUseCaseTest {
                 "registerLegalEntity"), fixture.order);
         LegalEntityResult legal = assertInstanceOf(LegalEntityResult.class, result.party());
         assertEquals(PartyType.LEGAL_ENTITY, legal.type());
-        assertEquals("Analytical Engines Limited", legal.legalName());
-        assertEquals("Analytical Engines", legal.tradeName());
+        assertEquals("ANALYTICAL ENGINES LIMITED", legal.legalName());
+        assertEquals("ANALYTICAL ENGINES", legal.tradeName());
+        assertEquals("ANALYTICAL ENGINES LIMITED", legal.displayName());
         assertEquals("LTD", legal.legalFormCode());
         assertEquals("GB", legal.incorporationCountryCode());
         assertEquals(PartyRecordStatus.DRAFT, legal.recordStatus());
@@ -82,6 +86,44 @@ class CreateLegalEntityUseCaseTest {
                 ObservedOperation.APPLICATION_LEGAL_ENTITY_REGISTRATION,
                 OperationOutcome.CREATED),
                 fixture.observationPort.completedCalls().getFirst());
+    }
+
+    @Test
+    void normalizesCountryBeforeValidationAndPreservesRawFingerprintInput() {
+        RegistrationFixture fixture = new RegistrationFixture();
+        RegisterLegalEntityCommand command = new RegisterLegalEntityCommand(
+                METADATA,
+                "legal-key",
+                "  Analytical Engines  ",
+                "  Analytical Engines Limited  ",
+                "  Engines  ",
+                "  lTd  ",
+                "  gB  ",
+                null,
+                null,
+                identifier("TEST-SCHEME"));
+
+        PartyRegistrationResult result = awaitItem(fixture.useCase.execute(command));
+
+        assertEquals(List.of(new RegistrationUseCaseTestSupport.CountryCall(METADATA, "GB")),
+                fixture.countryPort.calls);
+        LegalEntityResult party = assertInstanceOf(LegalEntityResult.class, result.party());
+        assertEquals("GB", party.incorporationCountryCode());
+        assertEquals("ANALYTICAL ENGINES LIMITED", party.legalName());
+        assertEquals("ENGINES", party.tradeName());
+        assertEquals("LTD", party.legalFormCode());
+        assertEquals("ANALYTICAL ENGINES", party.displayName());
+        assertEquals("GB", fixture.registrationPort.legalCandidates.getFirst()
+                .party().details().incorporationCountryCode());
+        assertSame(command, fixture.fingerprintPort.commands.getFirst());
+        assertEquals("  gB  ", command.incorporationCountryCode());
+        assertEquals("  Analytical Engines Limited  ", command.legalName());
+        assertEquals("  Engines  ", command.tradeName());
+        assertEquals("  lTd  ", command.legalFormCode());
+        assertEquals("  Analytical Engines  ", command.displayName());
+        assertEquals(COMPLETE_VALUE, command.initialIdentifier().value());
+        assertEquals(NORMALIZED_VALUE, fixture.protectionPort.requests.getFirst().completeValue());
+        assertEquals(NORMALIZED_VALUE, fixture.protectionPort.requests.getFirst().normalizedValue());
     }
 
     @Test

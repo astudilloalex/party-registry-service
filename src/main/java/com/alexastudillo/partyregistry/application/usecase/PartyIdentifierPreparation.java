@@ -75,7 +75,7 @@ public final class PartyIdentifierPreparation {
                     partyId,
                     identifierId,
                     scheme.id(),
-                    input.value(),
+                    rules.normalizedValue(),
                     rules.normalizedValue(),
                     rules.normalizationVersion()));
             return PartyIdentifier.builder()

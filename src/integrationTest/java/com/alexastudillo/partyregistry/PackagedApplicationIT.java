@@ -117,7 +117,7 @@ class PackagedApplicationIT {
                 .statusCode(200)
                 .body("status", equalTo(200))
                 .body("code", equalTo("successful"))
-                .body("data.displayName", equalTo("Updated Person"))
+                .body("data.displayName", equalTo("UPDATED PERSON"))
                 .body("data.version", equalTo(1));
 
         validRequest()
@@ -129,7 +129,7 @@ class PackagedApplicationIT {
                 .statusCode(200)
                 .body("status", equalTo(200))
                 .body("code", equalTo("successful"))
-                .body("data.naturalPersonDetails.preferredName", equalTo("Smoke"))
+                .body("data.naturalPersonDetails.preferredName", equalTo("SMOKE"))
                 .body("data.version", equalTo(2));
 
         assertError(
@@ -167,6 +167,114 @@ class PackagedApplicationIT {
                         .when().post("/v1/natural-person"),
                 503,
                 "dependency-unavailable");
+    }
+
+    @Test
+    void packagedApplicationNormalizesAllNaturalAndLegalTextFieldsOnWrites() {
+        Response created = validRequest()
+                .header("Idempotency-Key", "packaged-normalized-natural-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "displayName": "  native person  ",
+                          "givenNames": "  native  ",
+                          "familyNames": "  person  ",
+                          "preferredName": "  smoke  ",
+                          "birthCountryCode": "  ec  ",
+                          "birthDate": "1900-01-02",
+                          "dateOfDeath": "2000-03-04",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "TEST_NATURAL_ACTIVE",
+                            "value": "%s"
+                          }
+                        }
+                        """.formatted(identifierValue("NN")))
+                .post("/v1/natural-person")
+                .then().statusCode(201)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(201))
+                .body("code", equalTo("successful"))
+                .body("data.displayName", equalTo("NATIVE PERSON"))
+                .body("data.naturalPersonDetails", equalTo(Map.of(
+                        "givenNames", "NATIVE", "familyNames", "PERSON", "preferredName", "SMOKE",
+                        "birthCountryCode", "EC", "birthDate", "1900-01-02", "dateOfDeath", "2000-03-04")))
+                .extract().response();
+        assertEquals(Set.of("status", "code", "data"), created.jsonPath().getMap("$").keySet());
+        String partyId = created.path("data.partyId");
+
+        validRequest().header("If-Match", "0").contentType(JSON)
+                .body("""
+                        {
+                          "givenNames": "  replaced  ",
+                          "familyNames": "  person  ",
+                          "preferredName": "  replacement  ",
+                          "birthCountryCode": "  eC  ",
+                          "birthDate": "1901-02-03",
+                          "dateOfDeath": "2001-04-05"
+                        }
+                        """)
+                .put("/v1/natural-person/{partyId}", partyId)
+                .then().statusCode(200)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(200))
+                .body("code", equalTo("successful"))
+                .body("data.version", equalTo(1))
+                .body("data.displayName", equalTo("REPLACED PERSON"))
+                .body("data.naturalPersonDetails", equalTo(Map.of(
+                        "givenNames", "REPLACED", "familyNames", "PERSON", "preferredName", "REPLACEMENT",
+                        "birthCountryCode", "EC", "birthDate", "1901-02-03", "dateOfDeath", "2001-04-05")));
+
+        validRequest().header("If-Match", "1").contentType(JSON)
+                .body("""
+                        {
+                          "givenNames": "  patched  ",
+                          "familyNames": "  name  ",
+                          "preferredName": "  updated  ",
+                          "birthCountryCode": "  Ec  ",
+                          "birthDate": "1902-03-04",
+                          "dateOfDeath": "2002-05-06"
+                        }
+                        """)
+                .patch("/v1/natural-person/{partyId}", partyId)
+                .then().statusCode(200)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(200))
+                .body("code", equalTo("successful"))
+                .body("data.version", equalTo(2))
+                .body("data.displayName", equalTo("PATCHED NAME"))
+                .body("data.naturalPersonDetails", equalTo(Map.of(
+                        "givenNames", "PATCHED", "familyNames", "NAME", "preferredName", "UPDATED",
+                        "birthCountryCode", "EC", "birthDate", "1902-03-04", "dateOfDeath", "2002-05-06")));
+
+        Response legal = validRequest()
+                .header("Idempotency-Key", "packaged-normalized-legal-" + UUID.randomUUID())
+                .contentType(JSON)
+                .body("""
+                        {
+                          "displayName": "  native company  ",
+                          "legalName": "  native company ltd  ",
+                          "tradeName": "  native trading  ",
+                          "legalFormCode": "  ltd  ",
+                          "incorporationCountryCode": "  ec  ",
+                          "incorporatedOn": "2000-01-02",
+                          "dissolvedOn": "2020-03-04",
+                          "initialIdentifier": {
+                            "identifierSchemeCode": "TEST_LEGAL_ACTIVE",
+                            "value": "%s"
+                          }
+                        }
+                        """.formatted(identifierValue("NL")))
+                .post("/v1/legal-entity")
+                .then().statusCode(201)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(201))
+                .body("code", equalTo("successful"))
+                .body("data.displayName", equalTo("NATIVE COMPANY"))
+                .body("data.legalEntityDetails", equalTo(Map.of(
+                        "legalName", "NATIVE COMPANY LTD", "tradeName", "NATIVE TRADING", "legalFormCode", "LTD",
+                        "incorporationCountryCode", "EC", "incorporatedOn", "2000-01-02", "dissolvedOn", "2020-03-04")))
+                .extract().response();
+        assertEquals(Set.of("status", "code", "data"), legal.jsonPath().getMap("$").keySet());
     }
 
     @Test

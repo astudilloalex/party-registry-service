@@ -105,7 +105,7 @@ class PartyRegistrationContractTest {
                                 LegalEntityResult.class,
                                 PartyDetailsResult.fromAggregate(legalEntity()));
                 assertEquals(PartyType.LEGAL_ENTITY, legalResult.type());
-                assertEquals("Analytical Engines Ltd", legalResult.legalName());
+                assertEquals("ANALYTICAL ENGINES LTD", legalResult.legalName());
                 assertSafeResultComponents(PartyIdentifierResult.class);
                 assertSafeResultComponents(PartyRegistrationResult.class);
                 assertSafeResultComponents(NaturalPersonResult.class);

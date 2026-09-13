@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -23,7 +24,7 @@ class LegalEntityTest {
             UUID.fromString("0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1"));
     private static final TenantId TENANT_ID = new TenantId(
             UUID.fromString("0198ce2b-d6a3-7d6e-80ba-d97b21d793e5"));
-    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, 8, 30);
+    private static final LocalDate EVALUATED_ON = LocalDate.of(2026, Month.AUGUST, 30);
     private static final Instant CREATED_AT = Instant.parse("2026-08-30T10:00:00Z");
 
     @Test
@@ -33,7 +34,7 @@ class LegalEntityTest {
                 "Analytical Engines",
                 "LTD",
                 "GB",
-                LocalDate.of(2020, 1, 15),
+                LocalDate.of(2020, Month.JANUARY, 15),
                 null);
 
         LegalEntity entity = LegalEntity.create(
@@ -48,14 +49,17 @@ class LegalEntityTest {
         assertEquals(PartyType.LEGAL_ENTITY, entity.type());
         assertEquals(PartyRecordStatus.DRAFT, entity.recordStatus());
         assertEquals(PartyVersion.initial(), entity.version());
-        assertEquals(details, entity.details());
+        assertEquals(details(
+                "ANALYTICAL ENGINES LTD.", "ANALYTICAL ENGINES", "LTD", "GB",
+                LocalDate.of(2020, Month.JANUARY, 15), null), entity.details());
+        assertEquals("ANALYTICAL ENGINES", entity.displayName());
         assertEquals(AuditInfo.initial(CREATED_AT, "creator"), entity.auditInfo());
         assertFalse(Arrays.stream(LegalEntity.class.getDeclaredFields())
                 .anyMatch(field -> field.getType() == NaturalPersonDetails.class));
     }
 
     @Test
-    void derivesDisplayNameFromTrimmedLegalName() {
+    void derivesDisplayNameFromCanonicalLegalName() {
         LegalEntity entity = LegalEntity.create(
                 PARTY_ID,
                 TENANT_ID,
@@ -65,7 +69,8 @@ class LegalEntityTest {
                 CREATED_AT,
                 "creator");
 
-        assertEquals("Analytical Engines Ltd.", entity.displayName());
+        assertEquals("ANALYTICAL ENGINES LTD.", entity.displayName());
+        assertEquals("ANALYTICAL ENGINES LTD.", entity.details().legalName());
         assertNull(entity.details().tradeName());
     }
 
@@ -123,8 +128,8 @@ class LegalEntityTest {
                         null,
                         null,
                         "GB",
-                        LocalDate.of(2020, 1, 2),
-                        LocalDate.of(2020, 1, 1)));
+                        LocalDate.of(2020, Month.JANUARY, 2),
+                        LocalDate.of(2020, Month.JANUARY, 1)));
 
         LegalEntityDetails futureIncorporation = details(
                 "Legal", null, null, "GB", EVALUATED_ON.plusDays(1), null);
@@ -140,7 +145,7 @@ class LegalEntityTest {
 
     @Test
     void acceptsEqualIncorporationAndDissolutionDates() {
-        LocalDate date = LocalDate.of(2020, 1, 1);
+        LocalDate date = LocalDate.of(2020, Month.JANUARY, 1);
 
         LegalEntity entity = create(details("Legal", null, null, "GB", date, date));
 
@@ -190,10 +195,12 @@ class LegalEntityTest {
                         PARTY_ID, TENANT_ID, null, details, EVALUATED_ON, CREATED_AT, " "));
         assertViolation(DomainViolation.PARTY_STATUS_REQUIRED,
                 () -> LegalEntity.restore(
-                        PARTY_ID, TENANT_ID, "Legal", null, PartyVersion.initial(), audit, details));
+                        PARTY_ID, TENANT_ID, "Legal", null, PartyVersion.initial(), audit,
+                        details));
         assertViolation(DomainViolation.PARTY_VERSION_REQUIRED,
                 () -> LegalEntity.restore(
-                        PARTY_ID, TENANT_ID, "Legal", PartyRecordStatus.DRAFT, null, audit, details));
+                        PARTY_ID, TENANT_ID, "Legal", PartyRecordStatus.DRAFT, null, audit,
+                        details));
         assertViolation(DomainViolation.AUDIT_REQUIRED,
                 () -> LegalEntity.restore(
                         PARTY_ID,
@@ -206,14 +213,15 @@ class LegalEntityTest {
     }
 
     @Test
-    void restoresPersistedLegalEntityState() {
-        LegalEntityDetails details = details("Legal", null, null, "GB", null, null);
+    void restoresPersistedLegalEntityWithoutNormalizingText() {
+        LegalEntityDetails details = details(
+                " Legal Name ", " Trade Name ", " Ltd ", "GB", null, null);
         AuditInfo audit = AuditInfo.initial(CREATED_AT, "creator");
 
         LegalEntity restored = LegalEntity.restore(
                 PARTY_ID,
                 TENANT_ID,
-                "Legal",
+                " Custom Legal Display ",
                 PartyRecordStatus.ACTIVE,
                 new PartyVersion(4),
                 audit,
@@ -222,6 +230,7 @@ class LegalEntityTest {
         assertEquals(PartyType.LEGAL_ENTITY, restored.type());
         assertEquals(PartyRecordStatus.ACTIVE, restored.recordStatus());
         assertEquals(new PartyVersion(4), restored.version());
+        assertEquals(" Custom Legal Display ", restored.displayName());
         assertEquals(details, restored.details());
     }
 

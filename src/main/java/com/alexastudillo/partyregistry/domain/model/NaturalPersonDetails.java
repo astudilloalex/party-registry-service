@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.domain.model;
 
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 
 import java.time.LocalDate;
 
@@ -42,6 +43,24 @@ public record NaturalPersonDetails(
     }
 
     /**
+     * Normalizes newly supplied details before enforcing their invariants; restoration uses the constructor unchanged.
+     */
+    public static NaturalPersonDetails forWrite(
+            String givenNames, String familyNames, String preferredName,
+            LocalDate birthDate, LocalDate dateOfDeath, String birthCountryCode) {
+        return new NaturalPersonDetails(
+                PartyTextNormalization.uppercase(givenNames),
+                PartyTextNormalization.uppercase(familyNames),
+                PartyTextNormalization.uppercase(preferredName),
+                birthDate, dateOfDeath, PartyTextNormalization.countryCode(birthCountryCode));
+    }
+
+    /** Returns canonical details for a complete new or replacement representation. */
+    public NaturalPersonDetails normalizedForWrite() {
+        return forWrite(givenNames, familyNames, preferredName, birthDate, dateOfDeath, birthCountryCode);
+    }
+
+    /**
      * Validates lifecycle dates relative to the date on which an operation is evaluated.
      *
      * @param evaluatedOn operation evaluation date
@@ -66,7 +85,7 @@ public record NaturalPersonDetails(
     }
 
     public String derivedDisplayName() {
-        return givenNames.strip() + " " + familyNames.strip();
+        return PartyTextNormalization.uppercase(givenNames) + " " + PartyTextNormalization.uppercase(familyNames);
     }
 
     private static void validateRequiredName(

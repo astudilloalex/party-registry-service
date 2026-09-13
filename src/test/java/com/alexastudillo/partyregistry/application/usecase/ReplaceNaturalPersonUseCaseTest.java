@@ -50,9 +50,9 @@ class ReplaceNaturalPersonUseCaseTest {
                 null,
                 null)));
 
-        assertEquals("Augusta Ada", result.givenNames());
-        assertEquals("King", result.familyNames());
-        assertEquals("Augusta Ada King", result.displayName());
+        assertEquals("AUGUSTA ADA", result.givenNames());
+        assertEquals("KING", result.familyNames());
+        assertEquals("AUGUSTA ADA KING", result.displayName());
         assertNull(result.preferredName());
         assertNull(result.birthDate());
         assertNull(result.dateOfDeath());
@@ -67,24 +67,28 @@ class ReplaceNaturalPersonUseCaseTest {
     }
 
     @Test
-    void validatesAChangedNonNullCountryBeforePersistence() {
+    void normalizesAChangedCountryBeforeValidationAndPersistence() {
         var repository = repositoryWithCurrentPerson();
         var countryPort = new UseCaseTestSupport.CountryReferenceDouble();
         var useCase = new ReplaceNaturalPersonUseCase(repository, countryPort, CLOCK);
 
-        NaturalPersonResult result = awaitItem(useCase.execute(command(
+        ReplaceNaturalPersonCommand command = command(
                 new PartyVersion(0),
                 "Ada",
                 "Lovelace",
                 "Ada",
                 LocalDate.of(1815, Month.DECEMBER, 10),
                 LocalDate.of(1852, Month.NOVEMBER, 27),
-                "EC")));
+                "  eC  ");
+
+        NaturalPersonResult result = awaitItem(useCase.execute(command));
 
         assertEquals("EC", result.birthCountryCode());
         assertEquals(java.util.List.of("EC"), countryPort.codes);
         assertEquals(METADATA, countryPort.calls.getFirst().requestMetadata());
         assertEquals(1, repository.updateCalls.size());
+        assertEquals("EC", repository.updateCalls.getFirst().updatedPerson().details().birthCountryCode());
+        assertEquals("  eC  ", command.birthCountryCode());
     }
 
     @Test

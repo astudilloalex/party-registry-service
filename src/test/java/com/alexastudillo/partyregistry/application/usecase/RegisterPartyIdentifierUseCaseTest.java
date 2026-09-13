@@ -210,7 +210,7 @@ class RegisterPartyIdentifierUseCaseTest {
             assertEquals(List.of("partyLookup", "scheme", "protect", "registerIdentifier"), fixture.order);
             assertEquals(1, fixture.protectionPort.requests.size());
             var protectionRequest = fixture.protectionPort.requests.getFirst();
-            assertEquals(completeValue, protectionRequest.completeValue());
+            assertEquals(value, protectionRequest.completeValue());
             assertEquals(value, protectionRequest.normalizedValue());
             assertEquals(1, protectionRequest.normalizationVersion().value());
             assertEquals(1, fixture.registrationPort.candidates.size());
@@ -267,7 +267,7 @@ class RegisterPartyIdentifierUseCaseTest {
                 assertEquals(List.of("partyLookup", "scheme", "protect", "registerIdentifier"), fixture.order);
                 assertEquals(1, fixture.protectionPort.requests.size());
                 var protectionRequest = fixture.protectionPort.requests.getFirst();
-                assertEquals(completeValue, protectionRequest.completeValue());
+                assertEquals(value, protectionRequest.completeValue());
                 assertEquals(value, protectionRequest.normalizedValue());
                 assertEquals(1, protectionRequest.normalizationVersion().value());
                 assertEquals(1, fixture.registrationPort.candidates.size());
@@ -314,7 +314,7 @@ class RegisterPartyIdentifierUseCaseTest {
             assertEquals(List.of("partyLookup", "scheme", "protect", "registerIdentifier"), fixture.order);
             assertEquals(1, fixture.protectionPort.requests.size());
             var protectionRequest = fixture.protectionPort.requests.getFirst();
-            assertEquals(value, protectionRequest.completeValue());
+            assertEquals(value.strip().toUpperCase(Locale.ROOT), protectionRequest.completeValue());
             assertEquals(value.strip().toUpperCase(Locale.ROOT), protectionRequest.normalizedValue());
             assertEquals(1, fixture.registrationPort.candidates.size());
             assertEquals(PartyIdentifierStatus.PENDING_VERIFICATION, result.status());

@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.domain.model;
 
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -72,11 +73,11 @@ public final class NaturalPerson implements Party {
         NaturalPersonDetails requiredDetails = require(
                 details,
                 DomainViolation.NATURAL_PERSON_DETAILS_REQUIRED,
-                DETAILS_REQUIRED_MESSAGE);
+                DETAILS_REQUIRED_MESSAGE).normalizedForWrite();
         requiredDetails.validateAt(evaluatedOn);
         String effectiveDisplayName = displayName == null
                 ? requiredDetails.derivedDisplayName()
-                : displayName;
+                : PartyTextNormalization.uppercase(displayName);
         return new NaturalPerson(
                 partyId,
                 tenantId,
@@ -142,7 +143,7 @@ public final class NaturalPerson implements Party {
         NaturalPersonDetails requiredReplacement = require(
                 replacement,
                 DomainViolation.NATURAL_PERSON_DETAILS_REQUIRED,
-                "Replacement details are required");
+                "Replacement details are required").normalizedForWrite();
         requiredReplacement.validateAt(evaluatedOn);
         String replacementDisplayName = namesChanged(requiredReplacement)
                 ? requiredReplacement.derivedDisplayName()
@@ -189,12 +190,14 @@ public final class NaturalPerson implements Party {
         }
 
         NaturalPersonDetails patchedDetails = new NaturalPersonDetails(
-                select(patch.givenNames(), details.givenNames()),
-                select(patch.familyNames(), details.familyNames()),
-                select(patch.preferredName(), details.preferredName()),
+                selectText(patch.givenNames(), details.givenNames()),
+                selectText(patch.familyNames(), details.familyNames()),
+                selectText(patch.preferredName(), details.preferredName()),
                 select(patch.birthDate(), details.birthDate()),
                 select(patch.dateOfDeath(), details.dateOfDeath()),
-                select(patch.birthCountryCode(), details.birthCountryCode()));
+                patch.birthCountryCode().isPresent()
+                        ? PartyTextNormalization.countryCode(patch.birthCountryCode().value())
+                        : details.birthCountryCode());
         patchedDetails.validateAt(evaluatedOn);
         String patchedDisplayName = namesChanged(patchedDetails)
                 ? patchedDetails.derivedDisplayName()
@@ -276,8 +279,10 @@ public final class NaturalPerson implements Party {
     }
 
     private boolean namesChanged(NaturalPersonDetails candidate) {
-        return !Objects.equals(details.givenNames(), candidate.givenNames())
-                || !Objects.equals(details.familyNames(), candidate.familyNames());
+        return !Objects.equals(PartyTextNormalization.uppercase(details.givenNames()),
+                        PartyTextNormalization.uppercase(candidate.givenNames()))
+                || !Objects.equals(PartyTextNormalization.uppercase(details.familyNames()),
+                        PartyTextNormalization.uppercase(candidate.familyNames()));
     }
 
     private static String validateDisplayName(String value) {
@@ -296,6 +301,10 @@ public final class NaturalPerson implements Party {
 
     private static <T> @Nullable T select(FieldUpdate<T> update, @Nullable T currentValue) {
         return update.isPresent() ? update.value() : currentValue;
+    }
+
+    private static @Nullable String selectText(FieldUpdate<String> update, @Nullable String currentValue) {
+        return update.isPresent() ? PartyTextNormalization.uppercase(update.value()) : currentValue;
     }
 
     private static <T> T require(T value, DomainViolation violation, String message) {

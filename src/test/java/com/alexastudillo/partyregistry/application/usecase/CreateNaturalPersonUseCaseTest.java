@@ -41,6 +41,7 @@ import static com.alexastudillo.partyregistry.application.usecase.UseCaseTestSup
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -72,6 +73,42 @@ class CreateNaturalPersonUseCaseTest {
                                                 ObservedOperation.APPLICATION_NATURAL_PERSON_REGISTRATION,
                                                 OperationOutcome.CREATED)),
                                 fixture.observationPort.completedCalls());
+        }
+
+        @Test
+        void normalizesCountryBeforeValidationAndPreservesRawFingerprintInput() {
+                RegistrationFixture fixture = new RegistrationFixture();
+                RegisterNaturalPersonCommand command = new RegisterNaturalPersonCommand(
+                                METADATA,
+                                "natural-key",
+                                "  Ada L.  ",
+                                "  aDa  ",
+                                "  lOvElAcE  ",
+                                "  Ada  ",
+                                null,
+                                null,
+                                "  gB  ",
+                                identifier("TEST-SCHEME"));
+
+                PartyRegistrationResult result = awaitItem(fixture.useCase.execute(command));
+
+                assertEquals(List.of(new RegistrationUseCaseTestSupport.CountryCall(METADATA, "GB")),
+                                fixture.countryPort.calls);
+                NaturalPersonResult party = assertInstanceOf(NaturalPersonResult.class, result.party());
+                assertEquals("GB", party.birthCountryCode());
+                assertEquals("ADA", party.givenNames());
+                assertEquals("LOVELACE", party.familyNames());
+                assertEquals("ADA", party.preferredName());
+                assertEquals("ADA L.", party.displayName());
+                assertEquals("GB", fixture.registrationPort.naturalCandidates.getFirst()
+                                .party().details().birthCountryCode());
+                assertSame(command, fixture.fingerprintPort.commands.getFirst());
+                assertEquals("  gB  ", command.birthCountryCode());
+                assertEquals("  aDa  ", command.givenNames());
+                assertEquals("  lOvElAcE  ", command.familyNames());
+                assertEquals("  Ada  ", command.preferredName());
+                assertEquals("  Ada L.  ", command.displayName());
+                assertEquals(COMPLETE_VALUE, command.initialIdentifier().value());
         }
 
         @Test
@@ -336,8 +373,10 @@ class CreateNaturalPersonUseCaseTest {
                 assertEquals(FINGERPRINT, candidate.registrationFingerprint());
                 assertEquals(NORMALIZED_VALUE,
                                 fixture.protectionPort.requests.getFirst().normalizedValue());
-                assertEquals(COMPLETE_VALUE,
+                assertEquals(NORMALIZED_VALUE,
                                 fixture.protectionPort.requests.getFirst().completeValue());
+                assertEquals(COMPLETE_VALUE,
+                                fixture.fingerprintPort.commands.getFirst().initialIdentifier().value());
                 assertEquals(2, candidate.outboxCandidates().size());
                 assertInstanceOf(PartyCreatedOutboxCandidate.class, candidate.outboxCandidates().get(0));
                 assertInstanceOf(PartyIdentifierCreatedOutboxCandidate.class, candidate.outboxCandidates().get(1));

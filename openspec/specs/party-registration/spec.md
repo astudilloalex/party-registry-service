@@ -88,6 +88,8 @@ THE Party Registry SHALL require its complete value, length, format, issuing met
 IF the identifier fails scheme normalization or validation, exceeds scheme length limits, has incoherent validity dates, or is already expired,
 THEN THE Party Registry SHALL reject the registration with HTTP `422` and code `unprocessable-entity` without creating a Party or identifier.
 
+For new registrations, the plaintext selected for identifier encryption SHALL be the validated normalized value, not the original submitted representation. Existing encrypted identifiers and idempotency results SHALL NOT be rewritten by this change.
+
 IF a dependency required to validate or protect the identifier is unavailable,
 THEN THE Party Registry SHALL reject the registration with HTTP `503` and code `dependency-unavailable` without creating a Party or identifier.
 
@@ -307,6 +309,7 @@ THE Party Registry SHALL include the identifier ID, Party ID, scheme ID, scheme 
 WHEN a Party already exists,
 THE Party Registry SHALL continue to accept eligible additional identifiers through `POST /v1/parties/{partyId}/identifiers` without recreating or reclassifying the Party.
 Expiration SHALL be optional for every additional identifier, regardless of legacy scheme metadata. Supplied dates SHALL still satisfy date-order and non-expiration rules.
+The plaintext selected for encryption SHALL use the same validated normalized representation as initial identifiers.
 
 #### Scenario: Additional identifier is registered after creation
 
@@ -314,3 +317,23 @@ Expiration SHALL be optional for every additional identifier, regardless of lega
 - **WHEN** an eligible different identifier is submitted to `POST /v1/parties/{partyId}/identifiers`
 - **THEN** the additional identifier is associated with the existing Party
 - **AND** the Party ID and immutable Party type remain unchanged
+
+### Requirement: Canonical text on new writes
+
+The registry SHALL remove exterior whitespace and convert newly written natural-person names, preferred names, legal names, trade names, legal-form codes, display names, and country codes to locale-independent uppercase before validation and persistence. Accents, punctuation, interior whitespace, and nulls SHALL be preserved. Country input SHALL contain two ASCII letters after stripping and SHALL be uppercase when sent for geographic validation.
+
+Creation and complete replacement SHALL normalize the supplied representations. Partial updates SHALL normalize only supplied values, retaining omitted fields and allowing explicit null to clear nullable fields. Historical reads, encrypted values, and stored replay results SHALL remain unchanged. Idempotency fingerprints SHALL continue to compare the original parsed command values rather than the normalized write representation.
+
+#### Scenario: Mixed-case text is canonicalized for storage
+
+- **GIVEN** an otherwise valid new registration containing names and country codes with lowercase letters and exterior whitespace
+- **WHEN** the registration is accepted
+- **THEN** the stored text and resulting response use trimmed uppercase values
+- **AND** identifier encryption receives the validated normalized plaintext
+
+#### Scenario: Partial updates preserve untouched historical text
+
+- **GIVEN** a stored Party retains historical mixed-case fields
+- **WHEN** a partial update supplies only a preferred name
+- **THEN** the preferred name is trimmed and uppercased
+- **AND** omitted fields and any saved idempotency result remain unchanged

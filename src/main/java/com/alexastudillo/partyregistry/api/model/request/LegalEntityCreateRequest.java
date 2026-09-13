@@ -1,5 +1,6 @@
 package com.alexastudillo.partyregistry.api.model.request;
 
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,4 +27,19 @@ public record LegalEntityCreateRequest(
         @Nullable LocalDate incorporatedOn,
         @Nullable LocalDate dissolvedOn,
         @NotNull(message = "initial-identifier-required") @Valid InitialPartyIdentifierCreateRequest initialIdentifier) {
+
+    /**
+     * Returns a normalized validation copy without changing the original idempotency input.
+     */
+    public LegalEntityCreateRequest normalizedForValidation() {
+        return new LegalEntityCreateRequest(
+                PartyTextNormalization.uppercase(displayName),
+                PartyTextNormalization.uppercase(legalName),
+                PartyTextNormalization.uppercase(tradeName),
+                PartyTextNormalization.uppercase(legalFormCode),
+                PartyTextNormalization.countryCode(incorporationCountryCode),
+                incorporatedOn,
+                dissolvedOn,
+                initialIdentifier);
+    }
 }

@@ -23,6 +23,14 @@ Production code is split into inward-facing Clean Architecture packages:
 
 ArchUnit verifies layer direction, framework isolation for the inner layers, and package cycles.
 
+### Write normalization
+
+New writes strip exterior whitespace and uppercase natural-person names and preferred names, legal names/trade names/legal-form codes, supplied display names, and country codes using `Locale.ROOT`. Accents, punctuation, interior whitespace, and nulls are preserved. Country input must be two ASCII letters after stripping. Validation applies to canonical values before persistence and geographic-reference calls receive canonical country codes.
+
+Creation request values are retained unchanged for the existing idempotency fingerprint; the API validates a separate normalized copy. Reads and idempotency snapshots do not rewrite historical text. PATCH normalizes only supplied values and preserves omitted fields. No historical backfill or new nationality/legal-update endpoints are included; nationality country codes follow the documented normalization rule when that flow is implemented.
+
+For new identifiers, Application supplies the validated, stripped uppercase plaintext to encryption. Lookup hashes and masks already use that same canonical value. Ciphertext/Base64 must never be uppercased, and previously encrypted values are not rewritten. Expiration remains optional for every document.
+
 ## Database
 
 Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, and V4 makes expiration optional. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.

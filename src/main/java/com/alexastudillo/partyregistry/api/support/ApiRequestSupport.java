@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 
 /**
@@ -65,6 +66,22 @@ public class ApiRequestSupport {
             }
             throw new ApiResponseException(validationCode(violations.getFirst()));
         }
+        return request;
+    }
+
+    /**
+     * Validates a normalized copy while retaining original values for command mapping and idempotency.
+     *
+     * @param request original request body
+     * @param validationCopy function producing a separate validation representation
+     * @param <T> request body type
+     * @return the unchanged original request after successful validation
+     */
+    public <T> T validateBody(T request, UnaryOperator<T> validationCopy) {
+        if (request == null) {
+            return validateBody(request);
+        }
+        validateBody(validationCopy.apply(request));
         return request;
     }
 

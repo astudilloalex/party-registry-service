@@ -10,6 +10,16 @@ import java.util.Objects;
 
 /**
  * Supplies transient identifier material and authenticated identities for protection.
+ * Registration workflows supply the scheme-normalized value for both encryption
+ * plaintext and indexing; the original command value remains separate for idempotency.
+ *
+ * @param tenantId tenant identity for indexing and authenticated encryption
+ * @param partyId owning Party identity for authenticated encryption
+ * @param identifierId identifier identity for authenticated encryption
+ * @param identifierSchemeId scheme identity for authenticated encryption
+ * @param completeValue encryption plaintext to preserve verbatim, not necessarily the submitted value
+ * @param normalizedValue scheme-normalized value used for the lookup hash and mask
+ * @param normalizationVersion applied normalization rule version
  */
 public record IdentifierProtectionRequest(
         TenantId tenantId,

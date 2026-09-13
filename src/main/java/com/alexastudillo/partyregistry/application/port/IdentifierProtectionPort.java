@@ -9,7 +9,10 @@ import com.alexastudillo.partyregistry.domain.model.ProtectedIdentifierValue;
 public interface IdentifierProtectionPort {
 
     /**
-     * Encrypts, fingerprints, and masks one validated identifier without I/O.
+     * Encrypts {@link IdentifierProtectionRequest#completeValue()} verbatim and derives
+     * the lookup hash and mask from {@link IdentifierProtectionRequest#normalizedValue()}
+     * without I/O. Callers own normalization and supply the scheme-normalized value as
+     * encryption plaintext for new registrations; adapters must not normalize it again.
      *
      * @param request transient identifier protection input
      * @return opaque persistence material and a safe mask

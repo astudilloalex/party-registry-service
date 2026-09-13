@@ -175,47 +175,51 @@ public class NaturalPersonResource {
     private RegisterNaturalPersonCommand createCommand(
             NaturalPersonCreateRequest request,
             HttpHeaders headers) {
-        NaturalPersonCreateRequest validRequest = requestSupport.validateBody(request);
+        NaturalPersonCreateRequest original = requestSupport.validateBody(
+                request, NaturalPersonCreateRequest::normalizedForValidation);
         String idempotencyKey = requestSupport.requireIdempotencyKey(headers);
+        // Idempotency compares original input, not the normalized validation copy.
         return new RegisterNaturalPersonCommand(
                 metadataContext.metadata(),
                 idempotencyKey,
-                validRequest.displayName(),
-                validRequest.givenNames(),
-                validRequest.familyNames(),
-                validRequest.preferredName(),
-                validRequest.birthDate(),
-                validRequest.dateOfDeath(),
-                validRequest.birthCountryCode(),
-                identifierMapper.toInput(validRequest.initialIdentifier()));
+                original.displayName(),
+                original.givenNames(),
+                original.familyNames(),
+                original.preferredName(),
+                original.birthDate(),
+                original.dateOfDeath(),
+                original.birthCountryCode(),
+                identifierMapper.toInput(original.initialIdentifier()));
     }
 
     private ReplaceNaturalPersonCommand replaceCommand(
             String partyId,
             NaturalPersonPutRequest request,
             HttpHeaders headers) {
-        NaturalPersonPutRequest validRequest = requestSupport.validateBody(request);
+        NaturalPersonPutRequest original = requestSupport.validateBody(
+                request, NaturalPersonPutRequest::normalizedForValidation);
         return new ReplaceNaturalPersonCommand(
                 metadataContext.metadata(),
                 requestSupport.parsePartyId(partyId),
                 requestSupport.requireExpectedVersion(headers),
-                validRequest.givenNames(),
-                validRequest.familyNames(),
-                validRequest.preferredName(),
-                validRequest.birthDate(),
-                validRequest.dateOfDeath(),
-                validRequest.birthCountryCode());
+                original.givenNames(),
+                original.familyNames(),
+                original.preferredName(),
+                original.birthDate(),
+                original.dateOfDeath(),
+                original.birthCountryCode());
     }
 
     private PatchNaturalPersonCommand patchCommand(
             String partyId,
             NaturalPersonPatchRequest request,
             HttpHeaders headers) {
-        NaturalPersonPatchRequest validRequest = requestSupport.validateBody(request);
+        NaturalPersonPatchRequest original = requestSupport.validateBody(
+                request, NaturalPersonPatchRequest::normalizedForValidation);
         return new PatchNaturalPersonCommand(
                 metadataContext.metadata(),
                 requestSupport.parsePartyId(partyId),
                 requestSupport.requireExpectedVersion(headers),
-                validRequest.toPatch());
+                original.toPatch());
     }
 }

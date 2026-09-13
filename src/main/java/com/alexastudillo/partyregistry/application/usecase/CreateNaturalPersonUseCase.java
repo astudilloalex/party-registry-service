@@ -32,7 +32,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Registers natural-person and initial-identifier aggregates as one idempotent outcome.
+ * Registers natural-person and initial-identifier aggregates as one idempotent
+ * outcome.
  */
 public final class CreateNaturalPersonUseCase {
 
@@ -44,14 +45,16 @@ public final class CreateNaturalPersonUseCase {
     private final OperationObservationPort observationPort;
 
     /**
-     * Creates the identifier-required registration workflow from application ports and policies.
+     * Creates the identifier-required registration workflow from application ports
+     * and policies.
      *
-     * @param fingerprintPort keyed effective-request fingerprinting
-     * @param registrationPort atomic Party registration
-     * @param countryReferencePort country validation dependency
-     * @param identifierPreparation shared identifier eligibility and protection coordinator
-     * @param clock operation clock
-     * @param observationPort bounded operation observation
+     * @param fingerprintPort       keyed effective-request fingerprinting
+     * @param registrationPort      atomic Party registration
+     * @param countryReferencePort  country validation dependency
+     * @param identifierPreparation shared identifier eligibility and protection
+     *                              coordinator
+     * @param clock                 operation clock
+     * @param observationPort       bounded operation observation
      */
     public CreateNaturalPersonUseCase(
             RegistrationFingerprintPort fingerprintPort,
@@ -113,11 +116,11 @@ public final class CreateNaturalPersonUseCase {
         LocalDate evaluatedOn = LocalDate.ofInstant(occurredAt, ZoneOffset.UTC);
 
         return buildNaturalPerson(command, occurredAt, evaluatedOn)
-                .call(ignored -> CountryValidation.validateChangedCountry(
+                .call(naturalPerson -> CountryValidation.validateChangedCountry(
                         countryReferencePort,
                         command.requestMetadata(),
                         null,
-                        command.birthCountryCode()))
+                        naturalPerson.details().birthCountryCode()))
                 .flatMap(naturalPerson -> identifierPreparation
                         .findEligibleScheme(
                                 command.initialIdentifier().identifierSchemeCode(),
@@ -140,7 +143,7 @@ public final class CreateNaturalPersonUseCase {
                 new PartyId(UuidV7.generate(occurredAt)),
                 command.tenantId(),
                 command.displayName(),
-                new NaturalPersonDetails(
+                NaturalPersonDetails.forWrite(
                         command.givenNames(),
                         command.familyNames(),
                         command.preferredName(),

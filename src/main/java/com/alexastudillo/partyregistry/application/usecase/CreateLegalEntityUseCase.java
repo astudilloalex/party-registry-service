@@ -33,7 +33,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Registers legal-entity and initial-identifier aggregates as one idempotent outcome.
+ * Registers legal-entity and initial-identifier aggregates as one idempotent
+ * outcome.
  */
 public final class CreateLegalEntityUseCase {
 
@@ -45,14 +46,16 @@ public final class CreateLegalEntityUseCase {
     private final OperationObservationPort observationPort;
 
     /**
-     * Creates the legal-entity registration workflow from application ports and policies.
+     * Creates the legal-entity registration workflow from application ports and
+     * policies.
      *
-     * @param fingerprintPort keyed effective-request fingerprinting
-     * @param registrationPort atomic Party registration
-     * @param countryReferencePort country validation dependency
-     * @param identifierPreparation shared identifier eligibility and protection coordinator
-     * @param clock operation clock
-     * @param observationPort bounded operation observation
+     * @param fingerprintPort       keyed effective-request fingerprinting
+     * @param registrationPort      atomic Party registration
+     * @param countryReferencePort  country validation dependency
+     * @param identifierPreparation shared identifier eligibility and protection
+     *                              coordinator
+     * @param clock                 operation clock
+     * @param observationPort       bounded operation observation
      */
     public CreateLegalEntityUseCase(
             RegistrationFingerprintPort fingerprintPort,
@@ -113,10 +116,10 @@ public final class CreateLegalEntityUseCase {
         LocalDate evaluatedOn = LocalDate.ofInstant(occurredAt, ZoneOffset.UTC);
 
         return buildLegalEntity(command, occurredAt, evaluatedOn)
-                .call(ignored -> CountryValidation.validateIncorporationCountry(
+                .call(legalEntity -> CountryValidation.validateIncorporationCountry(
                         countryReferencePort,
                         command.requestMetadata(),
-                        command.incorporationCountryCode()))
+                        legalEntity.details().incorporationCountryCode()))
                 .flatMap(legalEntity -> identifierPreparation.findEligibleScheme(
                         command.initialIdentifier().identifierSchemeCode(),
                         legalEntity.type())
@@ -138,7 +141,7 @@ public final class CreateLegalEntityUseCase {
                 new PartyId(UuidV7.generate(occurredAt)),
                 command.tenantId(),
                 command.displayName(),
-                new LegalEntityDetails(
+                LegalEntityDetails.forWrite(
                         command.legalName(),
                         command.tradeName(),
                         command.legalFormCode(),

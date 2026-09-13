@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.domain.model;
 
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -69,11 +70,11 @@ public final class LegalEntity implements Party {
         LegalEntityDetails requiredDetails = require(
                 details,
                 DomainViolation.LEGAL_ENTITY_DETAILS_REQUIRED,
-                DETAILS_REQUIRED_MESSAGE);
+                DETAILS_REQUIRED_MESSAGE).normalizedForWrite();
         requiredDetails.validateAt(evaluatedOn);
         String effectiveDisplayName = displayName == null
                 ? requiredDetails.derivedDisplayName()
-                : displayName;
+                : PartyTextNormalization.uppercase(displayName);
         return new LegalEntity(
                 partyId,
                 tenantId,

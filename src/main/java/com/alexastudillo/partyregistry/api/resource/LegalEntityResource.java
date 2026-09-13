@@ -99,17 +99,19 @@ public class LegalEntityResource {
     private RegisterLegalEntityCommand createCommand(
             LegalEntityCreateRequest request,
             HttpHeaders headers) {
-        LegalEntityCreateRequest validRequest = requestSupport.validateBody(request);
+        LegalEntityCreateRequest original = requestSupport.validateBody(
+                request, LegalEntityCreateRequest::normalizedForValidation);
+        // Idempotency compares original input, not the normalized validation copy.
         return new RegisterLegalEntityCommand(
                 metadataContext.metadata(),
                 requestSupport.requireIdempotencyKey(headers),
-                validRequest.displayName(),
-                validRequest.legalName(),
-                validRequest.tradeName(),
-                validRequest.legalFormCode(),
-                validRequest.incorporationCountryCode(),
-                validRequest.incorporatedOn(),
-                validRequest.dissolvedOn(),
-                identifierMapper.toInput(validRequest.initialIdentifier()));
+                original.displayName(),
+                original.legalName(),
+                original.tradeName(),
+                original.legalFormCode(),
+                original.incorporationCountryCode(),
+                original.incorporatedOn(),
+                original.dissolvedOn(),
+                identifierMapper.toInput(original.initialIdentifier()));
     }
 }

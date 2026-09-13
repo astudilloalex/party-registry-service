@@ -18,6 +18,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -113,7 +114,7 @@ class NaturalPersonResourceContractTest {
         Map<String, Object> explicit = assertSuccess(
                 create(tenantId, key("explicit"), COMPLETE_CREATE_BODY),
                 201);
-        assertEquals("The Countess of Lovelace", explicit.get("displayName"));
+        assertEquals("THE COUNTESS OF LOVELACE", explicit.get("displayName"));
         assertEquals("NATURAL_PERSON", explicit.get("type"));
         assertEquals("DRAFT", explicit.get("recordStatus"));
         assertEquals(0, number(explicit, "version"));
@@ -148,15 +149,203 @@ class NaturalPersonResourceContractTest {
         Map<String, Object> derived = assertSuccess(
                 create(tenantId, key("derived"), nullableBody),
                 201);
-        assertEquals("Katherine Johnson", derived.get("displayName"));
+        assertEquals("KATHERINE JOHNSON", derived.get("displayName"));
         Map<String, Object> derivedDetails = nested(derived, "naturalPersonDetails");
-        assertEquals("  Katherine  ", derivedDetails.get("givenNames"));
-        assertEquals("  Johnson  ", derivedDetails.get("familyNames"));
+        assertEquals("KATHERINE", derivedDetails.get("givenNames"));
+        assertEquals("JOHNSON", derivedDetails.get("familyNames"));
         assertEquals(COMPLETE_DETAILS_FIELDS, derivedDetails.keySet());
         assertNull(derivedDetails.get("preferredName"));
         assertNull(derivedDetails.get("birthDate"));
         assertNull(derivedDetails.get("dateOfDeath"));
         assertNull(derivedDetails.get("birthCountryCode"));
+    }
+
+    @Test
+    void normalizesFieldsOnCreateAndRejectsRawRequestVariationsWithIdempotencyConflict() {
+        UUID tenantId = UUID.fromString(TENANT_ID);
+        String idempotencyKey = key("normalized-create");
+        String body = """
+                {
+                  "displayName": "  the Countess  ",
+                  "givenNames": "  aDa  augusta  ",
+                  "familyNames": "\u2003loveLace\u2003",
+                  "preferredName": "  countess  ",
+                  "birthDate": "1815-12-10",
+                  "dateOfDeath": "1852-11-27",
+                  "birthCountryCode": "\u2003eC\u2003"
+                }
+                """;
+        Map<String, Object> created = assertSuccess(create(tenantId, idempotencyKey, body), 201);
+        String partyId = string(created, "partyId");
+        assertEquals("THE COUNTESS", created.get("displayName"));
+        assertEquals(Map.of(
+                "givenNames", "ADA  AUGUSTA",
+                "familyNames", "LOVELACE",
+                "preferredName", "COUNTESS",
+                "birthDate", "1815-12-10",
+                "dateOfDeath", "1852-11-27",
+                "birthCountryCode", "EC"), nested(created, "naturalPersonDetails"));
+        assertStoredNaturalPerson(tenantId, created);
+        assertEquivalentData(created, getData(tenantId, partyId));
+        assertEquals(created, assertSuccess(create(tenantId, idempotencyKey, body), 201));
+
+        for (String changedBody : List.of(
+                body.replace("the Countess", "THE COUNTESS"),
+                body.replace("aDa", "ADA"),
+                body.replace("loveLace", "LOVELACE"),
+                body.replace("countess", "COUNTESS"),
+                body.replace("eC", "EC"),
+                body.replace("  aDa  augusta  ", "aDa  augusta"))) {
+            assertError(create(tenantId, idempotencyKey, changedBody), 409, "idempotency-key-conflict");
+        }
+        assertEquivalentData(created, getData(tenantId, partyId));
+        assertStoredNaturalPerson(tenantId, created);
+    }
+
+    @Test
+    void normalizesFieldsOnUpdateWithoutChangingRawRequestReplay() {
+        UUID tenantId = UUID.fromString(TENANT_ID);
+        String idempotencyKey = key("normalized-updates");
+        String createBody = """
+                {
+                  "displayName": "  the Countess  ",
+                  "givenNames": "  aDa  augusta  ",
+                  "familyNames": "\u2003loveLace\u2003",
+                  "preferredName": "  countess  ",
+                  "birthDate": "1815-12-10",
+                  "dateOfDeath": "1852-11-27",
+                  "birthCountryCode": "\u2003eC\u2003"
+                }
+                """;
+        Map<String, Object> created = assertSuccess(create(tenantId, idempotencyKey, createBody), 201);
+        String partyId = string(created, "partyId");
+
+        Map<String, Object> replaced = assertSuccess(put(tenantId, partyId, "0", """
+                {
+                  "givenNames": "  gRaCe  ",
+                  "familyNames": "\u2003hoPPer\u2003",
+                  "preferredName": "  amazing grace  ",
+                  "birthDate": "1906-12-09",
+                  "dateOfDeath": "1992-01-01",
+                  "birthCountryCode": "  ec  "
+                }
+                """), 200);
+        assertEquals("GRACE HOPPER", replaced.get("displayName"));
+        assertEquals(1, number(replaced, "version"));
+        assertEquals(Map.of(
+                "givenNames", "GRACE",
+                "familyNames", "HOPPER",
+                "preferredName", "AMAZING GRACE",
+                "birthDate", "1906-12-09",
+                "dateOfDeath", "1992-01-01",
+                "birthCountryCode", "EC"), nested(replaced, "naturalPersonDetails"));
+        assertStoredNaturalPerson(tenantId, replaced);
+        assertEquivalentData(replaced, getData(tenantId, partyId));
+
+        Map<String, Object> patched = assertSuccess(patch(tenantId, partyId, "1", """
+                {
+                  "givenNames": "\u2003kaTherine\u2003",
+                  "familyNames": "  joHnSon  ",
+                  "preferredName": "\u2003kathy\u2003",
+                  "birthDate": "1918-08-26",
+                  "dateOfDeath": "2020-02-24",
+                  "birthCountryCode": "  Ec  "
+                }
+                """), 200);
+        assertEquals("KATHERINE JOHNSON", patched.get("displayName"));
+        assertEquals(2, number(patched, "version"));
+        assertEquals(Map.of(
+                "givenNames", "KATHERINE",
+                "familyNames", "JOHNSON",
+                "preferredName", "KATHY",
+                "birthDate", "1918-08-26",
+                "dateOfDeath", "2020-02-24",
+                "birthCountryCode", "EC"), nested(patched, "naturalPersonDetails"));
+        assertStoredNaturalPerson(tenantId, patched);
+
+        assertEquals(created, assertSuccess(create(tenantId, idempotencyKey, createBody), 201));
+        assertEquivalentData(patched, getData(tenantId, partyId));
+        assertEquals(1, countDetails(UUID.fromString(partyId)));
+        assertEquals(1, countIdempotencyRecords(tenantId, idempotencyKey));
+    }
+
+    @Test
+    void preservesLegacyNamesOnReadAndOmittedPatchFieldsWhileClearingExplicitNulls() {
+        UUID tenantId = UUID.fromString(TENANT_ID);
+        Map<String, Object> created = assertSuccess(
+                create(tenantId, key("legacy-names"), COMPLETE_CREATE_BODY), 201);
+        String partyId = string(created, "partyId");
+
+        // Model rows written before normalization without rewriting their creation snapshot.
+        awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session
+                .createNativeQuery("""
+                        update parties set display_name = '  Legacy Display  '
+                        where id = :partyId and tenant_id = :tenantId
+                        """)
+                .setParameter("partyId", UUID.fromString(partyId))
+                .setParameter("tenantId", tenantId)
+                .executeUpdate()
+                .invoke(updated -> assertEquals(1, updated))
+                .chain(() -> session.createNativeQuery("""
+                        update natural_person_details
+                        set given_names = '  Legacy Given  ', family_names = 'Legacy Family',
+                            preferred_name = ' Legacy Preference '
+                        where party_id = :partyId
+                        """)
+                        .setParameter("partyId", UUID.fromString(partyId))
+                        .executeUpdate()
+                        .invoke(updated -> assertEquals(1, updated)))
+                .replaceWithVoid()));
+
+        Map<String, Object> restored = getData(tenantId, partyId);
+        assertEquals("  Legacy Display  ", restored.get("displayName"));
+        Map<String, Object> expectedDetails = new LinkedHashMap<>(Map.of(
+                "givenNames", "  Legacy Given  ",
+                "familyNames", "Legacy Family",
+                "preferredName", " Legacy Preference ",
+                "birthDate", "1815-12-10",
+                "dateOfDeath", "1852-11-27",
+                "birthCountryCode", "EC"));
+        assertEquals(expectedDetails, nested(restored, "naturalPersonDetails"));
+        assertStoredNaturalPerson(tenantId, restored);
+
+        Map<String, Object> patched = assertSuccess(
+                patch(tenantId, partyId, "0", "{\"preferredName\":\"  new Preference  \"}"), 200);
+        expectedDetails.put("preferredName", "NEW PREFERENCE");
+        assertEquals(expectedDetails, nested(patched, "naturalPersonDetails"));
+        assertEquals(restored.get("displayName"), patched.get("displayName"));
+        assertEquals(1, number(patched, "version"));
+        assertStoredNaturalPerson(tenantId, patched);
+
+        Map<String, Object> cleared = assertSuccess(patch(tenantId, partyId, "1", """
+                {"preferredName":null,"birthDate":null,"dateOfDeath":null,"birthCountryCode":null}
+                """), 200);
+        for (String field : List.of("preferredName", "birthDate", "dateOfDeath", "birthCountryCode")) {
+            expectedDetails.put(field, null);
+        }
+        assertEquals(expectedDetails, nested(cleared, "naturalPersonDetails"));
+        assertEquals(restored.get("displayName"), cleared.get("displayName"));
+        assertEquals(2, number(cleared, "version"));
+        assertStoredNaturalPerson(tenantId, cleared);
+        assertEquivalentData(cleared, getData(tenantId, partyId));
+    }
+
+    @Test
+    void rejectsNonAsciiAndEmbeddedWhitespaceCountriesOnEveryWriteWithoutChangingStoredData() {
+        UUID tenantId = UUID.randomUUID();
+        Map<String, Object> created = assertSuccess(
+                create(tenantId, key("country-format"), createBody("Country", "Format", null)), 201);
+        String partyId = string(created, "partyId");
+        for (String invalidCountry : List.of("e c", "\u00df", "\u017fs", "\u00e9c")) {
+            assertRejectedCreationDoesNotPersist(tenantId, key("invalid-country"),
+                    createBody("Country", "Format", invalidCountry), 400, "birth-country-code-invalid");
+            assertError(put(tenantId, partyId, "0", createBody("Country", "Format", invalidCountry)),
+                    400, "birth-country-code-invalid");
+            assertError(patch(tenantId, partyId, "0", "{\"birthCountryCode\":\"" + invalidCountry + "\"}"),
+                    400, "birth-country-code-invalid");
+        }
+        assertEquivalentData(created, getData(tenantId, partyId));
+        assertStoredNaturalPerson(tenantId, created);
     }
 
     @Test
@@ -416,7 +605,7 @@ class NaturalPersonResourceContractTest {
         Map<String, Object> replaced = assertSuccess(
                 put(tenantId, partyId, "0", replacementBody),
                 200);
-        assertEquals("Grace Hopper", replaced.get("displayName"));
+        assertEquals("GRACE HOPPER", replaced.get("displayName"));
         assertEquals(1, number(replaced, "version"));
         assertTimestampEquivalent(created.get("createdAt"), replaced.get("createdAt"));
         assertEquals(created.get("createdBy"), replaced.get("createdBy"));
@@ -514,9 +703,9 @@ class NaturalPersonResourceContractTest {
                 patch(tenantId, partyId, "0", "{\"preferredName\":\"Kathy\"}"),
                 200);
         assertEquals(1, number(preferred, "version"));
-        assertEquals("NASA Mathematician", preferred.get("displayName"));
+        assertEquals("NASA MATHEMATICIAN", preferred.get("displayName"));
         Map<String, Object> preferredDetails = nested(preferred, "naturalPersonDetails");
-        assertEquals("Kathy", preferredDetails.get("preferredName"));
+        assertEquals("KATHY", preferredDetails.get("preferredName"));
         assertEquals("1918-08-26", preferredDetails.get("birthDate"));
         assertEquals("2020-02-24", preferredDetails.get("dateOfDeath"));
 
@@ -530,8 +719,8 @@ class NaturalPersonResourceContractTest {
                 patch(tenantId, partyId, "2", "{\"familyNames\":\"Gobble Johnson\"}"),
                 200);
         assertEquals(3, number(renamed, "version"));
-        assertEquals("Katherine Gobble Johnson", renamed.get("displayName"));
-        assertEquals("Katherine", nested(renamed, "naturalPersonDetails").get("givenNames"));
+        assertEquals("KATHERINE GOBBLE JOHNSON", renamed.get("displayName"));
+        assertEquals("KATHERINE", nested(renamed, "naturalPersonDetails").get("givenNames"));
 
         Map<String, Object> countryChanged = assertSuccess(
                 patch(tenantId, partyId, "3", "{\"birthCountryCode\":\"EC\"}"),
@@ -614,7 +803,8 @@ class NaturalPersonResourceContractTest {
             assertEquals(1, number(persisted, "version"));
             assertEquals(winningData, persisted);
             String persistedPreference = string(nested(persisted, "naturalPersonDetails"), "preferredName");
-            assertTrue(persistedPreference.equals(firstPreference) || persistedPreference.equals(secondPreference));
+            assertTrue(persistedPreference.equals(firstPreference.toUpperCase(Locale.ROOT))
+                    || persistedPreference.equals(secondPreference.toUpperCase(Locale.ROOT)));
         }
     }
 
@@ -672,6 +862,26 @@ class NaturalPersonResourceContractTest {
 
     private Map<String, Object> getData(UUID tenantId, String partyId) {
         return assertSuccess(request(tenantId).get(RESOURCE_PATH + "/" + partyId), 200);
+    }
+
+    private void assertStoredNaturalPerson(UUID tenantId, Map<String, Object> expected) {
+        Object[] stored = awaitReactive(() -> sessionFactory.withSession(session -> session.createQuery("""
+                select party.displayName, details.givenNames, details.familyNames, details.preferredName,
+                       details.birthDate, details.dateOfDeath, details.birthCountryCode
+                from NaturalPersonDetailsEntity details join details.party party
+                where party.tenantId = :tenantId and party.id = :partyId
+                """, Object[].class)
+                .setParameter("tenantId", tenantId)
+                .setParameter("partyId", UUID.fromString(string(expected, "partyId")))
+                .getSingleResult()));
+        assertEquals(expected.get("displayName"), stored[0]);
+        Map<String, Object> details = nested(expected, "naturalPersonDetails");
+        List<String> fields = List.of(
+                "givenNames", "familyNames", "preferredName", "birthDate", "dateOfDeath", "birthCountryCode");
+        for (int index = 0; index < fields.size(); index++) {
+            Object value = stored[index + 1];
+            assertEquals(details.get(fields.get(index)), value == null ? null : value.toString(), fields.get(index));
+        }
     }
 
     private long countParties(UUID tenantId) {
@@ -964,9 +1174,9 @@ class NaturalPersonResourceContractTest {
 
     private static void assertExplicitNaturalPersonDetails(Map<String, Object> explicit) {
         Map<String, Object> explicitDetails = nested(explicit, "naturalPersonDetails");
-        assertEquals("Ada", explicitDetails.get("givenNames"));
-        assertEquals("Lovelace", explicitDetails.get("familyNames"));
-        assertEquals("Ada", explicitDetails.get("preferredName"));
+        assertEquals("ADA", explicitDetails.get("givenNames"));
+        assertEquals("LOVELACE", explicitDetails.get("familyNames"));
+        assertEquals("ADA", explicitDetails.get("preferredName"));
         assertEquals("1815-12-10", explicitDetails.get("birthDate"));
         assertEquals("1852-11-27", explicitDetails.get("dateOfDeath"));
         assertEquals("EC", explicitDetails.get("birthCountryCode"));

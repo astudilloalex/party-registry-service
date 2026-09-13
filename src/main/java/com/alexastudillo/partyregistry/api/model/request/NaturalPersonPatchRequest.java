@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.api.model.request;
 
 import com.alexastudillo.partyregistry.domain.model.FieldUpdate;
 import com.alexastudillo.partyregistry.domain.model.NaturalPersonPatch;
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.constraints.AssertTrue;
@@ -117,6 +118,33 @@ public class NaturalPersonPatchRequest {
     @AssertTrue(message = "family-names-required")
     public boolean isFamilyNamesValid() {
         return !familyNamesPresent || familyNames != null && !familyNames.isBlank();
+    }
+
+    /**
+     * Returns a validation copy normalizing only supplied text and preserving all presence states.
+     * The original values remain unchanged for command mapping.
+     */
+    public NaturalPersonPatchRequest normalizedForValidation() {
+        NaturalPersonPatchRequest copy = new NaturalPersonPatchRequest();
+        if (givenNamesPresent) {
+            copy.setGivenNames(PartyTextNormalization.uppercase(givenNames));
+        }
+        if (familyNamesPresent) {
+            copy.setFamilyNames(PartyTextNormalization.uppercase(familyNames));
+        }
+        if (preferredNamePresent) {
+            copy.setPreferredName(PartyTextNormalization.uppercase(preferredName));
+        }
+        if (birthDatePresent) {
+            copy.setBirthDate(birthDate);
+        }
+        if (dateOfDeathPresent) {
+            copy.setDateOfDeath(dateOfDeath);
+        }
+        if (birthCountryCodePresent) {
+            copy.setBirthCountryCode(PartyTextNormalization.countryCode(birthCountryCode));
+        }
+        return copy;
     }
 
     /**

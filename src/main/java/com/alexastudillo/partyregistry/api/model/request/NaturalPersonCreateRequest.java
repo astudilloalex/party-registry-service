@@ -1,5 +1,6 @@
 package com.alexastudillo.partyregistry.api.model.request;
 
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -21,4 +22,19 @@ public record NaturalPersonCreateRequest(
         @Nullable LocalDate dateOfDeath,
         @Nullable @Pattern(regexp = "^[A-Z]{2}$", message = "birth-country-code-invalid") String birthCountryCode,
         @NotNull(message = "initial-identifier-required") @Valid InitialPartyIdentifierCreateRequest initialIdentifier) {
+
+    /**
+     * Returns a normalized validation copy without changing the original idempotency input.
+     */
+    public NaturalPersonCreateRequest normalizedForValidation() {
+        return new NaturalPersonCreateRequest(
+                PartyTextNormalization.uppercase(displayName),
+                PartyTextNormalization.uppercase(givenNames),
+                PartyTextNormalization.uppercase(familyNames),
+                PartyTextNormalization.uppercase(preferredName),
+                birthDate,
+                dateOfDeath,
+                PartyTextNormalization.countryCode(birthCountryCode),
+                initialIdentifier);
+    }
 }

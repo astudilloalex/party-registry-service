@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,6 +62,19 @@ class ApiRequestSupportTest {
         assertEquals(valid, support.validateBody(valid));
         assertBadRequest(() -> support.validateBody(invalid), "initial-identifier-required");
         assertBadRequest(() -> support.validateBody(null), "request-body-required");
+    }
+
+    @Test
+    void validatesCanonicalCopiesWithoutLosingOriginalIdempotencyInput() {
+        NaturalPersonCreateRequest original = new NaturalPersonCreateRequest(
+                "  Ada  ", "  ada  ", "  lovelace  ", null, null, null, " gb ",
+                new InitialPartyIdentifierCreateRequest(VALID_SCHEME_CODE, VALID_IDENTIFIER_VALUE, null, null, null, false));
+
+        assertSame(original, support.validateBody(original, NaturalPersonCreateRequest::normalizedForValidation));
+        assertEquals("  ada  ", original.givenNames());
+        assertEquals(" gb ", original.birthCountryCode());
+        assertBadRequest(() -> support.validateBody(null, NaturalPersonCreateRequest::normalizedForValidation),
+                "request-body-required");
     }
 
     @Test

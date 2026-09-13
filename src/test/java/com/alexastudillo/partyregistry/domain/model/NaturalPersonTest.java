@@ -32,7 +32,7 @@ class NaturalPersonTest {
                 details("Ada", "Lovelace", "Ada", LocalDate.of(1815, Month.DECEMBER, 10), null, "GB"));
 
         assertEquals(PartyType.NATURAL_PERSON, person.type());
-        assertEquals("Ada L.", person.displayName());
+        assertEquals("ADA L.", person.displayName());
         assertEquals(PartyRecordStatus.DRAFT, person.recordStatus());
         assertEquals(PartyVersion.initial(), person.version());
         assertEquals(CREATED_AT, person.auditInfo().createdAt());
@@ -42,14 +42,14 @@ class NaturalPersonTest {
     }
 
     @Test
-    void derivesDisplayNameFromTrimmedRequiredNames() {
+    void derivesDisplayNameFromCanonicalRequiredNames() {
         NaturalPerson person = createPerson(
                 null,
                 details("  Ada ", " Lovelace  ", null, null, null, null));
 
-        assertEquals("Ada Lovelace", person.displayName());
-        assertEquals("  Ada ", person.details().givenNames());
-        assertEquals(" Lovelace  ", person.details().familyNames());
+        assertEquals("ADA LOVELACE", person.displayName());
+        assertEquals("ADA", person.details().givenNames());
+        assertEquals("LOVELACE", person.details().familyNames());
     }
 
     @Test
@@ -153,12 +153,12 @@ class NaturalPersonTest {
                 UPDATED_AT,
                 UPDATED_BY);
 
-        assertEquals(replacement, replaced.details());
+        assertEquals(details("ADA", "LOVELACE", null, null, null, null), replaced.details());
         assertNull(replaced.details().preferredName());
         assertNull(replaced.details().birthDate());
         assertNull(replaced.details().dateOfDeath());
         assertNull(replaced.details().birthCountryCode());
-        assertEquals("Ada L.", replaced.displayName());
+        assertEquals("ADA L.", replaced.displayName());
         assertEquals(original.version(), replaced.version());
         assertEquals(UPDATED_BY, replaced.auditInfo().updatedBy());
     }
@@ -175,7 +175,7 @@ class NaturalPersonTest {
                 UPDATED_AT,
                 UPDATED_BY);
 
-        assertEquals("Augusta Ada King", replaced.displayName());
+        assertEquals("AUGUSTA ADA KING", replaced.displayName());
     }
 
     @Test
@@ -198,8 +198,8 @@ class NaturalPersonTest {
                         EVALUATED_ON,
                         UPDATED_AT,
                         UPDATED_BY));
-        assertEquals("Ada L.", original.displayName());
-        assertEquals("Ada", original.details().preferredName());
+        assertEquals("ADA L.", original.displayName());
+        assertEquals("ADA", original.details().preferredName());
         assertEquals(PartyVersion.initial(), original.version());
         assertEquals(CREATED_AT, original.auditInfo().updatedAt());
     }
@@ -219,7 +219,7 @@ class NaturalPersonTest {
 
         NaturalPerson updated = original.patchDetails(patch, EVALUATED_ON, UPDATED_AT, UPDATED_BY);
 
-        assertEquals("Countess", updated.details().preferredName());
+        assertEquals("COUNTESS", updated.details().preferredName());
         assertEquals(original.details().givenNames(), updated.details().givenNames());
         assertEquals(original.details().familyNames(), updated.details().familyNames());
         assertEquals(original.details().birthDate(), updated.details().birthDate());
@@ -333,7 +333,47 @@ class NaturalPersonTest {
 
         NaturalPerson updated = original.patchDetails(patch, EVALUATED_ON, UPDATED_AT, UPDATED_BY);
 
-        assertEquals("Augusta Ada Lovelace", updated.displayName());
+        assertEquals("AUGUSTA ADA LOVELACE", updated.displayName());
+    }
+
+    @Test
+    void caseOnlyNameUpdatesPreserveRestoredCustomDisplayName() {
+        NaturalPerson original = NaturalPerson.restore(
+                new PartyId(UUID.fromString("0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1")),
+                new TenantId(UUID.fromString("0198ce2b-d6a3-7d6e-80ba-d97b21d793e5")),
+                "  Countess of Lovelace  ",
+                PartyRecordStatus.ACTIVE,
+                new PartyVersion(2),
+                AuditInfo.initial(CREATED_AT, CREATED_BY),
+                details(" Ada ", " Lovelace ", " Ada L. ",
+                        LocalDate.of(1815, Month.DECEMBER, 10),
+                        LocalDate.of(1852, Month.NOVEMBER, 27), "GB"));
+
+        NaturalPerson patched = original.patchDetails(
+                patch(
+                        FieldUpdate.present("  aDa  "),
+                        FieldUpdate.absent(),
+                        FieldUpdate.absent(),
+                        FieldUpdate.absent(),
+                        FieldUpdate.absent(),
+                        FieldUpdate.absent()),
+                EVALUATED_ON, UPDATED_AT, UPDATED_BY);
+
+        assertEquals("ADA", patched.details().givenNames());
+        assertEquals(" Lovelace ", patched.details().familyNames());
+        assertEquals(" Ada L. ", patched.details().preferredName());
+        assertEquals(original.details().birthDate(), patched.details().birthDate());
+        assertEquals(original.details().dateOfDeath(), patched.details().dateOfDeath());
+        assertEquals("GB", patched.details().birthCountryCode());
+        assertEquals("  Countess of Lovelace  ", patched.displayName());
+
+        NaturalPerson replaced = original.replaceDetails(
+                details("  aDa  ", "  lOvElAcE  ", "  aDa L.  ", null, null, "GB"),
+                EVALUATED_ON, UPDATED_AT, UPDATED_BY);
+
+        assertEquals(details("ADA", "LOVELACE", "ADA L.", null, null, "GB"), replaced.details());
+        assertEquals("  Countess of Lovelace  ", replaced.displayName());
+        assertEquals(" Ada ", original.details().givenNames());
     }
 
     @Test
@@ -360,14 +400,14 @@ class NaturalPersonTest {
     }
 
     @Test
-    void restoresNaturalPersonWithValidState() {
+    void restoresNaturalPersonWithoutNormalizingPersistedText() {
         PartyId partyId = new PartyId(UUID.fromString("0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1"));
         TenantId tenantId = new TenantId(UUID.fromString("0198ce2b-d6a3-7d6e-80ba-d97b21d793e5"));
         AuditInfo auditInfo = AuditInfo.initial(CREATED_AT, CREATED_BY);
         NaturalPersonDetails personDetails = details(
-                "Ada",
-                "Lovelace",
-                "Ada",
+                " Ada ",
+                " Lovelace ",
+                " Ada L. ",
                 LocalDate.of(1815, Month.DECEMBER, 10),
                 LocalDate.of(1852, Month.NOVEMBER, 27),
                 "GB");
@@ -375,7 +415,7 @@ class NaturalPersonTest {
         NaturalPerson restored = NaturalPerson.restore(
                 partyId,
                 tenantId,
-                "Ada Lovelace",
+                " Ada Lovelace ",
                 PartyRecordStatus.ACTIVE,
                 new PartyVersion(2),
                 auditInfo,
@@ -383,7 +423,7 @@ class NaturalPersonTest {
 
         assertEquals(partyId, restored.partyId());
         assertEquals(tenantId, restored.tenantId());
-        assertEquals("Ada Lovelace", restored.displayName());
+        assertEquals(" Ada Lovelace ", restored.displayName());
         assertEquals(PartyRecordStatus.ACTIVE, restored.recordStatus());
         assertEquals(new PartyVersion(2), restored.version());
         assertEquals(auditInfo, restored.auditInfo());

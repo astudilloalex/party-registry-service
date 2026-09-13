@@ -16,7 +16,9 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -124,6 +126,91 @@ class OpenApiContractTest {
         assertEquals(Boolean.TRUE, property(patch, "preferredName").getNullable());
         assertTrue(put.getDescription().contains("Omitted optional properties are cleared"));
         assertTrue(patch.getDescription().contains("explicit null clears a nullable property"));
+    }
+
+    @Test
+    void documentsNormalizedTextLimitsWithoutImposingRawLengthLimits() {
+        Map<String, Map<String, Integer>> limits = Map.of(
+                "NaturalPersonCreateRequest", Map.of(
+                        "displayName", 300, "givenNames", 200, "familyNames", 200, "preferredName", 200),
+                "NaturalPersonPutRequest", Map.of("givenNames", 200, "familyNames", 200, "preferredName", 200),
+                "NaturalPersonPatchRequest", Map.of("givenNames", 200, "familyNames", 200, "preferredName", 200),
+                "LegalEntityCreateRequest", Map.of(
+                        "displayName", 300, "legalName", 300, "tradeName", 300, "legalFormCode", 64),
+                "LegalEntityPutRequest", Map.of("legalName", 300, "tradeName", 300, "legalFormCode", 64),
+                "LegalEntityPatchRequest", Map.of("legalName", 300, "tradeName", 300, "legalFormCode", 64),
+                "PartyUpdateRequest", Map.of("displayName", 300));
+        for (var request : limits.entrySet()) {
+            Schema<?> requestSchema = schema(request.getKey());
+            assertTrue(requestSchema.getDescription().contains("strip().toUpperCase(Locale.ROOT)"));
+            assertTrue(requestSchema.getDescription().contains("UTF-16 code units, not raw input"));
+            for (var field : request.getValue().entrySet()) {
+                Schema<?> text = property(requestSchema, field.getKey());
+                assertNull(text.getMaxLength(), request.getKey() + "." + field.getKey());
+                assertEquals(field.getValue(), text.getExtensions().get("x-normalized-max-length"));
+            }
+        }
+        for (String path : List.of("/v1/natural-person", "/v1/legal-entity")) {
+            assertTrue(openApi.getPaths().get(path).getPost().getDescription()
+                    .contains("original submitted text"));
+        }
+        for (String name : List.of("LegalEntityPutRequest", "LegalEntityPatchRequest", "PartyUpdateRequest")) {
+            assertTrue(schema(name).getDescription().contains("not implemented"));
+        }
+        assertTrue(schema("NationalityCreateRequest").getDescription().contains("not implemented"));
+
+        Schema<?> identifier = schema("PartyIdentifierCreateRequest");
+        assertEquals(256, property(identifier, "value").getMaxLength());
+        assertEquals(64, property(identifier, "identifierSchemeCode").getMaxLength());
+        assertEquals(64, property(identifier, "issuerCode").getMaxLength());
+        assertTrue(property(identifier, "value").getDescription().contains("raw submitted identifier value"));
+    }
+
+    @Test
+    void acceptsOnlyAsciiCountryInputWithJavaStripWhitespaceAndKeepsResponseShape() {
+        Map<String, String> countryInputs = Map.of(
+                "NaturalPersonCreateRequest", "birthCountryCode",
+                "NaturalPersonPutRequest", "birthCountryCode",
+                "NaturalPersonPatchRequest", "birthCountryCode",
+                "LegalEntityCreateRequest", "incorporationCountryCode",
+                "LegalEntityPutRequest", "incorporationCountryCode",
+                "LegalEntityPatchRequest", "incorporationCountryCode",
+                "NationalityCreateRequest", "countryCode");
+        for (var entry : countryInputs.entrySet()) {
+            Schema<?> country = property(schema(entry.getKey()), entry.getValue());
+            Pattern inputPattern = Pattern.compile(country.getPattern());
+            for (String accepted : List.of("GB", "gb", "gB", " \tgb\r\n", "\u2003gb\u3000")) {
+                assertTrue(inputPattern.matcher(accepted).matches(), entry.getKey());
+            }
+            for (String rejected : List.of("", " ", "G", "GBR", "G B", "\u00df", " \u00df ",
+                    "\u0131s", "\uff47\uff42", "\u00a0gb\u00a0", "\u2007gb", "gb\u202f")) {
+                assertFalse(inputPattern.matcher(rejected).matches(), entry.getKey());
+            }
+            assertEquals(2, country.getMinLength());
+            assertNull(country.getMaxLength());
+            assertEquals(2, country.getExtensions().get("x-normalized-max-length"));
+            assertTrue(country.getDescription().contains("two ASCII letters in either case"));
+            assertTrue(country.getDescription().contains("String.strip()"));
+        }
+        for (var entry : Map.of("NaturalPersonDetails", "birthCountryCode",
+                "LegalEntityDetails", "incorporationCountryCode", "NationalityResponse", "countryCode").entrySet()) {
+            Schema<?> country = property(schema(entry.getKey()), entry.getValue());
+            assertEquals("^[A-Z]{2}$", country.getPattern());
+            assertEquals(2, country.getMinLength());
+            assertEquals(2, country.getMaxLength());
+        }
+    }
+
+    @Test
+    void countryInputPatternMatchesTheExactJavaStripWhitespaceSet() {
+        String pattern = property(schema("NaturalPersonCreateRequest"), "birthCountryCode").getPattern();
+        Pattern inputPattern = Pattern.compile(pattern);
+        for (int codePoint = 0; codePoint <= Character.MAX_CODE_POINT; codePoint++) {
+            String surrounding = new String(Character.toChars(codePoint));
+            assertEquals(Character.isWhitespace(codePoint),
+                    inputPattern.matcher(surrounding + "gB" + surrounding).matches(),
+                    "Country input whitespace differs at code point " + codePoint);
+        }
     }
 
     @Test

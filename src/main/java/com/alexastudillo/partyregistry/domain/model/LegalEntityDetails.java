@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.domain.model;
 
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 
 import java.time.LocalDate;
 
@@ -35,6 +36,24 @@ public record LegalEntityDetails(
     }
 
     /**
+     * Normalizes newly supplied details before validation while preserving the constructor for restoration.
+     */
+    public static LegalEntityDetails forWrite(
+            String legalName, String tradeName, String legalFormCode, String incorporationCountryCode,
+            LocalDate incorporatedOn, LocalDate dissolvedOn) {
+        return new LegalEntityDetails(
+                PartyTextNormalization.uppercase(legalName),
+                PartyTextNormalization.uppercase(tradeName),
+                PartyTextNormalization.uppercase(legalFormCode),
+                PartyTextNormalization.countryCode(incorporationCountryCode), incorporatedOn, dissolvedOn);
+    }
+
+    /** Returns canonical details for a new legal entity. */
+    public LegalEntityDetails normalizedForWrite() {
+        return forWrite(legalName, tradeName, legalFormCode, incorporationCountryCode, incorporatedOn, dissolvedOn);
+    }
+
+    /**
      * Validates lifecycle dates relative to the operation evaluation date.
      *
      * @param evaluatedOn operation evaluation date
@@ -58,7 +77,7 @@ public record LegalEntityDetails(
     }
 
     public String derivedDisplayName() {
-        return legalName.strip();
+        return PartyTextNormalization.uppercase(legalName);
     }
 
     private static void validateRequiredLegalName(String value) {

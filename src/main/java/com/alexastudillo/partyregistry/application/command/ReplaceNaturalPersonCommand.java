@@ -51,7 +51,7 @@ public record ReplaceNaturalPersonCommand(
      *                                                                                invariant
      */
     public NaturalPersonDetails replacementDetails() {
-        return new NaturalPersonDetails(
+        return NaturalPersonDetails.forWrite(
                 givenNames,
                 familyNames,
                 preferredName,

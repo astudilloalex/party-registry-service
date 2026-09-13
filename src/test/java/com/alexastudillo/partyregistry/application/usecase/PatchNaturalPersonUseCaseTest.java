@@ -45,9 +45,9 @@ class PatchNaturalPersonUseCaseTest {
 
         NaturalPersonResult result = awaitItem(useCase.execute(command(new PartyVersion(0), patch)));
 
-        assertEquals("Augusta Ada", result.givenNames());
+        assertEquals("AUGUSTA ADA", result.givenNames());
         assertEquals("Lovelace", result.familyNames());
-        assertEquals("Augusta Ada Lovelace", result.displayName());
+        assertEquals("AUGUSTA ADA LOVELACE", result.displayName());
         assertEquals("Ada", result.preferredName());
         assertEquals(LocalDate.of(1815, Month.DECEMBER, 10), result.birthDate());
         assertEquals(LocalDate.of(1852, Month.NOVEMBER, 27), result.dateOfDeath());
@@ -120,19 +120,21 @@ class PatchNaturalPersonUseCaseTest {
     }
 
     @Test
-    void validatesAChangedNonNullCountryBeforePersistence() {
+    void normalizesAChangedCountryBeforeValidationAndPersistence() {
         var repository = repositoryWithCurrentPerson();
         var countryPort = new UseCaseTestSupport.CountryReferenceDouble();
         var useCase = new PatchNaturalPersonUseCase(repository, countryPort, CLOCK);
 
-        NaturalPersonResult result = awaitItem(useCase.execute(command(
-                new PartyVersion(0),
-                countryPatch("EC"))));
+        PatchNaturalPersonCommand command = command(new PartyVersion(0), countryPatch("  eC  "));
+
+        NaturalPersonResult result = awaitItem(useCase.execute(command));
 
         assertEquals("EC", result.birthCountryCode());
         assertEquals(java.util.List.of("EC"), countryPort.codes);
         assertEquals(METADATA, countryPort.calls.getFirst().requestMetadata());
         assertEquals(1, repository.updateCalls.size());
+        assertEquals("EC", repository.updateCalls.getFirst().updatedPerson().details().birthCountryCode());
+        assertEquals("  eC  ", command.patch().birthCountryCode().value());
     }
 
     @Test

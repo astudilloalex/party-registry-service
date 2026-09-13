@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -62,7 +64,8 @@ class PartyRegistrationResourceContractTest {
         assertEquals(created, replayed);
         assertEquals("LEGAL_ENTITY", created.get("type"));
         assertEquals("DRAFT", created.get("recordStatus"));
-        assertEquals("Analytical Engines Ltd", nested(created, "legalEntityDetails").get("legalName"));
+        assertEquals("ANALYTICAL ENGINES LTD", created.get("displayName"));
+        assertEquals("ANALYTICAL ENGINES LTD", nested(created, "legalEntityDetails").get("legalName"));
         Map<String, Object> identifier = nested(created, "initialIdentifier");
         assertEquals(created.get("partyId"), identifier.get("partyId"));
         assertEquals("TEST_LEGAL_ACTIVE", identifier.get("schemeCode"));
@@ -74,6 +77,59 @@ class PartyRegistrationResourceContractTest {
                 post(tenantId, "/v1/legal-entity", key, legalBody("Changed Ltd", identifierValue)),
                 409,
                 "conflict");
+    }
+
+    @Test
+    void normalizesAllLegalCreationFieldsInResponsesAndStorageButNotIdempotencyInput() {
+        UUID tenantId = UUID.fromString(TENANT_ID);
+        String idempotencyKey = key("normalized-legal");
+        String body = """
+                {
+                  "displayName": "  engine Works  ",
+                  "legalName": "\u2003analytical Engines ltd\u2003",
+                  "tradeName": "  engine  company  ",
+                  "legalFormCode": "  ltd  ",
+                  "incorporationCountryCode": "\u2003eC\u2003",
+                  "incorporatedOn": "2000-01-02",
+                  "dissolvedOn": "2020-03-04",
+                  "initialIdentifier": {
+                    "identifierSchemeCode": "TEST_LEGAL_ACTIVE",
+                    "value": "%s",
+                    "isPrimary": true
+                  }
+                }
+                """.formatted(identifierValue());
+        Response response = post(tenantId, "/v1/legal-entity", idempotencyKey, body);
+        Map<String, Object> created = assertSuccess(response, 201);
+        assertEquals(Set.of("status", "code", "data"), response.jsonPath().getMap("$").keySet());
+        assertEquals("ENGINE WORKS", created.get("displayName"));
+        assertEquals(Map.of(
+                "legalName", "ANALYTICAL ENGINES LTD",
+                "tradeName", "ENGINE  COMPANY",
+                "legalFormCode", "LTD",
+                "incorporationCountryCode", "EC",
+                "incorporatedOn", "2000-01-02",
+                "dissolvedOn", "2020-03-04"), nested(created, "legalEntityDetails"));
+        assertStoredLegalEntity(tenantId, created);
+        assertEquals(created, assertSuccess(post(tenantId, "/v1/legal-entity", idempotencyKey, body), 201));
+
+        for (String changedBody : List.of(
+                body.replace("engine Works", "ENGINE WORKS"),
+                body.replace("analytical Engines ltd", "ANALYTICAL ENGINES LTD"),
+                body.replace("engine  company", "ENGINE  COMPANY"),
+                body.replace("  ltd  ", "  LTD  "),
+                body.replace("eC", "EC"),
+                body.replace("  engine Works  ", "engine Works"))) {
+            Response conflict = post(tenantId, "/v1/legal-entity", idempotencyKey, changedBody);
+            assertError(conflict, 409, "idempotency-key-conflict");
+            assertEquals(Set.of("status", "code"), conflict.jsonPath().getMap("$").keySet());
+        }
+        for (String invalidCountry : List.of("e c", "\u00df", "\u017fs", "\u00e9c")) {
+            assertError(post(tenantId, "/v1/legal-entity", key("invalid-legal-country"),
+                    body.replace("\u2003eC\u2003", invalidCountry)), 400, "incorporation-country-code-invalid");
+        }
+        assertEquals(created, assertSuccess(post(tenantId, "/v1/legal-entity", idempotencyKey, body), 201));
+        assertStoredLegalEntity(tenantId, created);
     }
 
     @Test
@@ -202,6 +258,26 @@ class PartyRegistrationResourceContractTest {
                 .executeUpdate()
                 .invoke(updated -> assertEquals(1, updated))
                 .replaceWithVoid()));
+    }
+
+    private void assertStoredLegalEntity(UUID tenantId, Map<String, Object> expected) {
+        Object[] stored = awaitReactive(() -> sessionFactory.withSession(session -> session.createQuery("""
+                select party.displayName, details.legalName, details.tradeName, details.legalFormCode,
+                       details.incorporationCountryCode, details.incorporatedOn, details.dissolvedOn
+                from LegalEntityDetailsEntity details join details.party party
+                where party.tenantId = :tenantId and party.id = :partyId
+                """, Object[].class)
+                .setParameter("tenantId", tenantId)
+                .setParameter("partyId", UUID.fromString(string(expected, "partyId")))
+                .getSingleResult()));
+        assertEquals(expected.get("displayName"), stored[0]);
+        Map<String, Object> details = nested(expected, "legalEntityDetails");
+        List<String> fields = List.of(
+                "legalName", "tradeName", "legalFormCode", "incorporationCountryCode", "incorporatedOn", "dissolvedOn");
+        for (int index = 0; index < fields.size(); index++) {
+            Object value = stored[index + 1];
+            assertEquals(details.get(fields.get(index)), value == null ? null : value.toString(), fields.get(index));
+        }
     }
 
     private <T> T awaitReactive(Supplier<Uni<T>> operation) {

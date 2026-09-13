@@ -55,6 +55,8 @@ paths:
         Reusing an `Idempotency-Key` with the same effective request returns the original result;
         the effective request includes the initial identifier. Reusing the key with a different
         effective request returns `409 conflict`.
+        Text normalization does not change idempotency comparison: original submitted text is
+        compared, so changing only case or surrounding whitespace still changes the request.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
@@ -214,6 +216,8 @@ paths:
         The initial identifier starts in `PENDING_VERIFICATION`, and its complete value is never
         returned. The initial identifier is part of the effective request protected by the
         `Idempotency-Key`.
+        Text normalization does not change idempotency comparison: original submitted text is
+        compared, so changing only case or surrounding whitespace still changes the request.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
@@ -1559,13 +1563,19 @@ components:
         partially initialized context is also cleared when the response completes.
 
         Body codes apply only to the corresponding properties and operations:
+        Party names, legalFormCode, and explicit displayName are validated after
+        `strip().toUpperCase(Locale.ROOT)`. Their length limits count normalized UTF-16 code units,
+        including uppercase expansion, not raw surrounding whitespace. Country inputs are trimmed
+        with Java `String.strip()` and uppercased only when the trimmed value is exactly two ASCII
+        letters. Non-ASCII country letters are rejected, even if uppercasing could expand them into
+        two ASCII letters. Identifier fields and headers keep their existing raw-input limits.
         - `request-body-required`: a required request body is missing or null.
         - `display-name-too-long`: `displayName` exceeds 300 characters on Party creation.
         - `given-names-required`, `family-names-required`: natural-person names are missing, null,
           or blank when required; on PATCH, these rules apply only to submitted names.
         - `given-names-too-long`, `family-names-too-long`, `preferred-name-too-long`: the
           corresponding natural-person name exceeds 200 characters.
-        - `birth-country-code-invalid`: a supplied `birthCountryCode` is not two uppercase letters.
+        - `birth-country-code-invalid`: a supplied `birthCountryCode` is not two ASCII letters after trimming.
         - `initial-identifier-required`: `initialIdentifier` is missing or null on Party creation.
         - `identifier-scheme-code-required`, `identifier-value-required`: `identifierSchemeCode`
           or `value` is missing, null, or blank in an initial or additional identifier.
@@ -1578,7 +1588,7 @@ components:
         - `incorporation-country-code-required`: `incorporationCountryCode` is missing or null
           on legal-entity creation.
         - `incorporation-country-code-invalid`: on legal-entity creation,
-          `incorporationCountryCode` is not two uppercase letters.
+          `incorporationCountryCode` is not two ASCII letters after trimming.
         - `patch-property-required`: a natural-person PATCH contains no supported property.
 
         Path and operation-header codes apply where the corresponding input is validated:
@@ -1943,6 +1953,12 @@ components:
         Strict natural-person creation representation. Exactly one initial official identifier is
         required and participates in idempotency comparison. Unknown properties are rejected.
         Omitted or null display names are derived from the validated given and family names.
+        Names and explicit displayName accept mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then are stored as strip().toUpperCase(Locale.ROOT).
+        For text fields, x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        Required names must remain nonblank after normalization. Dates and initial identifier fields
+        are not normalized by this rule. Original submitted strings remain the idempotency input.
       required:
         - givenNames
         - familyNames
@@ -1950,21 +1966,21 @@ components:
       properties:
         displayName:
           type: string
-          maxLength: 300
+          x-normalized-max-length: 300
           nullable: true
         givenNames:
           type: string
           minLength: 1
-          maxLength: 200
+          x-normalized-max-length: 200
           pattern: '.*\S.*'
         familyNames:
           type: string
           minLength: 1
-          maxLength: 200
+          x-normalized-max-length: 200
           pattern: '.*\S.*'
         preferredName:
           type: string
-          maxLength: 200
+          x-normalized-max-length: 200
           nullable: true
         birthDate:
           type: string
@@ -1976,9 +1992,14 @@ components:
           nullable: true
         birthCountryCode:
           type: string
-          pattern: '^[A-Z]{2}$'
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
           minLength: 2
-          maxLength: 2
+          x-normalized-max-length: 2
           nullable: true
         initialIdentifier:
           $ref: '#/components/schemas/InitialPartyIdentifierCreateRequest'
@@ -1989,6 +2010,11 @@ components:
       description: >-
         Complete replacement representation. Omitted optional properties are cleared, and the
         display name is derived again from the submitted given and family names.
+        Names accept mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then are stored as strip().toUpperCase(Locale.ROOT).
+        For text fields, x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        Required names must remain nonblank after normalization. Dates are unchanged by this rule.
       required:
         - givenNames
         - familyNames
@@ -1996,16 +2022,16 @@ components:
         givenNames:
           type: string
           minLength: 1
-          maxLength: 200
+          x-normalized-max-length: 200
           pattern: '.*\S.*'
         familyNames:
           type: string
           minLength: 1
-          maxLength: 200
+          x-normalized-max-length: 200
           pattern: '.*\S.*'
         preferredName:
           type: string
-          maxLength: 200
+          x-normalized-max-length: 200
           nullable: true
         birthDate:
           type: string
@@ -2017,9 +2043,14 @@ components:
           nullable: true
         birthCountryCode:
           type: string
-          pattern: '^[A-Z]{2}$'
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
           minLength: 2
-          maxLength: 2
+          x-normalized-max-length: 2
           nullable: true
       additionalProperties: false
 
@@ -2028,21 +2059,27 @@ components:
       description: >-
         Presence-aware partial update. Omitted properties are retained and explicit null clears a
         nullable property. Given and family names cannot be null or blank.
+        Only submitted names are normalized; omitted values are not rewritten. Names accept mixed
+        case and surrounding whitespace removed by Java String.strip() (Character.isWhitespace),
+        then are stored as strip().toUpperCase(Locale.ROOT). For text fields,
+        x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        Required names must remain nonblank after normalization. Dates are unchanged by this rule.
       minProperties: 1
       properties:
         givenNames:
           type: string
           minLength: 1
-          maxLength: 200
+          x-normalized-max-length: 200
           pattern: '.*\S.*'
         familyNames:
           type: string
           minLength: 1
-          maxLength: 200
+          x-normalized-max-length: 200
           pattern: '.*\S.*'
         preferredName:
           type: string
-          maxLength: 200
+          x-normalized-max-length: 200
           nullable: true
         birthDate:
           type: string
@@ -2054,9 +2091,14 @@ components:
           nullable: true
         birthCountryCode:
           type: string
-          pattern: '^[A-Z]{2}$'
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
           minLength: 2
-          maxLength: 2
+          x-normalized-max-length: 2
           nullable: true
       additionalProperties: false
 
@@ -2150,6 +2192,13 @@ components:
       description: >-
         Legal-entity creation representation requiring exactly one initial official identifier.
         The identifier participates in idempotency comparison.
+        Names, legalFormCode, and explicit displayName accept mixed case and surrounding whitespace
+        removed by Java String.strip() (Character.isWhitespace), then are stored as
+        strip().toUpperCase(Locale.ROOT). For text fields, x-normalized-max-length counts normalized
+        UTF-16 code units, not raw input; uppercase expansion counts toward the limit and surrounding
+        whitespace does not. The legal name must remain nonblank after normalization. Dates and
+        initial identifier fields are not normalized by this rule. Original submitted strings
+        remain the idempotency input.
       required:
         - legalName
         - incorporationCountryCode
@@ -2157,25 +2206,30 @@ components:
       properties:
         displayName:
           type: string
-          maxLength: 300
+          x-normalized-max-length: 300
           nullable: true
         legalName:
           type: string
           minLength: 1
-          maxLength: 300
+          x-normalized-max-length: 300
         tradeName:
           type: string
-          maxLength: 300
+          x-normalized-max-length: 300
           nullable: true
         legalFormCode:
           type: string
-          maxLength: 64
+          x-normalized-max-length: 64
           nullable: true
         incorporationCountryCode:
           type: string
-          pattern: '^[A-Z]{2}$'
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
           minLength: 2
-          maxLength: 2
+          x-normalized-max-length: 2
         incorporatedOn:
           type: string
           format: date
@@ -2190,6 +2244,13 @@ components:
 
     LegalEntityPutRequest:
       type: object
+      description: >-
+        Future replacement contract; this operation is not implemented. Names and legalFormCode
+        accept mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then are stored as strip().toUpperCase(Locale.ROOT).
+        For text fields, x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        The legal name must remain nonblank after normalization. Dates are unchanged by this rule.
       required:
         - legalName
         - incorporationCountryCode
@@ -2197,20 +2258,25 @@ components:
         legalName:
           type: string
           minLength: 1
-          maxLength: 300
+          x-normalized-max-length: 300
         tradeName:
           type: string
-          maxLength: 300
+          x-normalized-max-length: 300
           nullable: true
         legalFormCode:
           type: string
-          maxLength: 64
+          x-normalized-max-length: 64
           nullable: true
         incorporationCountryCode:
           type: string
-          pattern: '^[A-Z]{2}$'
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
           minLength: 2
-          maxLength: 2
+          x-normalized-max-length: 2
         incorporatedOn:
           type: string
           format: date
@@ -2222,25 +2288,38 @@ components:
 
     LegalEntityPatchRequest:
       type: object
+      description: >-
+        Future partial-update contract; this operation is not implemented. Only submitted names
+        and legalFormCode are normalized; omitted values are not rewritten. They accept mixed case
+        and surrounding whitespace removed by Java String.strip() (Character.isWhitespace), then
+        are stored as strip().toUpperCase(Locale.ROOT). For text fields, x-normalized-max-length
+        counts normalized UTF-16 code units, not raw input; uppercase expansion counts toward the
+        limit and surrounding whitespace does not. The legal name must remain nonblank after
+        normalization. Dates are unchanged by this rule.
       minProperties: 1
       properties:
         legalName:
           type: string
           minLength: 1
-          maxLength: 300
+          x-normalized-max-length: 300
         tradeName:
           type: string
-          maxLength: 300
+          x-normalized-max-length: 300
           nullable: true
         legalFormCode:
           type: string
-          maxLength: 64
+          x-normalized-max-length: 64
           nullable: true
         incorporationCountryCode:
           type: string
-          pattern: '^[A-Z]{2}$'
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
           minLength: 2
-          maxLength: 2
+          x-normalized-max-length: 2
         incorporatedOn:
           type: string
           format: date
@@ -2360,24 +2439,38 @@ components:
 
     PartyUpdateRequest:
       type: object
+      description: >-
+        Future display-name update contract; this operation is not implemented. The display name
+        accepts mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then is stored as strip().toUpperCase(Locale.ROOT).
+        The x-normalized-max-length limit counts normalized UTF-16 code units, not raw input,
+        including uppercase expansion. The normalized value must remain nonblank.
       required:
         - displayName
       properties:
         displayName:
           type: string
           minLength: 1
-          maxLength: 300
+          x-normalized-max-length: 300
 
     NationalityCreateRequest:
       type: object
+      description: >-
+        Future nationality contract; nationality endpoints are not implemented. The country input
+        normalization rule described here will apply when this operation is implemented.
       required:
         - countryCode
       properties:
         countryCode:
           type: string
-          pattern: '^[A-Z]{2}$'
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
           minLength: 2
-          maxLength: 2
+          x-normalized-max-length: 2
         isPrimary:
           type: boolean
           default: false
@@ -2713,6 +2806,9 @@ components:
         value:
           type: string
           writeOnly: true
+          description: >-
+            The 256-character maximum applies to the raw submitted identifier value, before its
+            scheme-specific normalization. Party text normalization does not change this limit.
           minLength: 1
           maxLength: 256
           pattern: '.*\S.*'
