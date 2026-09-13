@@ -285,6 +285,80 @@ class OpenApiContractTest {
     }
 
     @Test
+    void addsCurrentIdentifiersOnlyToTheNaturalPersonGetResponse() {
+        PathItem itemPath = openApi.getPaths().get("/v1/natural-person/{partyId}");
+        assertResponseSchemaReference(itemPath.getGet(), "200", "NaturalPersonDetailApiResponse");
+        assertResponseSchemaReference(itemPath.getPut(), "200", "NaturalPersonApiResponse");
+        assertResponseSchemaReference(itemPath.getPatch(), "200", "NaturalPersonApiResponse");
+        assertResponseSchemaReference(openApi.getPaths().get("/v1/natural-person").getPost(),
+                "201", "NaturalPersonCreateApiResponse");
+        assertEquals("#/components/schemas/NaturalPersonPutRequest", itemPath.getPut()
+                .getRequestBody().getContent().get("application/json").getSchema().get$ref());
+        assertEquals("#/components/schemas/NaturalPersonPatchRequest", itemPath.getPatch()
+                .getRequestBody().getContent().get("application/json").getSchema().get$ref());
+
+        Schema<?> detailEnvelope = schema("NaturalPersonDetailApiResponse");
+        assertEquals(Set.of("status", "code", "data"), detailEnvelope.getProperties().keySet());
+        assertEquals(Set.of("status", "code", "data"), Set.copyOf(detailEnvelope.getRequired()));
+        assertEquals(List.of(200), property(detailEnvelope, "status").getEnum());
+        assertEquals("#/components/schemas/ApiSuccessCode", property(detailEnvelope, "code").get$ref());
+        assertEquals("#/components/schemas/NaturalPersonDetailResponse",
+                property(detailEnvelope, "data").get$ref());
+
+        Schema<?> detail = schema("NaturalPersonDetailResponse");
+        assertEquals(2, detail.getAllOf().size());
+        assertEquals("#/components/schemas/NaturalPersonResponse", detail.getAllOf().getFirst().get$ref());
+        Schema<?> addition = detail.getAllOf().get(1);
+        assertEquals(List.of("identifiers"), addition.getRequired());
+        assertEquals(Set.of("identifiers"), addition.getProperties().keySet());
+        Schema<?> identifiers = property(addition, "identifiers");
+        assertEquals("array", identifiers.getType());
+        assertNotEquals(Boolean.TRUE, identifiers.getNullable());
+        assertNull(identifiers.getMaxItems());
+        assertTrue(identifiers.getMinItems() == null || identifiers.getMinItems() == 0);
+        assertEquals("#/components/schemas/PartyIdentifierResponse", identifiers.getItems().get$ref());
+    }
+
+    @Test
+    void excludesIdentifiersFromWriteRequestsAndNonDetailResponses() {
+        assertEquals("#/components/schemas/NaturalPersonResponse",
+                property(schema("NaturalPersonApiResponse"), "data").get$ref());
+        Schema<?> create = schema("NaturalPersonCreateResponse");
+        assertEquals("#/components/schemas/NaturalPersonResponse", create.getAllOf().getFirst().get$ref());
+        assertEquals(Set.of("initialIdentifier"), create.getAllOf().get(1).getProperties().keySet());
+        assertEquals("#/components/schemas/PartyBase",
+                schema("NaturalPersonResponse").getAllOf().getFirst().get$ref());
+        assertEquals(Set.of("type", "naturalPersonDetails"),
+                schema("NaturalPersonResponse").getAllOf().get(1).getProperties().keySet());
+        assertFalse(schema("PartyBase").getProperties().containsKey("identifiers"));
+        for (String request : List.of("NaturalPersonCreateRequest", "NaturalPersonPutRequest",
+                "NaturalPersonPatchRequest")) {
+            assertFalse(schema(request).getProperties().containsKey("identifiers"));
+        }
+        assertEquals(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode", "maskedValue",
+                "status", "isPrimary", "issuerCode", "issuedOn", "expiresOn", "verifiedAt", "verifiedBy",
+                "version", "createdAt", "updatedAt"), schema("PartyIdentifierResponse").getProperties().keySet());
+    }
+
+    @Test
+    void documentsCurrentIdentifierFilteringOrderingAndUnpaginatedSafeRetrieval() {
+        PathItem itemPath = openApi.getPaths().get("/v1/natural-person/{partyId}");
+        String description = itemPath.getGet().getDescription();
+        for (String required : List.of("PENDING_VERIFICATION", "VERIFIED", "EXPIRED", "REJECTED", "REVOKED",
+                "expiresOn", "null or greater than or equal to one UTC evaluation date", "entire request",
+                "DEPRECATED", "RETIRED", "without filtering by scheme or `isPrimary`",
+                "createdAt ASC", "identifierId ASC", "not truncated to 50", "no pagination parameters",
+                "identifiers: []", "PartyIdentifierResponse", "maskedValue", "not decrypt",
+                "plaintext", "ciphertext", "hashes", "encryption keys")) {
+            assertTrue(description.contains(required), required);
+        }
+        assertTrue(itemPath.getGet().getParameters() == null || itemPath.getGet().getParameters().isEmpty());
+        assertEquals(List.of("#/components/parameters/PartyIdPath", "#/components/parameters/TenantId",
+                "#/components/parameters/ProcessId", "#/components/parameters/UserId"),
+                itemPath.getParameters().stream().map(Parameter::get$ref).toList());
+    }
+
+    @Test
     void declaresRegistrationAndActivationFailures() {
         Operation naturalCreate = openApi.getPaths().get("/v1/natural-person").getPost();
         Operation legalCreate = openApi.getPaths().get("/v1/legal-entity").getPost();
