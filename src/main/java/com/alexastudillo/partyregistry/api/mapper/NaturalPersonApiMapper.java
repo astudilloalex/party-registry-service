@@ -3,6 +3,8 @@ package com.alexastudillo.partyregistry.api.mapper;
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonDetailsResponse;
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonCreateResponse;
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonResponse;
+import com.alexastudillo.partyregistry.api.model.response.NaturalPersonDetailResponse;
+import com.alexastudillo.partyregistry.application.model.NaturalPersonDetailResult;
 import com.alexastudillo.partyregistry.application.model.NaturalPersonResult;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -17,6 +19,7 @@ import java.util.Objects;
 public class NaturalPersonApiMapper {
 
     private static final String NATURAL_PERSON_TYPE = "NATURAL_PERSON";
+    private static final String RESULT = "result";
 
     private final PartyIdentifierApiMapper identifierMapper;
 
@@ -32,7 +35,7 @@ public class NaturalPersonApiMapper {
      * @return API-only natural-person representation
      */
     public NaturalPersonResponse toResponse(NaturalPersonResult result) {
-        Objects.requireNonNull(result, "result");
+        Objects.requireNonNull(result, RESULT);
         NaturalPersonDetailsResponse details = new NaturalPersonDetailsResponse(
                 result.givenNames(),
                 result.familyNames(),
@@ -54,13 +57,25 @@ public class NaturalPersonApiMapper {
     }
 
     /**
+     * Maps the GET-only detail without adding identifier lists to write or replay representations.
+     */
+    public NaturalPersonDetailResponse toDetailResponse(NaturalPersonDetailResult result) {
+        Objects.requireNonNull(result, RESULT);
+        NaturalPersonResponse person = toResponse(result.person());
+        return new NaturalPersonDetailResponse(
+                person.partyId(), person.type(), person.displayName(), person.recordStatus(), person.version(),
+                person.createdAt(), person.updatedAt(), person.createdBy(), person.updatedBy(),
+                person.naturalPersonDetails(), result.identifiers().stream().map(identifierMapper::toResponse).toList());
+    }
+
+    /**
      * Maps a natural-person registration result to its create-only response.
      *
      * @param result safe application registration result
      * @return API-only natural-person creation representation
      */
     public NaturalPersonCreateResponse toCreateResponse(PartyRegistrationResult result) {
-        Objects.requireNonNull(result, "result");
+        Objects.requireNonNull(result, RESULT);
         if (!(result.party() instanceof NaturalPersonResult naturalPerson)) {
             throw new IllegalArgumentException("Natural-person registration result required");
         }

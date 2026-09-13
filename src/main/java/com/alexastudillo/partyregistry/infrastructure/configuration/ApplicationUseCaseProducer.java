@@ -8,6 +8,7 @@ import com.alexastudillo.partyregistry.application.port.NaturalPersonRepository;
 import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
 import com.alexastudillo.partyregistry.application.port.PartyActivationPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierReadPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ActivatePartyUseCase;
@@ -105,8 +106,9 @@ public class ApplicationUseCaseProducer {
     }
 
     @Produces
-    GetNaturalPersonUseCase getNaturalPersonUseCase(NaturalPersonRepository repository) {
-        return new GetNaturalPersonUseCase(repository);
+    GetNaturalPersonUseCase getNaturalPersonUseCase(
+            NaturalPersonRepository repository, PartyIdentifierReadPort identifierReadPort) {
+        return new GetNaturalPersonUseCase(repository, identifierReadPort, UTC_CLOCK);
     }
 
     @Produces

@@ -2,6 +2,12 @@ package com.alexastudillo.partyregistry.api.mapper;
 
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonResponse;
 import com.alexastudillo.partyregistry.application.model.NaturalPersonResult;
+import com.alexastudillo.partyregistry.application.model.NaturalPersonDetailResult;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
+import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
+import com.alexastudillo.partyregistry.domain.model.PartyIdentifierId;
+import com.alexastudillo.partyregistry.domain.model.PartyIdentifierStatus;
+import com.alexastudillo.partyregistry.domain.model.PartyIdentifierVersion;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
@@ -12,9 +18,11 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Verifies complete API projection without exposing application or domain
@@ -66,6 +74,20 @@ class NaturalPersonApiMapperTest {
         assertEquals(LocalDate.parse("1815-12-10"), response.naturalPersonDetails().birthDate());
         assertEquals(LocalDate.parse("1852-11-27"), response.naturalPersonDetails().dateOfDeath());
         assertEquals("GB", response.naturalPersonDetails().birthCountryCode());
+
+        PartyIdentifierResult identifier = new PartyIdentifierResult(
+                new PartyIdentifierId(UUID.randomUUID()), new PartyId(PARTY_ID),
+                new IdentifierSchemeId(UUID.randomUUID()), "EC_NATIONAL_ID", "******0009",
+                PartyIdentifierStatus.VERIFIED, true, "AUTHORITY", null, null, UPDATED_AT, "verifier",
+                new PartyIdentifierVersion(2), CREATED_AT, UPDATED_AT);
+        var detail = mapper.toDetailResponse(new NaturalPersonDetailResult(result, List.of(identifier)));
+        assertEquals(response.partyId(), detail.partyId());
+        assertEquals(response.displayName(), detail.displayName());
+        assertEquals(response.naturalPersonDetails(), detail.naturalPersonDetails());
+        assertEquals(response.version(), detail.version());
+        var detailIdentifiers = detail.identifiers();
+        assertEquals(List.of(new PartyIdentifierApiMapper().toResponse(identifier)), detailIdentifiers);
+        assertThrows(UnsupportedOperationException.class, detailIdentifiers::clear);
     }
 
     @Test
@@ -94,5 +116,6 @@ class NaturalPersonApiMapperTest {
         assertNull(response.naturalPersonDetails().birthDate());
         assertNull(response.naturalPersonDetails().dateOfDeath());
         assertNull(response.naturalPersonDetails().birthCountryCode());
+        assertEquals(List.of(), mapper.toDetailResponse(new NaturalPersonDetailResult(result, List.of())).identifiers());
     }
 }

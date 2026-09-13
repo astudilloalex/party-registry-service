@@ -12,6 +12,7 @@ import com.alexastudillo.partyregistry.api.model.request.NaturalPersonPatchReque
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonPutRequest;
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonCreateResponse;
 import com.alexastudillo.partyregistry.api.model.response.NaturalPersonResponse;
+import com.alexastudillo.partyregistry.api.model.response.NaturalPersonDetailResponse;
 import com.alexastudillo.partyregistry.api.support.ApiRequestSupport;
 import com.alexastudillo.partyregistry.application.command.GetNaturalPersonCommand;
 import com.alexastudillo.partyregistry.application.command.PatchNaturalPersonCommand;
@@ -106,7 +107,7 @@ public class NaturalPersonResource {
     }
 
     /**
-     * Retrieves one tenant-scoped natural person.
+     * Retrieves one tenant-scoped natural person with current masked identifiers.
      *
      * @param partyId raw path identifier
      * @return reactive `200 successful` envelope
@@ -114,13 +115,13 @@ public class NaturalPersonResource {
     @GET
     @Path("/{partyId}")
     @WithSpan("natural-person.retrieve")
-    public Uni<RestResponse<ApiResponse<NaturalPersonResponse>>> getNaturalPerson(
+    public Uni<RestResponse<ApiResponse<NaturalPersonDetailResponse>>> getNaturalPerson(
             @PathParam("partyId") String partyId) {
         return Uni.createFrom().item(() -> new GetNaturalPersonCommand(
                 metadataContext.metadata(),
                 requestSupport.parsePartyId(partyId)))
                 .flatMap(getUseCase::execute)
-                .map(mapper::toResponse)
+                .map(mapper::toDetailResponse)
                 .map(responseManager::successHttp)
                 .onFailure().transform(errorTranslator::translate);
     }

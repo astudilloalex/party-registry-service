@@ -102,6 +102,18 @@ paths:
         - natural-person
       operationId: getNaturalPerson
       summary: Obtener persona natural
+      description: |
+        Returns the existing natural-person fields plus the complete collection of current identifiers
+        for this tenant and Party. Current identifiers have status `PENDING_VERIFICATION` or `VERIFIED`
+        and an `expiresOn` value that is null or greater than or equal to one UTC evaluation date
+        captured for the entire request. `EXPIRED`, `REJECTED`, and `REVOKED` identifiers are excluded,
+        as are pending or verified identifiers whose expiration precedes that date.
+        Includes all schemes, including metadata from deactivated (`DEPRECATED` or `RETIRED`) schemes,
+        without filtering by scheme or `isPrimary`. Identifiers are ordered by `createdAt ASC`, then
+        `identifierId ASC`. The collection is not truncated to 50 items and has no pagination parameters
+        or additional pagination fields. A valid Party with no current identifiers returns `identifiers: []`.
+        Each item reuses `PartyIdentifierResponse`, including its stored `maskedValue`; retrieval does
+        not decrypt identifier values or expose plaintext, ciphertext, hashes, or encryption keys.
       responses:
         '200':
           description: Detalle de persona natural
@@ -111,7 +123,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NaturalPersonApiResponse'
+                $ref: '#/components/schemas/NaturalPersonDetailApiResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2140,6 +2152,44 @@ components:
           properties:
             initialIdentifier:
               $ref: '#/components/schemas/InitialPartyIdentifierResponse'
+
+    NaturalPersonDetailResponse:
+      description: >-
+        GET-only natural-person detail. All existing NaturalPersonResponse fields retain their shape;
+        identifiers is a required, non-null, complete collection, empty when none are current.
+        No additional wrapper around the existing Party fields is introduced.
+      allOf:
+        - $ref: '#/components/schemas/NaturalPersonResponse'
+        - type: object
+          required:
+            - identifiers
+          properties:
+            identifiers:
+              type: array
+              description: >-
+                Current PENDING_VERIFICATION or VERIFIED identifiers with expiresOn null or on or after
+                the single UTC evaluation date for the request, ordered by createdAt ASC, identifierId ASC.
+                Includes every scheme regardless of scheme status or isPrimary, without truncation or
+                pagination. Uses the stored maskedValue without decryption; no plaintext, ciphertext,
+                hashes, or encryption keys are exposed.
+              items:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+
+    NaturalPersonDetailApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+          enum:
+            - 200
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/NaturalPersonDetailResponse'
 
     NaturalPersonCreateApiResponse:
       type: object

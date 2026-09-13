@@ -14,8 +14,12 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +36,7 @@ import java.util.function.Supplier;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -516,6 +521,179 @@ class NaturalPersonResourceContractTest {
     }
 
     @Test
+    void retrievesInitialAndAdditionalCurrentIdentifiersWithoutDecryptingOrFilteringInactiveSchemes() {
+        UUID tenantId = UUID.fromString(TENANT_ID);
+        String createKey = key("current-identifiers");
+        Map<String, Object> created = assertSuccess(create(tenantId, createKey, COMPLETE_CREATE_BODY), 201);
+        String partyId = string(created, "partyId");
+        String additionalValue = "  detail" + UUID.randomUUID().toString().substring(0, 8) + "  ";
+        Map<String, Object> additional = assertSuccess(request(tenantId)
+                .header(IDEMPOTENCY_KEY_HEADER, key("current-additional"))
+                .body("""
+                        {
+                          "identifierSchemeCode":"TEST_BOTH_EXPIRING",
+                          "value":"%s",
+                          "issuerCode":"REGISTRY",
+                          "issuedOn":"2000-01-01",
+                          "isPrimary":false
+                        }
+                        """.formatted(additionalValue))
+                .post("/v1/parties/{partyId}/identifiers", partyId), 201);
+        List<Map<String, Object>> excluded = new ArrayList<>();
+        for (int index = 0; index < 5; index++) {
+            excluded.add(assertSuccess(request(tenantId)
+                    .header(IDEMPOTENCY_KEY_HEADER, key("excluded-identifier"))
+                    .body("""
+                            {"identifierSchemeCode":"TEST_NATURAL_ACTIVE","value":"%s"}
+                            """.formatted(identifierValue(key("excluded"))))
+                    .post("/v1/parties/{partyId}/identifiers", partyId), 201));
+        }
+
+        LocalDate evaluationDate = LocalDate.now(ZoneOffset.UTC);
+        setIdentifierLifecycle(tenantId, additional, "VERIFIED", evaluationDate);
+        setIdentifierLifecycle(tenantId, excluded.get(0), "PENDING_VERIFICATION", evaluationDate.minusDays(1));
+        setIdentifierLifecycle(tenantId, excluded.get(1), "VERIFIED", evaluationDate.minusDays(1));
+        setIdentifierLifecycle(tenantId, excluded.get(2), "EXPIRED", evaluationDate.plusDays(1));
+        setIdentifierLifecycle(tenantId, excluded.get(3), "REJECTED", evaluationDate.plusDays(1));
+        setIdentifierLifecycle(tenantId, excluded.get(4), "REVOKED", evaluationDate.plusDays(1));
+
+        // Model a historical retired scheme and an unavailable key without mutating shared scheme fixtures.
+        awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session.createNativeQuery("""
+                update party_identifiers
+                set identifier_scheme_id = '0198d111-08f1-7e48-b291-399bbb9cd606',
+                    encrypted_value = 'detail-ciphertext-must-not-be-decrypted', encryption_key_version = 32767
+                where tenant_id = :tenantId and id = :identifierId
+                """)
+                .setParameter("tenantId", tenantId)
+                .setParameter("identifierId", UUID.fromString(string(additional, "identifierId")))
+                .executeUpdate().invoke(updated -> assertEquals(1, updated))));
+
+        Response response = request(tenantId).get(RESOURCE_PATH + "/" + partyId);
+        Map<String, Object> detail = assertDetailSuccess(response);
+        assertExplicitNaturalPersonDetails(detail);
+        List<Map<String, Object>> current = identifiers(detail);
+        assertEquals(2, current.size());
+        Map<String, Object> expectedAdditional = new LinkedHashMap<>(additional);
+        expectedAdditional.put("identifierSchemeId", "0198d111-08f1-7e48-b291-399bbb9cd606");
+        expectedAdditional.put("schemeCode", "TEST_BOTH_RETIRED");
+        expectedAdditional.put("status", "VERIFIED");
+        expectedAdditional.put("expiresOn", evaluationDate.toString());
+        expectedAdditional.put("verifiedAt", "2020-01-02T00:00:00Z");
+        expectedAdditional.put("verifiedBy", USER_ID);
+        expectedAdditional.put("version", 1);
+        List<Map<String, Object>> expected = List.of(nested(created, "initialIdentifier"), expectedAdditional);
+        for (int index = 0; index < expected.size(); index++) {
+            for (var field : expected.get(index).entrySet()) {
+                if (Set.of("createdAt", "updatedAt", "verifiedAt").contains(field.getKey())
+                        && field.getValue() != null) {
+                    assertTimestampEquivalent(field.getValue(), current.get(index).get(field.getKey()));
+                } else {
+                    assertEquals(field.getValue(), current.get(index).get(field.getKey()), field.getKey());
+                }
+            }
+        }
+        Map<String, Object> base = new LinkedHashMap<>(detail);
+        base.remove("identifiers");
+        assertEquivalentData(created, base);
+        for (String plaintext : List.of(identifierValue(createKey), identifierValue(createKey).toUpperCase(Locale.ROOT),
+                additionalValue, additionalValue.strip(), additionalValue.strip().toUpperCase(Locale.ROOT))) {
+            assertFalse(response.asString().contains(plaintext));
+        }
+        List<Object[]> protectedValues = awaitReactive(() -> sessionFactory.withSession(session -> session
+                .createNativeQuery("""
+                        select encrypted_value, normalized_value_hash from party_identifiers
+                        where tenant_id = :tenantId and party_id = :partyId
+                        """, Object[].class)
+                .setParameter("tenantId", tenantId)
+                .setParameter("partyId", UUID.fromString(partyId))
+                .getResultList()));
+        for (Object[] protectedValue : protectedValues) {
+            assertFalse(response.asString().contains((String) protectedValue[0]));
+            assertFalse(response.asString().contains(((String) protectedValue[1]).strip()));
+        }
+        assertError(request(UUID.randomUUID()).get(RESOURCE_PATH + "/" + partyId), 404, "natural-person-not-found");
+    }
+
+    @Test
+    void retrievesMoreThanFiftyIdentifiersInCreationAndIdentifierIdOrder() {
+        UUID tenantId = UUID.randomUUID();
+        Map<String, Object> created = assertSuccess(
+                create(tenantId, key("complete-collection"), createBody("Complete", "Collection", null)), 201);
+        String partyId = string(created, "partyId");
+        String idPrefix = UUID.randomUUID().toString().substring(0, 24);
+
+        // Insert tied timestamps and reverse UUID order to distinguish both sort keys from insertion order.
+        awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session.createNativeQuery("""
+                insert into party_identifiers (
+                    id, tenant_id, party_id, identifier_scheme_id, encrypted_value, encryption_key_version,
+                    normalized_value_hash, masked_value, created_at, created_by, updated_by
+                )
+                select cast(:idPrefix || lpad(cast(56 - ordinal as text), 12, '0') as uuid),
+                    :tenantId, :partyId, '0198d111-08f1-7e48-b291-399bbb9cd605',
+                    'detail-undecipherable-fixture', 32767,
+                    md5(:idPrefix || ordinal) || md5(:idPrefix || ordinal), '****' || ordinal,
+                    timestamptz '2000-01-01 00:00:00+00' + (ordinal % 3) * interval '1 second',
+                    :userId, :userId
+                from generate_series(1, 55) as fixture(ordinal)
+                """)
+                .setParameter("idPrefix", idPrefix)
+                .setParameter("tenantId", tenantId)
+                .setParameter("partyId", UUID.fromString(partyId))
+                .setParameter("userId", USER_ID)
+                .executeUpdate().invoke(inserted -> assertEquals(55, inserted))));
+
+        Map<String, Object> detail = assertDetailSuccess(request(tenantId).get(RESOURCE_PATH + "/" + partyId));
+        List<Map<String, Object>> current = identifiers(detail);
+        assertEquals(56, current.size());
+        List<String> expectedIds = new ArrayList<>();
+        for (int group = 0; group < 3; group++) {
+            for (int ordinal = 55; ordinal >= 1; ordinal--) {
+                if (ordinal % 3 == group) {
+                    expectedIds.add(idPrefix + String.format(Locale.ROOT, "%012d", 56 - ordinal));
+                }
+            }
+        }
+        expectedIds.add(string(nested(created, "initialIdentifier"), "identifierId"));
+        assertEquals(expectedIds, current.stream().map(identifier -> string(identifier, "identifierId")).toList());
+        assertEquals(55, current.stream().filter(identifier -> "TEST_BOTH_DEPRECATED".equals(identifier.get("schemeCode")))
+                .count());
+    }
+
+    @Test
+    void returnsAnEmptyIdentifierArrayForLegacyPartiesAndPartiesWithoutCurrentIdentifiers() {
+        UUID tenantId = UUID.randomUUID();
+        UUID legacyPartyId = UUID.randomUUID();
+        awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session.createNativeQuery("""
+                insert into parties (id, tenant_id, type, display_name, created_by, updated_by)
+                values (:partyId, :tenantId, 'NATURAL_PERSON', 'Legacy Person', :userId, :userId)
+                """)
+                .setParameter("partyId", legacyPartyId)
+                .setParameter("tenantId", tenantId)
+                .setParameter("userId", USER_ID)
+                .executeUpdate().invoke(inserted -> assertEquals(1, inserted))
+                .chain(() -> session.createNativeQuery("""
+                        insert into natural_person_details (party_id, given_names, family_names, created_by, updated_by)
+                        values (:partyId, 'Legacy', 'Person', :userId, :userId)
+                        """)
+                        .setParameter("partyId", legacyPartyId)
+                        .setParameter("userId", USER_ID)
+                        .executeUpdate().invoke(inserted -> assertEquals(1, inserted)))));
+        Map<String, Object> legacy = assertDetailSuccess(request(tenantId).get(RESOURCE_PATH + "/" + legacyPartyId));
+        assertEquals(List.of(), identifiers(legacy));
+        assertEquals("Legacy Person", legacy.get("displayName"));
+        assertEquals("Legacy", nested(legacy, "naturalPersonDetails").get("givenNames"));
+        assertError(request(UUID.randomUUID()).get(RESOURCE_PATH + "/" + legacyPartyId), 404, "natural-person-not-found");
+
+        Map<String, Object> created = assertSuccess(
+                create(tenantId, key("no-current-identifiers"), createBody("No", "Current Identifiers", null)), 201);
+        setIdentifierLifecycle(tenantId, nested(created, "initialIdentifier"), "REVOKED", null);
+        Map<String, Object> detail = assertDetailSuccess(
+                request(tenantId).get(RESOURCE_PATH + "/" + string(created, "partyId")));
+        assertEquals(List.of(), identifiers(detail));
+        assertEquivalentData(created, getData(tenantId, string(created, "partyId")));
+    }
+
+    @Test
     void verifiesReplacementHeaderAndPayloadValidation() {
         UUID tenantId = UUID.fromString(TENANT_ID);
         String initialBody = """
@@ -821,7 +999,7 @@ class NaturalPersonResourceContractTest {
         assertFalse(created.containsKey("class"));
 
         String partyId = string(created, "partyId");
-        assertSuccess(request(tenantId).get(RESOURCE_PATH + "/" + partyId), 200);
+        assertDetailSuccess(request(tenantId).get(RESOURCE_PATH + "/" + partyId));
         assertSanitizedError(
                 request(tenantId).get(RESOURCE_PATH + "/invalid-id"),
                 400,
@@ -861,7 +1039,29 @@ class NaturalPersonResourceContractTest {
     }
 
     private Map<String, Object> getData(UUID tenantId, String partyId) {
-        return assertSuccess(request(tenantId).get(RESOURCE_PATH + "/" + partyId), 200);
+        Map<String, Object> data = new LinkedHashMap<>(
+                assertDetailSuccess(request(tenantId).get(RESOURCE_PATH + "/" + partyId)));
+        // Preserve the existing write/read comparisons after validating the GET-only collection separately.
+        data.remove("identifiers");
+        return data;
+    }
+
+    private void setIdentifierLifecycle(
+            UUID tenantId, Map<String, Object> identifier, String status, LocalDate expiresOn) {
+        awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session.createNativeQuery("""
+                update party_identifiers
+                set status = cast(:status as party_identifier_status), expires_on = :expiresOn,
+                    verified_at = case when :status = 'VERIFIED' then timestamptz '2020-01-02 00:00:00+00' end,
+                    verified_by = case when :status = 'VERIFIED' then :userId end,
+                    version = version + 1
+                where tenant_id = :tenantId and id = :identifierId
+                """)
+                .setParameter("status", status)
+                .setParameter("expiresOn", expiresOn)
+                .setParameter("userId", USER_ID)
+                .setParameter("tenantId", tenantId)
+                .setParameter("identifierId", UUID.fromString(string(identifier, "identifierId")))
+                .executeUpdate().invoke(updated -> assertEquals(1, updated))));
     }
 
     private void assertStoredNaturalPerson(UUID tenantId, Map<String, Object> expected) {
@@ -1054,6 +1254,34 @@ class NaturalPersonResourceContractTest {
         Map<String, Object> data = response.jsonPath().getMap("data");
         assertNotNull(data);
         return data;
+    }
+
+    private static Map<String, Object> assertDetailSuccess(Response response) {
+        Map<String, Object> data = assertSuccess(response, 200);
+        Set<String> expectedFields = new HashSet<>(COMPLETE_DATA_FIELDS);
+        expectedFields.remove("initialIdentifier");
+        expectedFields.add("identifiers");
+        assertEquals(expectedFields, data.keySet());
+        assertEquals(COMPLETE_DETAILS_FIELDS, nested(data, "naturalPersonDetails").keySet());
+        for (Map<String, Object> identifier : identifiers(data)) {
+            assertEquals(COMPLETE_IDENTIFIER_FIELDS, identifier.keySet());
+            assertEquals(data.get("partyId"), identifier.get("partyId"));
+            assertTrue(Set.of("PENDING_VERIFICATION", "VERIFIED").contains(identifier.get("status")));
+            UUID.fromString(string(identifier, "identifierId"));
+            UUID.fromString(string(identifier, "identifierSchemeId"));
+            assertFalse(string(identifier, "schemeCode").isBlank());
+            assertFalse(string(identifier, "maskedValue").isBlank());
+            assertInstanceOf(Boolean.class, identifier.get("isPrimary"));
+            assertTrue(number(identifier, "version") >= 0);
+            Instant.parse(string(identifier, "createdAt"));
+            Instant.parse(string(identifier, "updatedAt"));
+        }
+        return data;
+    }
+
+    private static List<Map<String, Object>> identifiers(Map<String, Object> data) {
+        List<?> values = assertInstanceOf(List.class, data.get("identifiers"));
+        return values.stream().map(value -> nested(Map.of("identifier", value), "identifier")).toList();
     }
 
     private static Map<String, Object> assertError(

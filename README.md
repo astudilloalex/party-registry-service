@@ -31,6 +31,10 @@ Creation request values are retained unchanged for the existing idempotency fing
 
 For new identifiers, Application supplies the validated, stripped uppercase plaintext to encryption. Lookup hashes and masks already use that same canonical value. Ciphertext/Base64 must never be uppercased, and previously encrypted values are not rewritten. Expiration remains optional for every document.
 
+### Natural-person reads
+
+`GET /v1/natural-person/{partyId}` includes a GET-only `identifiers` array of current masked projections. Current means `PENDING_VERIFICATION` or `VERIFIED`, with no expiration or an expiration on/after the request's UTC evaluation date. Results are complete, ordered by creation timestamp and identifier ID, and empty when none qualify. The query never loads ciphertext, lookup hashes, or key versions, and does not decrypt or change identifier state. Creation/replay, PUT, and PATCH response shapes remain unchanged.
+
 ## Database
 
 Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, and V4 makes expiration optional. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Timeout;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -91,16 +92,43 @@ class PackagedApplicationIT {
                 .body("data.initialIdentifier.schemeCode", equalTo("TEST_NATURAL_ACTIVE"))
                 .body("data.initialIdentifier.status", equalTo("PENDING_VERIFICATION"))
                 .body("data.initialIdentifier", not(hasKey("value")))
+                .body("data", not(hasKey("identifiers")))
                 .extract().response();
 
         String partyId = created.path("data.partyId");
-        validRequest()
+        Response detail = validRequest()
                 .when().get("/v1/natural-person/{partyId}", partyId)
                 .then()
                 .statusCode(200)
+                .header("Process-Id", equalTo(PROCESS_ID))
                 .body("status", equalTo(200))
                 .body("code", equalTo("successful"))
-                .body("data.partyId", equalTo(partyId));
+                .body("data.partyId", equalTo(partyId))
+                .body("data.type", equalTo("NATURAL_PERSON"))
+                .body("data", not(hasKey("initialIdentifier")))
+                .body("data.identifiers.size()", equalTo(1))
+                .body("data.identifiers[0].identifierId", equalTo(created.path("data.initialIdentifier.identifierId")))
+                .body("data.identifiers[0].partyId", equalTo(partyId))
+                .body("data.identifiers[0].identifierSchemeId",
+                        equalTo(created.path("data.initialIdentifier.identifierSchemeId")))
+                .body("data.identifiers[0].schemeCode", equalTo("TEST_NATURAL_ACTIVE"))
+                .body("data.identifiers[0].maskedValue", equalTo("*********3456"))
+                .body("data.identifiers[0].status", equalTo("PENDING_VERIFICATION"))
+                .body("data.identifiers[0].isPrimary", equalTo(true))
+                .body("data.identifiers[0].version", equalTo(0))
+                .body(not(containsString("PACKAGED123456")))
+                .extract().response();
+        assertEquals(Set.of("status", "code", "data"), detail.jsonPath().getMap("$").keySet());
+        assertEquals(Set.of("partyId", "type", "displayName", "recordStatus", "version", "createdAt",
+                "updatedAt", "createdBy", "updatedBy", "naturalPersonDetails", "identifiers"),
+                detail.jsonPath().getMap("data").keySet());
+        assertEquals(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode", "maskedValue",
+                "status", "isPrimary", "issuerCode", "issuedOn", "expiresOn", "verifiedAt", "verifiedBy",
+                "version", "createdAt", "updatedAt"), detail.jsonPath().getMap("data.identifiers[0]").keySet());
+        for (String forbidden : List.of("value", "normalizedValue", "encryptedValue", "normalizedValueHash",
+                "encryptionKeyVersion", "normalizationVersion", "plaintext", "ciphertext", "fingerprint", "keys")) {
+            detail.then().body(not(containsString("\"" + forbidden + "\"")));
+        }
 
         validRequest()
                 .header("If-Match", "0")
@@ -118,6 +146,7 @@ class PackagedApplicationIT {
                 .body("status", equalTo(200))
                 .body("code", equalTo("successful"))
                 .body("data.displayName", equalTo("UPDATED PERSON"))
+                .body("data", not(hasKey("identifiers")))
                 .body("data.version", equalTo(1));
 
         validRequest()
@@ -130,6 +159,7 @@ class PackagedApplicationIT {
                 .body("status", equalTo(200))
                 .body("code", equalTo("successful"))
                 .body("data.naturalPersonDetails.preferredName", equalTo("SMOKE"))
+                .body("data", not(hasKey("identifiers")))
                 .body("data.version", equalTo(2));
 
         assertError(
