@@ -11,7 +11,7 @@ Several implementation details affect this design:
 - Restoration validates historical display names by code points. New root display-name writes require the stricter normalized UTF-16 limit; restoration must continue accepting existing historical representations.
 - Flyway V1 contains all four Party statuses, root/detail tables, and the optional outbox. V2 already contains tenant/operation/key-scoped idempotency records with versioned JSON snapshots. V3 and V4 govern identifier reference data and optional expiration.
 - The resolved `api-response-quarkus-errors:1.0.0-SNAPSHOT` dependency provides `ResponseManager.paginatedHttp(List<T>, PaginationMetadata)`. Its Jackson adapter omits null envelope properties, and its pagination counts are `Integer`. Both facts require explicit treatment at the list boundary.
-- The build currently configures neither a SonarQube scanner nor a SonarQube server/project. SonarQube evidence cannot be inferred from successful compilation or OpenSpec validation.
+- The developer uses Antigravity IDE with the SonarQube for IDE extension installed and without a SonarQube server. This change adopts standalone local analysis with recorded extension/rule configuration and per-file evidence, verifying actual execution in Antigravity IDE. No Gradle scanner integration or remote service is required. Successful compilation, OpenSpec validation, or an empty Problems panel alone cannot establish that local analysis ran.
 
 ### Architectural authority and narrow contract overrides
 
@@ -57,7 +57,7 @@ Requirement names refer to the corresponding files under this change's `specs/` 
 | Activation is tenant-scoped | Qualified reads, replay scopes, and conflict diagnostics |
 | Activation has one observable outcome | Shared mutation boundary and existing activation event contract |
 | Activation follows the shared lifecycle request and replay contract | One lifecycle command workflow for all three actions |
-| Proposal: strict architecture and quality constraints | ArchUnit, class-level SonarQube/LSP evidence, Month-based fixtures, JVM/native checks |
+| Proposal: strict architecture and quality constraints | ArchUnit, per-file standalone SonarQube for IDE and separate JDTLS/LSP evidence, Month-based fixtures, JVM/native checks |
 
 ## Goals / Non-Goals
 
@@ -67,7 +67,7 @@ Requirement names refer to the corresponding files under this change's `specs/` 
 - Keep Domain responsible for invariants, Application for workflow and failure precedence, API for HTTP, and Infrastructure for technical mechanisms.
 - Make root mutations, successful replay records, and enabled events indivisible while retaining independent identifiers and historical creation results.
 - Provide exact pagination metadata and stable navigation with bounded application memory.
-- Establish verifiable JVM/native behavior and the user's zero-findings/zero-new-warnings quality gates.
+- Establish verifiable JVM/native behavior, zero unresolved findings from active locally supported Sonar rules in changed files, and zero new compiler/IDE warnings.
 
 **Non-Goals:**
 
@@ -412,7 +412,7 @@ A database-acknowledgement or HTTP-delivery loss after commit can leave the call
 - Bind cursor MACs to the complete effective scope and direction/boundary. Validate structure, format version, key ID, and signature before using the boundary. Keep raw cursors, filters, names, keys, and snapshot payloads out of logs/traces.
 - Store lifecycle snapshots as allowlisted inner result data, not serialized Domain/ORM objects or HTTP envelopes. Never include identifier-protection material. Decode saved effective identity before deciding replay or conflict.
 - The strict PATCH model prevents assignment of tenant, Party ID, type, state, version, or details.
-- Key material is configured outside source control, validated once at startup, and available to all replicas. SonarQube credentials are likewise external inputs, never committed or included in reports.
+- Key material is configured outside source control, validated once at startup, and available to all replicas. Standalone SonarQube for IDE analysis requires no server credentials.
 
 ## Resilience
 
@@ -435,7 +435,7 @@ Preserve the exact configured format:
 %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%c{3}] (%t) [pid=%X{processId}] [userId=%X{userId}] [tenantId=%X{tenantId}] %s%e%n
 ```
 
-Expected validation rejection logs are runtime behavior, not compiler/LSP/SonarQube warnings. Log only bounded operation/rule names and accepted correlation; no rejected values or parser source content.
+Expected validation rejection logs are runtime behavior, not compiler/LSP warnings or SonarQube for IDE findings. Log only bounded operation/rule names and accepted correlation; no rejected values or parser source content.
 
 ## Testing Strategy
 
@@ -486,10 +486,14 @@ For every new or modified Java class, interface, record, and enum:
 
 1. Supply concise English responsibility Javadoc and document non-obvious public contracts/failures.
 2. Inspect JDTLS/LSP diagnostics for that file, resolve warnings/errors, and investigate any disagreement with Gradle.
-3. Run real SonarQube analysis using an approved Java-25-capable analyzer and project quality profile. Capture the analyzed revision, task/report identity, quality-gate result, and unresolved findings for all changed/new classes, including tests. Zero unresolved findings in those classes is stronger than merely passing a new-code quality gate.
+3. Run SonarQube for IDE local analysis in Antigravity IDE standalone mode with a version verified to analyze this Java 25 project. Record the extension version, active local rule configuration, analyzed saved revision/files, completion evidence, and findings for all changed/new classes, including tests. Require zero unresolved findings from the active locally supported rules in those files; do not describe this result as a remote Quality Gate or equivalent server analysis coverage.
 4. Resolve new compiler/IDE warnings and type/nullability issues rather than hiding them through unjustified suppression, exclusions, or blanket rule disablement.
 
-At implementation preflight, obtain the SonarQube URL, project key, authorized external token, scanner/analyzer compatibility, and applicable quality profile. Configure a pinned compatible scanner integration in the build or the approved CI entry point, then use its documented command. The current repository has no scanner task, so `./gradlew sonar` must not be presented as available before setup. If SonarQube or LSP diagnostics cannot be executed, record that specific gate as blocked; compilation cannot substitute for it.
+At implementation preflight, confirm that SonarQube for IDE is installed and enabled in the Antigravity IDE profile/window used for this project. Confirm there that Red Hat Language Support for Java is running in standard mode, the Java 25 Gradle project and its dependencies are resolved, and the local analyzer completes on an actual project Java file. Record the extension version, effective local rules and parameters, and baseline findings. Verify the extension's Java integration in Antigravity IDE rather than inferring compatibility from installation or solely from the JRE used to run the extension. Standalone analysis requires no server URL, project key, token, connected-mode binding, or Gradle scanner task.
+
+Maintain an inventory covering every changed Java file in production, unit-test, and packaged integration-test sources. Trigger analysis by opening or saving each file with automatic analysis enabled, or by a supported changed-file analysis action when available in the installed version. Record the saved revision/file identity and analysis completion/result evidence from the IDE, such as relevant output logs and Problems entries. An empty Problems panel does not prove that unopened, skipped, or unsupported files were analyzed. Keep Sonar findings separate from JDTLS/LSP diagnostics and compiler results.
+
+Installing the extension in Antigravity IDE does not automatically expose its diagnostics to the coding agent. When direct diagnostic access is unavailable, use a documented developer handoff to collect IDE evidence for the same saved revision and file inventory. Missing local analysis or JDTLS/LSP evidence keeps the affected verification incomplete until obtained; successful compilation cannot substitute for it. The absence of a SonarQube server is not a blocker for this standalone workflow. Local rules do not cover every server-side capability, including advanced project-wide and injection-vulnerability analysis.
 
 Required implementation verification commands remain:
 
@@ -500,7 +504,7 @@ Required implementation verification commands remain:
 ./gradlew testNative -Dquarkus.native.container-build=true
 ```
 
-The existing `build` wires `check` to packaged `quarkusIntTest`. Execute the configured SonarQube analysis after compiled classes and required reports are available. Preserve environment-specific container/runtime overrides in recorded evidence. Inspect resource signatures and HTTP assertions explicitly; an artifact/schema check does not demonstrate runtime or SonarQube compliance.
+The existing `build` wires `check` to packaged `quarkusIntTest`. Verify standalone SonarQube for IDE results on the final saved revision with the project model resolved, independently of the Gradle checks. Reanalyze affected files after fixes and record changes to the extension or local rule configuration. Preserve environment-specific container/runtime overrides in recorded evidence. Inspect resource signatures and HTTP assertions explicitly; an artifact/schema check does not demonstrate runtime behavior or completed local static analysis.
 
 ## Decisions
 
@@ -560,7 +564,7 @@ The existing `build` wires `check` to packaged `quarkusIntTest`. Execute the con
 | Cursor precision or UUID comparison skips ties | Preserve stored timestamp precision and canonical unsigned ordering; edge-case traversal tests |
 | Cursor keys differ across replicas or are retired during navigation | Shared versioned secret configuration and staged key rotation |
 | New snapshot/event schemas are unreadable by a rolled-back binary | Separate operation/schema namespace, staged rollout, preserved rows, and rollback compatibility checks |
-| Test runs pass while static analysis was never performed | Per-class SonarQube/LSP evidence and explicit blocked-gate reporting |
+| Test runs pass while static analysis was never performed | Per-file local Sonar analysis completion/results and separate JDTLS/LSP evidence; missing evidence remains incomplete |
 | Native image misses serializer/codec reachability | Explicit DTO/codec design and packaged native contract coverage |
 
 ## Migration and Rollback
@@ -572,4 +576,4 @@ The existing `build` wires `check` to packaged `quarkusIntTest`. Execute the con
 5. On rollback, retain the index, accepted Party changes, versions, lifecycle snapshots, and outbox rows. Do not reset data or remove a completed key to make an old binary appear compatible.
 6. A pre-change binary cannot honor the new lifecycle replay contract or decode the new events. Roll back to a compatible reader/handler build, or pause the affected lifecycle traffic/publication until a compatible release is restored. Preserve archived status and historical successful results throughout recovery.
 
-The operational inputs identified for follow-up are the approved SonarQube/scanner configuration and deployed cursor key material. They do not change the approved business requirements; they must be supplied and verified before implementation acceptance and release.
+Implementation acceptance requires the recorded standalone SonarQube for IDE setup and per-file analysis evidence, alongside JDTLS/LSP and the required automated checks. Deployed cursor key material remains an external operational prerequisite for release. No SonarQube server or scanner provisioning is required by this change.

@@ -10,21 +10,21 @@ Requirement prefixes identify the approved specifications:
 | A | `specs/party-activation/spec.md` |
 | Quality | `proposal.md` Impact and `design.md` Architecture, Testing Strategy, and quality evidence |
 
-Execute sections in order, respecting the specific dependencies stated below. Every Java-producing task includes concise English responsibility Javadoc, review of that file's JDTLS/LSP diagnostics, meaningful focused tests, and correction of new compiler/type/nullability warnings. Record SonarQube evidence for every new or modified class, interface, record, and enum, including tests; a task is not quality-complete while relevant findings remain unresolved. Preserve a changed-file inventory so the final checks cover the exact delivered revision.
+Execute sections in order, respecting the specific dependencies stated below. Every Java-producing task includes concise English responsibility Javadoc, review of that file's JDTLS/LSP diagnostics, meaningful focused tests, and correction of new compiler/type/nullability warnings. Record standalone SonarQube for IDE analysis completion and results for every new or modified class, interface, record, and enum, including tests; a task is not quality-complete while findings from the active locally supported rules remain unresolved. Keep Sonar findings separate from Java diagnostics and preserve a changed-file inventory so the final checks cover the exact delivered revision.
 
 Use injected fixed clocks and `java.time.Month` constants for every new or modified valid date/date-time fixture. Derive valid JSON date strings from those values; intentionally malformed date inputs may remain literal strings. Keep Domain framework-independent, Application limited to inner contracts and the approved Mutiny profile, and all persistence/transaction mechanisms in Infrastructure.
 
-All checkboxes start unchecked. Mark a task complete only after its implementation and stated verification succeed. Record unavailable SonarQube, LSP, database, or native-tooling prerequisites as blockers on the affected task rather than treating compilation or planning validation as equivalent evidence. SonarQube and cursor production secrets remain external configuration.
+All checkboxes start unchecked. Mark a task complete only after its implementation and stated verification succeed. Record unavailable local Sonar analysis, JDTLS/LSP evidence, database, or native-tooling prerequisites as blockers on the affected verification rather than treating compilation or planning validation as equivalent evidence. When the agent cannot access IDE diagnostics directly, obtain developer-collected evidence for the same saved revision before completing that verification. This workflow requires no SonarQube server, scanner integration, credentials, or remote Quality Gate; their absence is not a blocker. Cursor production secrets remain external configuration.
 
 ## 1. Verification Foundation and Public Contract
 
-- [ ] 1.1 Configure a pinned SonarQube scanner integration compatible with Java 25 and the project's Gradle version, using the approved server URL, project key, externally supplied token, analyzer, and quality profile.
-  - Requirements: Quality — per-class SonarQube verification and zero unresolved findings.
-  - Verification: A real baseline analysis completes; record its revision, task/report identity, profile, quality gate, and baseline findings without exposing credentials. Keep this task blocked if the required service or compatible analyzer is unavailable.
+- [ ] 1.1 Establish local Java static analysis with SonarQube for IDE in Antigravity IDE, running in standalone mode, with the Java 25 Gradle project correctly resolved by Red Hat Language Support for Java in standard mode.
+  - Requirements: Quality — per-file local Sonar analysis and zero unresolved findings from active locally supported rules.
+  - Verification: Confirm the extension is enabled in the active project profile/window and completes analysis on an actual project Java file. Record its version, effective local rules/parameters, analyzed saved revision/files, completion evidence, and baseline findings. Define how to collect evidence for every changed production and test Java file. An empty Problems panel alone is insufficient; analyzer compatibility and successful execution must be verified.
 
-- [ ] 1.2 Establish working JDTLS/LSP diagnostics and a changed-Java-file evidence inventory covering production and test sources.
+- [ ] 1.2 Establish working JDTLS/LSP diagnostics in Antigravity IDE and a changed-Java-file evidence inventory covering production, unit-test, and packaged integration-test sources, with a developer handoff when direct IDE diagnostic access is unavailable.
   - Requirements: Quality — zero new compiler/IDE warnings, English Javadoc, Month-based fixtures, and diagnostic reconciliation.
-  - Verification: Diagnostics can be obtained for an actual project file; record the baseline and an evidence format linking each changed file to diagnostics, focused tests, and SonarQube results. Document and resolve toolchain disagreements rather than ignoring them.
+  - Verification: Diagnostics can be obtained for an actual project file; record the baseline and an evidence format linking each changed file and saved revision to JDTLS/LSP diagnostics, focused tests, and separate local Sonar analysis completion/results. Developer-collected IDE evidence is acceptable when direct access is unavailable; missing evidence remains incomplete. Document and resolve toolchain disagreements rather than ignoring them.
 
 - [ ] 1.3 Characterize the resolved shared response dependency's pagination API, default null omission, and count range before implementing the list adapter.
   - Requirements: Q / Root Party response and error contract; Stable scoped Party pagination.
@@ -222,9 +222,9 @@ The following tasks depend on the corresponding complete workflows and HTTP adap
   - Requirements: Quality — strict Clean Architecture and typed reactive response boundary.
   - Verification: ArchUnit preserves inward dependencies, Domain independence, Application's approved Mutiny-only framework allowance, and cycle freedom. Review confirms business precedence/replay decisions live in Application, invariants in Domain, technical persistence in Infrastructure, and all six resource signatures wrap API DTOs explicitly.
 
-- [ ] 10.4 Update README and operational documentation with implemented routes, cursor key provisioning/rotation, scanner invocation, timeouts, listing capacity/performance evidence, migration behavior, compatible rollout, and rollback retention rules.
+- [ ] 10.4 Update README and operational documentation with implemented routes, cursor key provisioning/rotation, standalone SonarQube for IDE verification steps in Antigravity IDE, timeouts, listing capacity/performance evidence, migration behavior, compatible rollout, and rollback retention rules.
   - Requirements: Q / Stable scoped Party pagination; L / Lifecycle successful result replay; Lifecycle retention and atomic outcomes; design / Migration and Rollback; Quality.
-  - Verification: Documentation agrees with tested behavior, describes the current shared count limit and bounded-name-scan trade-off, names the configured analysis command, and explains mixed-version lifecycle/publisher compatibility without committing secrets or requiring destructive data rollback.
+  - Verification: Documentation agrees with tested behavior, describes the current shared count limit and bounded-name-scan trade-off, explains local analysis triggers, rule/version recording, per-file evidence and the IDE handoff, and explains mixed-version lifecycle/publisher compatibility without committing secrets or requiring destructive data rollback.
 
 ## 11. Final Acceptance Evidence
 
@@ -246,10 +246,10 @@ These tasks verify the final delivered revision after preceding implementation a
   - Requirements: Quality — native compilation and maintained native integration coverage; all root HTTP contracts.
   - Verification: Both commands succeed, native contract assertions cover pagination writers, strict binding, lifecycle snapshots/replay, and both Party subtypes, and no reflection/serialization incompatibility remains.
 
-- [ ] 11.5 Execute the configured real SonarQube analysis for the final compiled revision and resolve every finding in new/modified production and test classes.
-  - Requirements: Quality — zero unresolved SonarQube findings and zero new compiler/IDE warnings.
-  - Verification: Record revision, scanner/analyzer/profile, analysis task/report, quality gate, and per-class zero-unresolved-finding evidence. A passing aggregate/new-code gate or a local build alone does not satisfy this task; do not suppress or exclude code to hide findings.
+- [ ] 11.5 Run standalone SonarQube for IDE analysis in Antigravity IDE on every new/modified production and test Java file in the final saved revision and resolve all findings from the active locally supported rules.
+  - Requirements: Quality — zero unresolved local Sonar findings in analyzed changed files and zero new compiler/IDE warnings.
+  - Verification: Record the revision/file inventory, extension version, effective local rules/parameters, and per-file analysis completion and zero-unresolved-finding evidence. Reanalyze affected files after fixes. Developer-collected IDE evidence may supply results the agent cannot access directly. An empty Problems panel or a successful build alone does not satisfy this task; do not suppress or exclude code or disable rules to hide findings. This result is local verification, not a remote Quality Gate or equivalent server analysis coverage.
 
-- [ ] 11.6 Reconcile all EARS scenarios with passing automated checks and assemble the final implementation evidence, including quality gates and operational prerequisites.
+- [ ] 11.6 Reconcile all EARS scenarios with passing automated checks and assemble the final implementation evidence, including local static analysis, Java diagnostics, and operational prerequisites.
   - Requirements: Q, B, L, and A / all requirements; Quality.
-  - Verification: Every requirement/scenario maps to the appropriate passing unit/integration/HTTP/native evidence; all six signatures and envelopes are inspected; no unresolved SonarQube/LSP/native blocker is marked complete; migration, cursor configuration, and rollout/rollback documentation are ready for review.
+  - Verification: Every requirement/scenario maps to the appropriate passing unit/integration/HTTP/native evidence; all six signatures and envelopes are inspected; no missing local Sonar analysis, JDTLS/LSP, or native evidence is marked complete; migration, cursor configuration, and rollout/rollback documentation are ready for review. Absence of a remote SonarQube service does not prevent acceptance of verified standalone analysis.
