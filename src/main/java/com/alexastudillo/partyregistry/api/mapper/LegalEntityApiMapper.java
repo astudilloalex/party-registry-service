@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.api.mapper;
 
 import com.alexastudillo.partyregistry.api.model.response.LegalEntityCreateResponse;
 import com.alexastudillo.partyregistry.api.model.response.LegalEntityDetailsResponse;
+import com.alexastudillo.partyregistry.api.model.response.LegalEntityResponse;
 import com.alexastudillo.partyregistry.application.model.LegalEntityResult;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -10,7 +11,7 @@ import jakarta.inject.Inject;
 import java.util.Objects;
 
 /**
- * Maps legal-entity application results to create-only API responses.
+ * Maps legal-entity results to their distinct creation and detail API representations.
  */
 @ApplicationScoped
 public class LegalEntityApiMapper {
@@ -42,6 +43,14 @@ public class LegalEntityApiMapper {
                 legalEntity.updatedBy(),
                 toDetails(legalEntity),
                 identifierMapper.toInitialResponse(result.initialIdentifier()));
+    }
+
+    /** Maps current legal details without adding identifiers or normalizing historical text. */
+    public LegalEntityResponse toResponse(LegalEntityResult result) {
+        Objects.requireNonNull(result, "result");
+        return new LegalEntityResponse(result.partyId().value(), result.type().name(), result.displayName(),
+                result.recordStatus().name(), result.version().value(), result.createdAt(), result.updatedAt(),
+                result.createdBy(), result.updatedBy(), toDetails(result));
     }
 
     LegalEntityDetailsResponse toDetails(LegalEntityResult result) {

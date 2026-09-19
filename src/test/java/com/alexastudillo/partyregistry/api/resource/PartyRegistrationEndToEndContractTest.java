@@ -56,7 +56,7 @@ class PartyRegistrationEndToEndContractTest {
     private static final String INITIAL_IDENTIFIER_REQUIRED = "initial-identifier-required";
     private static final String IDENTIFIER_SCHEME_CODE_REQUIRED = "identifier-scheme-code-required";
     private static final String IDENTIFIER_VALUE_REQUIRED = "identifier-value-required";
-    private static final String UNPROCESSABLE_ENTITY = "unprocessable-entity";
+    private static final String IDENTIFIER_VALIDATION_FAILURE = "identifier-validation-failure";
     private static final Duration MAXIMUM_WAIT = Duration.ofSeconds(10);
     private static final Set<String> SUCCESS_ENVELOPE_FIELDS = Set.of("status", "code", "data");
     private static final Set<String> ERROR_ENVELOPE_FIELDS = Set.of("status", "code");
@@ -100,27 +100,27 @@ class PartyRegistrationEndToEndContractTest {
                         "/v1/natural-person",
                         naturalBody("Unknown Scheme", "UNKNOWN_SCHEME", identifierValue("NU"),
                                 null, null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, "unknown-identifier-scheme"),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Inactive Scheme", "TEST_BOTH_DRAFT", identifierValue("ND"),
                                 null, null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, "inactive-identifier-scheme"),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Wrong Subject", "TEST_LEGAL_ACTIVE", identifierValue("NS"),
                                 null, null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, "incompatible-identifier-scheme"),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Invalid Value", "TEST_NATURAL_ACTIVE", "ABC-123", null,
                                 null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, IDENTIFIER_VALIDATION_FAILURE),
                 new RejectedRegistration(
                         "/v1/natural-person",
                         naturalBody("Expired Value", "TEST_BOTH_EXPIRING",
                                 identifierValue("NX"), null, "2000-01-01"),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, IDENTIFIER_VALIDATION_FAILURE),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         "{\"legalName\":\"Missing Identifier Ltd\",\"incorporationCountryCode\":\"EC\"}",
@@ -137,27 +137,27 @@ class PartyRegistrationEndToEndContractTest {
                         "/v1/legal-entity",
                         legalBody("Unknown Scheme Ltd", "UNKNOWN_SCHEME", identifierValue("LU"),
                                 null, null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, "unknown-identifier-scheme"),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Inactive Scheme Ltd", "TEST_BOTH_DRAFT",
                                 identifierValue("LD"), null, null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, "inactive-identifier-scheme"),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Wrong Subject Ltd", "TEST_NATURAL_ACTIVE",
                                 identifierValue("LS"), null, null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, "incompatible-identifier-scheme"),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Invalid Value Ltd", "TEST_LEGAL_ACTIVE", "ABC-123", null,
                                 null),
-                        422, UNPROCESSABLE_ENTITY),
+                        422, IDENTIFIER_VALIDATION_FAILURE),
                 new RejectedRegistration(
                         "/v1/legal-entity",
                         legalBody("Expired Value Ltd", "TEST_BOTH_EXPIRING",
                                 identifierValue("LX"), null, "2000-01-01"),
-                        422, UNPROCESSABLE_ENTITY));
+                        422, IDENTIFIER_VALIDATION_FAILURE));
 
         RegistrationRows initialRows = registrationRows(tenantId);
         for (RejectedRegistration registration : registrations) {
@@ -204,9 +204,9 @@ class PartyRegistrationEndToEndContractTest {
                 if (scheme.equals("EC_PASSPORT") && type.equals("LEGAL_ENTITY")) {
                     continue;
                 }
-                UUID tenantId = UUID.randomUUID();
+                UUID tenantId = type.equals("LEGAL_ENTITY") ? UUID.fromString(TENANT_ID) : UUID.randomUUID();
                 RegistrationRows before = registrationRows(tenantId);
-                String value = identifierValue("NOEXPIRY");
+                String value = identifierValue("NE");
                 boolean natural = type.equals("NATURAL_PERSON");
                 String body = natural
                         ? naturalBody("Optional Expiration", scheme, value, null, null)
@@ -239,7 +239,7 @@ class PartyRegistrationEndToEndContractTest {
     @Test
     void registersNormalizedEcuadorTaxIdsForBothPartyTypesUsingTheProductionScheme() {
         for (String partyType : List.of("NATURAL_PERSON", "LEGAL_ENTITY")) {
-            UUID tenantId = UUID.randomUUID();
+            UUID tenantId = partyType.equals("LEGAL_ENTITY") ? UUID.fromString(TENANT_ID) : UUID.randomUUID();
             RegistrationRows initialRows = registrationRows(tenantId);
             boolean naturalPerson = partyType.equals("NATURAL_PERSON");
             String value = naturalPerson ? "0100000009001" : "1790000000001";
@@ -265,7 +265,7 @@ class PartyRegistrationEndToEndContractTest {
 
     @Test
     void rejectsAnEcuadorTaxIdSuffixWithoutLeakingTheValueOrPersistingRows() {
-        UUID tenantId = UUID.randomUUID();
+        UUID tenantId = UUID.fromString(TENANT_ID);
         RegistrationRows initialRows = registrationRows(tenantId);
         String value = "1790000000002";
         for (String path : List.of("/v1/natural-person", "/v1/legal-entity")) {
@@ -313,14 +313,14 @@ class PartyRegistrationEndToEndContractTest {
 
         Response duplicate = post(tenantId, "/v1/natural-person", key("duplicate-passport"),
                 naturalBody("Duplicate Passport", "EC_PASSPORT", "AB0123456", null, expiresOn));
-        assertError(duplicate, 422, "identifier-uniqueness-conflict");
+        assertError(duplicate, 409, "identifier-uniqueness-conflict");
         assertConfidential(duplicate.asString(), value, "AB0123456");
         assertEquals(registeredRows, registrationRows(tenantId));
     }
 
     @Test
     void enforcesPassportAdmissionLimitsWithoutPersistingRejectedRegistrations() {
-        UUID tenantId = UUID.randomUUID();
+        UUID tenantId = UUID.fromString(TENANT_ID);
         String expiresOn = LocalDate.now(ZoneOffset.UTC).plusYears(1).toString();
         String maximumValue = "X".repeat(252) + "9876";
         Map<String, Object> created = assertSafeRegistration(
@@ -414,7 +414,7 @@ class PartyRegistrationEndToEndContractTest {
                         naturalBody("Atomic Natural", "TEST_NATURAL_ACTIVE",
                                 identifierValue("NC"), null, null)),
                 409,
-                "conflict");
+                "idempotency-key-conflict");
         assertError(
                 post(
                         tenantId,
@@ -423,7 +423,7 @@ class PartyRegistrationEndToEndContractTest {
                         legalBody("Atomic Legal Ltd", "TEST_LEGAL_ACTIVE",
                                 identifierValue("LC"), null, null)),
                 409,
-                "conflict");
+                "idempotency-key-conflict");
         assertEquals(completeRows, registrationRows(tenantId));
     }
 
@@ -445,7 +445,7 @@ class PartyRegistrationEndToEndContractTest {
                         naturalBody("Natural Duplicate", "TEST_NATURAL_ACTIVE",
                                 "duplicaten1234", null, null)),
                 409,
-                "conflict");
+                "identifier-uniqueness-conflict");
         assertEquals(afterNaturalOwner, registrationRows(tenantId));
 
         String legalValue = "  DUPLICATEL1234  ";
@@ -463,7 +463,7 @@ class PartyRegistrationEndToEndContractTest {
                         legalBody("Legal Duplicate Ltd", "TEST_LEGAL_ACTIVE", "duplicatel1234",
                                 null, null)),
                 409,
-                "conflict");
+                "identifier-uniqueness-conflict");
         assertEquals(afterLegalOwner, registrationRows(tenantId));
 
         assertError(
@@ -538,7 +538,7 @@ class PartyRegistrationEndToEndContractTest {
                             null,
                             null));
             assertConfidential(conflictResponse.asString(), completeValue, normalizedValue);
-            assertError(conflictResponse, 409, "conflict");
+            assertError(conflictResponse, 409, "idempotency-key-conflict");
         } finally {
             rootLogger.removeHandler(handler);
             handler.close();

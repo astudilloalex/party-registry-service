@@ -27,13 +27,39 @@ ArchUnit verifies layer direction, framework isolation for the inner layers, and
 
 New writes strip exterior whitespace and uppercase natural-person names and preferred names, legal names/trade names/legal-form codes, supplied display names, and country codes using `Locale.ROOT`. Accents, punctuation, interior whitespace, and nulls are preserved. Country input must be two ASCII letters after stripping. Validation applies to canonical values before persistence and geographic-reference calls receive canonical country codes.
 
-Creation request values are retained unchanged for the existing idempotency fingerprint; the API validates a separate normalized copy. Reads and idempotency snapshots do not rewrite historical text. PATCH normalizes only supplied values and preserves omitted fields. No historical backfill or new nationality/legal-update endpoints are included; nationality country codes follow the documented normalization rule when that flow is implemented.
+Creation request values are retained unchanged for the existing idempotency fingerprint; the API validates a separate normalized copy. Reads and idempotency snapshots do not rewrite historical text. PATCH normalizes only supplied values and preserves omitted fields. Nationality endpoints remain future work; legal-detail updates apply the same canonical write rules without a historical backfill.
 
 For new identifiers, Application supplies the validated, stripped uppercase plaintext to encryption. Lookup hashes and masks already use that same canonical value. Ciphertext/Base64 must never be uppercased, and previously encrypted values are not rewritten. Expiration remains optional for every document.
 
 ### Natural-person reads
 
 `GET /v1/natural-person/{partyId}` includes a GET-only `identifiers` array of current masked projections. Current means `PENDING_VERIFICATION` or `VERIFIED`, with no expiration or an expiration on/after the request's UTC evaluation date. Results are complete, ordered by creation timestamp and identifier ID, and empty when none qualify. The query never loads ciphertext, lookup hashes, or key versions, and does not decrypt or change identifier state. Creation/replay, PUT, and PATCH response shapes remain unchanged.
+
+### Legal-entity details
+
+`GET /v1/legal-entity/{partyId}` returns the current Party identity, status, version, audit information, and `legalEntityDetails`. Its detail response does not include creation-only `initialIdentifier` or an identifier collection. Reads preserve stored historical text and require no geographic lookup.
+
+`PUT` on the same route replaces the six legal-detail fields: `legalName` and `incorporationCountryCode` are required; omitted or null `tradeName`, `legalFormCode`, `incorporatedOn`, and `dissolvedOn` values are cleared. `PATCH` changes only supplied properties, preserves omitted values, and allows explicit null only for those four nullable fields. Both require a JSON object with strictly typed properties and reject unknown fields and implicit string/date coercion.
+
+Both update methods require exactly one `If-Match` containing the current Party version as a bare nonnegative decimal integer. Each accepted update, including an identical representation, atomically increments that version once and updates audit information. A meaningful canonical legal-name change derives `displayName` again; an equivalent name preserves an existing custom label. Changing legal details preserves Party identity, type, lifecycle status, and independently versioned identifiers.
+
+A changed canonical incorporation country is validated before the short write transaction. Equivalent country codes require no new lookup. Resulting lifecycle dates use one UTC evaluation date and cannot be in the future or place dissolution before incorporation.
+
+Business and validation errors identify the cause through a stable code:
+
+| Condition | HTTP status and code |
+| --- | --- |
+| Missing, cross-tenant, or wrong-type legal entity | `404 legal-entity-not-found` |
+| Stale version or lost update race | `412 expected-version-mismatch` |
+| Country definitively unrecognized | `422 unrecognized-incorporation-country` |
+| Incorporation date in the future | `422 incorporation-date-in-future` |
+| Dissolution date in the future | `422 dissolution-date-in-future` |
+| Dissolution before incorporation | `422 dissolution-before-incorporation` |
+| Required geographic validation unavailable | `503 dependency-unavailable` |
+
+Field validation uses codes such as `legal-name-required`, `incorporation-country-code-invalid`, and `patch-property-required`. Errors contain only `status` and `code`; unexpected failures remain sanitized as `500 server-error`. The shared catalog also distinguishes registration idempotency/identifier conflicts and missing activation evidence, preserving HTTP 409 for conflicts. Clients should use the operation-specific codes in the OpenAPI rather than infer every cause from the HTTP status alone.
+
+Use GET's latest version for subsequent edits. Replaying the original creation request still returns its original 201 snapshot and original version, even after updates. The rollout adds routes against the existing schema; an application rollback removes those routes but must not undo accepted data, reset versions, or rewrite creation snapshots.
 
 ## Database
 
@@ -149,6 +175,15 @@ When using rootless Podman, expose its Docker-compatible socket to Testcontainer
 export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 ```
 
+If port 8081 is already used by a local service or tunnel, select an ephemeral HTTP test port for that execution:
+
+```shell
+DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test
+```
+
+The same environment overrides can be used for packaged and native test commands; they do not change the deployed service configuration.
+For native container builds with Podman, also pass `-Dquarkus.native.container-runtime=podman` to select the local runtime explicitly.
+
 ## API foundation
 
 The approved contract at `docs/contracts/party-registry.openapi.yaml` is packaged unchanged and exposed at `/q/openapi`. Operational endpoints are available under `/q`, including:
@@ -163,6 +198,9 @@ The implemented business operations are:
 
 - `POST /v1/natural-person`
 - `POST /v1/legal-entity`
+- `GET /v1/legal-entity/{partyId}`
+- `PUT /v1/legal-entity/{partyId}`
+- `PATCH /v1/legal-entity/{partyId}`
 - `GET /v1/natural-person/{partyId}`
 - `PUT /v1/natural-person/{partyId}`
 - `PATCH /v1/natural-person/{partyId}`

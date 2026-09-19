@@ -7,6 +7,9 @@ import com.alexastudillo.partyregistry.application.model.NaturalPersonRegistrati
 import com.alexastudillo.partyregistry.application.model.PartyActivationCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
+import com.alexastudillo.partyregistry.domain.model.LegalEntity;
+import com.alexastudillo.partyregistry.domain.model.PartyId;
+import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +32,18 @@ class ApplicationPortContractTest {
             IdempotentPartyRegistrationPort.class,
             PartyLookupPort.class,
             PartyIdentifierRegistrationPort.class,
-            PartyActivationPort.class);
+            PartyActivationPort.class,
+            LegalEntityRepository.class);
+
+    @Test
+    void exposesQualifiedLegalReadsAndAtomicVersionGuardedUpdates() throws NoSuchMethodException {
+        Method lookup = LegalEntityRepository.class.getMethod("findByTenantAndId", TenantId.class, PartyId.class);
+        Method update = LegalEntityRepository.class.getMethod("update", LegalEntity.class, PartyVersion.class);
+        assertEquals(Uni.class, lookup.getReturnType());
+        assertTrue(lookup.getGenericReturnType().getTypeName().contains("java.util.Optional<" + LegalEntity.class.getName()));
+        assertEquals(Uni.class, update.getReturnType());
+        assertTrue(update.getGenericReturnType().getTypeName().contains(LegalEntity.class.getName()));
+    }
 
     @Test
     void exposesRequiredRegistrationAndLifecycleCapabilities() throws NoSuchMethodException {

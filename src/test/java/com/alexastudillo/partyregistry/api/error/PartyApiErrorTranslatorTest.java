@@ -13,6 +13,7 @@ import com.alexastudillo.partyregistry.domain.model.TenantId;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -35,66 +36,93 @@ class PartyApiErrorTranslatorTest {
     }
 
     @Test
+    void translatesLegalEntityAbsenceWithItsSpecificCode() {
+        assertTranslation(new ApplicationFailure.LegalEntityNotFound(new PartyId(PARTY_ID), new TenantId(TENANT_ID)),
+                PartyResponseCode.LEGAL_ENTITY_NOT_FOUND);
+        assertEquals("legal-entity-not-found", PartyResponseCode.LEGAL_ENTITY_NOT_FOUND.getCode());
+        assertEquals(404, PartyResponseCode.LEGAL_ENTITY_NOT_FOUND.getStatus());
+    }
+
+    @Test
     void translatesEveryKnownApplicationFailure() {
         IdentifierSchemeId schemeId = new IdentifierSchemeId(UUID.randomUUID());
         PartyId partyId = new PartyId(PARTY_ID);
         TenantId tenantId = new TenantId(TENANT_ID);
         assertTranslation(
                 new ApplicationFailure.NaturalPersonNotFound(partyId, tenantId),
-                PartyResponseCode.NOT_FOUND);
+                PartyResponseCode.NATURAL_PERSON_NOT_FOUND);
         assertTranslation(
                 new ApplicationFailure.IdempotencyKeyConflict("idempotency-key"),
-                PartyResponseCode.CONFLICT);
+                PartyResponseCode.IDEMPOTENCY_KEY_CONFLICT);
         assertTranslation(
                 new ApplicationFailure.ExpectedVersionMismatch(new PartyVersion(1),
                         new PartyVersion(2)),
-                PartyResponseCode.PRECONDITION_FAILED);
+                PartyResponseCode.EXPECTED_VERSION_MISMATCH);
         assertTranslation(
                 new ApplicationFailure.InvalidBusinessState(DomainViolation.DEATH_BEFORE_BIRTH),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.DEATH_BEFORE_BIRTH);
         assertTranslation(
                 new ApplicationFailure.UnrecognizedBirthCountry("ZZ"),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.UNRECOGNIZED_BIRTH_COUNTRY);
         assertTranslation(
                 new ApplicationFailure.UnrecognizedIncorporationCountry("ZZ"),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.UNRECOGNIZED_INCORPORATION_COUNTRY);
         assertTranslation(
                 new ApplicationFailure.DependencyUnavailable("geographic-reference"),
                 PartyResponseCode.DEPENDENCY_UNAVAILABLE);
         assertTranslation(
                 new ApplicationFailure.UnknownIdentifierScheme("NATIONAL_ID"),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.UNKNOWN_IDENTIFIER_SCHEME);
         assertTranslation(
                 new ApplicationFailure.InactiveIdentifierScheme(schemeId),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.INACTIVE_IDENTIFIER_SCHEME);
         assertTranslation(
                 new ApplicationFailure.IncompatibleIdentifierScheme(
                         schemeId,
                         PartyType.NATURAL_PERSON),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.INCOMPATIBLE_IDENTIFIER_SCHEME);
         assertTranslation(
                 new ApplicationFailure.IdentifierValidationFailure(
                         DomainViolation.IDENTIFIER_VALUE_INVALID),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.IDENTIFIER_VALIDATION_FAILURE);
         assertTranslation(
                 new ApplicationFailure.IdentifierUniquenessConflict(schemeId),
-                PartyResponseCode.CONFLICT);
+                PartyResponseCode.IDENTIFIER_UNIQUENESS_CONFLICT);
         assertTranslation(
                 new ApplicationFailure.PartyNotFound(partyId, tenantId),
-                PartyResponseCode.NOT_FOUND);
+                PartyResponseCode.PARTY_NOT_FOUND);
         assertTranslation(
                 new ApplicationFailure.InvalidPartyLifecycle(
                         partyId,
                         PartyRecordStatus.ACTIVE),
-                PartyResponseCode.CONFLICT);
+                PartyResponseCode.INVALID_PARTY_LIFECYCLE);
         assertTranslation(
                 new ApplicationFailure.StalePartyVersion(
                         PartyVersion.initial(),
                         new PartyVersion(1)),
-                PartyResponseCode.PRECONDITION_FAILED);
+                PartyResponseCode.STALE_PARTY_VERSION);
         assertTranslation(
                 new ApplicationFailure.MissingQualifyingIdentifier(partyId),
-                PartyResponseCode.UNPROCESSABLE_ENTITY);
+                PartyResponseCode.MISSING_QUALIFYING_IDENTIFIER);
+    }
+
+    @Test
+    void preservesConflictStatusesAndIndividualBusinessCauses() {
+        assertEquals(409, PartyResponseCode.IDENTIFIER_UNIQUENESS_CONFLICT.getStatus());
+        assertEquals(409, PartyResponseCode.INVALID_PARTY_LIFECYCLE.getStatus());
+        Map<DomainViolation, PartyResponseCode> causes = Map.of(
+                DomainViolation.DISPLAY_NAME_REQUIRED, PartyResponseCode.BLANK_DISPLAY_NAME,
+                DomainViolation.BIRTH_DATE_IN_FUTURE, PartyResponseCode.BIRTH_DATE_IN_FUTURE,
+                DomainViolation.DATE_OF_DEATH_IN_FUTURE, PartyResponseCode.DATE_OF_DEATH_IN_FUTURE,
+                DomainViolation.DEATH_BEFORE_BIRTH, PartyResponseCode.DEATH_BEFORE_BIRTH,
+                DomainViolation.INCORPORATION_DATE_IN_FUTURE, PartyResponseCode.INCORPORATION_DATE_IN_FUTURE,
+                DomainViolation.DISSOLUTION_DATE_IN_FUTURE, PartyResponseCode.DISSOLUTION_DATE_IN_FUTURE,
+                DomainViolation.DISSOLUTION_BEFORE_INCORPORATION, PartyResponseCode.DISSOLUTION_BEFORE_INCORPORATION);
+        causes.forEach((violation, code) -> {
+            assertTranslation(new ApplicationFailure.InvalidBusinessState(violation), code);
+            assertEquals(422, code.getStatus());
+        });
+        assertEquals("missing-qualifying-identifier", PartyResponseCode.MISSING_QUALIFYING_IDENTIFIER.getCode());
     }
 
     @Test
@@ -104,10 +132,13 @@ class PartyApiErrorTranslatorTest {
         ApplicationException catalogFailure = new ApplicationException(
                 new ApplicationFailure.IdentifierCatalogFailure());
         IllegalStateException unexpectedFailure = new IllegalStateException("internal detail");
+        ApplicationException internalInvariant = new ApplicationException(
+                new ApplicationFailure.InvalidBusinessState(DomainViolation.EVALUATION_DATE_REQUIRED));
 
         assertSame(persistenceFailure, translator.translate(persistenceFailure));
         assertSame(catalogFailure, translator.translate(catalogFailure));
         assertSame(unexpectedFailure, translator.translate(unexpectedFailure));
+        assertSame(internalInvariant, translator.translate(internalInvariant));
     }
 
     private void assertTranslation(ApplicationFailure failure, PartyResponseCode expectedCode) {

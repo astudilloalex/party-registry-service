@@ -47,6 +47,7 @@ public final class ApplicationException extends RuntimeException {
         Objects.requireNonNull(failure, FAILURE);
         return switch (failure) {
             case ApplicationFailure.NaturalPersonNotFound _ -> "Natural person not found";
+            case ApplicationFailure.LegalEntityNotFound _ -> "Legal entity not found";
             case ApplicationFailure.IdempotencyKeyConflict _ -> "Idempotency key conflict";
             case ApplicationFailure.ExpectedVersionMismatch _ -> "Expected version mismatch";
             case ApplicationFailure.UnrecognizedBirthCountry _ -> "Unrecognized birth country";

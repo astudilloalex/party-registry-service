@@ -132,6 +132,7 @@ public final class OperationObservation {
         }
         return switch (applicationException.failure()) {
             case ApplicationFailure.NaturalPersonNotFound _,
+                    ApplicationFailure.LegalEntityNotFound _,
                     ApplicationFailure.PartyNotFound _ -> OperationOutcome.NOT_FOUND;
             case ApplicationFailure.IdempotencyKeyConflict _,
                     ApplicationFailure.InvalidPartyLifecycle _ -> OperationOutcome.CONFLICT;

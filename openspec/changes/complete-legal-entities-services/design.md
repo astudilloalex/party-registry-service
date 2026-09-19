@@ -11,10 +11,12 @@ The enterprise architecture identifies this service as the owner of Party detail
 
 The approved `legal-entity-details` delta is the behavioral authority for this change. Two existing details need explicit handling:
 
-1. Some existing `PartyApiErrorTranslator` mappings produce specific codes such as `expected-version-mismatch` and `unrecognized-incorporation-country`; the new detail operations require the approved generic `precondition-failed` and `unprocessable-entity` codes.
+1. Following the user's clarification, the new detail operations use cause-specific business codes, consistent with existing mappings such as `expected-version-mismatch` and `unrecognized-incorporation-country`. Add a legal-entity absence code and individual lifecycle-date codes; do not collapse known failures into generic business categories.
 2. Unknown-property rejection is configured globally, but it does not by itself guarantee rejection of scalar coercion or every non-string date representation. The new update models must enforce their declared JSON types.
 
 The project OpenAPI also intentionally narrows the shared library's default validation envelope to one stable code without field-error details. This API-specific contract governs the new operations; the published `api-response-quarkus-errors` module remains the envelope and global-error implementation.
+
+The user additionally approved aligning existing shared error mappings, regression tests, and affected documentation after baseline tests were found to expect generic codes while the implementation returned specific ones. This includes restoring the approved 409 statuses for identifier uniqueness and invalid lifecycle transitions and giving missing qualifying evidence its own code. Registration and activation business rules remain the same.
 
 ## Requirements Traceability
 
@@ -49,7 +51,7 @@ All requirement names below refer to `specs/legal-entity-details/spec.md`.
 
 **Non-Goals:**
 
-- Reworking natural-person endpoints, registration, identifier management, activation rules, or historical snapshots.
+- Reworking natural-person endpoints, registration rules, identifier management, activation rules, or historical snapshots beyond the explicitly approved shared error-contract alignment.
 - Adding new dependencies, schema objects, endpoint families, or generic CRUD abstractions.
 - Adding a new legal-detail event contract, broker interaction, or outbox publisher behavior. The central sequence's optional event stage remains conditional; this delta does not enable an update event.
 - Introducing authentication infrastructure, a generic response-wrapping filter, or a second global error handler.
@@ -171,9 +173,9 @@ The update protocol is specified in Data Model and Interaction Flows. No identif
 
 **Collaborators:** `ApplicationException`, `ApplicationFailure`, existing `PartyResponseCode` generic entries, and the published `ApiResponseException`.
 
-Add an API-scoped `LegalEntityDetailsErrorTranslator` used only by the three new resource methods. Map legal absence to `NOT_FOUND`, expected-version mismatch to `PRECONDITION_FAILED`, Domain semantic and unrecognized-incorporation-country failures to `UNPROCESSABLE_ENTITY`, and geographic dependency failures to `DEPENDENCY_UNAVAILABLE`. Leave unexpected/persistence failures and cancellation untouched for their established handling.
+Extend and reuse `PartyApiErrorTranslator` for the new methods and the approved shared error alignment. Map legal absence to `LEGAL_ENTITY_NOT_FOUND`, expected-version mismatch to `EXPECTED_VERSION_MISMATCH`, and unrecognized incorporation country to `UNRECOGNIZED_INCORPORATION_COUNTRY`. Inspect preserved Domain violations and map legal and natural-person lifecycle-date failures to their explicit codes. Geographic dependency failures use `DEPENDENCY_UNAVAILABLE`. Leave unexpected/persistence failures, unclassified internal invariants, and cancellation untouched for their established handling. A separate legal-detail translator is unnecessary now that shared alignment is authorized.
 
-This is pipeline failure translation, not a new exception mapper. Creation continues to use its existing translator. Existing generic enum entries already provide the required wire values; no new public code strings are needed.
+This is pipeline failure translation, not a new exception mapper. Reuse existing specific catalog entries and add the declared absence/date/evidence codes to `PartyResponseCode`. Publish exact strings in the affected OpenAPI operations. Identifier uniqueness and invalid lifecycle transitions use 409; missing qualifying evidence uses 422. Preserve Domain date-validation order and keep technical diagnostics internal.
 
 ## Interfaces and Contracts
 
@@ -208,7 +210,7 @@ Update only the new detail-operation declarations and relevant reusable document
 - Close both update schemas with `additionalProperties: false`; retain mandatory PUT properties, PATCH `minProperties: 1`, field nullability, normalized limits, and declared response shape.
 - Extend existing legal-field `400` code applicability to updates and `patch-property-required` to legal PATCH. Specify deterministic property-path precedence without changing creation behavior.
 - Add `503 DependencyUnavailable` to PUT/PATCH, Process-Id echo documentation to the three successes, and shared framework-error documentation for applicable media/method failures.
-- Preserve existing declared generic 404/412/422 codes. A reserved 409 declaration does not justify adding a lifecycle restriction or a new conflict rule to legal-detail updates.
+- Replace the detail operations' generic 404/412/422 response references with cause-specific business-error documentation and examples. Describe legal If-Match failures as `expected-version-mismatch` using operation-specific header documentation. A reserved 409 declaration does not justify adding a lifecycle restriction or a new conflict rule to legal-detail updates.
 
 The build copies `docs/contracts/party-registry.openapi.yaml` into `META-INF/openapi.yaml` and disables annotation scanning. Resource annotations alone do not update the published contract; verify the packaged `/q/openapi` content as well as the source file.
 
@@ -301,16 +303,18 @@ Pure Domain validation and country validation happen after the early version che
 | Invalid JSON token, syntax, date syntax, or unknown property | Scoped binding translation emits `400 bad-request` |
 | Invalid submitted field or empty PATCH | Normalized DTO validation selects the exact existing 400 code by required-rule/path/code precedence |
 | Invalid partyId or If-Match representation | Existing support emits `party-id-invalid` or the appropriate If-Match 400 code |
-| Absent, cross-tenant, or wrong-type aggregate | `LegalEntityNotFound` becomes `404 not-found` |
-| Stale initial version or lost commit-time race | `ExpectedVersionMismatch` becomes `412 precondition-failed` |
-| Invalid resulting legal lifecycle dates | Domain failure becomes application `InvalidBusinessState`, then `422 unprocessable-entity` |
-| Changed country definitively unrecognized | `UnrecognizedIncorporationCountry` becomes `422 unprocessable-entity` |
+| Absent, cross-tenant, or wrong-type aggregate | `LegalEntityNotFound` becomes `404 legal-entity-not-found` |
+| Stale initial version or lost commit-time race | `ExpectedVersionMismatch` becomes `412 expected-version-mismatch` |
+| Resulting dissolution before incorporation | `InvalidBusinessState(DISSOLUTION_BEFORE_INCORPORATION)` becomes `422 dissolution-before-incorporation` |
+| Resulting incorporation date in the future | `InvalidBusinessState(INCORPORATION_DATE_IN_FUTURE)` becomes `422 incorporation-date-in-future` |
+| Resulting dissolution date in the future | `InvalidBusinessState(DISSOLUTION_DATE_IN_FUTURE)` becomes `422 dissolution-date-in-future` |
+| Changed country definitively unrecognized | `UnrecognizedIncorporationCountry` becomes `422 unrecognized-incorporation-country` |
 | Geographic timeout, unusable response, or unavailable dependency | `DependencyUnavailable` becomes `503 dependency-unavailable` |
 | Unsupported method/media type | Shared framework handling preserves 405/415; verify the exact library media-type code rather than inventing a local one |
 | Unexpected persistence/mapping/internal failure | Preserve cause internally; shared mapper emits only `500 server-error` |
 | Cancellation | Preserve cancellation semantics and resource cleanup; do not convert it into a business result or retry |
 
-The feature translator is essential: simply reusing the existing broad translator would leak different public code strings despite producing the correct HTTP status. Tests must assert both values and the absence of additional error properties.
+The shared translator preserves specific service codes and refines broad `InvalidBusinessState` classifications for known client-correctable violations. Tests must assert each cause-specific code, its approved HTTP status, and the absence of additional error properties. Generic `invalid-business-state` or `unprocessable-entity` is not an acceptable substitute for a known legal-detail failure. Update outdated generic assertions across the affected existing suites rather than weakening their status or envelope checks.
 
 ## Security
 
@@ -331,7 +335,7 @@ The feature translator is essential: simply reusing the existing broad translato
 
 ## Observability
 
-Extend `PartyHttpObservability` to recognize only the single-ID legal-detail routes using bounded labels such as `retrieve-legal-entity`, `replace-legal-entity`, and `patch-legal-entity`. Include both update labels in the existing optimistic-conflict metric path. Never use a raw Party ID or arbitrary path as a metric label.
+Extend `PartyHttpObservability` to recognize only the single-ID legal-detail routes using bounded labels such as `retrieve-legal-entity`, `replace-legal-entity`, and `patch-legal-entity`. Include both update labels with `expected-version-mismatch` in the optimistic-conflict metric path and the bounded legal country/date code set in validation metrics. Never use a raw Party ID or arbitrary path as a metric label.
 
 Add resource spans `legal-entity.retrieve`, `legal-entity.replace`, and `legal-entity.patch`, following current naming conventions. Existing geographic telemetry records dependency outcomes. The existing filter continues to own request completion logging, Process-Id echo, and cleanup; no second context filter is introduced.
 
@@ -351,7 +355,7 @@ Tests cover simultaneous requests with distinct context, failure cleanup, and ac
 - Test PATCH presence mapping and normalized validation copies independently, including mandatory null, empty objects, and property-path ordering.
 - Test local string/date deserialization with valid strings/null and invalid scalar, array, object, malformed date, and root-body shapes.
 - Test all three use cases with deterministic clocks and port doubles. Assert absence concealment, early version failure before Domain/country work, one canonical country lookup only when changed, null/unusable dependency handling, preserved cancellation, and returned persisted version.
-- Test the new feature error translator with exact generic public codes and unknown failure identity preservation.
+- Test the new feature error translator with every cause-specific business code, date-error precedence, and unknown failure identity preservation.
 - Extend legal API mapping tests to verify the detail shape excludes identifiers and tenant internals while creation mappings remain compatible.
 
 ### Integration Tests
@@ -430,21 +434,21 @@ The minimal MCP collection-replacement schema can omit nested descriptions, scri
 
 ### Decision: Scope binding and error translation to the new operations
 
-**Choice:** Model-local strict token handling, a two-model JSON failure translator, and an API-scoped legal-detail failure translator using existing generic codes.
+**Choice:** Model-local strict token handling, a two-model JSON failure translator, and the shared `PartyApiErrorTranslator` with cause-specific service-owned business codes.
 
-**Rationale:** The approved delta requires stricter wire typing and different public business codes than some current paths. This meets the new contract without silently changing existing creation or natural-person behavior.
+**Rationale:** The user requires clients to distinguish business causes and authorized aligning the shared catalog and its affected tests/contracts. One shared failure translator now provides that behavior without duplicating legal-detail policy; domain workflows and successful representations are preserved.
 
 **Alternatives considered:**
 
 - Reconfiguring all Jackson coercion globally has unrelated compatibility consequences.
-- Reusing existing broad business-code mappings verbatim violates the delta.
+- Returning generic 404/412/422 business categories or the broad invalid-business-state code hides the cause required by the user.
 - Copying the shared library or adding a global exception mapper duplicates cross-cutting policy.
 
 ## Risks / Trade-offs
 
 | Risk / Trade-off | Mitigation |
 |---|---|
-| Existing error enum names look appropriate but carry different wire values | Use the generic enum entries in the scoped translator; assert exact codes in HTTP tests |
+| Known failures are accidentally collapsed into a broad business category | Explicitly map each legal absence/version/country/date cause and assert its exact code in HTTP tests |
 | Missing versus null PATCH properties are collapsed during copying/mapping | Carry presence flags through validation and `FieldUpdate<T>`; test each nullable/mandatory field |
 | Helper validation method names alter error precedence | Attach violations to declared JSON field paths and test simultaneous failures |
 | Global Jackson configuration still allows unwanted scalar/date coercion | Apply local strict value deserializers and native contract tests |

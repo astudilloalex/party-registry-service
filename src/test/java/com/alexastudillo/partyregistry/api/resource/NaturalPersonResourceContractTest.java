@@ -281,7 +281,8 @@ class NaturalPersonResourceContractTest {
                 create(tenantId, key("legacy-names"), COMPLETE_CREATE_BODY), 201);
         String partyId = string(created, "partyId");
 
-        // Model rows written before normalization without rewriting their creation snapshot.
+        // Model rows written before normalization without rewriting their creation
+        // snapshot.
         awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session
                 .createNativeQuery("""
                         update parties set display_name = '  Legacy Display  '
@@ -399,19 +400,19 @@ class NaturalPersonResourceContractTest {
                 key("future-birth"),
                 "{\"givenNames\":\"Future\",\"familyNames\":\"Person\",\"birthDate\":\"2999-01-01\"}",
                 422,
-                "unprocessable-entity");
+                "birth-date-in-future");
         assertRejectedCreationDoesNotPersist(
                 validationTenant,
                 key("death-before-birth"),
                 "{\"givenNames\":\"Invalid\",\"familyNames\":\"Dates\",\"birthDate\":\"2000-01-02\",\"dateOfDeath\":\"2000-01-01\"}",
                 422,
-                "unprocessable-entity");
+                "death-before-birth");
         assertRejectedCreationDoesNotPersist(
                 tenantId,
                 key("unknown-country"),
                 createBody("Unknown", "Country", "ZZ"),
                 422,
-                "unprocessable-entity");
+                "unrecognized-birth-country");
         assertRejectedCreationDoesNotPersist(
                 tenantId,
                 key("unavailable-country"),
@@ -454,7 +455,7 @@ class NaturalPersonResourceContractTest {
         assertError(
                 create(replayTenant, replayKey, createBody("Different", "Payload", null)),
                 409,
-                "conflict");
+                "idempotency-key-conflict");
         assertEquals(1, countParties(replayTenant));
         assertEquivalentData(original, getData(replayTenant, string(original, "partyId")));
     }
@@ -504,18 +505,18 @@ class NaturalPersonResourceContractTest {
         Map<String, Object> absent = assertError(
                 request(tenantId).get(RESOURCE_PATH + "/" + UUID.randomUUID()),
                 404,
-                "not-found");
+                "natural-person-not-found");
         Map<String, Object> crossTenant = assertError(
                 request(UUID.randomUUID()).get(RESOURCE_PATH + "/" + partyId),
                 404,
-                "not-found");
+                "natural-person-not-found");
 
         UUID legalEntityId = UUID.randomUUID();
         persistLegalEntity(tenantId, legalEntityId);
         Map<String, Object> legalEntity = assertError(
                 request(tenantId).get(RESOURCE_PATH + "/" + legalEntityId),
                 404,
-                "not-found");
+                "natural-person-not-found");
         assertEquals(absent, crossTenant);
         assertEquals(absent, legalEntity);
     }
@@ -557,7 +558,8 @@ class NaturalPersonResourceContractTest {
         setIdentifierLifecycle(tenantId, excluded.get(3), "REJECTED", evaluationDate.plusDays(1));
         setIdentifierLifecycle(tenantId, excluded.get(4), "REVOKED", evaluationDate.plusDays(1));
 
-        // Model a historical retired scheme and an unavailable key without mutating shared scheme fixtures.
+        // Model a historical retired scheme and an unavailable key without mutating
+        // shared scheme fixtures.
         awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session.createNativeQuery("""
                 update party_identifiers
                 set identifier_scheme_id = '0198d111-08f1-7e48-b291-399bbb9cd606',
@@ -622,7 +624,8 @@ class NaturalPersonResourceContractTest {
         String partyId = string(created, "partyId");
         String idPrefix = UUID.randomUUID().toString().substring(0, 24);
 
-        // Insert tied timestamps and reverse UUID order to distinguish both sort keys from insertion order.
+        // Insert tied timestamps and reverse UUID order to distinguish both sort keys
+        // from insertion order.
         awaitReactive(() -> sessionFactory.withTransaction((session, transaction) -> session.createNativeQuery("""
                 insert into party_identifiers (
                     id, tenant_id, party_id, identifier_scheme_id, encrypted_value, encryption_key_version,
@@ -655,8 +658,9 @@ class NaturalPersonResourceContractTest {
         }
         expectedIds.add(string(nested(created, "initialIdentifier"), "identifierId"));
         assertEquals(expectedIds, current.stream().map(identifier -> string(identifier, "identifierId")).toList());
-        assertEquals(55, current.stream().filter(identifier -> "TEST_BOTH_DEPRECATED".equals(identifier.get("schemeCode")))
-                .count());
+        assertEquals(55,
+                current.stream().filter(identifier -> "TEST_BOTH_DEPRECATED".equals(identifier.get("schemeCode")))
+                        .count());
     }
 
     @Test
@@ -682,7 +686,8 @@ class NaturalPersonResourceContractTest {
         assertEquals(List.of(), identifiers(legacy));
         assertEquals("Legacy Person", legacy.get("displayName"));
         assertEquals("Legacy", nested(legacy, "naturalPersonDetails").get("givenNames"));
-        assertError(request(UUID.randomUUID()).get(RESOURCE_PATH + "/" + legacyPartyId), 404, "natural-person-not-found");
+        assertError(request(UUID.randomUUID()).get(RESOURCE_PATH + "/" + legacyPartyId), 404,
+                "natural-person-not-found");
 
         Map<String, Object> created = assertSuccess(
                 create(tenantId, key("no-current-identifiers"), createBody("No", "Current Identifiers", null)), 201);
@@ -794,7 +799,7 @@ class NaturalPersonResourceContractTest {
         assertNull(replacedDetails.get("birthDate"));
         assertNull(replacedDetails.get("dateOfDeath"));
 
-        assertError(put(tenantId, partyId, "0", replacementBody), 412, "precondition-failed");
+        assertError(put(tenantId, partyId, "0", replacementBody), 412, "expected-version-mismatch");
         assertEquals(replaced, getData(tenantId, partyId));
     }
 
@@ -835,11 +840,11 @@ class NaturalPersonResourceContractTest {
                   "dateOfDeath": "2000-01-01"
                 }
                 """;
-        assertError(put(tenantId, partyId, "1", invalidDates), 422, "unprocessable-entity");
+        assertError(put(tenantId, partyId, "1", invalidDates), 422, "death-before-birth");
         assertError(
                 put(tenantId, partyId, "1", createBody("Grace", "Hopper", "ZZ")),
                 422,
-                "unprocessable-entity");
+                "unrecognized-birth-country");
         assertError(
                 put(tenantId, partyId, "1", createBody("Grace", "Hopper", "SE")),
                 503,
@@ -849,7 +854,7 @@ class NaturalPersonResourceContractTest {
         assertError(
                 put(tenantId, UUID.randomUUID().toString(), "0", replacementBody),
                 404,
-                "not-found");
+                "natural-person-not-found");
     }
 
     @Test
@@ -933,11 +938,11 @@ class NaturalPersonResourceContractTest {
         assertError(
                 patch(tenantId, partyId, "0", "{\"birthDate\":\"2021-01-01\"}"),
                 422,
-                "unprocessable-entity");
+                "death-before-birth");
         assertError(
                 patch(tenantId, partyId, "0", "{\"birthCountryCode\":\"ZZ\"}"),
                 422,
-                "unprocessable-entity");
+                "unrecognized-birth-country");
         assertError(
                 patch(tenantId, partyId, "0", "{\"birthCountryCode\":\"SE\"}"),
                 503,
@@ -976,7 +981,7 @@ class NaturalPersonResourceContractTest {
             assertEquals(1, losers.size());
 
             Map<String, Object> winningData = assertSuccess(winners.getFirst(), 200);
-            assertError(losers.getFirst(), 412, "precondition-failed");
+            assertError(losers.getFirst(), 412, "expected-version-mismatch");
             Map<String, Object> persisted = getData(tenantId, partyId);
             assertEquals(1, number(persisted, "version"));
             assertEquals(winningData, persisted);
@@ -1007,7 +1012,7 @@ class NaturalPersonResourceContractTest {
         assertSanitizedError(
                 request(tenantId).get(RESOURCE_PATH + "/" + UUID.randomUUID()),
                 404,
-                "not-found");
+                "natural-person-not-found");
         assertSanitizedError(
                 request(tenantId).delete(RESOURCE_PATH + "/" + partyId),
                 405,
@@ -1015,7 +1020,7 @@ class NaturalPersonResourceContractTest {
         assertSanitizedError(
                 create(tenantId, key, createBody("Conflicting", "Payload", null)),
                 409,
-                "conflict");
+                "idempotency-key-conflict");
         assertSanitizedError(
                 create(tenantId, key("response-unavailable"), createBody("Remote", "Failure", "SE")),
                 503,
@@ -1041,7 +1046,8 @@ class NaturalPersonResourceContractTest {
     private Map<String, Object> getData(UUID tenantId, String partyId) {
         Map<String, Object> data = new LinkedHashMap<>(
                 assertDetailSuccess(request(tenantId).get(RESOURCE_PATH + "/" + partyId)));
-        // Preserve the existing write/read comparisons after validating the GET-only collection separately.
+        // Preserve the existing write/read comparisons after validating the GET-only
+        // collection separately.
         data.remove("identifiers");
         return data;
     }

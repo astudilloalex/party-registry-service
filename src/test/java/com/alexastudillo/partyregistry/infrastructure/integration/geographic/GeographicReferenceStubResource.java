@@ -30,6 +30,8 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     private static final long DELAYED_RESPONSE_MILLIS = 500;
     private static final Map<String, AtomicInteger> REQUEST_COUNTS = new ConcurrentHashMap<>();
     private static final Map<String, String> TRACEPARENTS = new ConcurrentHashMap<>();
+    private static final Map<String, TrustedHeaders> EXTRA_CONTEXTS = new ConcurrentHashMap<>();
+    private static final Map<String, List<String>> OBSERVED_CONTEXTS = new ConcurrentHashMap<>();
     private static final String SUCCESS_RESPONSE = """
             {
               "status": 200,
@@ -65,6 +67,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     public Map<String, String> start() {
         try {
             resetObservations();
+            EXTRA_CONTEXTS.clear();
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             executor = Executors.newVirtualThreadPerTaskExecutor();
             scheduler = Executors.newSingleThreadScheduledExecutor(
@@ -84,6 +87,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
 
     @Override
     public void stop() {
+        EXTRA_CONTEXTS.clear();
         if (scheduler != null) {
             scheduler.shutdownNow();
         }
@@ -107,6 +111,21 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     static void resetObservations() {
         REQUEST_COUNTS.clear();
         TRACEPARENTS.clear();
+        OBSERVED_CONTEXTS.clear();
+    }
+
+    /** Allows one exact additional context tuple for an isolated test and returns its cleanup handle. */
+    public static AutoCloseable allowContext(String tenantId, String userId, String processId) {
+        TrustedHeaders expected = new TrustedHeaders(tenantId, userId, processId);
+        if (EXTRA_CONTEXTS.putIfAbsent(processId, expected) != null) {
+            throw new IllegalStateException("Test process context is already registered");
+        }
+        return () -> EXTRA_CONTEXTS.remove(processId, expected);
+    }
+
+    /** Returns the exact accepted outbound context observed for a process and country. */
+    public static List<String> observedContext(String processId, String alpha2Code) {
+        return OBSERVED_CONTEXTS.getOrDefault(processId + ":" + alpha2Code, List.of());
     }
 
     private void handle(HttpExchange exchange) throws IOException {
@@ -126,9 +145,18 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
             send(exchange, 400, "{\"status\":400,\"code\":\"bad-request\"}", true);
             return;
         }
+        OBSERVED_CONTEXTS.put(exchange.getRequestHeaders().getFirst("Process-Id") + ":" + alpha2Code,
+                List.of(exchange.getRequestHeaders().getFirst("Tenant-Id"),
+                        exchange.getRequestHeaders().getFirst("User-Id"),
+                        exchange.getRequestHeaders().getFirst("Process-Id")));
 
         switch (alpha2Code) {
             case "EC" -> send(exchange, 200, SUCCESS_RESPONSE.formatted(alpha2Code), true);
+            case "GB" -> send(exchange, 200, SUCCESS_RESPONSE.formatted(alpha2Code)
+                    .replace("\"alpha3Code\": \"ECU\"", "\"alpha3Code\": \"GBR\"")
+                    .replace("\"numericCode\": \"218\"", "\"numericCode\": \"826\"")
+                    .replace("\"defaultName\": \"Ecuador\"", "\"defaultName\": \"United Kingdom\"")
+                    .replace("Republic of Ecuador", "United Kingdom of Great Britain and Northern Ireland"), true);
             case "ZZ" -> send(exchange, 404, "{\"status\":404,\"code\":\"country-not-found\"}", true);
             case "SE" -> send(exchange, 503, "{\"status\":503,\"code\":\"server-error\"}", true);
             case "MJ" -> send(exchange, 200, "{", true);
@@ -181,9 +209,15 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     }
 
     private boolean hasTrustedHeaders(HttpExchange exchange) {
-        return List.of(TENANT_ID).equals(exchange.getRequestHeaders().get("Tenant-Id"))
-                && List.of(USER_ID).equals(exchange.getRequestHeaders().get("User-Id"))
-                && List.of(PROCESS_ID).equals(exchange.getRequestHeaders().get("Process-Id"));
+        List<String> processes = exchange.getRequestHeaders().get("Process-Id");
+        if (processes == null || processes.size() != 1) {
+            return false;
+        }
+        TrustedHeaders expected = EXTRA_CONTEXTS.getOrDefault(processes.getFirst(),
+                new TrustedHeaders(TENANT_ID, USER_ID, PROCESS_ID));
+        return List.of(expected.tenantId()).equals(exchange.getRequestHeaders().get("Tenant-Id"))
+                && List.of(expected.userId()).equals(exchange.getRequestHeaders().get("User-Id"))
+                && List.of(expected.processId()).equals(processes);
     }
 
     private void send(HttpExchange exchange, int status, String body, boolean echoProcessId) throws IOException {
@@ -199,7 +233,9 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", contentType);
         if (echoProcessId) {
-            exchange.getResponseHeaders().set("Process-Id", PROCESS_ID);
+            String supplied = exchange.getRequestHeaders().getFirst("Process-Id");
+            exchange.getResponseHeaders().set("Process-Id",
+                    supplied != null && EXTRA_CONTEXTS.containsKey(supplied) ? supplied : PROCESS_ID);
         }
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream responseBody = exchange.getResponseBody()) {
@@ -207,5 +243,9 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
         } finally {
             exchange.close();
         }
+    }
+
+    /** Defines an exact test context rather than accepting arbitrary forwarded header values. */
+    private record TrustedHeaders(String tenantId, String userId, String processId) {
     }
 }

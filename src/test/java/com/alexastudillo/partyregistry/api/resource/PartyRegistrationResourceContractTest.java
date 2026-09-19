@@ -76,7 +76,7 @@ class PartyRegistrationResourceContractTest {
         assertError(
                 post(tenantId, "/v1/legal-entity", key, legalBody("Changed Ltd", identifierValue)),
                 409,
-                "conflict");
+                "idempotency-key-conflict");
     }
 
     @Test
@@ -118,7 +118,7 @@ class PartyRegistrationResourceContractTest {
                 body.replace("analytical Engines ltd", "ANALYTICAL ENGINES LTD"),
                 body.replace("engine  company", "ENGINE  COMPANY"),
                 body.replace("  ltd  ", "  LTD  "),
-                body.replace("eC", "EC"),
+                body.replace("\u2003eC\u2003", "\u2003EC\u2003"),
                 body.replace("  engine Works  ", "engine Works"))) {
             Response conflict = post(tenantId, "/v1/legal-entity", idempotencyKey, changedBody);
             assertError(conflict, 409, "idempotency-key-conflict");
@@ -157,7 +157,7 @@ class PartyRegistrationResourceContractTest {
                         key("duplicate-additional"),
                         body),
                 409,
-                "conflict");
+                "identifier-uniqueness-conflict");
         Map<String, Object> retrieved = assertSuccess(
                 request(tenantId).get("/v1/natural-person/" + partyId), 200);
         assertEquals(partyId, retrieved.get("partyId"));
@@ -176,7 +176,7 @@ class PartyRegistrationResourceContractTest {
                         key("cross-tenant"),
                         identifierBody("TEST_NATURAL_ACTIVE", identifierValue())),
                 404,
-                "not-found");
+                "party-not-found");
         assertError(
                 post(
                         tenantId,
@@ -184,7 +184,7 @@ class PartyRegistrationResourceContractTest {
                         key("unknown-scheme"),
                         identifierBody("UNKNOWN_SCHEME", identifierValue())),
                 422,
-                "unprocessable-entity");
+                "unknown-identifier-scheme");
     }
 
     @Test
@@ -200,14 +200,14 @@ class PartyRegistrationResourceContractTest {
                 request(tenantId).header(IF_MATCH_HEADER, "0", "0").post(path),
                 400,
                 "if-match-duplicated");
-        assertError(request(tenantId).header(IF_MATCH_HEADER, "0").post(path), 422, "unprocessable-entity");
+        assertError(request(tenantId).header(IF_MATCH_HEADER, "0").post(path), 422, "missing-qualifying-identifier");
 
         markIdentifierVerified(UUID.fromString(partyId));
 
         assertError(
                 request(UUID.randomUUID()).header(IF_MATCH_HEADER, "0").post(path),
                 404,
-                "not-found");
+                "party-not-found");
         Map<String, Object> activated = assertSuccess(
                 request(tenantId)
                         .header(IF_MATCH_HEADER, "0")
@@ -220,8 +220,8 @@ class PartyRegistrationResourceContractTest {
         assertEquals(1, ((Number) activated.get("version")).intValue());
         assertNotNull(activated.get("naturalPersonDetails"));
         assertFalse(activated.containsKey("legalEntityDetails"));
-        assertError(request(tenantId).header(IF_MATCH_HEADER, "0").post(path), 412, "precondition-failed");
-        assertError(request(tenantId).header(IF_MATCH_HEADER, "1").post(path), 409, "conflict");
+        assertError(request(tenantId).header(IF_MATCH_HEADER, "0").post(path), 412, "stale-party-version");
+        assertError(request(tenantId).header(IF_MATCH_HEADER, "1").post(path), 409, "invalid-party-lifecycle");
     }
 
     private Map<String, Object> createNaturalPerson(UUID tenantId, String identifierValue) {

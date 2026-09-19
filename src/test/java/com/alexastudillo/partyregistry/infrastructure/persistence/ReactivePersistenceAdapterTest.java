@@ -92,7 +92,7 @@ class ReactivePersistenceAdapterTest {
                     assertEquals(new PartyVersion(1), persisted.version());
                     assertEquals(original.displayName(), persisted.displayName());
                     assertEquals(original.auditInfo(), persisted.auditInfo());
-                    assertEquals("Countess Lovelace", persisted.details().preferredName());
+                    assertEquals("COUNTESS LOVELACE", persisted.details().preferredName());
                 });
     }
 
@@ -118,7 +118,7 @@ class ReactivePersistenceAdapterTest {
                 () -> repository.update(updated, PartyVersion.initial()),
                 persisted -> {
                     assertEquals(new PartyVersion(1), persisted.version());
-                    assertEquals("Grace Hopper", persisted.displayName());
+                    assertEquals("GRACE HOPPER", persisted.displayName());
                     assertEquals("updater", persisted.auditInfo().updatedBy());
                     assertEquals(CREATED_AT.plusSeconds(60), persisted.auditInfo().updatedAt());
                 });
@@ -170,9 +170,9 @@ class ReactivePersistenceAdapterTest {
                     NaturalPerson persisted = found.orElseThrow();
                     assertEquals(new PartyVersion(1), persisted.version());
                     assertTrue(
-                            persisted.details().preferredName().equals("First Preference")
+                            persisted.details().preferredName().equals("FIRST PREFERENCE")
                                     || persisted.details().preferredName()
-                                            .equals("Second Preference"));
+                                            .equals("SECOND PREFERENCE"));
                 });
     }
 

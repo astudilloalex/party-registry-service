@@ -93,27 +93,27 @@ THEN THE Party Registry SHALL return `400 party-id-invalid` without reading or c
 **User Story:** As a tenant administrator, I want legal-detail operations restricted to my legal entities, so that another tenant's records and natural-person details remain inaccessible.
 
 IF a syntactically valid partyId does not identify a `LEGAL_ENTITY` belonging to the requesting tenant,
-THEN THE Party Registry SHALL return `404 not-found` for GET, PUT, and PATCH after applicable input validation, without disclosing the actual owner, type, details, or version.
+THEN THE Party Registry SHALL return `404 legal-entity-not-found` for GET, PUT, and PATCH after applicable input validation, without disclosing the actual owner, type, details, or version.
 
 #### Scenario: Absent legal entity
 
 - **GIVEN** partyId is a valid UUID that does not identify an existing Party
 - **WHEN** a valid GET, PUT, or PATCH targets that ID
-- **THEN** the response is `404 not-found`
+- **THEN** the response is `404 legal-entity-not-found`
 - **AND** PUT and PATCH do not create a replacement Party
 
 #### Scenario: Cross-tenant entity is concealed
 
 - **GIVEN** partyId belongs to a legal entity in a different tenant
 - **WHEN** a valid GET, PUT, or PATCH targets that ID
-- **THEN** the response is `404 not-found`
+- **THEN** the response is `404 legal-entity-not-found`
 - **AND** the other tenant's details, status, version, and audit information remain unchanged
 
 #### Scenario: Natural-person Party cannot be treated as a legal entity
 
 - **GIVEN** partyId belongs to a natural person in the requesting tenant
 - **WHEN** a valid GET, PUT, or PATCH uses the legal-entity detail route
-- **THEN** the response is `404 not-found`
+- **THEN** the response is `404 legal-entity-not-found`
 - **AND** the natural person remains unchanged
 
 ### Requirement: Complete replacement of legal details
@@ -283,8 +283,11 @@ THE Party Registry SHALL preserve the existing displayName, including a custom o
 WHEN PUT or PATCH is evaluated,
 THE Party Registry SHALL validate the complete resulting legal details against one trusted UTC evaluation date for that update.
 
-IF a resulting non-null incorporatedOn or dissolvedOn is in the future, or dissolvedOn precedes incorporatedOn when both are present,
-THEN THE Party Registry SHALL return `422 unprocessable-entity` without changing the Party.
+IF a resulting non-null incorporatedOn is in the future, dissolvedOn is in the future, or dissolvedOn precedes incorporatedOn when both are present,
+THEN THE Party Registry SHALL return HTTP `422` with respectively `incorporation-date-in-future`, `dissolution-date-in-future`, or `dissolution-before-incorporation`, without changing the Party.
+
+WHEN multiple semantic date rules fail,
+THE Party Registry SHALL report dissolution-before-incorporation first, then incorporation-date-in-future, then dissolution-date-in-future, following the existing legal-detail validation order.
 
 THE Party Registry SHALL allow nullable dates and equal incorporation/dissolution dates, including the evaluation date, when all other constraints are satisfied.
 
@@ -292,14 +295,14 @@ THE Party Registry SHALL allow nullable dates and equal incorporation/dissolutio
 
 - **GIVEN** incorporatedOn is `2020-01-15`
 - **WHEN** PATCH supplies only `dissolvedOn: "2019-12-31"`
-- **THEN** the response is `422 unprocessable-entity`
+- **THEN** the response is `422 dissolution-before-incorporation`
 - **AND** neither date, Party version, nor audit information changes
 
 #### Scenario: Future legal date is rejected
 
 - **GIVEN** an update is evaluated on a known UTC date
 - **WHEN** either resulting legal date is later than that date
-- **THEN** the response is `422 unprocessable-entity`
+- **THEN** the response has HTTP status `422` and the applicable `incorporation-date-in-future` or `dissolution-date-in-future` code
 
 #### Scenario: Date boundaries and nullable values are accepted
 
@@ -315,7 +318,7 @@ WHEN the resulting canonical incorporationCountryCode differs from the current c
 THE Party Registry SHALL require the Geographic Reference Service to recognize the new code before accepting the update.
 
 IF the reference service establishes that the code is unrecognized,
-THEN THE Party Registry SHALL return `422 unprocessable-entity` without changing the legal entity.
+THEN THE Party Registry SHALL return `422 unrecognized-incorporation-country` without changing the legal entity.
 
 IF required country validation cannot be completed because the reference service is unavailable or fails to provide a usable result,
 THEN THE Party Registry SHALL return `503 dependency-unavailable` without treating the country as accepted or unrecognized.
@@ -333,7 +336,7 @@ THE Party Registry SHALL not require a fresh geographic validation result for th
 
 - **GIVEN** a changed country is syntactically valid but the reference service reports it as unrecognized
 - **WHEN** PUT or PATCH requests that change
-- **THEN** the response is `422 unprocessable-entity` and the previous details remain observable
+- **THEN** the response is `422 unrecognized-incorporation-country` and the previous details remain observable
 
 #### Scenario: Country dependency failure leaves no partial update
 
@@ -361,10 +364,10 @@ IF If-Match is absent, duplicated, malformed, or outside that range after preced
 THEN THE Party Registry SHALL return HTTP `400` with respectively `if-match-required`, `if-match-duplicated`, `if-match-invalid`, or `if-match-out-of-range`.
 
 IF an existing tenant-owned legal entity's version differs from the valid expected version,
-THEN THE Party Registry SHALL return `412 precondition-failed` before evaluating proposed semantic changes and without modifying the record.
+THEN THE Party Registry SHALL return `412 expected-version-mismatch` before evaluating proposed semantic changes and without modifying the record.
 
 WHEN concurrent legal-detail updates or an existing Party lifecycle operation target the same current version,
-THE Party Registry SHALL permit at most one accepted Party update for that version and SHALL reject a legal-detail update that loses the version race with `412 precondition-failed`.
+THE Party Registry SHALL permit at most one accepted Party update for that version and SHALL reject a legal-detail update that loses the version race with `412 expected-version-mismatch`.
 
 THE Party Registry SHALL not require Idempotency-Key for these detail operations or treat a creation idempotency key as a substitute for the current Party version.
 
@@ -388,7 +391,7 @@ THE Party Registry SHALL not require Idempotency-Key for these detail operations
 
 - **GIVEN** the Party is at version `2` and Geographic Reference is unavailable
 - **WHEN** a structurally valid update with If-Match `1` proposes a changed country
-- **THEN** the response is `412 precondition-failed`, not a geographic-dependency error
+- **THEN** the response is `412 expected-version-mismatch`, not a geographic-dependency error
 - **AND** the Party remains unchanged
 
 #### Scenario: Concurrent PUT and PATCH have one winner
@@ -396,7 +399,7 @@ THE Party Registry SHALL not require Idempotency-Key for these detail operations
 - **GIVEN** two otherwise valid updates target the same legal entity at version `4`
 - **WHEN** PUT and PATCH concurrently submit If-Match `4`
 - **THEN** one update succeeds at version `5`
-- **AND** the other receives `412 precondition-failed`
+- **AND** the other receives `412 expected-version-mismatch`
 - **AND** the final legal details reflect the winner without fields from the rejected update
 
 ### Requirement: Atomic update and audit outcome
@@ -445,6 +448,22 @@ THE Party Registry SHALL return a JSON envelope containing status `200`, code `s
 WHEN a legal-detail request fails,
 THE Party Registry SHALL return a JSON envelope containing only `status` and one stable `code`, with body status equal to the actual HTTP status and no data, field-error collection, rejected value, exception message, stack trace, SQL detail, or internal cause.
 
+WHEN a known legal-detail business or validation failure is returned,
+THE Party Registry SHALL identify its cause using the applicable service-owned code rather than collapsing it to `not-found`, `precondition-failed`, `unprocessable-entity`, or `invalid-business-state`.
+
+THE Party Registry SHALL document the following business failure codes alongside the field-specific 400 codes defined above:
+
+| Business condition | HTTP status and code |
+| --- | --- |
+| Absent, cross-tenant, or wrong-type Party | `404 legal-entity-not-found` |
+| Expected version differs or an update loses the version race | `412 expected-version-mismatch` |
+| Incorporation country is definitively unrecognized | `422 unrecognized-incorporation-country` |
+| Resulting dissolution precedes incorporation | `422 dissolution-before-incorporation` |
+| Resulting incorporation date is in the future | `422 incorporation-date-in-future` |
+| Resulting dissolution date is in the future | `422 dissolution-date-in-future` |
+
+Framework JSON/method/media errors keep their established framework codes, dependency failures keep `dependency-unavailable`, and unexpected internal failures keep sanitized `server-error`; cause-specific business codes do not disclose technical causes.
+
 IF an unexpected failure occurs,
 THEN THE Party Registry SHALL record the failure internally and expose only `500 server-error` through the public response.
 
@@ -466,6 +485,13 @@ THEN THE Party Registry SHALL retain the established `401 unauthorized` contract
 - **WHEN** PUT or PATCH receives malformed JSON
 - **THEN** the response has exactly `status: 400` and `code: "bad-request"`
 - **AND** it echoes the accepted Process-Id without exposing the malformed input
+
+#### Scenario: Business failure codes distinguish the cause for consumers
+
+- **GIVEN** requests independently target a missing legal entity, a stale version, an unrecognized country, or an invalid legal lifecycle date
+- **WHEN** each failure is returned
+- **THEN** its status and code match the business failure table
+- **AND** the code identifies the cause without a message or internal details
 
 #### Scenario: Framework failures keep the common envelope
 
@@ -513,7 +539,7 @@ THE Party Registry SHALL continue to return the original creation result and ori
 WHEN these operations are delivered,
 THE Party Registry documentation SHALL describe GET, PUT, and PATCH as implemented operations with their declared paths, fields, normalization, null semantics, version rules, response shapes, validation codes, and relevant dependency failures.
 
-THE Party Registry documentation SHALL extend the existing legal-field validation-code applicability to PUT and PATCH, document their `503 dependency-unavailable` outcome and accepted Process-Id response header, and preserve compatibility of the existing creation contract.
+THE Party Registry documentation SHALL extend the existing legal-field validation-code applicability to PUT and PATCH, document every cause-specific business code and their `503 dependency-unavailable` outcome and accepted Process-Id response header, and preserve compatibility of the existing creation contract.
 
 WHEN the Postman collection `15834347-8f36abef-3a94-4646-a4f2-eecd36c74313` is updated for this capability,
 THE published collection SHALL include one request for each new operation under **Legal Entities**, alongside its existing creation request, with documented variables, headers, bodies where applicable, and illustrative success and failure examples.

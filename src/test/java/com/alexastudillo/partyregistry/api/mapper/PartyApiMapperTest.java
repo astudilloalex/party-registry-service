@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies complete, exhaustive, and confidential API result projection.
@@ -93,17 +93,37 @@ class PartyApiMapperTest {
     }
 
     @Test
+    void mapsLegalDetailsWithoutIdentifiersOrInternalTenantFields() {
+        var source = legalEntity();
+        var response = legalMapper.toResponse(source);
+        var json = objectMapper.valueToTree(response);
+        Set<String> fields = new java.util.HashSet<>();
+        json.fieldNames().forEachRemaining(fields::add);
+        assertEquals(Set.of("partyId", "type", "displayName", "recordStatus", "version", "createdAt",
+                "updatedAt", "createdBy", "updatedBy", "legalEntityDetails"), fields);
+        assertEquals(source.legalName(), response.legalEntityDetails().legalName());
+        assertEquals(source.displayName(), response.displayName());
+        assertEquals(source.version().value(), response.version());
+        assertEquals(source.partyId().value(), response.partyId());
+        assertEquals(source.createdAt(), response.createdAt());
+        assertEquals(source.updatedAt(), response.updatedAt());
+        assertFalse(json.has("initialIdentifier"));
+        assertFalse(json.has("identifiers"));
+        assertFalse(json.has("tenantId"));
+    }
+
+    @Test
     void exhaustivelyProjectsOnlyTheMatchingSubtypeDetails() throws Exception {
         PartyDetailResponse natural = partyMapper.toResponse(naturalPerson());
         PartyDetailResponse legal = partyMapper.toResponse(legalEntity());
 
         assertEquals("NATURAL_PERSON", natural.type());
-        assertTrue(natural.naturalPersonDetails() != null);
+        assertNotNull(natural.naturalPersonDetails());
         assertNull(natural.legalEntityDetails());
         assertFalse(objectMapper.writeValueAsString(natural).contains("legalEntityDetails"));
         assertEquals("LEGAL_ENTITY", legal.type());
         assertNull(legal.naturalPersonDetails());
-        assertTrue(legal.legalEntityDetails() != null);
+        assertNotNull(legal.legalEntityDetails());
         assertFalse(objectMapper.writeValueAsString(legal).contains("naturalPersonDetails"));
     }
 

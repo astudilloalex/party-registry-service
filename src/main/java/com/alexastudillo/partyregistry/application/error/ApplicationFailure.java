@@ -23,7 +23,16 @@ public sealed interface ApplicationFailure {
 
         public NaturalPersonNotFound {
             requirePartyId(partyId);
-            Objects.requireNonNull(tenantId, "tenantId");
+            requireTenantId(tenantId);
+        }
+    }
+
+    /** Reports an absent, cross-tenant, or wrong-type legal-entity lookup without distinguishing them. */
+    record LegalEntityNotFound(PartyId partyId, TenantId tenantId) implements ApplicationFailure {
+
+        public LegalEntityNotFound {
+            requirePartyId(partyId);
+            requireTenantId(tenantId);
         }
     }
 
@@ -139,7 +148,7 @@ public sealed interface ApplicationFailure {
 
         public PartyNotFound {
             requirePartyId(partyId);
-            Objects.requireNonNull(tenantId, "tenantId");
+            requireTenantId(tenantId);
         }
     }
 
@@ -216,6 +225,10 @@ public sealed interface ApplicationFailure {
 
     private static void requirePartyId(PartyId partyId) {
         Objects.requireNonNull(partyId, "partyId");
+    }
+
+    private static void requireTenantId(TenantId tenantId) {
+        Objects.requireNonNull(tenantId, "tenantId");
     }
 
     private static void requireSchemeId(IdentifierSchemeId schemeId) {

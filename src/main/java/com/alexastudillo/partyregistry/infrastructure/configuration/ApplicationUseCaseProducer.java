@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.application.port.IdempotentPartyRegistrat
 import com.alexastudillo.partyregistry.application.port.IdentifierProtectionPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierSchemeRepository;
 import com.alexastudillo.partyregistry.application.port.NaturalPersonRepository;
+import com.alexastudillo.partyregistry.application.port.LegalEntityRepository;
 import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
 import com.alexastudillo.partyregistry.application.port.PartyActivationPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
@@ -15,6 +16,9 @@ import com.alexastudillo.partyregistry.application.usecase.ActivatePartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
+import com.alexastudillo.partyregistry.application.usecase.GetLegalEntityUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ReplaceLegalEntityUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PartyIdentifierPreparation;
 import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
@@ -109,6 +113,23 @@ public class ApplicationUseCaseProducer {
     GetNaturalPersonUseCase getNaturalPersonUseCase(
             NaturalPersonRepository repository, PartyIdentifierReadPort identifierReadPort) {
         return new GetNaturalPersonUseCase(repository, identifierReadPort, UTC_CLOCK);
+    }
+
+    @Produces
+    GetLegalEntityUseCase getLegalEntityUseCase(LegalEntityRepository repository) {
+        return new GetLegalEntityUseCase(repository);
+    }
+
+    @Produces
+    ReplaceLegalEntityUseCase replaceLegalEntityUseCase(
+            LegalEntityRepository repository, CountryReferencePort countryReferencePort) {
+        return new ReplaceLegalEntityUseCase(repository, countryReferencePort, UTC_CLOCK);
+    }
+
+    @Produces
+    PatchLegalEntityUseCase patchLegalEntityUseCase(
+            LegalEntityRepository repository, CountryReferencePort countryReferencePort) {
+        return new PatchLegalEntityUseCase(repository, countryReferencePort, UTC_CLOCK);
     }
 
     @Produces

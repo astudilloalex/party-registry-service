@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,13 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the approved static OpenAPI contract and Party registration requirements.
+ * Verifies the approved static contract for Party registration and detail
+ * operations.
  */
 class OpenApiContractTest {
 
     private static final Path CONTRACT = Path.of("docs/contracts/party-registry.openapi.yaml");
-    private static final String CANONICAL_UUID_PATTERN =
-            "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+    private static final String CANONICAL_UUID_PATTERN = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
 
     private static OpenAPI openApi;
 
@@ -59,6 +61,141 @@ class OpenApiContractTest {
         assertEquals("getNaturalPerson", itemPath.getGet().getOperationId());
         assertEquals("replaceNaturalPerson", itemPath.getPut().getOperationId());
         assertEquals("patchNaturalPerson", itemPath.getPatch().getOperationId());
+    }
+
+    @Test
+    void declaresLegalEntityDetailOperationsWithTrustedContextAndSpecificFailures() {
+        PathItem itemPath = openApi.getPaths().get("/v1/legal-entity/{partyId}");
+        assertNotNull(itemPath);
+        assertEquals("getLegalEntity", itemPath.getGet().getOperationId());
+        assertEquals("replaceLegalEntity", itemPath.getPut().getOperationId());
+        assertEquals("patchLegalEntity", itemPath.getPatch().getOperationId());
+        assertEquals(List.of("#/components/parameters/PartyIdPath", "#/components/parameters/TenantId",
+                "#/components/parameters/ProcessId", "#/components/parameters/UserId"),
+                itemPath.getParameters().stream().map(Parameter::get$ref).toList());
+        assertNull(itemPath.getGet().getRequestBody());
+        assertTrue(itemPath.getGet().getParameters() == null || itemPath.getGet().getParameters().isEmpty());
+
+        for (Operation operation : List.of(itemPath.getGet(), itemPath.getPut(), itemPath.getPatch())) {
+            assertResponseSchemaReference(operation, "200", "LegalEntityApiResponse");
+            assertHasProcessIdEcho(operation, "200");
+            assertResponseReference(operation, "400", "BadRequest");
+            assertResponseReference(operation, "404", "LegalEntityNotFound");
+            assertResponseReference(operation, "default", "DefaultError");
+        }
+        for (Operation update : List.of(itemPath.getPut(), itemPath.getPatch())) {
+            assertTrue(update.getRequestBody().getRequired());
+            assertEquals(List.of("#/components/parameters/LegalEntityIfMatch"),
+                    update.getParameters().stream().map(Parameter::get$ref).toList());
+            assertResponseReference(update, "412", "LegalEntityExpectedVersionMismatch");
+            assertResponseReference(update, "422", "LegalEntityBusinessValidationFailure");
+            assertResponseReference(update, "503", "DependencyUnavailable");
+        }
+        Parameter legalIfMatch = parameter("LegalEntityIfMatch");
+        assertEquals("If-Match", legalIfMatch.getName());
+        assertEquals("header", legalIfMatch.getIn());
+        assertTrue(legalIfMatch.getRequired());
+        assertEquals(parameter("IfMatch").getSchema().getPattern(), legalIfMatch.getSchema().getPattern());
+        assertTrue(legalIfMatch.getDescription().contains("expected-version-mismatch"));
+        assertEquals("#/components/schemas/LegalEntityPutRequest", itemPath.getPut()
+                .getRequestBody().getContent().get("application/json").getSchema().get$ref());
+        assertEquals("#/components/schemas/LegalEntityPatchRequest", itemPath.getPatch()
+                .getRequestBody().getContent().get("application/json").getSchema().get$ref());
+    }
+
+    @Test
+    void keepsLegalDetailSchemasClosedAndSeparateFromCreation() {
+        Set<String> fields = Set.of("legalName", "tradeName", "legalFormCode",
+                "incorporationCountryCode", "incorporatedOn", "dissolvedOn");
+        Schema<?> put = schema("LegalEntityPutRequest");
+        Schema<?> patch = schema("LegalEntityPatchRequest");
+        assertEquals(Set.of("legalName", "incorporationCountryCode"), Set.copyOf(put.getRequired()));
+        assertTrue(patch.getRequired() == null || patch.getRequired().isEmpty());
+        assertEquals(1, patch.getMinProperties());
+        for (Schema<?> request : List.of(put, patch)) {
+            assertEquals(fields, request.getProperties().keySet());
+            assertEquals(Boolean.FALSE, request.getAdditionalProperties());
+            for (String required : List.of("legalName", "incorporationCountryCode")) {
+                assertNotEquals(Boolean.TRUE, property(request, required).getNullable());
+            }
+            for (String nullable : List.of("tradeName", "legalFormCode", "incorporatedOn", "dissolvedOn")) {
+                assertEquals(Boolean.TRUE, property(request, nullable).getNullable());
+            }
+            for (String date : List.of("incorporatedOn", "dissolvedOn")) {
+                assertEquals("string", property(request, date).getType());
+                assertEquals("date", property(request, date).getFormat());
+            }
+        }
+        assertTrue(put.getDescription().contains("Omitted optional properties are cleared"));
+        assertTrue(patch.getDescription().contains("explicit null clears a nullable property"));
+        Schema<?> envelope = schema("LegalEntityApiResponse");
+        assertEquals(Set.of("status", "code", "data"), envelope.getProperties().keySet());
+        assertEquals("#/components/schemas/LegalEntityResponse", property(envelope, "data").get$ref());
+        Schema<?> detail = schema("LegalEntityResponse");
+        assertEquals("#/components/schemas/PartyBase", detail.getAllOf().getFirst().get$ref());
+        assertEquals(Set.of("legalEntityDetails"), detail.getAllOf().get(1).getProperties().keySet());
+        assertEquals("#/components/schemas/LegalEntityDetails",
+                property(detail.getAllOf().get(1), "legalEntityDetails").get$ref());
+        assertResponseSchemaReference(openApi.getPaths().get("/v1/legal-entity").getPost(),
+                "201", "LegalEntityCreateApiResponse");
+    }
+
+    @Test
+    void documentsCauseSpecificLegalBusinessErrorsWithoutExposingMessages() {
+        Map<String, String> expected = Map.of(
+                "LegalEntityNotFound", "legal-entity-not-found",
+                "LegalEntityExpectedVersionMismatch", "expected-version-mismatch");
+        for (var entry : expected.entrySet()) {
+            ApiResponse response = openApi.getComponents().getResponses().get(entry.getKey());
+            assertEquals("#/components/headers/ProcessIdEcho", response.getHeaders().get("Process-Id").get$ref());
+            var json = response.getContent().get("application/json");
+            assertEquals("#/components/schemas/ApiErrorResponse", json.getSchema().get$ref());
+            JsonNode value = assertInstanceOf(JsonNode.class, json.getExample());
+            assertEquals(2, value.size());
+            assertEquals(entry.getValue(), value.get("code").textValue());
+            assertEquals(entry.getKey().equals("LegalEntityNotFound") ? 404 : 412, value.get("status").intValue());
+        }
+        ApiResponse business = openApi.getComponents().getResponses().get("LegalEntityBusinessValidationFailure");
+        var examples = business.getContent().get("application/json").getExamples();
+        Set<String> codes = Set.of("unrecognized-incorporation-country", "dissolution-before-incorporation",
+                "incorporation-date-in-future", "dissolution-date-in-future");
+        assertEquals(codes.size(), examples.size());
+        Set<String> actual = examples.values().stream().map(example -> {
+            JsonNode value = assertInstanceOf(JsonNode.class, example.getValue());
+            assertEquals(2, value.size());
+            assertEquals(422, value.get("status").intValue());
+            return value.get("code").textValue();
+        }).collect(java.util.stream.Collectors.toSet());
+        assertEquals(codes, actual);
+        String validation = openApi.getComponents().getResponses().get("BadRequest").getDescription();
+        assertTrue(validation.contains("legal-entity creation, PUT, or PATCH"));
+        assertTrue(validation.contains("natural-person or legal-entity PATCH"));
+        assertTrue(validation.contains("normalized body before partyId and If-Match"));
+        assertTrue(business.getDescription().contains("Date ordering is checked before incorporation in the future"));
+    }
+
+    @Test
+    void sharedBusinessFailureExamplesAgreeWithTheSpecificServiceCatalog() {
+        Map<String, Integer> responses = Map.of(
+                "NotFound", 404, "Conflict", 409, "PreconditionFailed", 412, "UnprocessableEntity", 422,
+                "LegalEntityNotFound", 404, "LegalEntityExpectedVersionMismatch", 412,
+                "LegalEntityBusinessValidationFailure", 422);
+        responses.forEach((name, status) -> {
+            var json = openApi.getComponents().getResponses().get(name).getContent().get("application/json");
+            List<Object> values = json.getExamples() == null
+                    ? List.of(json.getExample())
+                    : json.getExamples().values().stream().map(Example::getValue).toList();
+            for (Object value : values) {
+                JsonNode body = assertInstanceOf(JsonNode.class, value);
+                assertEquals(2, body.size());
+                assertEquals(status.intValue(), body.get("status").intValue());
+                String code = body.get("code").textValue();
+                PartyResponseCode catalog = Arrays.stream(PartyResponseCode.values())
+                        .filter(candidate -> candidate.getCode().equals(code))
+                        .findFirst().orElseThrow(() -> new AssertionError("Undeclared response code: " + code));
+                assertEquals(status.intValue(), catalog.getStatus(), code);
+            }
+        });
     }
 
     @Test
@@ -154,9 +291,10 @@ class OpenApiContractTest {
             assertTrue(openApi.getPaths().get(path).getPost().getDescription()
                     .contains("original submitted text"));
         }
-        for (String name : List.of("LegalEntityPutRequest", "LegalEntityPatchRequest", "PartyUpdateRequest")) {
-            assertTrue(schema(name).getDescription().contains("not implemented"));
+        for (String name : List.of("LegalEntityPutRequest", "LegalEntityPatchRequest")) {
+            assertFalse(schema(name).getDescription().contains("not implemented"));
         }
+        assertTrue(schema("PartyUpdateRequest").getDescription().contains("not implemented"));
         assertTrue(schema("NationalityCreateRequest").getDescription().contains("not implemented"));
 
         Schema<?> identifier = schema("PartyIdentifierCreateRequest");
@@ -230,7 +368,8 @@ class OpenApiContractTest {
         assertEquals(
                 "#/components/schemas/InitialPartyIdentifierCreateRequest",
                 property(legalEntity, "initialIdentifier").get$ref());
-        assertEquals("#/components/schemas/PartyIdentifierCreateRequest", initialIdentifier.getAllOf().getFirst().get$ref());
+        assertEquals("#/components/schemas/PartyIdentifierCreateRequest",
+                initialIdentifier.getAllOf().getFirst().get$ref());
         assertEquals(Boolean.FALSE, identifier.getAdditionalProperties());
         assertTrue(identifier.getRequired().containsAll(List.of("identifierSchemeCode", "value")));
         assertEquals(".*\\S.*", property(identifier, "identifierSchemeCode").getPattern());
@@ -270,7 +409,8 @@ class OpenApiContractTest {
         assertNull(identifier.getProperties().get("normalizedValue"));
         assertNull(identifier.getProperties().get("encryptedValue"));
         assertNull(identifier.getProperties().get("fingerprint"));
-        assertEquals(List.of("PENDING_VERIFICATION"), property(initialIdentifier.getAllOf().get(1), "status").getEnum());
+        assertEquals(List.of("PENDING_VERIFICATION"),
+                property(initialIdentifier.getAllOf().get(1), "status").getEnum());
     }
 
     @Test
@@ -386,7 +526,7 @@ class OpenApiContractTest {
         assertResponseReference(activate, "412", "PreconditionFailed");
         assertResponseReference(activate, "422", "UnprocessableEntity");
         assertTrue(activate.getDescription().contains("VERIFIED"));
-        assertTrue(activate.getDescription().contains("422 unprocessable-entity"));
+        assertTrue(activate.getDescription().contains("422 missing-qualifying-identifier"));
 
         for (Operation update : List.of(replace, patch)) {
             assertResponseReference(update, "412", "PreconditionFailed");

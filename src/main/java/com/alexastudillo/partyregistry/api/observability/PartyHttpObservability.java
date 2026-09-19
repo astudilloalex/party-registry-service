@@ -27,6 +27,7 @@ public class PartyHttpObservability {
     private static final String NATURAL_PERSON_PATH = "/v1/natural-person";
     private static final String NATURAL_PERSON_ITEM_PREFIX = NATURAL_PERSON_PATH + "/";
     private static final String LEGAL_ENTITY_PATH = "/v1/legal-entity";
+    private static final String LEGAL_ENTITY_ITEM_PREFIX = LEGAL_ENTITY_PATH + "/";
     private static final String PARTY_ITEM_PREFIX = "/v1/parties/";
     private static final String IDENTIFIERS_SUFFIX = "/identifiers";
     private static final String ACTIVATE_SUFFIX = "/activate";
@@ -51,6 +52,16 @@ public class PartyHttpObservability {
         }
         if (LEGAL_ENTITY_PATH.equals(path) && "POST".equals(method)) {
             return "create-legal-entity";
+        }
+        if (path.startsWith(LEGAL_ENTITY_ITEM_PREFIX)
+                && path.length() > LEGAL_ENTITY_ITEM_PREFIX.length()
+                && path.indexOf('/', LEGAL_ENTITY_ITEM_PREFIX.length()) < 0) {
+            return switch (method) {
+                case "GET" -> "retrieve-legal-entity";
+                case "PUT" -> "replace-legal-entity";
+                case "PATCH" -> "patch-legal-entity";
+                default -> "unsupported";
+            };
         }
         if ("POST".equals(method) && isPartyOperationPath(path, IDENTIFIERS_SUFFIX)) {
             return "register-identifier";
@@ -97,7 +108,7 @@ public class PartyHttpObservability {
                 CODE_TAG, code)
                 .record(Math.max(0L, durationNanos), TimeUnit.NANOSECONDS);
 
-        if (status == 400 || "unprocessable-entity".equals(code)) {
+        if (status == 400 || status == 422) {
             meterRegistry.counter(VALIDATION_METRIC, OPERATION_TAG, operation, CODE_TAG, code)
                     .increment();
         }
@@ -107,13 +118,14 @@ public class PartyHttpObservability {
                         IDEMPOTENCY_METRIC,
                         OUTCOME_TAG, idempotencyOutcome.name().toLowerCase(Locale.ROOT))
                         .increment();
-            } else if ("conflict".equals(code)) {
+            } else if ("idempotency-key-conflict".equals(code)) {
                 meterRegistry.counter(IDEMPOTENCY_METRIC, OUTCOME_TAG, "conflict")
                         .increment();
             }
         }
-        if (("replace".equals(operation) || "patch".equals(operation) || "activate".equals(operation))
-                && "precondition-failed".equals(code)) {
+        if (("replace".equals(operation) || "patch".equals(operation) || "activate".equals(operation)
+                || "replace-legal-entity".equals(operation) || "patch-legal-entity".equals(operation))
+                && status == 412) {
             meterRegistry.counter(OPTIMISTIC_CONFLICT_METRIC, OPERATION_TAG, operation)
                     .increment();
         }

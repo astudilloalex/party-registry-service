@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Objects;
 
 /**
  * Represents one tenant-scoped Party permanently classified as a legal entity.
@@ -106,6 +107,93 @@ public final class LegalEntity implements Party {
                 version,
                 auditInfo,
                 require(details, DomainViolation.LEGAL_ENTITY_DETAILS_REQUIRED, DETAILS_REQUIRED_MESSAGE));
+    }
+
+    /**
+     * Replaces legal details while preserving identity, lifecycle and the pre-persistence version.
+     *
+     * @param replacement complete legal-detail representation
+     * @param evaluatedOn trusted UTC date used to validate the resulting legal history
+     * @param occurredAt update timestamp
+     * @param updatedBy validated modifying user
+     * @return the updated candidate; persistence advances its version when accepted
+     * @throws DomainValidationException when details, dates or audit information are invalid
+     */
+    public LegalEntity replaceDetails(
+            LegalEntityDetails replacement, LocalDate evaluatedOn, Instant occurredAt, String updatedBy) {
+        LegalEntityDetails normalized = require(replacement,
+                DomainViolation.LEGAL_ENTITY_DETAILS_REQUIRED, DETAILS_REQUIRED_MESSAGE).normalizedForWrite();
+        validateWriteLength(normalized.legalName(), 300, DomainViolation.LEGAL_NAME_TOO_LONG);
+        validateWriteLength(normalized.tradeName(), 300, DomainViolation.TRADE_NAME_TOO_LONG);
+        validateWriteLength(normalized.legalFormCode(), 64, DomainViolation.LEGAL_FORM_CODE_TOO_LONG);
+        normalized.validateAt(evaluatedOn);
+        return withUpdatedDetails(normalized, occurredAt, updatedBy);
+    }
+
+    /**
+     * Applies supplied fields only and validates the complete resulting legal history.
+     *
+     * @param patch presence-aware legal-detail changes
+     * @param evaluatedOn trusted UTC evaluation date
+     * @param occurredAt update timestamp
+     * @param updatedBy validated modifying user
+     * @return the updated candidate, retaining omitted historical representations
+     * @throws DomainValidationException when the patch, merged details or audit information are invalid
+     */
+    public LegalEntity patchDetails(
+            LegalEntityPatch patch, LocalDate evaluatedOn, Instant occurredAt, String updatedBy) {
+        require(patch, DomainViolation.PATCH_REQUIRED, "Legal-detail patch is required");
+        if (patch.isEmpty()) {
+            throw new DomainValidationException(DomainViolation.EMPTY_PATCH, "Patch must contain at least one field");
+        }
+        if (patch.legalName().isPresent() && patch.legalName().value() == null) {
+            throw new DomainValidationException(DomainViolation.LEGAL_NAME_REQUIRED, "Legal name cannot be cleared");
+        }
+        if (patch.incorporationCountryCode().isPresent() && patch.incorporationCountryCode().value() == null) {
+            throw new DomainValidationException(DomainViolation.INCORPORATION_COUNTRY_CODE_REQUIRED,
+                    "Incorporation country cannot be cleared");
+        }
+        LegalEntityDetails merged = new LegalEntityDetails(
+                selectText(patch.legalName(), details.legalName(), 300, DomainViolation.LEGAL_NAME_TOO_LONG),
+                selectText(patch.tradeName(), details.tradeName(), 300, DomainViolation.TRADE_NAME_TOO_LONG),
+                selectText(patch.legalFormCode(), details.legalFormCode(), 64, DomainViolation.LEGAL_FORM_CODE_TOO_LONG),
+                patch.incorporationCountryCode().isPresent()
+                        ? PartyTextNormalization.countryCode(patch.incorporationCountryCode().value())
+                        : details.incorporationCountryCode(),
+                select(patch.incorporatedOn(), details.incorporatedOn()),
+                select(patch.dissolvedOn(), details.dissolvedOn()));
+        merged.validateAt(evaluatedOn);
+        return withUpdatedDetails(merged, occurredAt, updatedBy);
+    }
+
+    private LegalEntity withUpdatedDetails(LegalEntityDetails updated, Instant occurredAt, String updatedBy) {
+        boolean legalNameChanged = !Objects.equals(
+                PartyTextNormalization.uppercase(details.legalName()),
+                PartyTextNormalization.uppercase(updated.legalName()));
+        return new LegalEntity(partyId, tenantId,
+                legalNameChanged ? updated.derivedDisplayName() : displayName,
+                recordStatus, version, auditInfo.updated(occurredAt, updatedBy), updated);
+    }
+
+    private static @Nullable String selectText(
+            FieldUpdate<String> update, @Nullable String current, int maximumLength, DomainViolation violation) {
+        if (!update.isPresent()) {
+            return current;
+        }
+        String normalized = PartyTextNormalization.uppercase(update.value());
+        validateWriteLength(normalized, maximumLength, violation);
+        return normalized;
+    }
+
+    private static void validateWriteLength(@Nullable String value, int maximumLength, DomainViolation violation) {
+        // New-write limits count UTF-16 units; restoration keeps its existing historical contract.
+        if (value != null && value.length() > maximumLength) {
+            throw new DomainValidationException(violation, "Legal-detail text exceeds the normalized length limit");
+        }
+    }
+
+    private static <T> @Nullable T select(FieldUpdate<T> update, @Nullable T current) {
+        return update.isPresent() ? update.value() : current;
     }
 
     @Override

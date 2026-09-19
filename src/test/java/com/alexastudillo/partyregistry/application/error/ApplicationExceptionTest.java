@@ -36,6 +36,9 @@ class ApplicationExceptionTest {
                         new ApplicationFailure.NaturalPersonNotFound(partyId, tenantId),
                         "Natural person not found"),
                 new FailureDescription(
+                        new ApplicationFailure.LegalEntityNotFound(partyId, tenantId),
+                        "Legal entity not found"),
+                new FailureDescription(
                         new ApplicationFailure.IdempotencyKeyConflict("key-123"),
                         "Idempotency key conflict"),
                 new FailureDescription(

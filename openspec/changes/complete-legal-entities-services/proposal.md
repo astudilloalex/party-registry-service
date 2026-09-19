@@ -12,9 +12,10 @@ Completing legal-entity retrieval and updates enables a usable registration-and-
   - `PATCH`: update only supplied legal-detail fields, retaining omitted values and allowing explicit null only for nullable properties. Require at least one supported property.
 - Support the declared legal-detail fields: `legalName`, `tradeName`, `legalFormCode`, `incorporationCountryCode`, `incorporatedOn`, and `dissolvedOn`. Apply the existing canonical text, normalized-length, country-recognition, and coherent lifecycle-date rules to the resulting record. Specify the derived display-name behavior when the legal name changes.
 - Require the established tenant, user, and process headers. Conceal absent, cross-tenant, and wrong-type Parties consistently. Preserve accepted process correlation on responses.
-- Protect PUT and PATCH with the current Party version in `If-Match`; reject stale or losing concurrent updates with `412 precondition-failed`. Successful updates return the resulting version and audit information; rejected updates leave the record unchanged.
-- Return the declared `LegalEntityApiResponse` with matching HTTP/body status and stable success or error codes. Clarify the operation-specific validation and geographic-dependency failure responses in the OpenAPI, including `503 dependency-unavailable` when country validation cannot be completed.
+- Protect PUT and PATCH with the current Party version in `If-Match`; reject stale or losing concurrent updates with `412 expected-version-mismatch`. Successful updates return the resulting version and audit information; rejected updates leave the record unchanged.
+- Return the declared `LegalEntityApiResponse` with matching HTTP/body status and cause-specific business and validation codes, following the service's existing error-catalog convention. Clients receive `legal-entity-not-found`, `expected-version-mismatch`, `unrecognized-incorporation-country`, or the applicable legal lifecycle-date code instead of a generic business-error category. Document `503 dependency-unavailable` when country validation cannot be completed and preserve sanitized unexpected failures.
 - Complete consumer documentation and request/response examples for these operations in the existing Postman collection, under its **Legal Entities** folder.
+- Align the existing shared business-error catalog, affected regression tests, and documentation with cause-specific codes. Preserve the approved HTTP statuses, including 409 for identifier uniqueness and invalid lifecycle transitions; identify missing qualifying identifier evidence explicitly.
 
 ## User Stories
 
@@ -31,6 +32,9 @@ Completing legal-entity retrieval and updates enables a usable registration-and-
 
 ### Modified Capabilities
 
+- `party-registration`: Align registration error documentation with the service-owned identifier, country, date, validation, and idempotency codes while preserving registration rules and conflict statuses.
+- `party-activation`: Align activation errors with the specific missing-evidence, Party-absence, lifecycle-conflict, and stale-version codes while preserving activation eligibility and approved statuses.
+
 ## Impact
 
 - Legal-entity consumers gain the previously declared GET, PUT, and PATCH operations and can maintain records after registration.
@@ -40,7 +44,7 @@ Completing legal-entity retrieval and updates enables a usable registration-and-
 
 ## Out of Scope
 
-- Changing existing Party creation, initial-identifier requirements, or stored idempotent creation results.
+- Changing existing Party creation rules, initial-identifier requirements, or stored idempotent creation results; the explicitly approved error-contract alignment is included.
 - Introducing legal-entity listing, search, deletion, bulk operations, or new routes beyond the three declared detail operations.
 - Changing Party type or lifecycle status through legal-detail updates, or adding activation, deactivation, or archival workflows.
 - Registering, modifying, verifying, or expanding identifier representations through legal-detail endpoints.

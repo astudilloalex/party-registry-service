@@ -4,6 +4,7 @@ import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.port.CountryReferencePort;
+import com.alexastudillo.partyregistry.domain.normalization.PartyTextNormalization;
 import io.smallrye.mutiny.Uni;
 import org.jspecify.annotations.Nullable;
 
@@ -42,5 +43,26 @@ final class CountryValidation {
                         ? Uni.createFrom().voidItem()
                         : Uni.createFrom().failure(new ApplicationException(
                                 new ApplicationFailure.UnrecognizedIncorporationCountry(countryCode))));
+    }
+
+    static Uni<Void> validateChangedIncorporationCountry(
+            CountryReferencePort countryReferencePort,
+            RequestMetadata requestMetadata,
+            String currentCode,
+            String resultingCode) {
+        String canonicalCode = PartyTextNormalization.countryCode(resultingCode);
+        if (Objects.equals(PartyTextNormalization.countryCode(currentCode), canonicalCode)) {
+            return Uni.createFrom().voidItem();
+        }
+        return countryReferencePort.isRecognizedCountry(requestMetadata, canonicalCode)
+                .flatMap(recognized -> {
+                    if (Boolean.TRUE.equals(recognized)) {
+                        return Uni.createFrom().voidItem();
+                    }
+                    ApplicationFailure failure = Boolean.FALSE.equals(recognized)
+                            ? new ApplicationFailure.UnrecognizedIncorporationCountry(canonicalCode)
+                            : new ApplicationFailure.DependencyUnavailable("geographic-reference");
+                    return Uni.createFrom().failure(new ApplicationException(failure));
+                });
     }
 }

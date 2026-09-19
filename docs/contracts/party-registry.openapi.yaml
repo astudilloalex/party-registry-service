@@ -54,7 +54,8 @@ paths:
         returned.
         Reusing an `Idempotency-Key` with the same effective request returns the original result;
         the effective request includes the initial identifier. Reusing the key with a different
-        effective request returns `409 conflict`.
+        effective request returns `409 idempotency-key-conflict`. An already owned active identifier
+        returns `409 identifier-uniqueness-conflict`.
         Text normalization does not change idempotency comparison: original submitted text is
         compared, so changing only case or surrounding whitespace still changes the request.
       parameters:
@@ -114,6 +115,7 @@ paths:
         or additional pagination fields. A valid Party with no current identifiers returns `identifiers: []`.
         Each item reuses `PartyIdentifierResponse`, including its stored `maskedValue`; retrieval does
         not decrypt identifier values or expose plaintext, ciphertext, hashes, or encryption keys.
+        An absent, cross-tenant, or wrong-type Party returns 404 natural-person-not-found.
       responses:
         '200':
           description: Detalle de persona natural
@@ -140,6 +142,10 @@ paths:
       description: |
         Completely replaces the natural-person details. Omitted optional fields are cleared.
         The display name is derived again whenever the submitted given or family names change.
+        Stale versions return 412 expected-version-mismatch; an absent or concealed natural person
+        returns 404 natural-person-not-found. Date failures use birth-date-in-future,
+        date-of-death-in-future, or death-before-birth; an unrecognized changed country uses
+        unrecognized-birth-country, all with HTTP 422.
       parameters:
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -181,6 +187,10 @@ paths:
         Updates only submitted properties. Omitted properties retain their current values, while
         an explicit `null` clears a nullable property. At least one supported property is required.
         Changing given or family names derives the display name again.
+        Stale versions return 412 expected-version-mismatch; an absent or concealed natural person
+        returns 404 natural-person-not-found. Date failures use birth-date-in-future,
+        date-of-death-in-future, or death-before-birth; an unrecognized changed country uses
+        unrecognized-birth-country, all with HTTP 422.
       parameters:
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
@@ -228,6 +238,8 @@ paths:
         The initial identifier starts in `PENDING_VERIFICATION`, and its complete value is never
         returned. The initial identifier is part of the effective request protected by the
         `Idempotency-Key`.
+        Reusing a key with different effective input returns 409 idempotency-key-conflict;
+        an already owned active identifier returns 409 identifier-uniqueness-conflict.
         Text normalization does not change idempotency comparison: original submitted text is
         compared, so changing only case or surrounding whitespace still changes the request.
       parameters:
@@ -274,10 +286,20 @@ paths:
       tags:
         - legal-entity
       operationId: getLegalEntity
-      summary: Obtener entidad legal
+      summary: Retrieve a legal entity
+      description: |
+        Returns the current tenant-owned LEGAL_ENTITY, its Party identity, status, version,
+        audit information, and legalEntityDetails. Absent, cross-tenant, and wrong-type Parties
+        return 404 legal-entity-not-found. Retrieval preserves historical text and does not change audit
+        information or versions. It requires no body, query parameters, If-Match, or Idempotency-Key.
+        The response contains no initialIdentifier, identifiers collection, or pagination fields.
+        Retrieval does not require Geographic Reference validation.
       responses:
         '200':
-          description: Detalle de entidad legal
+          description: Current legal-entity details
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -287,16 +309,28 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/LegalEntityNotFound'
         default:
           $ref: '#/components/responses/DefaultError'
     put:
       tags:
         - legal-entity
       operationId: replaceLegalEntity
-      summary: Reemplazar detalle de entidad legal
+      summary: Replace legal-entity details
+      description: |
+        Replaces all six legal-detail fields. Omitted optional properties are cleared.
+        Legal name and incorporation country are required. A canonically changed legalName
+        derives displayName again; a canonically equivalent name preserves the existing label.
+        Validates resulting lifecycle dates against one UTC evaluation date. A changed canonical
+        incorporationCountryCode must be recognized by Geographic Reference; equivalent codes
+        require no new lookup. Failed required country validation returns 503 dependency-unavailable.
+        Requires the current Party version in If-Match, but no Idempotency-Key. Stale versions
+        return 412 expected-version-mismatch before semantic or country validation. Every accepted update,
+        including identical input, increments the Party version exactly once and updates audit
+        information atomically. Identity, type, recordStatus, identifiers, and creation snapshots
+        remain unchanged. Failed updates leave no partial correction.
       parameters:
-        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/LegalEntityIfMatch'
       requestBody:
         required: true
         content:
@@ -305,7 +339,10 @@ paths:
               $ref: '#/components/schemas/LegalEntityPutRequest'
       responses:
         '200':
-          description: Detalle actualizado
+          description: Replaced legal-entity details and incremented Party version
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -315,22 +352,38 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/LegalEntityNotFound'
         '409':
           $ref: '#/components/responses/Conflict'
         '412':
-          $ref: '#/components/responses/PreconditionFailed'
+          $ref: '#/components/responses/LegalEntityExpectedVersionMismatch'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/LegalEntityBusinessValidationFailure'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
     patch:
       tags:
         - legal-entity
       operationId: patchLegalEntity
-      summary: Actualización parcial de entidad legal
+      summary: Partially update legal-entity details
+      description: |
+        Updates only submitted legal-detail properties. Omitted values retain their exact stored
+        representations, while explicit null clears a nullable property. At least one supported
+        property is required; unknown properties are rejected. Legal name and incorporation country
+        cannot be cleared. A canonically changed legalName derives displayName again; an omitted
+        or canonically equivalent name preserves the existing label.
+        Validates the complete resulting lifecycle dates against one UTC evaluation date. A changed
+        canonical incorporationCountryCode requires Geographic Reference validation; equivalent
+        codes do not. An unrecognized country returns 422 unrecognized-incorporation-country; inability to complete
+        required country validation returns 503 dependency-unavailable.
+        Requires the current Party version in If-Match, but no Idempotency-Key. Stale versions
+        return 412 expected-version-mismatch before semantic or country validation. Every accepted update
+        increments the Party version exactly once and updates audit information atomically.
+        Identity, type, recordStatus, identifiers, and creation snapshots remain unchanged.
       parameters:
-        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/LegalEntityIfMatch'
       requestBody:
         required: true
         content:
@@ -339,7 +392,10 @@ paths:
               $ref: '#/components/schemas/LegalEntityPatchRequest'
       responses:
         '200':
-          description: Detalle actualizado
+          description: Updated legal-entity details and incremented Party version
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
@@ -349,13 +405,15 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/LegalEntityNotFound'
         '409':
           $ref: '#/components/responses/Conflict'
         '412':
-          $ref: '#/components/responses/PreconditionFailed'
+          $ref: '#/components/responses/LegalEntityExpectedVersionMismatch'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/LegalEntityBusinessValidationFailure'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
 
@@ -560,7 +618,9 @@ paths:
       description: |
         Activates a Party only when it has at least one official identifier in `VERIFIED` status
         whose scheme is compatible with the Party type. A Party without a qualifying verified
-        identifier remains in `DRAFT` and returns `422 unprocessable-entity`.
+        identifier remains in `DRAFT` and returns `422 missing-qualifying-identifier`.
+        An absent or cross-tenant Party returns 404 party-not-found. A stale version returns
+        412 stale-party-version; an invalid lifecycle transition returns 409 invalid-party-lifecycle.
       responses:
         '200':
           description: Party activado
@@ -1126,6 +1186,10 @@ paths:
       description: |
         Registers an additional official identifier for an existing Party. Initial Party creation
         uses the required `initialIdentifier` in the natural-person or legal-entity create request.
+        An absent or cross-tenant Party returns 404 party-not-found. Duplicates return
+        409 identifier-uniqueness-conflict. Scheme errors use unknown-identifier-scheme,
+        inactive-identifier-scheme, or incompatible-identifier-scheme; semantic identifier
+        errors use identifier-validation-failure, all with HTTP 422.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKeyRequired'
       requestBody:
@@ -1493,7 +1557,22 @@ components:
       required: true
       description: >-
         Exactly one nonnegative decimal aggregate version is required. A syntactically valid value
-        that does not equal the current version produces `412 precondition-failed`.
+        that does not equal the current version produces HTTP 412 with the operation's specific code:
+        expected-version-mismatch for detail updates and stale-party-version for activation.
+      schema:
+        type: string
+        minLength: 1
+        pattern: '^(0|[1-9][0-9]*)$'
+        example: '0'
+    LegalEntityIfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: >-
+        Exactly one nonnegative decimal Party version is required, without quotes or a wildcard,
+        up to 9223372036854775807. A syntactically valid stale version or a lost legal-detail
+        update race produces 412 expected-version-mismatch. Missing, duplicated, malformed,
+        and out-of-range values use the shared field-specific If-Match 400 codes.
       schema:
         type: string
         minLength: 1
@@ -1593,15 +1672,20 @@ components:
           or `value` is missing, null, or blank in an initial or additional identifier.
         - `identifier-scheme-code-too-long`, `identifier-value-too-long`, `issuer-code-too-long`:
           the corresponding identifier property exceeds 64, 256, or 64 characters, respectively.
-        - `legal-name-required`: `legalName` is missing, null, or blank on legal-entity creation.
+        - `legal-name-required`: `legalName` is missing, null, or blank on legal-entity creation
+          or PUT; on legal-entity PATCH, this rule applies only to a submitted legalName.
         - `legal-name-invalid`: `legalName` falls outside the 1-300 character length range.
-        - `trade-name-too-long`, `legal-form-code-too-long`: on legal-entity creation, `tradeName`
+        - `trade-name-too-long`, `legal-form-code-too-long`: on legal-entity creation, PUT, or PATCH, `tradeName`
           exceeds 300 characters or `legalFormCode` exceeds 64 characters, respectively.
         - `incorporation-country-code-required`: `incorporationCountryCode` is missing or null
-          on legal-entity creation.
-        - `incorporation-country-code-invalid`: on legal-entity creation,
+          on legal-entity creation or PUT, or explicitly null on legal-entity PATCH.
+        - `incorporation-country-code-invalid`: on legal-entity creation, PUT, or PATCH,
           `incorporationCountryCode` is not two ASCII letters after trimming.
-        - `patch-property-required`: a natural-person PATCH contains no supported property.
+        - `patch-property-required`: a natural-person or legal-entity PATCH contains no supported property.
+          Unknown JSON properties remain bad-request, even alongside a supported property.
+        Legal-entity updates validate the normalized body before partyId and If-Match. Required
+        rules use their declared JSON property paths, so a PUT body of {} reports
+        incorporation-country-code-required before legal-name-required or if-match-required.
 
         Path and operation-header codes apply where the corresponding input is validated:
         - `party-id-invalid`: `partyId` is not a canonical lowercase UUID.
@@ -1620,6 +1704,11 @@ components:
         binding failures handled by the reader interceptor, including unknown properties and
         invalid JSON values, also remain `bad-request`. These validation codes do not replace
         existing framework or business error codes or change their HTTP statuses.
+        Legal-entity PUT/PATCH require object bodies and strictly typed string or null properties,
+        including ISO YYYY-MM-DD date strings. Incompatible scalar, array, or object property values
+        and invalid date syntax are bad-request; missing or null bodies are request-body-required.
+        Framework method and media-type failures retain their respective HTTP statuses, including
+        405 method-not-allowed and 415 unsupported-media-type, in the same envelope.
       headers:
         Process-Id:
           $ref: '#/components/headers/ProcessIdEcho'
@@ -1693,7 +1782,36 @@ components:
             code: unauthorized
 
     NotFound:
-      description: Recurso no encontrado para el tenant indicado.
+      description: >-
+        Resource absent or concealed for the requesting tenant. Natural-person detail operations use
+        natural-person-not-found; Party activation and additional identifier registration use
+        party-not-found. Framework route failures retain not-found. No actual owner or type is exposed.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            naturalPerson:
+              value:
+                status: 404
+                code: natural-person-not-found
+            party:
+              value:
+                status: 404
+                code: party-not-found
+            frameworkRoute:
+              value:
+                status: 404
+                code: not-found
+
+    LegalEntityNotFound:
+      description: >-
+        The requested legal entity is absent, belongs to a different tenant, or the Party is not
+        classified as LEGAL_ENTITY. All three cases return the same cause-specific code without
+        exposing the actual owner, type, details, or version.
       headers:
         Process-Id:
           $ref: '#/components/headers/ProcessIdEcho'
@@ -1703,23 +1821,12 @@ components:
             $ref: '#/components/schemas/ApiErrorResponse'
           example:
             status: 404
-            code: not-found
+            code: legal-entity-not-found
 
-    Conflict:
-      description: Conflicto de negocio o duplicidad.
-      headers:
-        Process-Id:
-          $ref: '#/components/headers/ProcessIdEcho'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiErrorResponse'
-          example:
-            status: 409
-            code: conflict
-
-    PreconditionFailed:
-      description: The valid `If-Match` version does not equal the current aggregate version.
+    LegalEntityExpectedVersionMismatch:
+      description: >-
+        The valid If-Match value differs from the current Party version, or the legal-detail
+        update lost a concurrent version race. No part of the rejected update is applied.
       headers:
         Process-Id:
           $ref: '#/components/headers/ProcessIdEcho'
@@ -1729,11 +1836,20 @@ components:
             $ref: '#/components/schemas/ApiErrorResponse'
           example:
             status: 412
-            code: precondition-failed
+            code: expected-version-mismatch
 
-    UnprocessableEntity:
-      description: >-
-        The resulting lifecycle dates are invalid or the supplied country code is not recognized.
+    LegalEntityBusinessValidationFailure:
+      description: |
+        A known legal-detail business rule failed. The code identifies the specific cause:
+        - unrecognized-incorporation-country: Geographic Reference definitively does not recognize
+          the changed canonical incorporation country.
+        - dissolution-before-incorporation: both resulting dates are present and dissolution
+          precedes incorporation.
+        - incorporation-date-in-future: the resulting incorporation date exceeds the UTC evaluation date.
+        - dissolution-date-in-future: the resulting dissolution date exceeds the UTC evaluation date.
+        Date ordering is checked before incorporation in the future, then dissolution in the future.
+        All date checks precede changed-country validation. The rejected request changes no fields,
+        audit values, or Party version. Technical dependency failures instead return 503.
       headers:
         Process-Id:
           $ref: '#/components/headers/ProcessIdEcho'
@@ -1741,9 +1857,120 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiErrorResponse'
-          example:
-            status: 422
-            code: unprocessable-entity
+          examples:
+            unrecognizedCountry:
+              value:
+                status: 422
+                code: unrecognized-incorporation-country
+            dissolutionBeforeIncorporation:
+              value:
+                status: 422
+                code: dissolution-before-incorporation
+            incorporationInFuture:
+              value:
+                status: 422
+                code: incorporation-date-in-future
+            dissolutionInFuture:
+              value:
+                status: 422
+                code: dissolution-date-in-future
+
+    Conflict:
+      description: >-
+        Business conflict. Changed effective registration input for a reused key produces
+        idempotency-key-conflict; a duplicate active identifier produces identifier-uniqueness-conflict;
+        an invalid activation transition produces invalid-party-lifecycle. Each retains HTTP 409.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            idempotency:
+              value:
+                status: 409
+                code: idempotency-key-conflict
+            identifierUniqueness:
+              value:
+                status: 409
+                code: identifier-uniqueness-conflict
+            lifecycle:
+              value:
+                status: 409
+                code: invalid-party-lifecycle
+
+    PreconditionFailed:
+      description: >-
+        The valid If-Match version does not equal the current aggregate version. Detail updates use
+        expected-version-mismatch; activation uses stale-party-version. A rejected write is not applied.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            details:
+              value:
+                status: 412
+                code: expected-version-mismatch
+            activation:
+              value:
+                status: 412
+                code: stale-party-version
+
+    UnprocessableEntity:
+      description: |
+        A known business rule failed. Codes apply only to fields and operations that use that rule:
+        - Natural-person dates: birth-date-in-future, date-of-death-in-future, death-before-birth.
+        - Legal-entity dates: incorporation-date-in-future, dissolution-date-in-future,
+          dissolution-before-incorporation.
+        - Unrecognized countries: unrecognized-birth-country or unrecognized-incorporation-country.
+        - Blank explicit registration display name: blank-display-name.
+        - Identifier scheme eligibility: unknown-identifier-scheme, inactive-identifier-scheme,
+          incompatible-identifier-scheme.
+        - Identifier value/validity rules: identifier-validation-failure.
+        - Activation without qualifying verified evidence: missing-qualifying-identifier.
+        Technical dependency failures instead use 503 dependency-unavailable.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            birthInFuture:
+              value: { status: 422, code: birth-date-in-future }
+            deathInFuture:
+              value: { status: 422, code: date-of-death-in-future }
+            deathBeforeBirth:
+              value: { status: 422, code: death-before-birth }
+            incorporationInFuture:
+              value: { status: 422, code: incorporation-date-in-future }
+            dissolutionInFuture:
+              value: { status: 422, code: dissolution-date-in-future }
+            dissolutionBeforeIncorporation:
+              value: { status: 422, code: dissolution-before-incorporation }
+            birthCountry:
+              value: { status: 422, code: unrecognized-birth-country }
+            incorporationCountry:
+              value: { status: 422, code: unrecognized-incorporation-country }
+            blankDisplayName:
+              value: { status: 422, code: blank-display-name }
+            unknownScheme:
+              value: { status: 422, code: unknown-identifier-scheme }
+            inactiveScheme:
+              value: { status: 422, code: inactive-identifier-scheme }
+            incompatibleScheme:
+              value: { status: 422, code: incompatible-identifier-scheme }
+            identifierValue:
+              value: { status: 422, code: identifier-validation-failure }
+            missingEvidence:
+              value: { status: 422, code: missing-qualifying-identifier }
 
     DependencyUnavailable:
       description: Geographic Reference Service validation could not be completed.
@@ -2295,7 +2522,8 @@ components:
     LegalEntityPutRequest:
       type: object
       description: >-
-        Future replacement contract; this operation is not implemented. Names and legalFormCode
+        Complete replacement representation. Omitted optional properties are cleared.
+        Unknown properties are rejected. Names and legalFormCode
         accept mixed case and surrounding whitespace removed by Java String.strip()
         (Character.isWhitespace), then are stored as strip().toUpperCase(Locale.ROOT).
         For text fields, x-normalized-max-length counts normalized UTF-16 code units, not raw input;
@@ -2336,10 +2564,13 @@ components:
           format: date
           nullable: true
 
+      additionalProperties: false
+
     LegalEntityPatchRequest:
       type: object
       description: >-
-        Future partial-update contract; this operation is not implemented. Only submitted names
+        Presence-aware partial update: omitted properties are retained and explicit null clears a nullable property.
+        Unknown properties are rejected. Legal name and incorporation country cannot be cleared. Only submitted names
         and legalFormCode are normalized; omitted values are not rewritten. They accept mixed case
         and surrounding whitespace removed by Java String.strip() (Character.isWhitespace), then
         are stored as strip().toUpperCase(Locale.ROOT). For text fields, x-normalized-max-length
@@ -2378,6 +2609,8 @@ components:
           type: string
           format: date
           nullable: true
+
+      additionalProperties: false
 
     LegalEntityResponse:
       allOf:

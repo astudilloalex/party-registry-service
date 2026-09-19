@@ -3,6 +3,11 @@ package com.alexastudillo.partyregistry.api.observability;
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonCreateRequest;
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonPatchRequest;
 import com.alexastudillo.partyregistry.api.model.request.NaturalPersonPutRequest;
+import com.alexastudillo.partyregistry.api.model.request.LegalEntityPutRequest;
+import com.alexastudillo.partyregistry.api.model.request.LegalEntityPatchRequest;
+import com.alexastudillo.partyregistry.api.model.response.LegalEntityResponse;
+import com.alexastudillo.partyregistry.api.resource.LegalEntityResource;
+import com.alexastudillo.api.response.contract.ApiResponse;
 import com.alexastudillo.partyregistry.api.resource.NaturalPersonResource;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
@@ -13,10 +18,12 @@ import jakarta.ws.rs.core.HttpHeaders;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /**
  * Verifies bounded natural-person metrics and explicit operation spans.
@@ -32,14 +39,14 @@ class PartyHttpObservabilityTest {
         observability.recordCompletion("create", 201, "successful", 10, PartyRegistrationOutcome.REPLAYED);
         observability.recordCompletion(
                 "create-legal-entity", 201, "successful", 10, PartyRegistrationOutcome.CREATED);
-        observability.recordCompletion("create", 409, "conflict", 10, null);
+        observability.recordCompletion("create", 409, "idempotency-key-conflict", 10, null);
         observability.recordCompletion("patch", 400, "bad-request", 10, null);
-        observability.recordCompletion("replace", 412, "precondition-failed", 10, null);
-        observability.recordCompletion("activate", 412, "precondition-failed", 10, null);
+        observability.recordCompletion("replace", 412, "expected-version-mismatch", 10, null);
+        observability.recordCompletion("activate", 412, "stale-party-version", 10, null);
         observability.recordCompletion("unmatched", 404, "not-found", 10, null);
 
         assertEquals(2, timerCount(registry, "create", "success", "successful"));
-        assertEquals(1, timerCount(registry, "create", "failure", "conflict"));
+        assertEquals(1, timerCount(registry, "create", "failure", "idempotency-key-conflict"));
         assertEquals(1, counterCount(
                 registry,
                 PartyHttpObservability.VALIDATION_METRIC,
@@ -103,6 +110,52 @@ class PartyHttpObservabilityTest {
         assertEquals("activate", observability.operationName("POST", "/v1/parties/party-id/activate"));
         assertEquals("unsupported", observability.operationName("DELETE", "/v1/natural-person/party-id"));
         assertEquals("unmatched", observability.operationName("GET", "/v1/parties/party-id"));
+        assertEquals("retrieve-legal-entity", observability.operationName("GET", "/v1/legal-entity/party-id"));
+        assertEquals("replace-legal-entity", observability.operationName("PUT", "/v1/legal-entity/party-id"));
+        assertEquals("patch-legal-entity", observability.operationName("PATCH", "/v1/legal-entity/party-id"));
+        assertEquals("unmatched", observability.operationName("GET", "/v1/legal-entity/"));
+        assertEquals("unmatched", observability.operationName("GET", "/v1/legal-entity/id/extra"));
+    }
+
+    @Test
+    void countsLegalSpecificFailuresWithBoundedLabels() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        try {
+            PartyHttpObservability observability = new PartyHttpObservability(registry);
+            for (String operation : List.of("replace-legal-entity", "patch-legal-entity")) {
+                observability.recordCompletion(operation, 412, "expected-version-mismatch", 10, null);
+                assertEquals(1, counterCount(registry, PartyHttpObservability.OPTIMISTIC_CONFLICT_METRIC,
+                        PartyHttpObservability.OPERATION_TAG, operation));
+                for (String code : List.of("incorporation-date-in-future", "dissolution-date-in-future",
+                        "dissolution-before-incorporation", "unrecognized-incorporation-country")) {
+                    observability.recordCompletion(operation, 422, code, 10, null);
+                    assertEquals(1, counterCount(registry, PartyHttpObservability.VALIDATION_METRIC,
+                            PartyHttpObservability.OPERATION_TAG, operation, PartyHttpObservability.CODE_TAG, code));
+                }
+            }
+        } finally {
+            registry.close();
+        }
+    }
+
+    @Test
+    void legalResourcesDeclareTypedEnvelopesAndSpecificSpans() throws ReflectiveOperationException {
+        List<Method> methods = List.of(
+                LegalEntityResource.class.getMethod("getLegalEntity", String.class),
+                LegalEntityResource.class.getMethod("replaceLegalEntity", String.class, LegalEntityPutRequest.class, HttpHeaders.class),
+                LegalEntityResource.class.getMethod("patchLegalEntity", String.class, LegalEntityPatchRequest.class, HttpHeaders.class));
+        List<String> spans = List.of("legal-entity.retrieve", "legal-entity.replace", "legal-entity.patch");
+        for (int index = 0; index < methods.size(); index++) {
+            Method method = methods.get(index);
+            assertEquals(spans.get(index), method.getAnnotation(WithSpan.class).value());
+            ParameterizedType uni = assertInstanceOf(ParameterizedType.class, method.getGenericReturnType());
+            assertEquals(io.smallrye.mutiny.Uni.class, uni.getRawType());
+            ParameterizedType rest = assertInstanceOf(ParameterizedType.class, uni.getActualTypeArguments()[0]);
+            assertEquals(org.jboss.resteasy.reactive.RestResponse.class, rest.getRawType());
+            ParameterizedType envelope = assertInstanceOf(ParameterizedType.class, rest.getActualTypeArguments()[0]);
+            assertEquals(ApiResponse.class, envelope.getRawType());
+            assertEquals(LegalEntityResponse.class, envelope.getActualTypeArguments()[0]);
+        }
     }
 
     @Test

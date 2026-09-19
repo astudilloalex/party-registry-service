@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Verifies packaged JVM and native artifacts and their cross-cutting HTTP
@@ -45,6 +46,96 @@ class PackagedApplicationIT {
         given().when().get("/q/openapi").then()
                 .statusCode(200)
                 .body(containsString("Party Management API"));
+        given().when().get("/q/openapi").then().statusCode(200)
+                .body(containsString("LegalEntityBusinessValidationFailure"))
+                .body(containsString("legal-entity-not-found"))
+                .body(containsString("dissolution-before-incorporation"));
+    }
+
+    @Test
+    void packagedApplicationExecutesLegalDetailFlowAndPreservesCreationReplay() {
+        String key = "packaged-legal-details-" + UUID.randomUUID();
+        String value = identifierValue("LD");
+        String body = legalBody(value);
+        Response created = validRequest().header("Idempotency-Key", key).contentType(JSON).body(body)
+                .post("/v1/legal-entity");
+        created.then().statusCode(201).body("code", equalTo("successful"));
+        String partyId = created.path("data.partyId");
+        String path = "/v1/legal-entity/" + partyId;
+        Response retrieved = validRequest().get(path);
+        assertLegalDetail(retrieved, partyId, 0);
+        retrieved.then().body("data.legalEntityDetails.legalName", equalTo("PACKAGED ANALYTICAL ENGINES LTD"));
+
+        Response replaced = validRequest().header("If-Match", "0").contentType(JSON).body("""
+                {"legalName":" Updated Legal ","tradeName":" New Brand ","legalFormCode":" ltd ",
+                 "incorporationCountryCode":" gb ","incorporatedOn":"2020-01-15"}
+                """).put(path);
+        assertLegalDetail(replaced, partyId, 1);
+        replaced.then().body("data.displayName", equalTo("UPDATED LEGAL"))
+                .body("data.legalEntityDetails.tradeName", equalTo("NEW BRAND"))
+                .body("data.legalEntityDetails.incorporationCountryCode", equalTo("GB"));
+        Response patched = validRequest().header("If-Match", "1").contentType(JSON)
+                .body("{\"tradeName\":null,\"incorporatedOn\":null}").patch(path);
+        assertLegalDetail(patched, partyId, 2);
+        assertNull(patched.path("data.legalEntityDetails.tradeName"));
+        assertNull(patched.path("data.legalEntityDetails.incorporatedOn"));
+        assertEquals("LTD", patched.path("data.legalEntityDetails.legalFormCode"));
+        assertEquals("UPDATED LEGAL", patched.path("data.displayName"));
+        assertEquals(patched.jsonPath().getMap("data"), validRequest().get(path).jsonPath().getMap("data"));
+
+        Response replayed = validRequest().header("Idempotency-Key", key).contentType(JSON).body(body)
+                .post("/v1/legal-entity");
+        replayed.then().statusCode(201);
+        assertEquals(created.jsonPath().getMap("$"), replayed.jsonPath().getMap("$"));
+        assertFalse(replayed.asString().contains(value));
+        assertLegalDetail(validRequest().get(path), partyId, 2);
+    }
+
+    @Test
+    void packagedLegalDetailsPreserveStrictBindingAndSpecificFailures() {
+        Response created = validRequest().header("Idempotency-Key", "packaged-legal-errors-" + UUID.randomUUID())
+                .contentType(JSON).body(legalBody(identifierValue("LE"))).post("/v1/legal-entity");
+        created.then().statusCode(201);
+        String partyId = created.path("data.partyId");
+        String path = "/v1/legal-entity/" + partyId;
+        for (var invalid : Map.of(
+                "{}", "patch-property-required",
+                "{\"legalName\":null}", "legal-name-required",
+                "{\"incorporationCountryCode\":null}", "incorporation-country-code-required",
+                "{\"legalName\":42}", "bad-request",
+                "{\"incorporatedOn\":[2020,1,1]}", "bad-request",
+                "{\"empty\":true}", "bad-request",
+                "{", "bad-request",
+                "null", "request-body-required").entrySet()) {
+            assertError(validRequest().header("If-Match", "0").contentType(JSON).body(invalid.getKey()).patch(path),
+                    400, invalid.getValue());
+        }
+        assertError(validRequest().header("If-Match", "0").contentType(JSON)
+                .body("{\"incorporatedOn\":\"2999-01-01\"}").patch(path), 422, "incorporation-date-in-future");
+        assertError(validRequest().header("If-Match", "0").contentType(JSON)
+                .body("{\"incorporatedOn\":\"2020-01-15\",\"dissolvedOn\":\"2019-01-01\"}").patch(path),
+                422, "dissolution-before-incorporation");
+        assertError(validRequest().header("If-Match", "0").contentType(JSON)
+                .body("{\"incorporationCountryCode\":\"ZZ\"}").patch(path), 422, "unrecognized-incorporation-country");
+        assertError(validRequest().header("If-Match", "0").contentType(JSON)
+                .body("{\"incorporationCountryCode\":\"SE\"}").patch(path), 503, "dependency-unavailable");
+        assertError(validRequest().header("If-Match", "1").contentType(JSON)
+                .body("{\"incorporationCountryCode\":\"SE\"}").patch(path), 412, "expected-version-mismatch");
+        assertError(validRequest().get("/v1/legal-entity/" + UUID.randomUUID()), 404, "legal-entity-not-found");
+        assertError(validRequest().delete(path), 405, "method-not-allowed");
+        assertError(validRequest().header("If-Match", "0").contentType("text/plain").body("text").put(path),
+                415, "unsupported-media-type");
+        assertLegalDetail(validRequest().get(path), partyId, 0);
+    }
+
+    private static void assertLegalDetail(Response response, String partyId, int version) {
+        response.then().statusCode(200).header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(200)).body("code", equalTo("successful"))
+                .body("data.partyId", equalTo(partyId)).body("data.type", equalTo("LEGAL_ENTITY"))
+                .body("data.version", equalTo(version));
+        assertEquals(Set.of("status", "code", "data"), response.jsonPath().getMap("$").keySet());
+        assertEquals(Set.of("partyId", "type", "displayName", "recordStatus", "version", "createdAt",
+                "updatedAt", "createdBy", "updatedBy", "legalEntityDetails"), response.jsonPath().getMap("data").keySet());
     }
 
     @Test
@@ -112,7 +203,7 @@ class PackagedApplicationIT {
                 .body("data.identifiers[0].identifierSchemeId",
                         equalTo(created.path("data.initialIdentifier.identifierSchemeId")))
                 .body("data.identifiers[0].schemeCode", equalTo("TEST_NATURAL_ACTIVE"))
-                .body("data.identifiers[0].maskedValue", equalTo("*********3456"))
+                .body("data.identifiers[0].maskedValue", equalTo("**********3456"))
                 .body("data.identifiers[0].status", equalTo("PENDING_VERIFICATION"))
                 .body("data.identifiers[0].isPrimary", equalTo(true))
                 .body("data.identifiers[0].version", equalTo(0))
@@ -174,7 +265,7 @@ class PackagedApplicationIT {
                 validRequest().when().get(
                         "/v1/natural-person/00000000-0000-7000-8000-000000000999"),
                 404,
-                "not-found");
+                "natural-person-not-found");
         assertError(
                 validRequest().when().delete("/v1/natural-person/{partyId}", partyId),
                 405,
@@ -553,7 +644,7 @@ class PackagedApplicationIT {
                                 naturalValue.toLowerCase(Locale.ROOT)))
                         .when().post("/v1/natural-person"),
                 409,
-                "conflict");
+                "identifier-uniqueness-conflict");
 
         String legalValue = identifierValue("PL");
         validRequest()
@@ -595,7 +686,7 @@ class PackagedApplicationIT {
                         .body(identifierBody(additionalValue))
                         .when().post("/v1/parties/{partyId}/identifiers", partyId),
                 409,
-                "conflict");
+                "identifier-uniqueness-conflict");
         assertError(
                 validRequest()
                         .contentType(JSON)
@@ -622,7 +713,7 @@ class PackagedApplicationIT {
                         .header("If-Match", "0")
                         .when().post("/v1/parties/{partyId}/activate", ACTIVATION_FIXTURE_PARTY_ID),
                 412,
-                "precondition-failed");
+                "stale-party-version");
     }
 
     private static RequestSpecification validRequest() {

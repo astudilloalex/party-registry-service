@@ -125,6 +125,13 @@ public final class PackagedGeographicReferenceResource implements QuarkusTestRes
         String alpha2Code = path.substring(BASE_PATH.length());
         if ("EC".equals(alpha2Code)) {
             send(exchange, 200, SUCCESS_RESPONSE);
+        } else if ("GB".equals(alpha2Code)) {
+            send(exchange, 200, SUCCESS_RESPONSE
+                    .replace("\"alpha2Code\": \"EC\"", "\"alpha2Code\": \"GB\"")
+                    .replace("\"alpha3Code\": \"ECU\"", "\"alpha3Code\": \"GBR\"")
+                    .replace("\"numericCode\": \"218\"", "\"numericCode\": \"826\"")
+                    .replace("\"defaultName\": \"Ecuador\"", "\"defaultName\": \"United Kingdom\"")
+                    .replace("Republic of Ecuador", "United Kingdom of Great Britain and Northern Ireland"));
         } else if ("SE".equals(alpha2Code)) {
             send(exchange, 503, "{\"status\":503,\"code\":\"server-error\"}");
         } else {
