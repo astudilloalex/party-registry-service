@@ -59,7 +59,8 @@ public class PartyResource {
      * Activates one tenant-owned Party at exactly the requested aggregate version.
      *
      * @param partyId raw path identifier
-     * @param headers raw request headers used to enforce exact precondition cardinality
+     * @param headers raw request headers used to enforce exact precondition
+     *                cardinality
      * @return reactive {@code 200 successful} envelope
      */
     @POST
