@@ -43,6 +43,10 @@ public class ApiIdempotencyRecordId implements Serializable {
         return idempotencyKey;
     }
 
+    String operation() {
+        return operation;
+    }
+
     @Override
     public boolean equals(Object other) {
         return this == other

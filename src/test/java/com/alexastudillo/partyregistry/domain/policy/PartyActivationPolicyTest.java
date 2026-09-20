@@ -30,8 +30,12 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -50,8 +54,8 @@ class PartyActivationPolicyTest {
     private static final IdentifierSchemeId SCHEME_ID = new IdentifierSchemeId(
             UUID.fromString("0198d111-08f1-7e48-b291-399bbb9cd605"));
     private static final LocalDate EVALUATED_ON = LocalDate.of(2026, Month.AUGUST, 30);
-    private static final Instant CREATED_AT = Instant.parse("2026-08-30T10:00:00Z");
-    private static final Instant ACTIVATED_AT = Instant.parse("2026-08-30T11:00:00Z");
+    private static final Instant CREATED_AT = EVALUATED_ON.atTime(10, 0).toInstant(ZoneOffset.UTC);
+    private static final Instant ACTIVATED_AT = EVALUATED_ON.atTime(11, 0).toInstant(ZoneOffset.UTC);
     private static final PartyActivationPolicy POLICY = new PartyActivationPolicy();
 
     @Test
@@ -67,7 +71,7 @@ class PartyActivationPolicyTest {
 
         Party activated = POLICY.activate(
                 original,
-                List.of(new PartyIdentifierEvidence(identifier, scheme)),
+                List.of(evidence(identifier, scheme)),
                 EVALUATED_ON,
                 ACTIVATED_AT,
                 "activator");
@@ -82,7 +86,7 @@ class PartyActivationPolicyTest {
         assertViolation(DomainViolation.PARTY_ACTIVATION_INVALID_STATE,
                 () -> POLICY.activate(
                         activated,
-                        List.of(new PartyIdentifierEvidence(identifier, scheme)),
+                        List.of(evidence(identifier, scheme)),
                         EVALUATED_ON,
                         ACTIVATED_AT.plusSeconds(1),
                         "activator"));
@@ -124,7 +128,7 @@ class PartyActivationPolicyTest {
                 IdentifierSchemeStatus.RETIRED }) {
             Party activated = POLICY.activate(
                     draftParty(),
-                    List.of(new PartyIdentifierEvidence(
+                    List.of(evidence(
                             identifier,
                             scheme(status, IdentifierSubjectType.NATURAL_PERSON))),
                     EVALUATED_ON,
@@ -143,7 +147,7 @@ class PartyActivationPolicyTest {
 
         Party activated = POLICY.activate(
                 draftParty(),
-                List.of(new PartyIdentifierEvidence(
+                List.of(evidence(
                         identifier,
                         scheme(IdentifierSchemeStatus.ACTIVE,
                                 IdentifierSubjectType.NATURAL_PERSON))),
@@ -167,7 +171,7 @@ class PartyActivationPolicyTest {
 
         Party activated = POLICY.activate(
                 legalEntity,
-                List.of(new PartyIdentifierEvidence(
+                List.of(evidence(
                         identifier(PartyIdentifierStatus.VERIFIED, EVALUATED_ON.plusDays(1),
                                 false),
                         scheme(IdentifierSchemeStatus.ACTIVE,
@@ -221,12 +225,74 @@ class PartyActivationPolicyTest {
                 scheme(IdentifierSchemeStatus.ACTIVE, IdentifierSubjectType.BOTH));
     }
 
+    @Test
+    void missingExpirationAndBothSubjectCompatibilityQualify() {
+        var candidate = new PartyActivationEvidence(TENANT_ID, PARTY_ID, SCHEME_ID, SCHEME_ID,
+                PartyIdentifierStatus.VERIFIED, null, IdentifierSubjectType.BOTH);
+        Party activated = POLICY.activate(draftParty(), List.of(candidate), EVALUATED_ON, ACTIVATED_AT, "activator");
+        assertEquals(PartyRecordStatus.ACTIVE, activated.recordStatus());
+    }
+
+    @Test
+    void everyNonverifiedStatusIsIneligibleEvenWithNoExpiration() {
+        for (PartyIdentifierStatus status : PartyIdentifierStatus.values()) {
+            if (status != PartyIdentifierStatus.VERIFIED) {
+                var candidate = new PartyActivationEvidence(TENANT_ID, PARTY_ID, SCHEME_ID, SCHEME_ID,
+                        status, null, IdentifierSubjectType.BOTH);
+                Party draft = draftParty();
+                List<PartyActivationEvidence> candidates = List.of(candidate);
+                assertViolation(DomainViolation.PARTY_ACTIVATION_IDENTIFIER_REQUIRED,
+                        () -> POLICY.activate(draft, candidates, EVALUATED_ON, ACTIVATED_AT, "activator"));
+            }
+        }
+    }
+
+    @Test
+    void mismatchedSchemeAndCrossTenantEvidenceCannotQualify() {
+        var otherTenant = new TenantId(UUID.fromString("0198ce2b-d6a3-7d6e-80ba-d97b21d793e6"));
+        var otherScheme = new IdentifierSchemeId(UUID.fromString("0198d111-08f1-7e48-b291-399bbb9cd606"));
+        var wrongTenant = new PartyActivationEvidence(otherTenant, PARTY_ID, SCHEME_ID, SCHEME_ID,
+                PartyIdentifierStatus.VERIFIED, null, IdentifierSubjectType.BOTH);
+        var wrongScheme = new PartyActivationEvidence(TENANT_ID, PARTY_ID, SCHEME_ID, otherScheme,
+                PartyIdentifierStatus.VERIFIED, null, IdentifierSubjectType.BOTH);
+        for (PartyActivationEvidence candidate : List.of(wrongTenant, wrongScheme)) {
+            Party draft = draftParty();
+            List<PartyActivationEvidence> candidates = List.of(candidate);
+            assertViolation(DomainViolation.PARTY_ACTIVATION_IDENTIFIER_REQUIRED,
+                    () -> POLICY.activate(draft, candidates, EVALUATED_ON, ACTIVATED_AT, "activator"));
+        }
+    }
+
+    @Test
+    void lifecycleCheckDoesNotInspectEvidenceForIneligibleState() {
+        Party active = draftParty().activate(ACTIVATED_AT, "activator");
+        Iterable<PartyActivationEvidence> unreadableEvidence = () -> {
+            throw new AssertionError("Evidence must not be evaluated before lifecycle eligibility");
+        };
+        assertViolation(DomainViolation.PARTY_ACTIVATION_INVALID_STATE,
+                () -> POLICY.activate(active, unreadableEvidence, EVALUATED_ON, ACTIVATED_AT, "activator"));
+    }
+
+    @Test
+    void activationProjectionCannotCarryProtectedIdentifierMaterialOrNongatingFlags() {
+        Set<String> fields = Arrays.stream(PartyActivationEvidence.class.getRecordComponents())
+                .map(java.lang.reflect.RecordComponent::getName).collect(Collectors.toSet());
+        assertEquals(Set.of("tenantId", "partyId", "identifierSchemeId", "schemeId", "status",
+                "expiresOn", "applicableSubjectType"), fields);
+    }
+
+    private static PartyActivationEvidence evidence(PartyIdentifier identifier, IdentifierScheme scheme) {
+        return new PartyActivationEvidence(identifier.tenantId(), identifier.partyId(),
+                identifier.identifierSchemeId(), scheme.id(), identifier.status(), identifier.expiresOn(),
+                scheme.applicableSubjectType());
+    }
+
     private static void assertIneligible(PartyIdentifier identifier, IdentifierScheme scheme) {
         NaturalPerson party = draftParty();
         assertViolation(DomainViolation.PARTY_ACTIVATION_IDENTIFIER_REQUIRED,
                 () -> POLICY.activate(
                         party,
-                        List.of(new PartyIdentifierEvidence(identifier, scheme)),
+                        List.of(evidence(identifier, scheme)),
                         EVALUATED_ON,
                         ACTIVATED_AT,
                         "activator"));

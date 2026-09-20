@@ -138,7 +138,8 @@ public final class OperationObservation {
                     ApplicationFailure.InvalidPartyLifecycle _ -> OperationOutcome.CONFLICT;
             case ApplicationFailure.ExpectedVersionMismatch _,
                     ApplicationFailure.StalePartyVersion _ -> OperationOutcome.PRECONDITION_FAILED;
-            case ApplicationFailure.UnrecognizedBirthCountry _,
+            case ApplicationFailure.InvalidPartyCursor _,
+                    ApplicationFailure.UnrecognizedBirthCountry _,
                     ApplicationFailure.UnrecognizedIncorporationCountry _,
                     ApplicationFailure.UnknownIdentifierScheme _,
                     ApplicationFailure.InactiveIdentifierScheme _,

@@ -167,7 +167,8 @@ public class IdempotencyResultSnapshotCodec {
         }
     }
 
-    private static ObjectNode encodeParty(PartyDetailsResult party) {
+    /** Shares only the safe Party representation across independently versioned snapshot envelopes. */
+    static ObjectNode encodeParty(PartyDetailsResult party) {
         ObjectNode payload = JSON.objectNode();
         payload.put(PARTY_ID_FIELD, party.partyId().value().toString());
         payload.put(TENANT_ID_FIELD, party.tenantId().value().toString());
@@ -204,7 +205,8 @@ public class IdempotencyResultSnapshotCodec {
         return payload;
     }
 
-    private static PartyDetailsResult decodeParty(JsonNode payload) {
+    /** Restores the existing safe Party representation without changing registration snapshot semantics. */
+    static PartyDetailsResult decodeParty(JsonNode payload) {
         PartyId partyId = new PartyId(requiredUuid(payload, PARTY_ID_FIELD));
         TenantId tenantId = new TenantId(requiredUuid(payload, TENANT_ID_FIELD));
         PartyType type = PartyType.valueOf(requiredText(payload, TYPE_FIELD));

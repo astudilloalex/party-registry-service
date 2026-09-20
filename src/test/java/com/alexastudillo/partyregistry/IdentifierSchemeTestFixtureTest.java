@@ -32,6 +32,7 @@ class IdentifierSchemeTestFixtureTest {
     private static final String V2 = "V2__create_api_idempotency_records.sql";
     private static final String V3 = "V3__seed_ecuador_identifier_schemes.sql";
     private static final String V4 = "V4__make_identifier_expiration_optional.sql";
+    private static final String V5 = "V5__add_party_listing_order_index.sql";
     private static final String V1000 = "V1000__seed_identifier_scheme_test_fixtures.sql";
     private static final String V1_SHA_256 =
             "7da1a66b7cddb2389da0032c5f3ccef8049e75eaa77783eda37e89758235e4d7";
@@ -39,6 +40,8 @@ class IdentifierSchemeTestFixtureTest {
             "9dd1164d81535fcebd9b76851e910264a116c8fbf37acdd05a57960f40b3e723";
     private static final String V3_SHA_256 =
             "8ad6ac7d0b7d461c617d5ad48e9ed9f0fe3fab25b2019c0ef22b4cc6a9f02d22";
+    private static final String V4_SHA_256 =
+            "01a3268e611b67e85de112e7e343ce28e3d66eb28cc13982b3cc2f07a3e08734";
     private static final Path PRODUCTION_MIGRATIONS = Path.of("src/main/resources/db/migration");
     private static final Path TEST_MIGRATIONS = Path.of("src/test/resources/db/test-migration");
     private static final String TEST_MIGRATION_RESOURCE = "/db/test-migration/" + V1000;
@@ -63,11 +66,12 @@ class IdentifierSchemeTestFixtureTest {
         Map<String, Path> productionMigrations = migrationFiles(PRODUCTION_MIGRATIONS);
         Map<String, Path> testMigrations = migrationFiles(TEST_MIGRATIONS);
 
-        assertEquals(Set.of(V1, V2, V3, V4), productionMigrations.keySet());
+        assertEquals(Set.of(V1, V2, V3, V4, V5), productionMigrations.keySet());
         assertEquals(Set.of(V1000), testMigrations.keySet());
         assertEquals(V1_SHA_256, sha256(productionMigrations.get(V1)));
         assertEquals(V2_SHA_256, sha256(productionMigrations.get(V2)));
         assertEquals(V3_SHA_256, sha256(productionMigrations.get(V3)));
+        assertEquals(V4_SHA_256, sha256(productionMigrations.get(V4)));
     }
 
     @Test

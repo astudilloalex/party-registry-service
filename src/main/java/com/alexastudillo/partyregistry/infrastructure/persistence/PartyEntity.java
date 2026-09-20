@@ -1,7 +1,6 @@
 package com.alexastudillo.partyregistry.infrastructure.persistence;
 
 import com.alexastudillo.partyregistry.domain.model.AuditInfo;
-import com.alexastudillo.partyregistry.domain.model.Party;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
 import jakarta.persistence.CascadeType;
@@ -18,7 +17,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -113,26 +111,6 @@ public class PartyEntity {
         }
         legalEntityDetails = details;
         details.attachTo(this);
-    }
-
-    void applyActivation(Party activated) {
-        Objects.requireNonNull(activated, "activated");
-        AuditInfo activatedAudit = activated.auditInfo();
-        if (!id.equals(activated.partyId().value())
-                || !tenantId.equals(activated.tenantId().value())
-                || type != activated.type()
-                || !displayName.equals(activated.displayName())
-                || recordStatus != PartyRecordStatus.DRAFT
-                || activated.recordStatus() != PartyRecordStatus.ACTIVE
-                || version == Long.MAX_VALUE
-                || activated.version().value() != version + 1
-                || !createdAt.equals(activatedAudit.createdAt())
-                || !createdBy.equals(activatedAudit.createdBy())) {
-            throw new IllegalArgumentException("Activated Party does not match the persisted aggregate");
-        }
-        recordStatus = activated.recordStatus();
-        updatedAt = activatedAudit.updatedAt();
-        updatedBy = activatedAudit.updatedBy();
     }
 
     UUID id() {

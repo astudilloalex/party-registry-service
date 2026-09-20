@@ -209,6 +209,17 @@ public final class NaturalPerson implements Party {
     }
 
     @Override
+    public NaturalPerson correctDisplayName(String value, Instant occurredAt, String updatedBy) {
+        String normalized = validateDisplayName(PartyTextNormalization.uppercase(value));
+        if (normalized.length() > MAX_DISPLAY_NAME_LENGTH) {
+            throw new DomainValidationException(DomainViolation.DISPLAY_NAME_TOO_LONG,
+                    "Display name exceeds the normalized UTF-16 length limit");
+        }
+        return new NaturalPerson(partyId, tenantId, normalized, recordStatus, version.next(),
+                auditInfo.updated(occurredAt, updatedBy), details);
+    }
+
+    @Override
     public NaturalPerson activate(Instant occurredAt, String updatedBy) {
         if (recordStatus != PartyRecordStatus.DRAFT) {
             throw new DomainValidationException(
@@ -223,6 +234,26 @@ public final class NaturalPerson implements Party {
                 version.next(),
                 auditInfo.updated(occurredAt, updatedBy),
                 details);
+    }
+
+    @Override
+    public NaturalPerson deactivate(Instant occurredAt, String updatedBy) {
+        if (recordStatus != PartyRecordStatus.ACTIVE) {
+            throw new DomainValidationException(DomainViolation.PARTY_DEACTIVATION_INVALID_STATE,
+                    "Only an active Party can be deactivated");
+        }
+        return new NaturalPerson(partyId, tenantId, displayName, PartyRecordStatus.INACTIVE,
+                version.next(), auditInfo.updated(occurredAt, updatedBy), details);
+    }
+
+    @Override
+    public NaturalPerson archive(Instant occurredAt, String updatedBy) {
+        if (recordStatus == PartyRecordStatus.ARCHIVED) {
+            throw new DomainValidationException(DomainViolation.PARTY_ARCHIVAL_INVALID_STATE,
+                    "An archived Party cannot be archived again");
+        }
+        return new NaturalPerson(partyId, tenantId, displayName, PartyRecordStatus.ARCHIVED,
+                version.next(), auditInfo.updated(occurredAt, updatedBy), details);
     }
 
     @Override
@@ -285,7 +316,7 @@ public final class NaturalPerson implements Party {
                         PartyTextNormalization.uppercase(candidate.familyNames()));
     }
 
-    private static String validateDisplayName(String value) {
+    private static String validateDisplayName(@Nullable String value) {
         if (value == null || value.isBlank()) {
             throw new DomainValidationException(
                     DomainViolation.DISPLAY_NAME_REQUIRED,

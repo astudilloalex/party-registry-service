@@ -1,5 +1,7 @@
 package com.alexastudillo.partyregistry.infrastructure.messaging;
 
+import com.alexastudillo.partyregistry.application.model.PartyChangedOutboxCandidate;
+import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,6 +23,7 @@ public class OutboxMessageSerializer {
     private static final String PARTY_CREATED = "party.created.v1";
     private static final String IDENTIFIER_CREATED = "party.identifier-created.v1";
     private static final String PARTY_ACTIVATED = "party.activated.v1";
+    private static final String PARTY_AGGREGATE = "PARTY";
     private static final Set<String> PARTY_TYPES = Set.of("NATURAL_PERSON", "LEGAL_ENTITY");
 
     private static final String PAYLOAD_KEY_PARTY_TYPE = "partyType";
@@ -71,12 +74,14 @@ public class OutboxMessageSerializer {
             case PARTY_CREATED -> requirePartyCreated(message);
             case IDENTIFIER_CREATED -> requireIdentifierCreated(message);
             case PARTY_ACTIVATED -> requirePartyActivated(message);
+            case PartyChangedOutboxCandidate.UPDATED_EVENT_TYPE, PartyChangedOutboxCandidate.DEACTIVATED_EVENT_TYPE,
+                 PartyChangedOutboxCandidate.ARCHIVED_EVENT_TYPE -> requirePartyChanged(message);
             default -> throw new IllegalArgumentException("Unsupported outbox event type");
         }
     }
 
     private static void requirePartyCreated(OutboxMessage message) {
-        requireAggregate(message, "PARTY", 0, true);
+        requireAggregate(message, PARTY_AGGREGATE, 0, true);
         Map<String, String> payload = requirePayload(message, Set.of(PAYLOAD_KEY_PARTY_TYPE));
         if (!PARTY_TYPES.contains(payload.get(PAYLOAD_KEY_PARTY_TYPE))) {
             throw new IllegalArgumentException("Party-created payload is inconsistent");
@@ -95,11 +100,21 @@ public class OutboxMessageSerializer {
     }
 
     private static void requirePartyActivated(OutboxMessage message) {
-        requireAggregate(message, "PARTY", 0, false);
+        requireAggregate(message, PARTY_AGGREGATE, 0, false);
         Map<String, String> payload = requirePayload(message, Set.of(PAYLOAD_KEY_PARTY_TYPE, PAYLOAD_KEY_STATUS));
         if (!PARTY_TYPES.contains(payload.get(PAYLOAD_KEY_PARTY_TYPE))
                 || !"ACTIVE".equals(payload.get(PAYLOAD_KEY_STATUS))) {
             throw new IllegalArgumentException("Party-activated payload is inconsistent");
+        }
+    }
+
+    private static void requirePartyChanged(OutboxMessage message) {
+        requireAggregate(message, PARTY_AGGREGATE, 0, false);
+        Map<String, String> payload = requirePayload(message, Set.of(PAYLOAD_KEY_PARTY_TYPE, PAYLOAD_KEY_STATUS));
+        var kind = PartyChangedOutboxCandidate.Kind.fromEventType(message.eventType());
+        if (!PARTY_TYPES.contains(payload.get(PAYLOAD_KEY_PARTY_TYPE))
+                || !kind.accepts(PartyRecordStatus.valueOf(payload.get(PAYLOAD_KEY_STATUS)))) {
+            throw new IllegalArgumentException("Root event payload is inconsistent");
         }
     }
 

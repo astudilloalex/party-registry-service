@@ -11,7 +11,8 @@ import java.util.UUID;
 public sealed interface OutboxEventCandidate
         permits PartyCreatedOutboxCandidate,
         PartyIdentifierCreatedOutboxCandidate,
-        PartyActivatedOutboxCandidate {
+        PartyActivatedOutboxCandidate,
+        PartyChangedOutboxCandidate {
 
     UUID eventId();
 

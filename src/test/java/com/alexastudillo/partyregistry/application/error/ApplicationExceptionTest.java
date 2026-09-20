@@ -33,6 +33,9 @@ class ApplicationExceptionTest {
 
         List<FailureDescription> descriptions = List.of(
                 new FailureDescription(
+                        new ApplicationFailure.InvalidPartyCursor(),
+                        "Invalid Party cursor"),
+                new FailureDescription(
                         new ApplicationFailure.NaturalPersonNotFound(partyId, tenantId),
                         "Natural person not found"),
                 new FailureDescription(

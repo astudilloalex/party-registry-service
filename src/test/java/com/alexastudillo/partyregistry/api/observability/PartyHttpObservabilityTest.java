@@ -109,7 +109,7 @@ class PartyHttpObservabilityTest {
                 observability.operationName("POST", "/v1/parties/party-id/identifiers"));
         assertEquals("activate", observability.operationName("POST", "/v1/parties/party-id/activate"));
         assertEquals("unsupported", observability.operationName("DELETE", "/v1/natural-person/party-id"));
-        assertEquals("unmatched", observability.operationName("GET", "/v1/parties/party-id"));
+        assertEquals("retrieve-party", observability.operationName("GET", "/v1/parties/party-id"));
         assertEquals("retrieve-legal-entity", observability.operationName("GET", "/v1/legal-entity/party-id"));
         assertEquals("replace-legal-entity", observability.operationName("PUT", "/v1/legal-entity/party-id"));
         assertEquals("patch-legal-entity", observability.operationName("PATCH", "/v1/legal-entity/party-id"));

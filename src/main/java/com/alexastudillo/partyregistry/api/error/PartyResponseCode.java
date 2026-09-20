@@ -20,6 +20,7 @@ public enum PartyResponseCode implements ApiResponseCode {
     USER_ID_TOO_LONG("user-id-too-long", 400),
     USER_ID_UNSAFE("user-id-unsafe", 400),
     REQUEST_BODY_REQUIRED("request-body-required", 400),
+    DISPLAY_NAME_REQUIRED("display-name-required", 400),
     DISPLAY_NAME_TOO_LONG("display-name-too-long", 400),
     GIVEN_NAMES_REQUIRED("given-names-required", 400),
     GIVEN_NAMES_TOO_LONG("given-names-too-long", 400),

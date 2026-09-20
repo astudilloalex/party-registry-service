@@ -60,6 +60,9 @@ class OperationObservationTest {
     @Test
     void classifiesValidationConflictAndDependencyFailuresWithoutReplacingThem() {
         assertFailureOutcome(
+                new ApplicationException(new ApplicationFailure.InvalidPartyCursor()),
+                OperationOutcome.VALIDATION_FAILED);
+        assertFailureOutcome(
                 new ApplicationException(new ApplicationFailure.InvalidBusinessState(
                         DomainViolation.DISPLAY_NAME_REQUIRED)),
                 OperationOutcome.VALIDATION_FAILED);

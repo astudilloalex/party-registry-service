@@ -48,6 +48,7 @@ class PartyApiErrorTranslatorTest {
         IdentifierSchemeId schemeId = new IdentifierSchemeId(UUID.randomUUID());
         PartyId partyId = new PartyId(PARTY_ID);
         TenantId tenantId = new TenantId(TENANT_ID);
+        assertTranslation(new ApplicationFailure.InvalidPartyCursor(), PartyResponseCode.BAD_REQUEST);
         assertTranslation(
                 new ApplicationFailure.NaturalPersonNotFound(partyId, tenantId),
                 PartyResponseCode.NATURAL_PERSON_NOT_FOUND);

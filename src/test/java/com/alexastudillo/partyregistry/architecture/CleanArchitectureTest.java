@@ -26,4 +26,8 @@ class CleanArchitectureTest {
         @ArchTest
         static final ArchRule PACKAGES_ARE_FREE_OF_CYCLES = ArchitectureRules
                         .packagesAreFreeOfCycles(ArchitectureRules.PRODUCTION_ROOT);
+
+        @ArchTest
+        static final ArchRule RESOURCES_DELEGATE_THROUGH_USE_CASES = ArchitectureRules
+                        .resourcesDelegateThroughUseCases(ArchitectureRules.PRODUCTION_ROOT);
 }

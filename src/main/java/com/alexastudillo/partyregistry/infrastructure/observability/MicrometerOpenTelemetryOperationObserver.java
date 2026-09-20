@@ -70,7 +70,12 @@ public class MicrometerOpenTelemetryOperationObserver implements OperationObserv
                 "application.legal-entity-registration";
             case APPLICATION_ADDITIONAL_IDENTIFIER_REGISTRATION ->
                 "application.additional-identifier-registration";
+            case APPLICATION_PARTY_LIST -> "application.party-list";
+            case APPLICATION_PARTY_RETRIEVAL -> "application.party-retrieval";
+            case APPLICATION_PARTY_PATCH -> "application.party-patch";
             case APPLICATION_PARTY_ACTIVATION -> "application.party-activation";
+            case APPLICATION_PARTY_DEACTIVATION -> "application.party-deactivation";
+            case APPLICATION_PARTY_ARCHIVAL -> "application.party-archival";
             case TRANSACTION_NATURAL_PERSON_REGISTRATION ->
                 "transaction.natural-person-registration";
             case TRANSACTION_LEGAL_ENTITY_REGISTRATION ->
@@ -78,14 +83,19 @@ public class MicrometerOpenTelemetryOperationObserver implements OperationObserv
             case TRANSACTION_ADDITIONAL_IDENTIFIER_REGISTRATION ->
                 "transaction.additional-identifier-registration";
             case TRANSACTION_PARTY_ACTIVATION -> "transaction.party-activation";
+            case TRANSACTION_PARTY_MUTATION -> "transaction.party-mutation";
         };
     }
 
     static String outcomeLabel(OperationOutcome outcome) {
         return switch (outcome) {
+            case RETRIEVED -> "retrieved";
             case CREATED -> "created";
             case REPLAYED -> "replayed";
             case ACTIVATED -> "activated";
+            case DEACTIVATED -> "deactivated";
+            case ARCHIVED -> "archived";
+            case APPLIED -> "applied";
             case VALIDATION_FAILED -> "validation-failed";
             case CONFLICT -> "conflict";
             case IDENTIFIER_CONFLICT -> "identifier-conflict";

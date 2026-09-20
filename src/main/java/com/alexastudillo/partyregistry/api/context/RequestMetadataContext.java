@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.api.context;
 
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
+import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
 import jakarta.enterprise.context.RequestScoped;
 
 import java.util.Objects;
@@ -20,6 +21,7 @@ public class RequestMetadataContext {
     private long startedAtNanos;
     private boolean mdcInitialized;
     private PartyRegistrationOutcome idempotencyOutcome;
+    private PartyMutationOutcome.Disposition mutationDisposition;
 
     /**
      * Starts completion tracking before request validation occurs.
@@ -100,5 +102,14 @@ public class RequestMetadataContext {
 
     public PartyRegistrationOutcome idempotencyOutcome() {
         return idempotencyOutcome;
+    }
+
+    /** Retains only the committed mutation disposition for completion telemetry, never the historical result itself. */
+    public void recordMutationDisposition(PartyMutationOutcome outcome) {
+        this.mutationDisposition = Objects.requireNonNull(outcome, "outcome").disposition();
+    }
+
+    public PartyMutationOutcome.Disposition mutationDisposition() {
+        return mutationDisposition;
     }
 }

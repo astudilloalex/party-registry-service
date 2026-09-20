@@ -15,6 +15,10 @@ import java.util.Objects;
  */
 public sealed interface ApplicationFailure {
 
+    /** Reports an invalid continuation without retaining or exposing client cursor material. */
+    record InvalidPartyCursor() implements ApplicationFailure {
+    }
+
     /**
      * The requested natural person is absent, belongs to another tenant, or is
      * not classified as a natural person.

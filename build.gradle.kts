@@ -51,6 +51,7 @@ dependencies {
     testImplementation("io.quarkus:quarkus-junit")
     testImplementation("io.quarkus:quarkus-test-vertx")
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.awaitility:awaitility")
     testImplementation("io.rest-assured:rest-assured")
     testImplementation("com.tngtech.archunit:archunit-junit5:${archUnitVersion}")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")

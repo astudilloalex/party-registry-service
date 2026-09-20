@@ -2,10 +2,13 @@ package com.alexastudillo.partyregistry.infrastructure.persistence;
 
 import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
-import com.alexastudillo.partyregistry.application.model.PartyActivationCandidate;
+import com.alexastudillo.partyregistry.application.command.ChangePartyLifecycleCommand;
+import com.alexastudillo.partyregistry.application.model.PartyLifecycleAction;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.port.LegalEntityRepository;
-import com.alexastudillo.partyregistry.application.port.PartyActivationPort;
+import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
+import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
+import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
 import com.alexastudillo.partyregistry.domain.model.AuditInfo;
 import com.alexastudillo.partyregistry.domain.model.LegalEntity;
 import com.alexastudillo.partyregistry.domain.model.LegalEntityDetails;
@@ -24,10 +27,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.time.Duration;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -49,8 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HibernateReactiveLegalEntityRepositoryTest {
 
     private static final Duration WAIT = Duration.ofSeconds(15);
-    private static final Instant CREATED = Instant.parse("2026-09-01T10:00:00.123456Z");
-    private static final Instant UPDATED = Instant.parse("2026-09-13T10:00:00.123456Z");
+    private static final Instant CREATED = LocalDate.of(2026, Month.SEPTEMBER, 1).atTime(10, 0, 0, 123456000).toInstant(ZoneOffset.UTC);
+    private static final Instant UPDATED = LocalDate.of(2026, Month.SEPTEMBER, 13).atTime(10, 0, 0, 123456000).toInstant(ZoneOffset.UTC);
     private static final LocalDate TODAY = LocalDate.of(2026, Month.SEPTEMBER, 13);
 
     @Inject
@@ -63,7 +69,7 @@ class HibernateReactiveLegalEntityRepositoryTest {
     Mutiny.SessionFactory sessionFactory;
 
     @Inject
-    PartyActivationPort activationPort;
+    PartyMutationPort mutationPort;
 
     @Test
     void readsHistoricalDetailsAndConcealsAbsentOtherTenantAndWrongType() {
@@ -186,12 +192,13 @@ class HibernateReactiveLegalEntityRepositoryTest {
         LegalEntity original = original(PartyVersion.initial());
         await(() -> persist(original));
         await(() -> insertVerifiedIdentifier(original));
-        PartyActivationCandidate activation = new PartyActivationCandidate(
+        var lifecycle = new ChangePartyLifecycleUseCase(mutationPort, Clock.fixed(UPDATED, ZoneOffset.UTC), new RecordingOperationObserver());
+        var activation = new ChangePartyLifecycleCommand(
                 new RequestMetadata(original.tenantId(), "activator", UUID.randomUUID()),
-                original.partyId(), original.version(), TODAY, UPDATED);
+                original.partyId(), original.version(), PartyLifecycleAction.ACTIVATE, Optional.empty());
         List<Attempt> attempts = race(
                 () -> repository.update(replacement(original, "Changed", "Brand", "SA"), original.version()),
-                () -> activationPort.activate(activation));
+                () -> lifecycle.execute(activation));
         assertEquals(1, attempts.stream().filter(Attempt::succeeded).count());
         LegalEntity persisted = load(original);
         assertEquals(new PartyVersion(1), persisted.version());

@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PartyOutboxPublisherTest {
 
     private static final Duration TEST_TIMEOUT = Duration.ofSeconds(2);
-    private static final Instant NOW = Instant.parse("2026-09-04T12:00:00Z");
+    private static final Instant NOW = LocalDate.of(2026, Month.SEPTEMBER, 4).atTime(12, 0).toInstant(ZoneOffset.UTC);
     private static final UUID EVENT_ID = UUID.fromString("01991b8d-6c00-7000-8000-000000000001");
     private static final UUID TENANT_ID = UUID.fromString("01991b8d-6c00-7000-8000-000000000002");
     private static final UUID PARTY_ID = UUID.fromString("01991b8d-6c00-7000-8000-000000000003");
@@ -63,6 +65,28 @@ class PartyOutboxPublisherTest {
         assertEquals(1, sender.messages.size());
         assertEquals(EVENT_ID, sender.messages.getFirst().eventId());
         assertEquals(List.of(new Transition(EVENT_ID, 1, "published", NOW, null)), store.transitions);
+    }
+
+    @Test
+    void publishesNewRootEventsOnlyInPublishedMode() {
+        Map<String, String> events = Map.of("party.updated.v1", "DRAFT", "party.deactivated.v1", "INACTIVE", "party.archived.v1", "ARCHIVED");
+        for (Map.Entry<String, String> entry : events.entrySet()) {
+            var message = new OutboxMessage(UUID.randomUUID(), TENANT_ID, "PARTY", PARTY_ID, 2,
+                    entry.getKey(), (short) 1, Map.of("partyType", "LEGAL_ENTITY", "status", entry.getValue()), NOW, CORRELATION_ID, null);
+            for (String mode : List.of("disabled", "stored-only", "published")) {
+                var store = new FakeStore(List.of(List.of(claimed(message, 1))));
+                var sender = FakeSender.succeeding();
+                awaitSuccess(publisher(store, sender, configuration(), mode).publishDueEvents());
+                if (mode.equals("published")) {
+                    assertEquals(List.of(message), sender.messages);
+                    assertEquals(List.of(new Transition(message.eventId(), 1, "published", NOW, null)), store.transitions);
+                } else {
+                    assertEquals(0, store.claimCalls.get());
+                    assertTrue(sender.messages.isEmpty());
+                    assertTrue(store.transitions.isEmpty());
+                }
+            }
+        }
     }
 
     @Test
@@ -256,9 +280,11 @@ class PartyOutboxPublisherTest {
                 Duration.ofMinutes(5), 101));
 
         for (PublisherConfiguration configuration : invalid) {
+            var store = new FakeStore(List.of());
+            var sender = FakeSender.succeeding();
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> publisher(new FakeStore(List.of()), FakeSender.succeeding(), configuration, "published"));
+                    () -> publisher(store, sender, configuration, "published"));
         }
     }
 

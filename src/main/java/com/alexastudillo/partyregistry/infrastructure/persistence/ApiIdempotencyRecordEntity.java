@@ -68,6 +68,10 @@ public class ApiIdempotencyRecordEntity {
         return requestHash;
     }
 
+    UUID partyId() {
+        return partyId;
+    }
+
     short resultSnapshotSchemaVersion() {
         return resultSnapshotSchemaVersion;
     }

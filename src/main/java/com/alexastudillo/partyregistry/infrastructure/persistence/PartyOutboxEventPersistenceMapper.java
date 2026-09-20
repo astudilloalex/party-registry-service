@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.infrastructure.persistence;
 
 import com.alexastudillo.partyregistry.application.model.OutboxEventCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyActivatedOutboxCandidate;
+import com.alexastudillo.partyregistry.application.model.PartyChangedOutboxCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyCreatedOutboxCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierCreatedOutboxCandidate;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
@@ -37,6 +38,8 @@ public class PartyOutboxEventPersistenceMapper {
             case PartyCreatedOutboxCandidate.EVENT_TYPE -> toPartyCreatedCandidate(entity);
             case PartyIdentifierCreatedOutboxCandidate.EVENT_TYPE -> toIdentifierCreatedCandidate(entity);
             case PartyActivatedOutboxCandidate.EVENT_TYPE -> toPartyActivatedCandidate(entity);
+            case PartyChangedOutboxCandidate.UPDATED_EVENT_TYPE, PartyChangedOutboxCandidate.DEACTIVATED_EVENT_TYPE,
+                 PartyChangedOutboxCandidate.ARCHIVED_EVENT_TYPE -> toPartyChangedCandidate(entity);
             default -> throw new IllegalStateException("Unsupported outbox event type");
         };
     }
@@ -48,6 +51,9 @@ public class PartyOutboxEventPersistenceMapper {
             case PartyCreatedOutboxCandidate event -> partyCreatedEntity(event);
             case PartyIdentifierCreatedOutboxCandidate event -> identifierCreatedEntity(event);
             case PartyActivatedOutboxCandidate event -> partyActivatedEntity(event);
+            case PartyChangedOutboxCandidate event -> pendingEntity(event, PartyOutboxAggregateType.PARTY,
+                    event.partyId().value(), event.partyVersion().value(),
+                    Map.of(PAYLOAD_KEY_PARTY_TYPE, event.partyType().name(), PAYLOAD_KEY_STATUS, event.status().name()));
         };
     }
 
@@ -184,6 +190,15 @@ public class PartyOutboxEventPersistenceMapper {
                 entity.occurredAt(),
                 correlationId(entity),
                 entity.createdBy());
+    }
+
+    private static PartyChangedOutboxCandidate toPartyChangedCandidate(PartyOutboxEventEntity entity) {
+        requireAggregate(entity, PartyOutboxAggregateType.PARTY, null);
+        Map<String, String> payload = requirePayload(entity.payload(), Set.of(PAYLOAD_KEY_PARTY_TYPE, PAYLOAD_KEY_STATUS));
+        return new PartyChangedOutboxCandidate(entity.id(), new TenantId(entity.tenantId()), new PartyId(entity.aggregateId()),
+                new PartyVersion(entity.aggregateVersion()), PartyType.valueOf(payload.get(PAYLOAD_KEY_PARTY_TYPE)),
+                PartyRecordStatus.valueOf(payload.get(PAYLOAD_KEY_STATUS)), PartyChangedOutboxCandidate.Kind.fromEventType(entity.eventType()),
+                entity.occurredAt(), correlationId(entity), entity.createdBy());
     }
 
     private static void requireSchemaVersion(short schemaVersion) {

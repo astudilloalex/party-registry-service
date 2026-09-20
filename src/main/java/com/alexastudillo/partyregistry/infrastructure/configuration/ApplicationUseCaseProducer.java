@@ -7,12 +7,17 @@ import com.alexastudillo.partyregistry.application.port.IdentifierSchemeReposito
 import com.alexastudillo.partyregistry.application.port.NaturalPersonRepository;
 import com.alexastudillo.partyregistry.application.port.LegalEntityRepository;
 import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
-import com.alexastudillo.partyregistry.application.port.PartyActivationPort;
+import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
+import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
+import com.alexastudillo.partyregistry.application.port.PartyCursorPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierReadPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
-import com.alexastudillo.partyregistry.application.usecase.ActivatePartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
@@ -103,10 +108,25 @@ public class ApplicationUseCaseProducer {
     }
 
     @Produces
-    ActivatePartyUseCase activatePartyUseCase(
-            PartyActivationPort activationPort,
+    ChangePartyLifecycleUseCase changePartyLifecycleUseCase(
+            PartyMutationPort mutationPort,
             OperationObservationPort observationPort) {
-        return new ActivatePartyUseCase(activationPort, UTC_CLOCK, observationPort);
+        return new ChangePartyLifecycleUseCase(mutationPort, UTC_CLOCK, observationPort);
+    }
+
+    @Produces
+    GetPartyUseCase getPartyUseCase(PartyQueryPort queryPort, OperationObservationPort observationPort) {
+        return new GetPartyUseCase(queryPort, observationPort);
+    }
+
+    @Produces
+    ListPartiesUseCase listPartiesUseCase(PartyQueryPort queryPort, PartyCursorPort cursorPort, OperationObservationPort observationPort) {
+        return new ListPartiesUseCase(queryPort, cursorPort, observationPort);
+    }
+
+    @Produces
+    PatchPartyUseCase patchPartyUseCase(PartyMutationPort mutationPort, OperationObservationPort observationPort) {
+        return new PatchPartyUseCase(mutationPort, UTC_CLOCK, observationPort);
     }
 
     @Produces

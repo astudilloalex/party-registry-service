@@ -3,7 +3,6 @@ package com.alexastudillo.partyregistry.domain.policy;
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 import com.alexastudillo.partyregistry.domain.model.Party;
-import com.alexastudillo.partyregistry.domain.model.PartyIdentifier;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 
@@ -27,18 +26,11 @@ public final class PartyActivationPolicy {
      */
     public Party activate(
             Party party,
-            Iterable<PartyIdentifierEvidence> evidence,
+            Iterable<PartyActivationEvidence> evidence,
             LocalDate evaluatedOn,
             Instant occurredAt,
             String updatedBy) {
-        if (party == null) {
-            throw new DomainValidationException(DomainViolation.PARTY_REQUIRED, "Party is required");
-        }
-        if (party.recordStatus() != PartyRecordStatus.DRAFT) {
-            throw new DomainValidationException(
-                    DomainViolation.PARTY_ACTIVATION_INVALID_STATE,
-                    "Only a draft Party can be activated");
-        }
+        requireDraft(party);
         if (evaluatedOn == null) {
             throw new DomainValidationException(
                     DomainViolation.EVALUATION_DATE_REQUIRED,
@@ -52,11 +44,28 @@ public final class PartyActivationPolicy {
         return party.activate(occurredAt, updatedBy);
     }
 
+    /**
+     * Checks lifecycle eligibility before an application workflow requests identifier evidence.
+     *
+     * @param party the tenant-qualified Party under evaluation
+     * @throws DomainValidationException when the Party is absent or not draft
+     */
+    public void requireDraft(Party party) {
+        if (party == null) {
+            throw new DomainValidationException(DomainViolation.PARTY_REQUIRED, "Party is required");
+        }
+        if (party.recordStatus() != PartyRecordStatus.DRAFT) {
+            throw new DomainValidationException(
+                    DomainViolation.PARTY_ACTIVATION_INVALID_STATE,
+                    "Only a draft Party can be activated");
+        }
+    }
+
     private static boolean hasQualifyingIdentifier(
             Party party,
-            Iterable<PartyIdentifierEvidence> evidence,
+            Iterable<PartyActivationEvidence> evidence,
             LocalDate evaluatedOn) {
-        for (PartyIdentifierEvidence candidate : evidence) {
+        for (PartyActivationEvidence candidate : evidence) {
             if (candidate != null && qualifies(party, candidate, evaluatedOn)) {
                 return true;
             }
@@ -66,14 +75,14 @@ public final class PartyActivationPolicy {
 
     private static boolean qualifies(
             Party party,
-            PartyIdentifierEvidence evidence,
+            PartyActivationEvidence evidence,
             LocalDate evaluatedOn) {
-        PartyIdentifier identifier = evidence.identifier();
-        return identifier.tenantId().equals(party.tenantId())
-                && identifier.partyId().equals(party.partyId())
-                && identifier.identifierSchemeId().equals(evidence.scheme().id())
-                && identifier.status() == PartyIdentifierStatus.VERIFIED
-                && !identifier.isExpiredOn(evaluatedOn)
-                && evidence.scheme().supports(party.type());
+        LocalDate expiresOn = evidence.expiresOn();
+        return evidence.tenantId().equals(party.tenantId())
+                && evidence.partyId().equals(party.partyId())
+                && evidence.identifierSchemeId().equals(evidence.schemeId())
+                && evidence.status() == PartyIdentifierStatus.VERIFIED
+                && (expiresOn == null || !expiresOn.isBefore(evaluatedOn))
+                && evidence.applicableSubjectType().supports(party.type());
     }
 }

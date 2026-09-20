@@ -31,8 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the approved static contract for Party registration and detail
- * operations.
+ * Verifies the approved static contract for Party registration, root maintenance, and detail operations.
  */
 class OpenApiContractTest {
 
@@ -48,6 +47,283 @@ class OpenApiContractTest {
         assertNotNull(result.getOpenAPI(), () -> "OpenAPI parsing failed: " + result.getMessages());
         assertTrue(result.getMessages().isEmpty(), () -> "OpenAPI parser messages: " + result.getMessages());
         openApi = result.getOpenAPI();
+    }
+
+    @Test
+    void declaresRootReadParametersAndTenantSafeResponseContracts() {
+        Operation list = openApi.getPaths().get("/v1/parties").getGet();
+        PathItem item = openApi.getPaths().get("/v1/parties/{partyId}");
+        Operation get = item.getGet();
+        List<Parameter> parameters = list.getParameters().stream()
+                .map(OpenApiContractTest::resolveParameter).toList();
+
+        assertEquals("listParties", list.getOperationId());
+        assertEquals("getParty", get.getOperationId());
+        assertEquals(Set.of("type", "recordStatus", "displayNameStartsWith", "displayNameContains",
+                "createdFrom", "createdTo", "cursor", "limit"), parameters.stream()
+                .filter(value -> "query".equals(value.getIn())).map(Parameter::getName)
+                .collect(java.util.stream.Collectors.toSet()));
+        assertEquals(Set.of("Tenant-Id", "Process-Id", "User-Id"), parameters.stream()
+                .filter(value -> "header".equals(value.getIn())).map(Parameter::getName)
+                .collect(java.util.stream.Collectors.toSet()));
+        assertEquals(List.of("#/components/parameters/PartyIdPath", "#/components/parameters/TenantId",
+                "#/components/parameters/ProcessId", "#/components/parameters/UserId"),
+                item.getParameters().stream().map(Parameter::get$ref).toList());
+        assertTrue(get.getParameters() == null || get.getParameters().isEmpty());
+        assertNull(list.getRequestBody());
+        assertNull(get.getRequestBody());
+        assertResponseSchemaReference(list, "200", "PartyCollectionApiResponse");
+        assertResponseSchemaReference(get, "200", "PartyDetailApiResponse");
+        assertResponseReference(get, "404", "PartyNotFound");
+        for (Operation operation : List.of(list, get)) {
+            assertHasProcessIdEcho(operation, "200");
+            assertResponseReference(operation, "400", "BadRequest");
+            assertResponseReference(operation, "default", "DefaultError");
+        }
+    }
+
+    @Test
+    void declaresExactlyTheSixRootOperationsAndMatchingSuccessfulStatusExamples() {
+        Map<String, Set<PathItem.HttpMethod>> expected = Map.of(
+                "/v1/parties", Set.of(PathItem.HttpMethod.GET),
+                "/v1/parties/{partyId}", Set.of(PathItem.HttpMethod.GET, PathItem.HttpMethod.PATCH),
+                "/v1/parties/{partyId}/activate", Set.of(PathItem.HttpMethod.POST),
+                "/v1/parties/{partyId}/deactivate", Set.of(PathItem.HttpMethod.POST),
+                "/v1/parties/{partyId}/archive", Set.of(PathItem.HttpMethod.POST));
+        expected.forEach((path, methods) -> {
+            PathItem item = openApi.getPaths().get(path);
+            assertEquals(methods, item.readOperationsMap().keySet());
+            item.readOperations().forEach(operation -> {
+                assertTrue(operation.getTags().contains("parties"));
+                assertNotNull(operation.getResponses().get("200"));
+                assertNull(operation.getResponses().get("201"));
+                assertHasProcessIdEcho(operation, "200");
+            });
+        });
+        assertEquals(Set.of("listParties", "getParty", "updateParty", "activateParty", "deactivateParty", "archiveParty"),
+                expected.keySet().stream().flatMap(path -> openApi.getPaths().get(path).readOperations().stream())
+                        .map(Operation::getOperationId).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test
+    void constrainsRootFiltersAndScopesContinuationWithoutBroadeningInvalidInput() {
+        Operation list = openApi.getPaths().get("/v1/parties").getGet();
+        Map<String, Parameter> queries = list.getParameters().stream()
+                .map(OpenApiContractTest::resolveParameter).filter(value -> "query".equals(value.getIn()))
+                .collect(java.util.stream.Collectors.toMap(Parameter::getName, value -> value));
+
+        assertEquals("#/components/schemas/PartyType", queries.get("type").getSchema().get$ref());
+        assertEquals("#/components/schemas/PartyRecordStatus", queries.get("recordStatus").getSchema().get$ref());
+        for (String name : List.of("displayNameStartsWith", "displayNameContains")) {
+            assertEquals(300, queries.get(name).getSchema().getMaxLength());
+            assertEquals(Boolean.TRUE, queries.get(name).getAllowEmptyValue());
+        }
+        for (String name : List.of("createdFrom", "createdTo")) {
+            assertEquals("date-time", queries.get(name).getSchema().getFormat());
+            assertTrue(queries.get(name).getDescription().contains("explicit UTC offset"));
+        }
+        Schema<?> limit = queries.get("limit").getSchema();
+        assertEquals(1, limit.getMinimum().intValueExact());
+        assertEquals(200, limit.getMaximum().intValueExact());
+        assertEquals(50, limit.getDefault());
+        assertEquals(1, queries.get("cursor").getSchema().getMinLength());
+        assertNotEquals(Boolean.TRUE, queries.get("cursor").getSchema().getNullable());
+        for (String semantics : List.of("each at most once", "AND semantics", "Unicode code points",
+                "createdAt DESC", "partyId DESC", "tenant, all effective filters, and page size",
+                "400 bad-request", "one consistent view")) {
+            assertTrue(list.getDescription().contains(semantics), semantics);
+        }
+    }
+
+    @Test
+    void requiresExactRootPageMetadataAndExplicitNullDirections() {
+        Schema<?> collection = schema("PartyCollectionApiResponse");
+        Set<String> fields = Set.of("status", "code", "data", "nextCursor", "prevCursor",
+                "totalElements", "totalPages", "numberOfElements");
+        assertEquals(fields, Set.copyOf(collection.getRequired()));
+        assertEquals(fields, collection.getProperties().keySet());
+        assertEquals(Boolean.FALSE, collection.getAdditionalProperties());
+        assertEquals(List.of(200), property(collection, "status").getEnum());
+        assertEquals("#/components/schemas/PartySummary", property(collection, "data").getItems().get$ref());
+        assertEquals(200, property(collection, "data").getMaxItems());
+        for (String cursor : List.of("nextCursor", "prevCursor")) {
+            assertEquals(Boolean.TRUE, property(collection, cursor).getNullable());
+        }
+        for (String count : List.of("totalElements", "totalPages", "numberOfElements")) {
+            assertNotEquals(Boolean.TRUE, property(collection, count).getNullable());
+            assertEquals(0, property(collection, count).getMinimum().intValueExact());
+        }
+        var response = openApi.getPaths().get("/v1/parties").getGet().getResponses().get("200");
+        JsonNode empty = assertInstanceOf(JsonNode.class,
+                response.getContent().get("application/json").getExamples().get("empty").getValue());
+        assertEquals(fields, empty.properties().stream().map(Map.Entry::getKey)
+                .collect(java.util.stream.Collectors.toSet()));
+        assertEquals(200, empty.path("status").intValue());
+        assertTrue(empty.path("data").isArray());
+        assertTrue(empty.path("data").isEmpty());
+        assertTrue(empty.path("nextCursor").isNull());
+        assertTrue(empty.path("prevCursor").isNull());
+        for (String count : List.of("totalElements", "totalPages", "numberOfElements")) {
+            assertEquals(0, empty.path(count).intValue());
+        }
+    }
+
+    @Test
+    void closesRootRepresentationsAndRequiresOnlyTheMatchingSubtype() {
+        Schema<?> summary = schema("PartySummary");
+        Set<String> summaryFields = Set.of("partyId", "type", "displayName", "recordStatus", "createdAt", "version");
+        assertEquals(summaryFields, summary.getProperties().keySet());
+        assertEquals(summaryFields, Set.copyOf(summary.getRequired()));
+        assertEquals(Boolean.FALSE, summary.getAdditionalProperties());
+
+        Schema<?> detail = schema("PartyDetailResponse");
+        assertEquals(Set.of("partyId", "type", "displayName", "recordStatus", "createdAt", "version",
+                "updatedAt", "createdBy", "updatedBy", "naturalPersonDetails", "legalEntityDetails"),
+                detail.getProperties().keySet());
+        assertEquals(Boolean.FALSE, detail.getAdditionalProperties());
+        assertEquals(2, detail.getOneOf().size());
+        Schema<?> natural = detail.getOneOf().getFirst();
+        Schema<?> legal = detail.getOneOf().get(1);
+        assertEquals(List.of("NATURAL_PERSON"), property(natural, "type").getEnum());
+        assertEquals(List.of("naturalPersonDetails"), natural.getRequired());
+        assertEquals(List.of("legalEntityDetails"), natural.getNot().getRequired());
+        assertEquals(List.of("LEGAL_ENTITY"), property(legal, "type").getEnum());
+        assertEquals(List.of("legalEntityDetails"), legal.getRequired());
+        assertEquals(List.of("naturalPersonDetails"), legal.getNot().getRequired());
+        assertEquals(Set.of("status", "code", "data"), schema("PartyDetailApiResponse").getProperties().keySet());
+    }
+
+    @Test
+    void definesStrictRootPatchAndItsDistinctValidationAndBusinessFailures() {
+        Operation patch = openApi.getPaths().get("/v1/parties/{partyId}").getPatch();
+        Schema<?> request = schema("PartyUpdateRequest");
+
+        assertEquals(Boolean.TRUE, patch.getRequestBody().getRequired());
+        assertEquals("#/components/schemas/PartyUpdateRequest", patch.getRequestBody()
+                .getContent().get("application/json").getSchema().get$ref());
+        assertEquals(List.of("displayName"), request.getRequired());
+        assertEquals(Set.of("displayName"), request.getProperties().keySet());
+        assertEquals(Boolean.FALSE, request.getAdditionalProperties());
+        assertEquals("string", property(request, "displayName").getType());
+        assertNotEquals(Boolean.TRUE, property(request, "displayName").getNullable());
+        assertNull(property(request, "displayName").getMinLength());
+        assertNull(property(request, "displayName").getMaxLength());
+        assertEquals(300, property(request, "displayName").getExtensions().get("x-normalized-max-length"));
+        assertEquals(List.of("#/components/parameters/PartyIfMatch"), patch.getParameters().stream()
+                .map(Parameter::get$ref).toList());
+        assertResponseSchemaReference(patch, "200", "PartyDetailApiResponse");
+        assertHasProcessIdEcho(patch, "200");
+        assertResponseReference(patch, "404", "PartyNotFound");
+        assertResponseReference(patch, "412", "PartyExpectedVersionMismatch");
+        assertResponseReference(patch, "422", "PartyBlankDisplayName");
+        assertNull(patch.getResponses().get("409"));
+        for (String rule : List.of("display-name-required", "display-name-too-long",
+                "blank-display-name", "duplicate/unknown properties", "ARCHIVED",
+                "expected-version mismatch", "does not enable lifecycle replay")) {
+            assertTrue(patch.getDescription().contains(rule), rule);
+        }
+        var examples = openApi.getComponents().getResponses().get("BadRequest")
+                .getContent().get("application/json").getExamples();
+        JsonNode required = assertInstanceOf(JsonNode.class, examples.get("requiredDisplayName").getValue());
+        assertEquals(400, required.path("status").intValue());
+        assertEquals("display-name-required", required.path("code").textValue());
+    }
+
+    @Test
+    void definesTheSharedLifecycleInputAndHistoricalReplayContract() {
+        Parameter key = parameter("PartyLifecycleIdempotencyKey");
+        assertEquals(Boolean.FALSE, key.getRequired());
+        assertEquals("Idempotency-Key", key.getName());
+        assertEquals(128, key.getSchema().getMaxLength());
+        assertEquals(".*\\S.*", key.getSchema().getPattern());
+        for (String rule : List.of("Unicode code points", "without trimming or case conversion",
+                "tenant and lifecycle action", "Party ID and expected version",
+                "excluding User-Id and Process-Id", "409 idempotency-key-conflict", "failed attempts consume no key")) {
+            assertTrue(key.getDescription().contains(rule), rule);
+        }
+        for (String header : List.of("PartyIfMatch", "PartyLifecycleIfMatch")) {
+            assertTrue(parameter(header).getRequired());
+            assertEquals("If-Match", parameter(header).getName());
+            assertEquals("^(0|[1-9][0-9]*)$", parameter(header).getSchema().getPattern());
+            assertTrue(parameter(header).getDescription().contains("9223372036854775807"));
+        }
+        assertEquals(CANONICAL_UUID_PATTERN, parameter("PartyIdPath").getSchema().getPattern());
+        for (String action : List.of("activate", "deactivate", "archive")) {
+            PathItem path = openApi.getPaths().get("/v1/parties/{partyId}/" + action);
+            Operation operation = path.getPost();
+            assertEquals(List.of("#/components/parameters/PartyIdPath", "#/components/parameters/TenantId",
+                    "#/components/parameters/ProcessId", "#/components/parameters/UserId",
+                    "#/components/parameters/PartyLifecycleIdempotencyKey",
+                    "#/components/parameters/PartyLifecycleIfMatch"),
+                    path.getParameters().stream().map(Parameter::get$ref).toList());
+            assertNull(operation.getRequestBody());
+            assertResponseSchemaReference(operation, "200", "PartyDetailApiResponse");
+            assertHasProcessIdEcho(operation, "200");
+            assertResponseReference(operation, "404", "PartyNotFound");
+            assertResponseReference(operation, "409", "PartyLifecycleConflict");
+            assertResponseReference(operation, "412", "PartyStaleVersion");
+            assertTrue(operation.getDescription().contains("restart"));
+            assertTrue(operation.getDescription().contains("current accepted Process-Id"));
+        }
+    }
+
+    @Test
+    void declaresPermittedTransitionsAndSafeSuccessfulReplayExamples() {
+        Map<String, String> statuses = Map.of("activate", "ACTIVE", "deactivate", "INACTIVE", "archive", "ARCHIVED");
+        statuses.forEach((action, status) -> {
+            Operation operation = openApi.getPaths().get("/v1/parties/{partyId}/" + action).getPost();
+            JsonNode example = assertInstanceOf(JsonNode.class,
+                    operation.getResponses().get("200").getContent().get("application/json").getExample());
+            assertEquals(3, example.size());
+            assertEquals(200, example.path("status").intValue());
+            assertEquals("successful", example.path("code").textValue());
+            assertEquals(status, example.path("data").path("recordStatus").textValue());
+            assertTrue(example.path("data").path("version").longValue() > 0);
+            assertFalse(example.path("data").has("identifiers"));
+            assertFalse(example.path("data").has("initialIdentifier"));
+        });
+        Operation activate = openApi.getPaths().get("/v1/parties/{partyId}/activate").getPost();
+        Operation deactivate = openApi.getPaths().get("/v1/parties/{partyId}/deactivate").getPost();
+        Operation archive = openApi.getPaths().get("/v1/parties/{partyId}/archive").getPost();
+        assertTrue(activate.getDescription().contains("Only DRAFT may become ACTIVE"));
+        assertTrue(activate.getDescription().contains("reactivation is not supported"));
+        assertTrue(activate.getDescription().contains("single UTC evaluation date"));
+        assertTrue(activate.getDescription().contains("DEPRECATED/RETIRED"));
+        assertTrue(deactivate.getDescription().contains("Only ACTIVE may become INACTIVE"));
+        assertTrue(archive.getDescription().contains("DRAFT, ACTIVE, and INACTIVE may become ARCHIVED"));
+        assertResponseReference(activate, "422", "PartyMissingActivationEvidence");
+        assertNull(deactivate.getResponses().get("422"));
+        assertNull(archive.getResponses().get("422"));
+    }
+
+    @Test
+    void rootBusinessErrorExamplesUseOnlyTheirStableStatusAndCode() {
+        Map<String, PartyResponseCode> codes = Map.of(
+                "PartyNotFound", PartyResponseCode.PARTY_NOT_FOUND,
+                "PartyExpectedVersionMismatch", PartyResponseCode.EXPECTED_VERSION_MISMATCH,
+                "PartyBlankDisplayName", PartyResponseCode.BLANK_DISPLAY_NAME,
+                "PartyStaleVersion", PartyResponseCode.STALE_PARTY_VERSION,
+                "PartyMissingActivationEvidence", PartyResponseCode.MISSING_QUALIFYING_IDENTIFIER);
+        codes.forEach((name, code) -> {
+            ApiResponse response = openApi.getComponents().getResponses().get(name);
+            assertEquals("#/components/headers/ProcessIdEcho", response.getHeaders().get("Process-Id").get$ref());
+            var content = response.getContent().get("application/json");
+            assertEquals("#/components/schemas/ApiErrorResponse", content.getSchema().get$ref());
+            JsonNode example = assertInstanceOf(JsonNode.class, content.getExample());
+            assertEquals(2, example.size());
+            assertEquals(code.getStatus(), example.path("status").intValue());
+            assertEquals(code.getCode(), example.path("code").textValue());
+        });
+        var conflict = openApi.getComponents().getResponses().get("PartyLifecycleConflict")
+                .getContent().get("application/json").getExamples();
+        assertEquals(Set.of("keyConflict", "transitionConflict"), conflict.keySet());
+        Map.of("keyConflict", PartyResponseCode.IDEMPOTENCY_KEY_CONFLICT,
+                "transitionConflict", PartyResponseCode.INVALID_PARTY_LIFECYCLE).forEach((name, code) -> {
+                    JsonNode example = assertInstanceOf(JsonNode.class, conflict.get(name).getValue());
+                    assertEquals(2, example.size());
+                    assertEquals(code.getStatus(), example.path("status").intValue());
+                    assertEquals(code.getCode(), example.path("code").textValue());
+                });
     }
 
     @Test
@@ -294,7 +570,7 @@ class OpenApiContractTest {
         for (String name : List.of("LegalEntityPutRequest", "LegalEntityPatchRequest")) {
             assertFalse(schema(name).getDescription().contains("not implemented"));
         }
-        assertTrue(schema("PartyUpdateRequest").getDescription().contains("not implemented"));
+        assertFalse(schema("PartyUpdateRequest").getDescription().contains("not implemented"));
         assertTrue(schema("NationalityCreateRequest").getDescription().contains("not implemented"));
 
         Schema<?> identifier = schema("PartyIdentifierCreateRequest");
@@ -521,10 +797,10 @@ class OpenApiContractTest {
         assertResponseReference(identifierCreate, "503", "DependencyUnavailable");
 
         assertResponseReference(activate, "400", "BadRequest");
-        assertResponseReference(activate, "404", "NotFound");
-        assertResponseReference(activate, "409", "Conflict");
-        assertResponseReference(activate, "412", "PreconditionFailed");
-        assertResponseReference(activate, "422", "UnprocessableEntity");
+        assertResponseReference(activate, "404", "PartyNotFound");
+        assertResponseReference(activate, "409", "PartyLifecycleConflict");
+        assertResponseReference(activate, "412", "PartyStaleVersion");
+        assertResponseReference(activate, "422", "PartyMissingActivationEvidence");
         assertTrue(activate.getDescription().contains("VERIFIED"));
         assertTrue(activate.getDescription().contains("422 missing-qualifying-identifier"));
 
@@ -564,6 +840,11 @@ class OpenApiContractTest {
 
     private static Parameter parameter(String name) {
         return openApi.getComponents().getParameters().get(name);
+    }
+
+    private static Parameter resolveParameter(Parameter value) {
+        String reference = value.get$ref();
+        return reference == null ? value : parameter(reference.substring(reference.lastIndexOf('/') + 1));
     }
 
     private static Schema<?> schema(String name) {

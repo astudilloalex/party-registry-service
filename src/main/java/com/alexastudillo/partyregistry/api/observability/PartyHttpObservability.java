@@ -1,11 +1,13 @@
 package com.alexastudillo.partyregistry.api.observability;
 
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
+import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -18,7 +20,10 @@ public class PartyHttpObservability {
     static final String VALIDATION_METRIC = "party.registry.http.validation.failures";
     static final String IDEMPOTENCY_METRIC = "party.registry.http.idempotency";
     static final String OPTIMISTIC_CONFLICT_METRIC = "party.registry.http.optimistic.conflicts";
+    static final String MUTATION_METRIC = "party.registry.http.mutation";
     static final String UNMATCHED_OPERATION = "unmatched";
+    private static final String UNSUPPORTED_OPERATION = "unsupported";
+    private static final String PATCH_METHOD = "PATCH";
 
     static final String OPERATION_TAG = "operation";
     static final String OUTCOME_TAG = "outcome";
@@ -28,9 +33,11 @@ public class PartyHttpObservability {
     private static final String NATURAL_PERSON_ITEM_PREFIX = NATURAL_PERSON_PATH + "/";
     private static final String LEGAL_ENTITY_PATH = "/v1/legal-entity";
     private static final String LEGAL_ENTITY_ITEM_PREFIX = LEGAL_ENTITY_PATH + "/";
-    private static final String PARTY_ITEM_PREFIX = "/v1/parties/";
+    private static final String PARTY_PATH = "/v1/parties";
+    private static final String PARTY_ITEM_PREFIX = PARTY_PATH + "/";
     private static final String IDENTIFIERS_SUFFIX = "/identifiers";
     private static final String ACTIVATE_SUFFIX = "/activate";
+    private static final Set<String> ROOT_MUTATIONS = Set.of("patch-party", "activate", "deactivate", "archive");
 
     private final MeterRegistry meterRegistry;
 
@@ -44,9 +51,13 @@ public class PartyHttpObservability {
      *
      * @param method HTTP method
      * @param path   normalized request path
-     * @return stable operation label or `unmatched`
+     * @return stable operation label, {@code unsupported} for a recognized route's other methods, or {@code unmatched}
      */
     public String operationName(String method, String path) {
+        String rootOperation = rootOperationName(method, path);
+        if (!UNMATCHED_OPERATION.equals(rootOperation)) {
+            return rootOperation;
+        }
         if (NATURAL_PERSON_PATH.equals(path) && "POST".equals(method)) {
             return "create";
         }
@@ -59,23 +70,20 @@ public class PartyHttpObservability {
             return switch (method) {
                 case "GET" -> "retrieve-legal-entity";
                 case "PUT" -> "replace-legal-entity";
-                case "PATCH" -> "patch-legal-entity";
-                default -> "unsupported";
+                case PATCH_METHOD -> "patch-legal-entity";
+                default -> UNSUPPORTED_OPERATION;
             };
         }
         if ("POST".equals(method) && isPartyOperationPath(path, IDENTIFIERS_SUFFIX)) {
             return "register-identifier";
-        }
-        if ("POST".equals(method) && isPartyOperationPath(path, ACTIVATE_SUFFIX)) {
-            return "activate";
         }
         if (path.startsWith(NATURAL_PERSON_ITEM_PREFIX)
                 && path.indexOf('/', NATURAL_PERSON_ITEM_PREFIX.length()) < 0) {
             return switch (method) {
                 case "GET" -> "retrieve";
                 case "PUT" -> "replace";
-                case "PATCH" -> "patch";
-                default -> "unsupported";
+                case PATCH_METHOD -> "patch";
+                default -> UNSUPPORTED_OPERATION;
             };
         }
         return UNMATCHED_OPERATION;
@@ -123,7 +131,7 @@ public class PartyHttpObservability {
                         .increment();
             }
         }
-        if (("replace".equals(operation) || "patch".equals(operation) || "activate".equals(operation)
+        if (("replace".equals(operation) || "patch".equals(operation) || ROOT_MUTATIONS.contains(operation)
                 || "replace-legal-entity".equals(operation) || "patch-legal-entity".equals(operation))
                 && status == 412) {
             meterRegistry.counter(OPTIMISTIC_CONFLICT_METRIC, OPERATION_TAG, operation)
@@ -134,6 +142,42 @@ public class PartyHttpObservability {
                 .setAttribute("party.operation", operation)
                 .setAttribute("party.outcome", outcome)
                 .setAttribute("party.response.code", code);
+    }
+
+    /** Records accepted or rejected root mutation outcomes without retaining keys, Party data, or raw request values. */
+    public void recordMutationCompletion(String operation, int status, String code, PartyMutationOutcome.Disposition disposition) {
+        if (!ROOT_MUTATIONS.contains(operation)) {
+            return;
+        }
+        String outcome;
+        if (status < 400 && disposition != null) {
+            outcome = disposition.name().toLowerCase(Locale.ROOT);
+        } else if (status == 409 || status == 412) {
+            outcome = "conflict";
+        } else {
+            return;
+        }
+        meterRegistry.counter(MUTATION_METRIC, OPERATION_TAG, operation, OUTCOME_TAG, outcome, CODE_TAG, code).increment();
+        Span.current().setAttribute("party.mutation.outcome", outcome);
+    }
+
+    private static String rootOperationName(String method, String path) {
+        if (PARTY_PATH.equals(path)) {
+            return "GET".equals(method) ? "list-parties" : UNSUPPORTED_OPERATION;
+        }
+        if (isPartyOperationPath(path, "")) {
+            return switch (method) {
+                case "GET" -> "retrieve-party";
+                case PATCH_METHOD -> "patch-party";
+                default -> UNSUPPORTED_OPERATION;
+            };
+        }
+        for (String action : new String[] {ACTIVATE_SUFFIX, "/deactivate", "/archive"}) {
+            if (isPartyOperationPath(path, action)) {
+                return "POST".equals(method) ? action.substring(1) : UNSUPPORTED_OPERATION;
+            }
+        }
+        return UNMATCHED_OPERATION;
     }
 
     private static boolean isPartyOperationPath(String path, String suffix) {

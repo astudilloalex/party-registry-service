@@ -7,6 +7,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -24,7 +27,7 @@ class OutboxMessageSerializerTest {
     private static final UUID EVENT_ID = UUID.fromString("01991bb4-9800-7000-8000-000000000001");
     private static final UUID TENANT_ID = UUID.fromString("01991bb4-9800-7000-8000-000000000002");
     private static final UUID AGGREGATE_ID = UUID.fromString("01991bb4-9800-7000-8000-000000000003");
-    private static final Instant OCCURRED_AT = Instant.parse("2026-09-04T13:00:00Z");
+    private static final Instant OCCURRED_AT = LocalDate.of(2026, Month.SEPTEMBER, 4).atTime(13, 0).toInstant(ZoneOffset.UTC);
     private static final String CORRELATION_ID = "01991bb4-9800-7000-8000-000000000004";
 
     private final ObjectMapper objectMapper = new ObjectMapper()
@@ -90,7 +93,7 @@ class OutboxMessageSerializerTest {
     }
 
     @Test
-    void acceptsOnlyTheThreeExactApprovedPayloadShapes() {
+    void preservesExistingApprovedPayloadShapesAndRejectsUnknownEvents() {
         serializer.serialize(message(
                 "PARTY",
                 0,
@@ -102,24 +105,27 @@ class OutboxMessageSerializerTest {
                 "party.activated.v1",
                 Map.of("partyType", "NATURAL_PERSON", "status", "ACTIVE")));
 
-        assertThrows(IllegalArgumentException.class, () -> serializer.serialize(message(
+        OutboxMessage invalidParty = message(
                 "PARTY",
                 0,
                 "party.created.v1",
-                Map.of("partyType", "NATURAL_PERSON", "status", "DRAFT"))));
-        assertThrows(IllegalArgumentException.class, () -> serializer.serialize(message(
+                Map.of("partyType", "NATURAL_PERSON", "status", "DRAFT"));
+        OutboxMessage invalidIdentifier = message(
                 "PARTY_IDENTIFIER",
                 0,
                 "party.identifier-created.v1",
                 Map.of(
                         "partyId", AGGREGATE_ID.toString(),
                         "schemeCode", "GB-PASSPORT",
-                        "status", "VERIFIED"))));
-        assertThrows(IllegalArgumentException.class, () -> serializer.serialize(message(
+                        "status", "VERIFIED"));
+        OutboxMessage unknownEvent = message(
                 "PARTY",
                 1,
                 "party.unknown.v1",
-                Map.of("partyType", "NATURAL_PERSON"))));
+                Map.of("partyType", "NATURAL_PERSON"));
+        assertThrows(IllegalArgumentException.class, () -> serializer.serialize(invalidParty));
+        assertThrows(IllegalArgumentException.class, () -> serializer.serialize(invalidIdentifier));
+        assertThrows(IllegalArgumentException.class, () -> serializer.serialize(unknownEvent));
     }
 
     private static OutboxMessage message(

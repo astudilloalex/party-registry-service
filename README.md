@@ -1,6 +1,6 @@
 # Party Registry Service
 
-Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. It registers natural persons and legal entities with one required initial official identifier, supports independently managed additional identifiers, and activates draft Parties from verified identifier evidence.
+Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. It registers natural persons and legal entities with one required initial official identifier, supports independently managed additional identifiers, and provides root Party listing, retrieval, display-name correction, activation, deactivation, and archival with durable lifecycle replay.
 
 ## Technology baseline
 
@@ -63,7 +63,7 @@ Use GET's latest version for subsequent edits. Replaying the original creation r
 
 ## Database
 
-Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, and V4 makes expiration optional. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.
+Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, V4 makes expiration optional, and V5 adds the tenant/creation-time/ID listing index. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.
 
 The application configures the same PostgreSQL database through two access paths:
 
@@ -205,7 +205,14 @@ The implemented business operations are:
 - `PUT /v1/natural-person/{partyId}`
 - `PATCH /v1/natural-person/{partyId}`
 - `POST /v1/parties/{partyId}/identifiers`
+- `GET /v1/parties`
+- `GET /v1/parties/{partyId}`
+- `PATCH /v1/parties/{partyId}`
 - `POST /v1/parties/{partyId}/activate`
+- `POST /v1/parties/{partyId}/deactivate`
+- `POST /v1/parties/{partyId}/archive`
+
+Root reads return safe summaries or the matching type-specific detail, excluding identifier/nationality collections. Root PATCH changes only `displayName` in any state and requires the current `If-Match`. Lifecycle actions support an optional tenant/action-scoped `Idempotency-Key`; an equivalent retry returns its original accepted result even after later changes or restart. Current GET remains authoritative for the current version. See [Root Party operations](docs/operations/root-party-contract.md) for exact validation, cursor secrets and rotation, timeouts, capacity, observability, rollout/rollback, and local IDE verification.
 
 Natural-person and legal-entity creation require exactly one `initialIdentifier`. The Party starts in `DRAFT`, and its independently persisted initial identifier starts in `PENDING_VERIFICATION`. Activation requires at least one compatible, non-expired `VERIFIED` identifier and exact optimistic-concurrency input through `If-Match`.
 

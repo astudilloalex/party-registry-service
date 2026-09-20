@@ -34,6 +34,7 @@ public final class PartyApiErrorTranslator {
 
     private static ApiResponseCode responseCode(ApplicationFailure failure) {
         return switch (failure) {
+            case ApplicationFailure.InvalidPartyCursor _ -> PartyResponseCode.BAD_REQUEST;
             case ApplicationFailure.NaturalPersonNotFound _ -> PartyResponseCode.NATURAL_PERSON_NOT_FOUND;
             case ApplicationFailure.LegalEntityNotFound _ -> PartyResponseCode.LEGAL_ENTITY_NOT_FOUND;
             case ApplicationFailure.IdempotencyKeyConflict _ -> PartyResponseCode.IDEMPOTENCY_KEY_CONFLICT;
@@ -59,6 +60,7 @@ public final class PartyApiErrorTranslator {
     private static ApiResponseCode businessViolationCode(DomainViolation violation) {
         return switch (violation) {
             case DISPLAY_NAME_REQUIRED -> PartyResponseCode.BLANK_DISPLAY_NAME;
+            case DISPLAY_NAME_TOO_LONG -> PartyResponseCode.DISPLAY_NAME_TOO_LONG;
             case BIRTH_DATE_IN_FUTURE -> PartyResponseCode.BIRTH_DATE_IN_FUTURE;
             case DATE_OF_DEATH_IN_FUTURE -> PartyResponseCode.DATE_OF_DEATH_IN_FUTURE;
             case DEATH_BEFORE_BIRTH -> PartyResponseCode.DEATH_BEFORE_BIRTH;

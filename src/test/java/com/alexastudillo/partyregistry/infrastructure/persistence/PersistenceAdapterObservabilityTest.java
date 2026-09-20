@@ -6,7 +6,6 @@ import com.alexastudillo.partyregistry.application.model.LegalEntityRegistration
 import com.alexastudillo.partyregistry.application.model.NaturalPersonRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.ObservedOperation;
 import com.alexastudillo.partyregistry.application.model.OperationOutcome;
-import com.alexastudillo.partyregistry.application.model.PartyActivationCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyDetailsResult;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
@@ -30,7 +29,6 @@ import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifier;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierId;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
-import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import com.alexastudillo.partyregistry.domain.model.ProtectedIdentifierValue;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
@@ -44,6 +42,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,8 +58,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PersistenceAdapterObservabilityTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
-    private static final Instant NOW = Instant.parse("2026-09-04T18:00:00Z");
     private static final LocalDate TODAY = LocalDate.of(2026, Month.SEPTEMBER, 4);
+    private static final Instant NOW = TODAY.atTime(18, 0).toInstant(ZoneOffset.UTC);
     private static final TenantId TENANT_ID = new TenantId(
             UUID.fromString("01991ebd-6800-7000-8000-000000000001"));
     private static final RequestMetadata METADATA = new RequestMetadata(
@@ -109,7 +108,7 @@ class PersistenceAdapterObservabilityTest {
     }
 
     @Test
-    void observesAdditionalIdentifierAndActivationTransactionOutcomes() {
+    void observesAdditionalIdentifierTransactionOutcomes() {
         PartyIdentifierRegistrationCandidate identifierCandidate = identifierCandidate();
         PartyIdentifierResult identifierResult = PartyIdentifierResult.fromAggregate(
                 identifierCandidate.identifier(),
@@ -132,34 +131,6 @@ class PersistenceAdapterObservabilityTest {
                 ObservedOperation.TRANSACTION_ADDITIONAL_IDENTIFIER_REGISTRATION,
                 OperationOutcome.CREATED);
 
-        NaturalPerson party = naturalPerson();
-        PartyDetailsResult activated = PartyDetailsResult.fromAggregate(
-                party.activate(NOW.plusSeconds(1), METADATA.userId()));
-        PartyActivationCandidate activationCandidate = new PartyActivationCandidate(
-                METADATA,
-                party.partyId(),
-                PartyVersion.initial(),
-                TODAY,
-                NOW.plusSeconds(1));
-        RecordingOperationObserver activationObserver = new RecordingOperationObserver();
-        var activationAdapter = new HibernateReactivePartyActivationAdapter(
-                sessionFactory(Uni.createFrom().item(activated)),
-                new NaturalPersonPersistenceMapper(),
-                new LegalEntityPersistenceMapper(),
-                new PartyIdentifierPersistenceMapper(),
-                new IdentifierSchemePersistenceMapper(),
-                new PartyOutboxEventPersistenceMapper(),
-                activationObserver,
-                "disabled");
-
-        assertTrue(activationObserver.startedCalls().isEmpty());
-        Uni<PartyDetailsResult> activationOperation = activationAdapter.activate(activationCandidate);
-        assertTrue(activationObserver.startedCalls().isEmpty());
-        assertSame(activated, awaitItem(activationOperation));
-        assertObservation(
-                activationObserver,
-                ObservedOperation.TRANSACTION_PARTY_ACTIVATION,
-                OperationOutcome.ACTIVATED);
     }
 
     @Test

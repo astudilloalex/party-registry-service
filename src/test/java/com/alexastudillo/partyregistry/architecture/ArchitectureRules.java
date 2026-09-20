@@ -76,4 +76,11 @@ final class ArchitectureRules {
                 .matching(rootPackage + ".(**)")
                 .should().beFreeOfCycles();
     }
+
+    static ArchRule resourcesDelegateThroughUseCases(String rootPackage) {
+        return noClasses().that().resideInAPackage(rootPackage + ".api.resource..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        rootPackage + ".application.port..", rootPackage + ".domain.policy..")
+                .because("HTTP resources must delegate workflow and policy decisions to Application use cases");
+    }
 }

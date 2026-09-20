@@ -4,7 +4,7 @@ import com.alexastudillo.partyregistry.application.command.PartyRegistrationComm
 import com.alexastudillo.partyregistry.application.model.IdentifierProtectionRequest;
 import com.alexastudillo.partyregistry.application.model.LegalEntityRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.NaturalPersonRegistrationCandidate;
-import com.alexastudillo.partyregistry.application.model.PartyActivationCandidate;
+import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.domain.model.LegalEntity;
@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -32,7 +33,10 @@ class ApplicationPortContractTest {
             IdempotentPartyRegistrationPort.class,
             PartyLookupPort.class,
             PartyIdentifierRegistrationPort.class,
-            PartyActivationPort.class,
+            PartyMutationPort.class,
+            PartyMutationContext.class,
+            PartyQueryPort.class,
+            PartyCursorPort.class,
             LegalEntityRepository.class);
 
     @Test
@@ -83,8 +87,8 @@ class ApplicationPortContractTest {
                         .getMethod("register", PartyIdentifierRegistrationCandidate.class)
                         .getReturnType());
         assertEquals(Uni.class,
-                PartyActivationPort.class
-                        .getMethod("activate", PartyActivationCandidate.class)
+                PartyMutationPort.class
+                        .getMethod("execute", RequestMetadata.class, Function.class)
                         .getReturnType());
     }
 

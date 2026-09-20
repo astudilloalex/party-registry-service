@@ -5,11 +5,16 @@ import com.alexastudillo.partyregistry.application.port.IdempotentPartyRegistrat
 import com.alexastudillo.partyregistry.application.port.IdentifierProtectionPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierSchemeRepository;
 import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
-import com.alexastudillo.partyregistry.application.port.PartyActivationPort;
+import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
+import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
+import com.alexastudillo.partyregistry.application.port.PartyCursorPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
-import com.alexastudillo.partyregistry.application.usecase.ActivatePartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
@@ -62,9 +67,12 @@ class ApplicationUseCaseProducerTest {
                 IdentifierProtectionPort.class,
                 OperationObservationPort.class), RegisterPartyIdentifierUseCase.class);
         assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod(
-                "activatePartyUseCase",
-                PartyActivationPort.class,
-                OperationObservationPort.class), ActivatePartyUseCase.class);
+                "changePartyLifecycleUseCase",
+                PartyMutationPort.class,
+                OperationObservationPort.class), ChangePartyLifecycleUseCase.class);
+        assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod("getPartyUseCase", PartyQueryPort.class, OperationObservationPort.class), GetPartyUseCase.class);
+        assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod("listPartiesUseCase", PartyQueryPort.class, PartyCursorPort.class, OperationObservationPort.class), ListPartiesUseCase.class);
+        assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod("patchPartyUseCase", PartyMutationPort.class, OperationObservationPort.class), PatchPartyUseCase.class);
     }
 
     private static void assertProducer(Method method, Class<?> returnType) {

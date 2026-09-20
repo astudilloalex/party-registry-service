@@ -46,6 +46,7 @@ public final class ApplicationException extends RuntimeException {
     private static String describe(ApplicationFailure failure) {
         Objects.requireNonNull(failure, FAILURE);
         return switch (failure) {
+            case ApplicationFailure.InvalidPartyCursor _ -> "Invalid Party cursor";
             case ApplicationFailure.NaturalPersonNotFound _ -> "Natural person not found";
             case ApplicationFailure.LegalEntityNotFound _ -> "Legal entity not found";
             case ApplicationFailure.IdempotencyKeyConflict _ -> "Idempotency key conflict";
