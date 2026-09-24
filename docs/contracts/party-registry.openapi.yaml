@@ -1,0 +1,3858 @@
+openapi: 3.0.3
+info:
+  title: Party Management API
+  version: 1.0.0
+  description: |
+    Contrato completo del microservicio de Parties usando envelope ApiResponse.
+
+    Todas las respuestas siguen el formato:
+    - status
+    - code
+    - data (cuando aplique)
+
+    Para listados que requieren paginación se incluyen además:
+    - nextCursor
+    - prevCursor
+    - totalElements
+    - totalPages
+    - numberOfElements
+
+    No se exponen endpoints externos para party_outbox_events.
+
+servers:
+  - url: /
+
+tags:
+  - name: natural-person
+    description: Personas naturales
+  - name: legal-entity
+    description: Entidades legales
+  - name: parties
+    description: Party raíz
+  - name: nationalities
+    description: Nacionalidades de un party
+  - name: identifier-schemes
+    description: Schemes de identificación
+  - name: party-identifiers
+    description: Identificadores de parties
+  - name: searches
+    description: Búsquedas por identificador
+
+paths:
+  /v1/natural-person:
+    post:
+      tags:
+        - natural-person
+      operationId: createNaturalPerson
+      summary: Crear persona natural
+      description: |
+        Creates a party permanently classified as `NATURAL_PERSON`, its details, and exactly one
+        required initial official identifier. The identifier scheme must be `ACTIVE` and compatible
+        with natural persons. The Party, details, initial identifier, and idempotency result are
+        persisted atomically; if any validation or persistence step fails, none of them is created.
+        The initial identifier starts in `PENDING_VERIFICATION`, and its complete value is never
+        returned.
+        Reusing an `Idempotency-Key` with the same effective request returns the original result;
+        the effective request includes the initial identifier. Reusing the key with a different
+        effective request returns `409 idempotency-key-conflict`. An already owned active identifier
+        returns `409 identifier-uniqueness-conflict`.
+        Text normalization does not change idempotency comparison: original submitted text is
+        compared, so changing only case or surrounding whitespace still changes the request.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NaturalPersonCreateRequest'
+      responses:
+        '201':
+          description: Persona natural e identificador inicial creados
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonCreateApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/natural-person/{partyId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - natural-person
+      operationId: getNaturalPerson
+      summary: Obtener persona natural
+      description: |
+        Returns the existing natural-person fields plus the complete collection of current identifiers
+        for this tenant and Party. Current identifiers have status `PENDING_VERIFICATION` or `VERIFIED`
+        and an `expiresOn` value that is null or greater than or equal to one UTC evaluation date
+        captured for the entire request. `EXPIRED`, `REJECTED`, and `REVOKED` identifiers are excluded,
+        as are pending or verified identifiers whose expiration precedes that date.
+        Includes all schemes, including metadata from deactivated (`DEPRECATED` or `RETIRED`) schemes,
+        without filtering by scheme or `isPrimary`. Identifiers are ordered by `createdAt ASC`, then
+        `identifierId ASC`. The collection is not truncated to 50 items and has no pagination parameters
+        or additional pagination fields. A valid Party with no current identifiers returns `identifiers: []`.
+        Each item reuses `PartyIdentifierResponse`, including its stored `maskedValue`; retrieval does
+        not decrypt identifier values or expose plaintext, ciphertext, hashes, or encryption keys.
+        An absent, cross-tenant, or wrong-type Party returns 404 natural-person-not-found.
+      responses:
+        '200':
+          description: Detalle de persona natural
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    put:
+      tags:
+        - natural-person
+      operationId: replaceNaturalPerson
+      summary: Reemplazar detalle de persona natural
+      description: |
+        Completely replaces the natural-person details. Omitted optional fields are cleared.
+        The display name is derived again whenever the submitted given or family names change.
+        Stale versions return 412 expected-version-mismatch; an absent or concealed natural person
+        returns 404 natural-person-not-found. Date failures use birth-date-in-future,
+        date-of-death-in-future, or death-before-birth; an unrecognized changed country uses
+        unrecognized-birth-country, all with HTTP 422.
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NaturalPersonPutRequest'
+      responses:
+        '200':
+          description: Detalle actualizado
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    patch:
+      tags:
+        - natural-person
+      operationId: patchNaturalPerson
+      summary: Actualización parcial de persona natural
+      description: |
+        Updates only submitted properties. Omitted properties retain their current values, while
+        an explicit `null` clears a nullable property. At least one supported property is required.
+        Changing given or family names derives the display name again.
+        Stale versions return 412 expected-version-mismatch; an absent or concealed natural person
+        returns 404 natural-person-not-found. Date failures use birth-date-in-future,
+        date-of-death-in-future, or death-before-birth; an unrecognized changed country uses
+        unrecognized-birth-country, all with HTTP 422.
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NaturalPersonPatchRequest'
+      responses:
+        '200':
+          description: Detalle actualizado
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalPersonApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/legal-entity:
+    post:
+      tags:
+        - legal-entity
+      operationId: createLegalEntity
+      summary: Crear entidad legal
+      description: |
+        Creates a party permanently classified as `LEGAL_ENTITY`, its details, and exactly one
+        required initial official identifier. The identifier scheme must be `ACTIVE` and compatible
+        with legal entities. The Party, details, initial identifier, and idempotency result are
+        persisted atomically; if any validation or persistence step fails, none of them is created.
+        The initial identifier starts in `PENDING_VERIFICATION`, and its complete value is never
+        returned. The initial identifier is part of the effective request protected by the
+        `Idempotency-Key`.
+        Reusing a key with different effective input returns 409 idempotency-key-conflict;
+        an already owned active identifier returns 409 identifier-uniqueness-conflict.
+        Text normalization does not change idempotency comparison: original submitted text is
+        compared, so changing only case or surrounding whitespace still changes the request.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalEntityCreateRequest'
+      responses:
+        '201':
+          description: Entidad legal e identificador inicial creados
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityCreateApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/legal-entity/{partyId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - legal-entity
+      operationId: getLegalEntity
+      summary: Retrieve a legal entity
+      description: |
+        Returns the current tenant-owned LEGAL_ENTITY, its Party identity, status, version,
+        audit information, and legalEntityDetails. Absent, cross-tenant, and wrong-type Parties
+        return 404 legal-entity-not-found. Retrieval preserves historical text and does not change audit
+        information or versions. It requires no body, query parameters, If-Match, or Idempotency-Key.
+        The response contains no initialIdentifier, identifiers collection, or pagination fields.
+        Retrieval does not require Geographic Reference validation.
+      responses:
+        '200':
+          description: Current legal-entity details
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/LegalEntityNotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    put:
+      tags:
+        - legal-entity
+      operationId: replaceLegalEntity
+      summary: Replace legal-entity details
+      description: |
+        Replaces all six legal-detail fields. Omitted optional properties are cleared.
+        Legal name and incorporation country are required. A canonically changed legalName
+        derives displayName again; a canonically equivalent name preserves the existing label.
+        Validates resulting lifecycle dates against one UTC evaluation date. A changed canonical
+        incorporationCountryCode must be recognized by Geographic Reference; equivalent codes
+        require no new lookup. Failed required country validation returns 503 dependency-unavailable.
+        Requires the current Party version in If-Match, but no Idempotency-Key. Stale versions
+        return 412 expected-version-mismatch before semantic or country validation. Every accepted update,
+        including identical input, increments the Party version exactly once and updates audit
+        information atomically. Identity, type, recordStatus, identifiers, and creation snapshots
+        remain unchanged. Failed updates leave no partial correction.
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityIfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalEntityPutRequest'
+      responses:
+        '200':
+          description: Replaced legal-entity details and incremented Party version
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/LegalEntityNotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/LegalEntityExpectedVersionMismatch'
+        '422':
+          $ref: '#/components/responses/LegalEntityBusinessValidationFailure'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    patch:
+      tags:
+        - legal-entity
+      operationId: patchLegalEntity
+      summary: Partially update legal-entity details
+      description: |
+        Updates only submitted legal-detail properties. Omitted values retain their exact stored
+        representations, while explicit null clears a nullable property. At least one supported
+        property is required; unknown properties are rejected. Legal name and incorporation country
+        cannot be cleared. A canonically changed legalName derives displayName again; an omitted
+        or canonically equivalent name preserves the existing label.
+        Validates the complete resulting lifecycle dates against one UTC evaluation date. A changed
+        canonical incorporationCountryCode requires Geographic Reference validation; equivalent
+        codes do not. An unrecognized country returns 422 unrecognized-incorporation-country; inability to complete
+        required country validation returns 503 dependency-unavailable.
+        Requires the current Party version in If-Match, but no Idempotency-Key. Stale versions
+        return 412 expected-version-mismatch before semantic or country validation. Every accepted update
+        increments the Party version exactly once and updates audit information atomically.
+        Identity, type, recordStatus, identifiers, and creation snapshots remain unchanged.
+      parameters:
+        - $ref: '#/components/parameters/LegalEntityIfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LegalEntityPatchRequest'
+      responses:
+        '200':
+          description: Updated legal-entity details and incremented Party version
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegalEntityApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/LegalEntityNotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/LegalEntityExpectedVersionMismatch'
+        '422':
+          $ref: '#/components/responses/LegalEntityBusinessValidationFailure'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties:
+    get:
+      tags:
+        - parties
+      operationId: listParties
+      summary: List tenant-owned Party summaries
+      description: |
+        Returns only the requesting tenant's summaries, including both types and all four record
+        statuses (including ARCHIVED) when the corresponding filter is absent. Stored text, audit
+        values, and versions are preserved. No If-Match or Idempotency-Key is required.
+        Accepts only type, recordStatus, displayNameStartsWith, displayNameContains, createdFrom,
+        createdTo, cursor, and limit, each at most once. Unknown or repeated parameters and invalid
+        values return 400 bad-request; malformed filters are never silently ignored.
+        All effective filters use AND semantics. Enums match exactly. Name comparison applies
+        strip().toUpperCase(Locale.ROOT) to the stored name and supplied filter without rewriting
+        stored values. Prefix/substring matching is literal: %, _, accents, punctuation, and interior
+        whitespace retain their meaning. Empty or whitespace-only name filters are absent. Each
+        decoded name filter is limited to 300 Unicode code points before normalization.
+        Creation bounds are inclusive offset-qualified date-times compared as instants. Equivalent
+        offsets select the same boundary; equal bounds are permitted, inverted bounds are rejected.
+        Results are ordered by createdAt DESC, then canonical unsigned partyId DESC on every page,
+        including backward navigation. The default limit is 50; supplied limits must be decimal
+        integers from 1 through 200. Blank, fractional, negative, zero, or oversized limits are invalid.
+        Opaque cursors bind the tenant, all effective filters, and page size. Canonically equivalent
+        name filters and equivalent date-time offsets have the same scope. Omission requests the
+        first page; empty, malformed, altered, or scope-mismatched cursors return 400 bad-request.
+        Forward/backward continuation is stable on unchanged data. Separate requests see current
+        data, not a retained historical snapshot; an authenticated boundary need not still match a row.
+        Each response's summaries, exact totalElements, totalPages, and neighbor cursors describe
+        one consistent view. Totals count all matches before continuation, totalPages is the ceiling
+        of totalElements divided by the effective limit, and numberOfElements is the array length.
+        Both cursor properties are always present and use explicit null for unavailable directions.
+        When all matches disappear, data is [], both cursors are null, and all three counts are zero.
+        An empty continuation page may still offer navigation relative to its authenticated boundary.
+        Accepted Process-Id values are echoed unchanged on success and failure. Framework 404/405
+        and unexpected 500 failures use the shared status/code-only error envelope.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - name: type
+          in: query
+          required: false
+          description: Exact immutable Party type; omission includes both types.
+          schema:
+            $ref: '#/components/schemas/PartyType'
+        - name: recordStatus
+          in: query
+          required: false
+          description: Exact lifecycle status; omission includes DRAFT, ACTIVE, INACTIVE, and ARCHIVED.
+          schema:
+            $ref: '#/components/schemas/PartyRecordStatus'
+        - name: displayNameStartsWith
+          in: query
+          required: false
+          allowEmptyValue: true
+          description: Literal canonical prefix; at most 300 decoded Unicode code points before normalization.
+          schema:
+            type: string
+            maxLength: 300
+        - name: displayNameContains
+          in: query
+          required: false
+          allowEmptyValue: true
+          description: Literal canonical substring; at most 300 decoded Unicode code points before normalization.
+          schema:
+            type: string
+            maxLength: 300
+        - name: createdFrom
+          in: query
+          required: false
+          description: Inclusive creation instant; an explicit UTC offset is required.
+          schema:
+            type: string
+            format: date-time
+        - name: createdTo
+          in: query
+          required: false
+          description: Inclusive creation instant; an explicit UTC offset is required and the value cannot precede createdFrom.
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/PartyCursorQuery'
+        - $ref: '#/components/parameters/PartyLimitQuery'
+      responses:
+        '200':
+          description: Tenant-qualified summaries and exact, snapshot-consistent pagination metadata
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyCollectionApiResponse'
+              examples:
+                empty:
+                  summary: No matching records
+                  value:
+                    status: 200
+                    code: successful
+                    data: []
+                    nextCursor: null
+                    prevCursor: null
+                    totalElements: 0
+                    totalPages: 0
+                    numberOfElements: 0
+                singlePage:
+                  summary: One retained Party and no other matching records
+                  value:
+                    status: 200
+                    code: successful
+                    data:
+                      - partyId: 0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1
+                        type: NATURAL_PERSON
+                        displayName: Ada Lovelace
+                        recordStatus: ARCHIVED
+                        createdAt: '2026-09-19T12:00:00.123456Z'
+                        version: 3
+                    nextCursor: null
+                    prevCursor: null
+                    totalElements: 1
+                    totalPages: 1
+                    numberOfElements: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/search/by-identifier:
+    post:
+      tags:
+        - searches
+      operationId: searchPartyByIdentifier
+      summary: Buscar party por identificador exacto
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierSearchExactRequest'
+      responses:
+        '200':
+          description: Resultados de búsqueda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSearchApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/search/by-identifier-prefix:
+    post:
+      tags:
+        - searches
+      operationId: searchPartyByIdentifierPrefix
+      summary: Buscar parties por prefijo de identificador
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierSearchPrefixRequest'
+      responses:
+        '200':
+          description: Resultados de búsqueda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSearchApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - parties
+      operationId: getParty
+      summary: Retrieve the common Party detail representation
+      description: |
+        Returns a tenant-owned Party in DRAFT, ACTIVE, INACTIVE, or ARCHIVED, preserving its stored
+        historical text, version, and audit values. No If-Match or Idempotency-Key is required;
+        retrieval does not depend on Geographic Reference validation.
+        Includes partyId, type, displayName, recordStatus, version, createdAt, updatedAt, createdBy,
+        updatedBy, and exactly the matching naturalPersonDetails or legalEntityDetails property.
+        Excludes initialIdentifier, identifier collections, nationality collections, tenantId,
+        pagination properties, and all protected identifier values, hashes, ciphertext, or keys.
+        A noncanonical lowercase UUID returns 400 party-id-invalid. An absent or cross-tenant
+        Party returns the same 404 party-not-found without disclosing its owner, type, or version.
+        An accepted Process-Id is echoed unchanged on success and failure. Framework 404/405 and
+        unexpected 500 failures use the shared status/code-only error envelope.
+      responses:
+        '200':
+          description: Current safe Party details with exactly the immutable type's detail property
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/PartyNotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    patch:
+      tags:
+        - parties
+      operationId: updateParty
+      summary: Correct a Party display name
+      description: |
+        Accepts exactly one supported string property, displayName, in a JSON object. Missing or
+        null bodies return 400 request-body-required; missing/null displayName returns
+        400 display-name-required. Malformed JSON, non-object bodies, duplicate/unknown properties,
+        and incompatible property types return 400 bad-request without scalar coercion.
+        Validates trusted context first, then body syntax/required value/normalized maximum length,
+        then canonical partyId, then If-Match. Applicable framework checks retain their precedence.
+        Normalization uses strip().toUpperCase(Locale.ROOT), retaining accents, punctuation, and
+        interior whitespace. More than 300 normalized UTF-16 code units returns
+        400 display-name-too-long. An empty or whitespace-only string remains structurally valid
+        until business validation and then returns 422 blank-display-name.
+        Business failures are evaluated in order: tenant-scoped absence (404 party-not-found),
+        expected-version mismatch (412 expected-version-mismatch), then blank-display-name.
+        A lost concurrent update also returns 412 expected-version-mismatch.
+        A correction is permitted in DRAFT, ACTIVE, INACTIVE, and ARCHIVED. Every accepted write,
+        including identical canonical input, advances the Party version exactly once and records
+        the requesting User-Id and update time. Identity, type, status, subtype details, independent
+        identifiers, nationalities, creation audit values, and registration replay results are preserved.
+        Enabled events and the accepted mutation are atomic; a failed attempt leaves no partial outcome.
+        Idempotency-Key is not required and supplying it does not enable lifecycle replay for PATCH.
+        The response uses the safe root detail representation and echoes the current accepted Process-Id.
+      parameters:
+        - $ref: '#/components/parameters/PartyIfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyUpdateRequest'
+      responses:
+        '200':
+          description: Corrected display name, update audit information, and exactly one version increment
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/PartyNotFound'
+        '412':
+          $ref: '#/components/responses/PartyExpectedVersionMismatch'
+        '422':
+          $ref: '#/components/responses/PartyBlankDisplayName'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/activate:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/PartyLifecycleIdempotencyKey'
+      - $ref: '#/components/parameters/PartyLifecycleIfMatch'
+    post:
+      tags:
+        - parties
+      operationId: activateParty
+      summary: Activate an eligible draft Party
+      description: |
+        Requires no body. After trusted context and applicable framework checks, validates optional
+        Idempotency-Key, canonical partyId, then required If-Match, even for a potential saved replay.
+        Resolves an equivalent completed keyed result or 409 idempotency-key-conflict before current
+        state checks. New-operation failure precedence is tenant-scoped absence (404 party-not-found),
+        version mismatch (412 stale-party-version), lifecycle (409 invalid-party-lifecycle), then
+        qualifying evidence (422 missing-qualifying-identifier).
+        Only DRAFT may become ACTIVE. ACTIVE, INACTIVE, and ARCHIVED reject new activation;
+        reactivation is not supported. Requires an identifier owned by the same tenant and Party in
+        VERIFIED status, with null expiration or expiration on/after the single UTC evaluation date,
+        referencing a matching scheme applicable to this Party type or BOTH. Primary flags and
+        DEPRECATED/RETIRED scheme states do not disqualify otherwise eligible evidence. Pending,
+        rejected, revoked, expired, unrelated, mismatched, and incompatible evidence cannot qualify.
+        Success advances the Party version once and updates audit values while preserving the label,
+        subtype details, independent identifier states/versions, and registration replay results.
+        The root write, successful keyed result, and enabled activation event are atomic.
+        An equivalent tenant/action/key retry with the original Party ID and expected version returns
+        the original 200 successful data/version/audit, even after later archival or service restart.
+        Equivalent concurrent keyed requests converge on one result instead of returning a stale-version
+        loser. Replay does not re-evaluate evidence or produce another mutation/event. Failed attempts
+        consume no completed key. The current accepted Process-Id is echoed, while replayed audit values
+        retain the original actor/time. Unkeyed or distinct-key operations use current-version arbitration.
+      responses:
+        '200':
+          description: Accepted activation or the identical historical activation result on an equivalent keyed retry
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  partyId: 0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1
+                  type: NATURAL_PERSON
+                  displayName: ADA LOVELACE
+                  recordStatus: ACTIVE
+                  version: 1
+                  createdAt: '2026-09-19T12:00:00Z'
+                  updatedAt: '2026-09-19T12:01:00Z'
+                  createdBy: registrar
+                  updatedBy: activator
+                  naturalPersonDetails: { givenNames: ADA, familyNames: LOVELACE }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/PartyNotFound'
+        '409':
+          $ref: '#/components/responses/PartyLifecycleConflict'
+        '412':
+          $ref: '#/components/responses/PartyStaleVersion'
+        '422':
+          $ref: '#/components/responses/PartyMissingActivationEvidence'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/deactivate:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/PartyLifecycleIdempotencyKey'
+      - $ref: '#/components/parameters/PartyLifecycleIfMatch'
+    post:
+      tags:
+        - parties
+      operationId: deactivateParty
+      summary: Deactivate an active Party
+      description: |
+        Requires no body. After trusted context and applicable framework checks, validates optional
+        Idempotency-Key, canonical partyId, then required If-Match, including requests for saved results.
+        Resolves completed replay or idempotency-key-conflict before tenant-scoped absence, stale
+        version, then lifecycle validation, using 404 party-not-found, 412 stale-party-version,
+        and 409 invalid-party-lifecycle respectively. Only ACTIVE may become INACTIVE; DRAFT,
+        INACTIVE, and ARCHIVED reject new deactivation. No identifier evidence is required.
+        Success increments the Party version exactly once and updates audit values, preserving all
+        identity, label, subtype details, independent identifiers, nationalities, creation audit,
+        and registration replay results. Root changes, the successful keyed result, and enabled
+        deactivation events are atomic; rejection leaves no partial outcome or completed key.
+        Equivalent tenant/action/key retries return the original 200 successful Party data, version,
+        and audit values after subsequent changes or restart, without another mutation/event. Concurrent
+        equivalent keyed retries converge. Current User-Id and Process-Id do not change equivalence;
+        the current accepted Process-Id is echoed while the saved audit actor/time remain historical.
+        Distinct-key or unkeyed requests losing the version race return 412 stale-party-version.
+      responses:
+        '200':
+          description: Accepted deactivation or its historical successful keyed result
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  partyId: 0198ce2b-d6a3-7d6e-80ba-d97b21d793e5
+                  type: LEGAL_ENTITY
+                  displayName: ANALYTICAL ENGINES
+                  recordStatus: INACTIVE
+                  version: 2
+                  createdAt: '2026-09-19T12:00:00Z'
+                  updatedAt: '2026-09-19T12:02:00Z'
+                  createdBy: registrar
+                  updatedBy: operator
+                  legalEntityDetails: { legalName: ANALYTICAL ENGINES, incorporationCountryCode: GB }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/PartyNotFound'
+        '409':
+          $ref: '#/components/responses/PartyLifecycleConflict'
+        '412':
+          $ref: '#/components/responses/PartyStaleVersion'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/PartyLifecycleIdempotencyKey'
+      - $ref: '#/components/parameters/PartyLifecycleIfMatch'
+    post:
+      tags:
+        - parties
+      operationId: archiveParty
+      summary: Archive a retained Party
+      description: |
+        Requires no body. After trusted context and applicable framework checks, validates optional
+        Idempotency-Key, canonical partyId, then required If-Match, including requests for saved results.
+        Resolves completed replay or idempotency-key-conflict before tenant-scoped absence, stale
+        version, then lifecycle validation, using 404 party-not-found, 412 stale-party-version,
+        and 409 invalid-party-lifecycle respectively. DRAFT, ACTIVE, and INACTIVE may become ARCHIVED
+        directly, with no identifier evidence requirement. ARCHIVED rejects every new lifecycle action
+        at its current version; archival does not prevent a later descriptive root PATCH.
+        Success increments the Party version exactly once and updates audit values without physically
+        deleting records. Identity, label, subtype details, independent identifiers and their versions,
+        nationalities, creation audit, and registration replay results are retained. Root changes,
+        the successful keyed result, and enabled archival events are atomic; rejection leaves no
+        partial outcome or completed key. Archived Parties remain retrievable and eligible for listing.
+        Equivalent tenant/action/key retries return the original 200 successful Party data, version,
+        and audit after later corrections or restart. A lost response after commit does not undo
+        acceptance. Replay never changes current state or emits another event; equivalent concurrent
+        retries converge. The current accepted Process-Id is echoed while audit values remain historical.
+        Distinct-key or unkeyed requests losing the version race return 412 stale-party-version.
+      responses:
+        '200':
+          description: Accepted archival or its historical successful keyed result
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDetailApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  partyId: 0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1
+                  type: NATURAL_PERSON
+                  displayName: ADA LOVELACE
+                  recordStatus: ARCHIVED
+                  version: 3
+                  createdAt: '2026-09-19T12:00:00Z'
+                  updatedAt: '2026-09-19T12:03:00Z'
+                  createdBy: registrar
+                  updatedBy: archivist
+                  naturalPersonDetails: { givenNames: ADA, familyNames: LOVELACE }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/PartyNotFound'
+        '409':
+          $ref: '#/components/responses/PartyLifecycleConflict'
+        '412':
+          $ref: '#/components/responses/PartyStaleVersion'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/nationalities:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    post:
+      tags:
+        - nationalities
+      operationId: createNationality
+      summary: Crear nacionalidad
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NationalityCreateRequest'
+      responses:
+        '201':
+          description: Nacionalidad creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    get:
+      tags:
+        - nationalities
+      operationId: listNationalities
+      summary: Listar nacionalidades
+      parameters:
+        - name: countryCode
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+        - name: isPrimary
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: asOfDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: includeExpired
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/CursorQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Lista de nacionalidades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityCollectionApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/nationalities/{nationalityId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/NationalityIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - nationalities
+      operationId: getNationality
+      summary: Obtener nacionalidad
+      responses:
+        '200':
+          description: Nacionalidad
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    patch:
+      tags:
+        - nationalities
+      operationId: updateNationality
+      summary: Actualizar vigencia de nacionalidad
+      description: |
+        No existe borrado físico. La finalización se maneja mediante validUntil.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NationalityUpdateRequest'
+      responses:
+        '200':
+          description: Nacionalidad actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/nationalities/{nationalityId}/set-primary:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/NationalityIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - nationalities
+      operationId: setPrimaryNationality
+      summary: Marcar nacionalidad primaria
+      responses:
+        '200':
+          description: Nacionalidad marcada como primaria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NationalityApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/identifier-schemes:
+    post:
+      tags:
+        - identifier-schemes
+      operationId: createIdentifierScheme
+      summary: Crear scheme de identificación
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierSchemeCreateRequest'
+      responses:
+        '201':
+          description: Scheme creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    get:
+      tags:
+        - identifier-schemes
+      operationId: listIdentifierSchemes
+      summary: Listar schemes de identificación
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - name: issuingCountryCode
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Z]{2}$'
+        - name: category
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IdentifierCategory'
+        - name: applicableSubjectType
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IdentifierSubjectType'
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/IdentifierSchemeStatus'
+        - $ref: '#/components/parameters/CursorQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Lista de schemes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeCollectionApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/identifier-schemes/by-code/{code}:
+    get:
+      tags:
+        - identifier-schemes
+      operationId: getIdentifierSchemeByCode
+      summary: Obtener scheme por código
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ProcessId'
+        - $ref: '#/components/parameters/UserId'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '200':
+          description: Scheme encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/identifier-schemes/{schemeId}:
+    parameters:
+      - $ref: '#/components/parameters/IdentifierSchemeIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - identifier-schemes
+      operationId: getIdentifierScheme
+      summary: Obtener scheme por ID
+      responses:
+        '200':
+          description: Scheme encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    patch:
+      tags:
+        - identifier-schemes
+      operationId: updateIdentifierScheme
+      summary: Actualizar scheme
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierSchemeUpdateRequest'
+      responses:
+        '200':
+          description: Scheme actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/identifier-schemes/{schemeId}/activate:
+    parameters:
+      - $ref: '#/components/parameters/IdentifierSchemeIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - identifier-schemes
+      operationId: activateIdentifierScheme
+      summary: Activar scheme
+      responses:
+        '200':
+          description: Scheme activado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/identifier-schemes/{schemeId}/deprecate:
+    parameters:
+      - $ref: '#/components/parameters/IdentifierSchemeIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - identifier-schemes
+      operationId: deprecateIdentifierScheme
+      summary: Deprecar scheme
+      responses:
+        '200':
+          description: Scheme deprecado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/identifier-schemes/{schemeId}/retire:
+    parameters:
+      - $ref: '#/components/parameters/IdentifierSchemeIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - identifier-schemes
+      operationId: retireIdentifierScheme
+      summary: Retirar scheme
+      responses:
+        '200':
+          description: Scheme retirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/identifiers:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    post:
+      tags:
+        - party-identifiers
+      operationId: createPartyIdentifier
+      summary: Registrar identificador adicional
+      description: |
+        Registers an additional official identifier for an existing Party. Initial Party creation
+        uses the required `initialIdentifier` in the natural-person or legal-entity create request.
+        An absent or cross-tenant Party returns 404 party-not-found. Duplicates return
+        409 identifier-uniqueness-conflict. Scheme errors use unknown-identifier-scheme,
+        inactive-identifier-scheme, or incompatible-identifier-scheme; semantic identifier
+        errors use identifier-validation-failure, all with HTTP 422.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyIdentifierCreateRequest'
+      responses:
+        '201':
+          description: Identificador creado
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    get:
+      tags:
+        - party-identifiers
+      operationId: listPartyIdentifiers
+      summary: Listar identificadores de un party
+      parameters:
+        - name: identifierSchemeId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: schemeCode
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 64
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PartyIdentifierStatus'
+        - name: isPrimary
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/CursorQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+      responses:
+        '200':
+          description: Lista de identificadores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierCollectionApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/PartyIdentifierIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags:
+        - party-identifiers
+      operationId: getPartyIdentifier
+      summary: Obtener identificador
+      responses:
+        '200':
+          description: Identificador enmascarado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    patch:
+      tags:
+        - party-identifiers
+      operationId: updatePartyIdentifier
+      summary: Actualizar metadata del identificador
+      parameters:
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyIdentifierUpdateRequest'
+      responses:
+        '200':
+          description: Identificador actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/verify:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/PartyIdentifierIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - party-identifiers
+      operationId: verifyPartyIdentifier
+      summary: Verificar identificador
+      responses:
+        '200':
+          description: Identificador verificado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/reject:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/PartyIdentifierIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - party-identifiers
+      operationId: rejectPartyIdentifier
+      summary: Rechazar identificador
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonActionRequest'
+      responses:
+        '200':
+          description: Identificador rechazado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/revoke:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/PartyIdentifierIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - party-identifiers
+      operationId: revokePartyIdentifier
+      summary: Revocar identificador
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonActionRequest'
+      responses:
+        '200':
+          description: Identificador revocado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /v1/parties/{partyId}/identifiers/{identifierId}/set-primary:
+    parameters:
+      - $ref: '#/components/parameters/PartyIdPath'
+      - $ref: '#/components/parameters/PartyIdentifierIdPath'
+      - $ref: '#/components/parameters/TenantId'
+      - $ref: '#/components/parameters/ProcessId'
+      - $ref: '#/components/parameters/UserId'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+    post:
+      tags:
+        - party-identifiers
+      operationId: setPrimaryPartyIdentifier
+      summary: Marcar identificador primario
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPrimaryIdentifierRequest'
+      responses:
+        '200':
+          description: Identificador marcado como primario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyIdentifierApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+components:
+  parameters:
+    TenantId:
+      name: Tenant-Id
+      in: header
+      required: true
+      description: >-
+        Trusted tenant identifier. Exactly one canonical UUID value is required.
+        Failures return `tenant-id-required`, `tenant-id-duplicated`, or `tenant-id-invalid`.
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    ProcessId:
+      name: Process-Id
+      in: header
+      required: true
+      description: >-
+        Trusted process identifier. Exactly one canonical UUID value is required. An accepted value
+        is echoed unchanged in the response.
+        Failures return `process-id-required`, `process-id-duplicated`, or `process-id-invalid`.
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    UserId:
+      name: User-Id
+      in: header
+      required: true
+      description: >-
+        Trusted audit subject. Exactly one non-blank value without control characters is required.
+        The limit is 128 Unicode code points. C0, DEL, and C1 control characters are prohibited.
+        Failures return `user-id-required`, `user-id-duplicated`, `user-id-blank`,
+        `user-id-too-long`, or `user-id-unsafe`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^(?=.*\S)[^\x00-\x1F\x7F-\x9F]+$'
+    IdempotencyKeyRequired:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Exactly one non-blank idempotency key of at most 128 characters is required.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '.*\S.*'
+    IdempotencyKeyOptional:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: When supplied, the idempotency key must be one non-blank value.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '.*\S.*'
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: >-
+        Exactly one nonnegative decimal aggregate version is required. A syntactically valid value
+        that does not equal the current version produces HTTP 412 with the operation's specific code:
+        expected-version-mismatch for detail updates and stale-party-version for activation.
+      schema:
+        type: string
+        minLength: 1
+        pattern: '^(0|[1-9][0-9]*)$'
+        example: '0'
+    LegalEntityIfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: >-
+        Exactly one nonnegative decimal Party version is required, without quotes or a wildcard,
+        up to 9223372036854775807. A syntactically valid stale version or a lost legal-detail
+        update race produces 412 expected-version-mismatch. Missing, duplicated, malformed,
+        and out-of-range values use the shared field-specific If-Match 400 codes.
+      schema:
+        type: string
+        minLength: 1
+        pattern: '^(0|[1-9][0-9]*)$'
+        example: '0'
+    PartyIfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: >-
+        Exactly one nonnegative decimal Party version from 0 through 9223372036854775807, without
+        quotes, whitespace, sign, leading zeros, or wildcard. Missing, repeated, malformed, and
+        overflowing values produce if-match-required, if-match-duplicated, if-match-invalid, and
+        if-match-out-of-range (400). Root PATCH requires the current version; a mismatch or lost
+        update race returns 412 expected-version-mismatch before blank-name business validation.
+      schema:
+        type: string
+        pattern: '^(0|[1-9][0-9]*)$'
+        example: '0'
+    PartyLifecycleIfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: >-
+        Exactly one nonnegative decimal Party version from 0 through 9223372036854775807, without
+        quotes, whitespace, sign, leading zeros, or wildcard. Syntax is validated even for replay.
+        Missing, repeated, malformed, and overflowing values produce if-match-required,
+        if-match-duplicated, if-match-invalid, and if-match-out-of-range (400). New lifecycle actions
+        require the current version or return 412 stale-party-version. An equivalent completed keyed
+        retry instead uses the original expected version and returns its historical successful result.
+      schema:
+        type: string
+        pattern: '^(0|[1-9][0-9]*)$'
+        example: '0'
+    PartyLifecycleIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Optional, exactly one nonblank value of at most 128 Unicode code points, compared exactly
+        without trimming or case conversion. Repeated, blank, and oversized values produce
+        idempotency-key-duplicated, idempotency-key-blank, and idempotency-key-too-long (400).
+        Scope is tenant and lifecycle action, independent of registration and other actions. Effective
+        request identity consists of Party ID and expected version, excluding User-Id and Process-Id.
+        Reusing a completed key with different effective input returns 409 idempotency-key-conflict
+        before current-state checks, including concurrent requests targeting different Parties.
+        Equivalent successful retries return the original safe result across changes and restarts;
+        failed attempts consume no key. An absent key supplies no replay behavior.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '.*\S.*'
+    PartyIdPath:
+      name: partyId
+      in: path
+      required: true
+      description: Canonical lowercase Party UUID; invalid syntax returns 400 party-id-invalid.
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    NationalityIdPath:
+      name: nationalityId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdentifierSchemeIdPath:
+      name: schemeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PartyIdentifierIdPath:
+      name: identifierId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CursorQuery:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        nullable: true
+    PartyCursorQuery:
+      name: cursor
+      in: query
+      required: false
+      description: >-
+        One opaque server-issued continuation scoped to tenant, effective filters, and page size.
+        Omit for the first page. Empty, malformed, altered, or scope-mismatched values return
+        400 bad-request. Equivalent normalized filters and equivalent offsets preserve scope.
+      schema:
+        type: string
+        minLength: 1
+    PartyLimitQuery:
+      name: limit
+      in: query
+      required: false
+      description: >-
+        One decimal integer from 1 through 200; defaults to 50 only when absent. Blank, fractional,
+        negative, zero, or oversized values return 400 bad-request. Included in cursor scope.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    LimitQuery:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+
+  responses:
+    BadRequest:
+      description: |
+        Invalid request. The error body contains only `status` and one stable `code`; it never
+        includes `data`, field errors, rejected values, exception messages, or internal details.
+
+        For deserialized body validation, rules whose codes end in `-required` take precedence,
+        followed by lexicographic Jakarta Validation property path, then lexicographic rule code.
+        The first violation supplies the public code. Body validation precedes operation-header
+        validation. This ordering does not supersede trusted-context filters or framework checks.
+
+        Trusted-context headers are validated before the body in this order: Process-Id, Tenant-Id,
+        then User-Id. The first failing header/rule supplies the public code. Within each header,
+        absence precedes duplicate detection, then value validation. Header names are case-insensitive.
+        These checks do not apply to `/q` management endpoints.
+        - `process-id-required`, `tenant-id-required`, `user-id-required`: the header is absent
+          or has no value entry. A supplied empty string is instead validated as a blank value.
+        - `process-id-duplicated`, `tenant-id-duplicated`, `user-id-duplicated`: more than one
+          value is supplied for the corresponding header, even if the values are equal.
+        - `process-id-invalid`, `tenant-id-invalid`: the value is blank, malformed, or not a
+          canonical lowercase UUID. Whitespace is not trimmed and unresolved variables are invalid.
+        - `user-id-blank`: the supplied User-Id is empty or whitespace-only.
+        - `user-id-too-long`: User-Id exceeds 128 Unicode code points.
+        - `user-id-unsafe`: User-Id contains a C0, DEL, or C1 control character.
+        User-Id value checks run in blank, length, then control-character order.
+        An accepted Process-Id is echoed even when a later header fails; missing, duplicated,
+        or invalid Process-Id values are never echoed. Logs identify the fixed header name and rule,
+        never the rejected value or parser exception. Only validated values enter request MDC;
+        partially initialized context is also cleared when the response completes.
+
+        Body codes apply only to the corresponding properties and operations:
+        Party names, legalFormCode, and explicit displayName are validated after
+        `strip().toUpperCase(Locale.ROOT)`. Their length limits count normalized UTF-16 code units,
+        including uppercase expansion, not raw surrounding whitespace. Country inputs are trimmed
+        with Java `String.strip()` and uppercased only when the trimmed value is exactly two ASCII
+        letters. Non-ASCII country letters are rejected, even if uppercasing could expand them into
+        two ASCII letters. Identifier fields and headers keep their existing raw-input limits.
+        - `request-body-required`: a required request body is missing or null.
+        - `display-name-required`: root Party PATCH omits displayName or supplies null; empty and
+          whitespace-only strings instead reach the 422 blank-display-name business rule.
+        - `display-name-too-long`: `displayName` exceeds 300 normalized UTF-16 code units on Party
+          creation or root PATCH, including uppercase expansion.
+        - `given-names-required`, `family-names-required`: natural-person names are missing, null,
+          or blank when required; on PATCH, these rules apply only to submitted names.
+        - `given-names-too-long`, `family-names-too-long`, `preferred-name-too-long`: the
+          corresponding natural-person name exceeds 200 characters.
+        - `birth-country-code-invalid`: a supplied `birthCountryCode` is not two ASCII letters after trimming.
+        - `initial-identifier-required`: `initialIdentifier` is missing or null on Party creation.
+        - `identifier-scheme-code-required`, `identifier-value-required`: `identifierSchemeCode`
+          or `value` is missing, null, or blank in an initial or additional identifier.
+        - `identifier-scheme-code-too-long`, `identifier-value-too-long`, `issuer-code-too-long`:
+          the corresponding identifier property exceeds 64, 256, or 64 characters, respectively.
+        - `legal-name-required`: `legalName` is missing, null, or blank on legal-entity creation
+          or PUT; on legal-entity PATCH, this rule applies only to a submitted legalName.
+        - `legal-name-invalid`: `legalName` falls outside the 1-300 character length range.
+        - `trade-name-too-long`, `legal-form-code-too-long`: on legal-entity creation, PUT, or PATCH, `tradeName`
+          exceeds 300 characters or `legalFormCode` exceeds 64 characters, respectively.
+        - `incorporation-country-code-required`: `incorporationCountryCode` is missing or null
+          on legal-entity creation or PUT, or explicitly null on legal-entity PATCH.
+        - `incorporation-country-code-invalid`: on legal-entity creation, PUT, or PATCH,
+          `incorporationCountryCode` is not two ASCII letters after trimming.
+        - `patch-property-required`: a natural-person or legal-entity PATCH contains no supported property.
+          Unknown JSON properties remain bad-request, even alongside a supported property.
+        Legal-entity updates validate the normalized body before partyId and If-Match. Required
+        rules use their declared JSON property paths, so a PUT body of {} reports
+        incorporation-country-code-required before legal-name-required or if-match-required.
+        Root Party PATCH validates context, body syntax/required value/normalized maximum length,
+        canonical partyId, then If-Match. Its object supports only a string displayName; malformed
+        JSON, duplicate/unknown properties, and incompatible tokens return bad-request. Its business
+        precedence is absence, expected version, then blank name. Root lifecycle actions validate
+        context, optional key, partyId, then If-Match before replay lookup or business evaluation.
+
+        Path and operation-header codes apply where the corresponding input is validated:
+        - `party-id-invalid`: `partyId` is not a canonical lowercase UUID.
+        - `idempotency-key-required`: a required `Idempotency-Key` is absent.
+        - `idempotency-key-duplicated`: more than one `Idempotency-Key` value is supplied.
+        - `idempotency-key-blank`: a supplied `Idempotency-Key` is blank.
+        - `idempotency-key-too-long`: `Idempotency-Key` exceeds 128 Unicode code points.
+        - `if-match-required`: a required `If-Match` is absent.
+        - `if-match-duplicated`: more than one `If-Match` value is supplied.
+        - `if-match-invalid`: `If-Match` is blank or does not match `^(0|[1-9][0-9]*)$`.
+        - `if-match-out-of-range`: a syntactically valid `If-Match` exceeds 9223372036854775807.
+        Optional idempotency keys may be omitted, but supplied values must pass the same checks.
+
+        `bad-request` remains the fallback for framework request failures and validation rules
+        without a mapped public code. Natural-person JSON
+        binding failures handled by the reader interceptor, including unknown properties and
+        invalid JSON values, also remain `bad-request`. These validation codes do not replace
+        existing framework or business error codes or change their HTTP statuses.
+        Legal-entity PUT/PATCH require object bodies and strictly typed string or null properties,
+        including ISO YYYY-MM-DD date strings. Incompatible scalar, array, or object property values
+        and invalid date syntax are bad-request; missing or null bodies are request-body-required.
+        Framework method and media-type failures retain their respective HTTP statuses, including
+        405 method-not-allowed and 415 unsupported-media-type, in the same envelope.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            fallback:
+              summary: Framework or natural-person JSON binding failure
+              value:
+                status: 400
+                code: bad-request
+            requiredTenant:
+              summary: Process-Id is valid but Tenant-Id is missing
+              value:
+                status: 400
+                code: tenant-id-required
+            invalidProcess:
+              summary: Process-Id is not a canonical lowercase UUID
+              value:
+                status: 400
+                code: process-id-invalid
+            duplicatedUser:
+              summary: Process-Id and Tenant-Id are valid but User-Id appears more than once
+              value:
+                status: 400
+                code: user-id-duplicated
+            requiredBody:
+              summary: Required body is missing or null
+              value:
+                status: 400
+                code: request-body-required
+            requiredDisplayName:
+              summary: Root PATCH omits displayName or supplies null
+              value: { status: 400, code: display-name-required }
+            oversizedDisplayName:
+              summary: Normalized root PATCH displayName exceeds 300 UTF-16 code units
+              value: { status: 400, code: display-name-too-long }
+            requiredNames:
+              summary: Both names are blank; familyNames precedes givenNames by property path
+              value:
+                status: 400
+                code: family-names-required
+            initialIdentifier:
+              summary: Initial identifier is missing, even if an operation header is also invalid
+              value:
+                status: 400
+                code: initial-identifier-required
+            invalidPartyId:
+              summary: Party identifier is not a canonical lowercase UUID
+              value:
+                status: 400
+                code: party-id-invalid
+            requiredIdempotencyKey:
+              summary: Valid body but required idempotency key is absent
+              value:
+                status: 400
+                code: idempotency-key-required
+            versionOutOfRange:
+              summary: Decimal If-Match value exceeds the supported version range
+              value:
+                status: 400
+                code: if-match-out-of-range
+
+    Unauthorized:
+      description: Falta autenticación o credenciales inválidas.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            status: 401
+            code: unauthorized
+
+    NotFound:
+      description: >-
+        Resource absent or concealed for the requesting tenant. Natural-person detail operations use
+        natural-person-not-found; Party activation and additional identifier registration use
+        party-not-found. Framework route failures retain not-found. No actual owner or type is exposed.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            naturalPerson:
+              value:
+                status: 404
+                code: natural-person-not-found
+            party:
+              value:
+                status: 404
+                code: party-not-found
+            frameworkRoute:
+              value:
+                status: 404
+                code: not-found
+
+    PartyNotFound:
+      description: >-
+        The Party is absent or belongs to another tenant. Both cases return the same result,
+        without disclosing the actual tenant, immutable type, lifecycle status, or version.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            status: 404
+            code: party-not-found
+
+    PartyExpectedVersionMismatch:
+      description: Root PATCH used a stale Party version or lost a concurrent update; no correction was applied.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 412, code: expected-version-mismatch }
+
+    PartyBlankDisplayName:
+      description: >-
+        The root PATCH string is blank after normalization. Checked only after tenant-scoped absence
+        and expected version. The prior label, audit values, and version remain unchanged.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 422, code: blank-display-name }
+
+    PartyStaleVersion:
+      description: >-
+        A new activate, deactivate, or archive operation used a stale Party version or lost a
+        concurrent version race. Equivalent completed keyed requests return their historical 200
+        result before this check; genuinely stale requests leave no mutation, result, or event.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 412, code: stale-party-version }
+
+    PartyLifecycleConflict:
+      description: >-
+        A completed tenant/action/key was reused with a different Party ID or expected version
+        (idempotency-key-conflict), or a new action is forbidden in the current lifecycle state
+        (invalid-party-lifecycle). Key conflicts precede current-state checks; transition checks
+        follow absence and version. The losing request leaves no mutation, saved result, or event.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            keyConflict:
+              value: { status: 409, code: idempotency-key-conflict }
+            transitionConflict:
+              value: { status: 409, code: invalid-party-lifecycle }
+
+    PartyMissingActivationEvidence:
+      description: >-
+        A DRAFT Party has no qualifying same-tenant, same-Party VERIFIED identifier with a matching,
+        compatible scheme and null or unexpired expiration. Checked after absence, version, and
+        lifecycle. The failed attempt changes no Party fields and consumes no successful replay key.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 422, code: missing-qualifying-identifier }
+
+    LegalEntityNotFound:
+      description: >-
+        The requested legal entity is absent, belongs to a different tenant, or the Party is not
+        classified as LEGAL_ENTITY. All three cases return the same cause-specific code without
+        exposing the actual owner, type, details, or version.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            status: 404
+            code: legal-entity-not-found
+
+    LegalEntityExpectedVersionMismatch:
+      description: >-
+        The valid If-Match value differs from the current Party version, or the legal-detail
+        update lost a concurrent version race. No part of the rejected update is applied.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            status: 412
+            code: expected-version-mismatch
+
+    LegalEntityBusinessValidationFailure:
+      description: |
+        A known legal-detail business rule failed. The code identifies the specific cause:
+        - unrecognized-incorporation-country: Geographic Reference definitively does not recognize
+          the changed canonical incorporation country.
+        - dissolution-before-incorporation: both resulting dates are present and dissolution
+          precedes incorporation.
+        - incorporation-date-in-future: the resulting incorporation date exceeds the UTC evaluation date.
+        - dissolution-date-in-future: the resulting dissolution date exceeds the UTC evaluation date.
+        Date ordering is checked before incorporation in the future, then dissolution in the future.
+        All date checks precede changed-country validation. The rejected request changes no fields,
+        audit values, or Party version. Technical dependency failures instead return 503.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            unrecognizedCountry:
+              value:
+                status: 422
+                code: unrecognized-incorporation-country
+            dissolutionBeforeIncorporation:
+              value:
+                status: 422
+                code: dissolution-before-incorporation
+            incorporationInFuture:
+              value:
+                status: 422
+                code: incorporation-date-in-future
+            dissolutionInFuture:
+              value:
+                status: 422
+                code: dissolution-date-in-future
+
+    Conflict:
+      description: >-
+        Business conflict. Changed effective registration input for a reused key produces
+        idempotency-key-conflict; a duplicate active identifier produces identifier-uniqueness-conflict;
+        an invalid activation transition produces invalid-party-lifecycle. Each retains HTTP 409.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            idempotency:
+              value:
+                status: 409
+                code: idempotency-key-conflict
+            identifierUniqueness:
+              value:
+                status: 409
+                code: identifier-uniqueness-conflict
+            lifecycle:
+              value:
+                status: 409
+                code: invalid-party-lifecycle
+
+    PreconditionFailed:
+      description: >-
+        The valid If-Match version does not equal the current aggregate version. Detail updates use
+        expected-version-mismatch; activation uses stale-party-version. A rejected write is not applied.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            details:
+              value:
+                status: 412
+                code: expected-version-mismatch
+            activation:
+              value:
+                status: 412
+                code: stale-party-version
+
+    UnprocessableEntity:
+      description: |
+        A known business rule failed. Codes apply only to fields and operations that use that rule:
+        - Natural-person dates: birth-date-in-future, date-of-death-in-future, death-before-birth.
+        - Legal-entity dates: incorporation-date-in-future, dissolution-date-in-future,
+          dissolution-before-incorporation.
+        - Unrecognized countries: unrecognized-birth-country or unrecognized-incorporation-country.
+        - Blank explicit registration display name: blank-display-name.
+        - Identifier scheme eligibility: unknown-identifier-scheme, inactive-identifier-scheme,
+          incompatible-identifier-scheme.
+        - Identifier value/validity rules: identifier-validation-failure.
+        - Activation without qualifying verified evidence: missing-qualifying-identifier.
+        Technical dependency failures instead use 503 dependency-unavailable.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            birthInFuture:
+              value: { status: 422, code: birth-date-in-future }
+            deathInFuture:
+              value: { status: 422, code: date-of-death-in-future }
+            deathBeforeBirth:
+              value: { status: 422, code: death-before-birth }
+            incorporationInFuture:
+              value: { status: 422, code: incorporation-date-in-future }
+            dissolutionInFuture:
+              value: { status: 422, code: dissolution-date-in-future }
+            dissolutionBeforeIncorporation:
+              value: { status: 422, code: dissolution-before-incorporation }
+            birthCountry:
+              value: { status: 422, code: unrecognized-birth-country }
+            incorporationCountry:
+              value: { status: 422, code: unrecognized-incorporation-country }
+            blankDisplayName:
+              value: { status: 422, code: blank-display-name }
+            unknownScheme:
+              value: { status: 422, code: unknown-identifier-scheme }
+            inactiveScheme:
+              value: { status: 422, code: inactive-identifier-scheme }
+            incompatibleScheme:
+              value: { status: 422, code: incompatible-identifier-scheme }
+            identifierValue:
+              value: { status: 422, code: identifier-validation-failure }
+            missingEvidence:
+              value: { status: 422, code: missing-qualifying-identifier }
+
+    DependencyUnavailable:
+      description: Geographic Reference Service validation could not be completed.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            status: 503
+            code: dependency-unavailable
+
+    DefaultError:
+      description: Error inesperado.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example:
+            status: 500
+            code: server-error
+
+  headers:
+    ProcessIdEcho:
+      description: >-
+        Unchanged accepted `Process-Id`. This header is omitted when the request value is missing,
+        duplicated, or invalid.
+      schema:
+        type: string
+        format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+
+  schemas:
+    ApiSuccessCode:
+      type: string
+      enum:
+        - successful
+
+    ApiErrorResponse:
+      type: object
+      required:
+        - status
+        - code
+      properties:
+        status:
+          type: integer
+        code:
+          type: string
+      additionalProperties: false
+
+    EmptySuccessResponse:
+      type: object
+      required:
+        - status
+        - code
+      properties:
+        status:
+          type: integer
+          example: 200
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+
+    PartyType:
+      type: string
+      enum:
+        - NATURAL_PERSON
+        - LEGAL_ENTITY
+
+    PartyRecordStatus:
+      type: string
+      enum:
+        - DRAFT
+        - ACTIVE
+        - INACTIVE
+        - ARCHIVED
+
+    IdentifierCategory:
+      type: string
+      enum:
+        - NATIONAL_ID
+        - TAX_ID
+        - PASSPORT
+        - RESIDENCE_PERMIT
+        - LEGAL_REGISTRATION_NUMBER
+        - OTHER
+
+    IdentifierSubjectType:
+      type: string
+      enum:
+        - NATURAL_PERSON
+        - LEGAL_ENTITY
+        - BOTH
+
+    IdentifierSchemeStatus:
+      type: string
+      enum:
+        - DRAFT
+        - ACTIVE
+        - DEPRECATED
+        - RETIRED
+
+    PartyIdentifierStatus:
+      type: string
+      enum:
+        - PENDING_VERIFICATION
+        - VERIFIED
+        - REJECTED
+        - EXPIRED
+        - REVOKED
+
+    PartyBase:
+      type: object
+      required:
+        - partyId
+        - type
+        - displayName
+        - recordStatus
+        - version
+        - createdAt
+        - updatedAt
+        - createdBy
+        - updatedBy
+      properties:
+        partyId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PartyType'
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 300
+        recordStatus:
+          $ref: '#/components/schemas/PartyRecordStatus'
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          maxLength: 128
+        updatedBy:
+          type: string
+          maxLength: 128
+
+    PartySummary:
+      type: object
+      additionalProperties: false
+      description: Stored summary only; no subtype details, identifiers, nationalities, or tenant identity.
+      required:
+        - partyId
+        - type
+        - displayName
+        - recordStatus
+        - createdAt
+        - version
+      properties:
+        partyId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PartyType'
+        displayName:
+          type: string
+        recordStatus:
+          $ref: '#/components/schemas/PartyRecordStatus'
+        createdAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+
+    NaturalPersonDetails:
+      type: object
+      required:
+        - givenNames
+        - familyNames
+      properties:
+        givenNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        familyNames:
+          type: string
+          minLength: 1
+          maxLength: 200
+        preferredName:
+          type: string
+          maxLength: 200
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        dateOfDeath:
+          type: string
+          format: date
+          nullable: true
+        birthCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+          nullable: true
+
+    NaturalPersonCreateRequest:
+      type: object
+      description: >-
+        Strict natural-person creation representation. Exactly one initial official identifier is
+        required and participates in idempotency comparison. Unknown properties are rejected.
+        Omitted or null display names are derived from the validated given and family names.
+        Names and explicit displayName accept mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then are stored as strip().toUpperCase(Locale.ROOT).
+        For text fields, x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        Required names must remain nonblank after normalization. Dates and initial identifier fields
+        are not normalized by this rule. Original submitted strings remain the idempotency input.
+      required:
+        - givenNames
+        - familyNames
+        - initialIdentifier
+      properties:
+        displayName:
+          type: string
+          x-normalized-max-length: 300
+          nullable: true
+        givenNames:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 200
+          pattern: '.*\S.*'
+        familyNames:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 200
+          pattern: '.*\S.*'
+        preferredName:
+          type: string
+          x-normalized-max-length: 200
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        dateOfDeath:
+          type: string
+          format: date
+          nullable: true
+        birthCountryCode:
+          type: string
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
+          minLength: 2
+          x-normalized-max-length: 2
+          nullable: true
+        initialIdentifier:
+          $ref: '#/components/schemas/InitialPartyIdentifierCreateRequest'
+      additionalProperties: false
+
+    NaturalPersonPutRequest:
+      type: object
+      description: >-
+        Complete replacement representation. Omitted optional properties are cleared, and the
+        display name is derived again from the submitted given and family names.
+        Names accept mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then are stored as strip().toUpperCase(Locale.ROOT).
+        For text fields, x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        Required names must remain nonblank after normalization. Dates are unchanged by this rule.
+      required:
+        - givenNames
+        - familyNames
+      properties:
+        givenNames:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 200
+          pattern: '.*\S.*'
+        familyNames:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 200
+          pattern: '.*\S.*'
+        preferredName:
+          type: string
+          x-normalized-max-length: 200
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        dateOfDeath:
+          type: string
+          format: date
+          nullable: true
+        birthCountryCode:
+          type: string
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
+          minLength: 2
+          x-normalized-max-length: 2
+          nullable: true
+      additionalProperties: false
+
+    NaturalPersonPatchRequest:
+      type: object
+      description: >-
+        Presence-aware partial update. Omitted properties are retained and explicit null clears a
+        nullable property. Given and family names cannot be null or blank.
+        Only submitted names are normalized; omitted values are not rewritten. Names accept mixed
+        case and surrounding whitespace removed by Java String.strip() (Character.isWhitespace),
+        then are stored as strip().toUpperCase(Locale.ROOT). For text fields,
+        x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        Required names must remain nonblank after normalization. Dates are unchanged by this rule.
+      minProperties: 1
+      properties:
+        givenNames:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 200
+          pattern: '.*\S.*'
+        familyNames:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 200
+          pattern: '.*\S.*'
+        preferredName:
+          type: string
+          x-normalized-max-length: 200
+          nullable: true
+        birthDate:
+          type: string
+          format: date
+          nullable: true
+        dateOfDeath:
+          type: string
+          format: date
+          nullable: true
+        birthCountryCode:
+          type: string
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
+          minLength: 2
+          x-normalized-max-length: 2
+          nullable: true
+      additionalProperties: false
+
+    NaturalPersonResponse:
+      allOf:
+        - $ref: '#/components/schemas/PartyBase'
+        - type: object
+          required:
+            - type
+            - naturalPersonDetails
+          properties:
+            type:
+              type: string
+              enum:
+                - NATURAL_PERSON
+            naturalPersonDetails:
+              $ref: '#/components/schemas/NaturalPersonDetails'
+
+    NaturalPersonApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/NaturalPersonResponse'
+
+    NaturalPersonCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/NaturalPersonResponse'
+        - type: object
+          required:
+            - initialIdentifier
+          properties:
+            initialIdentifier:
+              $ref: '#/components/schemas/InitialPartyIdentifierResponse'
+
+    NaturalPersonDetailResponse:
+      description: >-
+        GET-only natural-person detail. All existing NaturalPersonResponse fields retain their shape;
+        identifiers is a required, non-null, complete collection, empty when none are current.
+        No additional wrapper around the existing Party fields is introduced.
+      allOf:
+        - $ref: '#/components/schemas/NaturalPersonResponse'
+        - type: object
+          required:
+            - identifiers
+          properties:
+            identifiers:
+              type: array
+              description: >-
+                Current PENDING_VERIFICATION or VERIFIED identifiers with expiresOn null or on or after
+                the single UTC evaluation date for the request, ordered by createdAt ASC, identifierId ASC.
+                Includes every scheme regardless of scheme status or isPrimary, without truncation or
+                pagination. Uses the stored maskedValue without decryption; no plaintext, ciphertext,
+                hashes, or encryption keys are exposed.
+              items:
+                $ref: '#/components/schemas/PartyIdentifierResponse'
+
+    NaturalPersonDetailApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+          enum:
+            - 200
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/NaturalPersonDetailResponse'
+
+    NaturalPersonCreateApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/NaturalPersonCreateResponse'
+
+    LegalEntityDetails:
+      type: object
+      required:
+        - legalName
+        - incorporationCountryCode
+      properties:
+        legalName:
+          type: string
+          minLength: 1
+          maxLength: 300
+        tradeName:
+          type: string
+          maxLength: 300
+          nullable: true
+        legalFormCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        incorporationCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        incorporatedOn:
+          type: string
+          format: date
+          nullable: true
+        dissolvedOn:
+          type: string
+          format: date
+          nullable: true
+
+    LegalEntityCreateRequest:
+      type: object
+      description: >-
+        Legal-entity creation representation requiring exactly one initial official identifier.
+        The identifier participates in idempotency comparison.
+        Names, legalFormCode, and explicit displayName accept mixed case and surrounding whitespace
+        removed by Java String.strip() (Character.isWhitespace), then are stored as
+        strip().toUpperCase(Locale.ROOT). For text fields, x-normalized-max-length counts normalized
+        UTF-16 code units, not raw input; uppercase expansion counts toward the limit and surrounding
+        whitespace does not. The legal name must remain nonblank after normalization. Dates and
+        initial identifier fields are not normalized by this rule. Original submitted strings
+        remain the idempotency input.
+      required:
+        - legalName
+        - incorporationCountryCode
+        - initialIdentifier
+      properties:
+        displayName:
+          type: string
+          x-normalized-max-length: 300
+          nullable: true
+        legalName:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 300
+        tradeName:
+          type: string
+          x-normalized-max-length: 300
+          nullable: true
+        legalFormCode:
+          type: string
+          x-normalized-max-length: 64
+          nullable: true
+        incorporationCountryCode:
+          type: string
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
+          minLength: 2
+          x-normalized-max-length: 2
+        incorporatedOn:
+          type: string
+          format: date
+          nullable: true
+        dissolvedOn:
+          type: string
+          format: date
+          nullable: true
+        initialIdentifier:
+          $ref: '#/components/schemas/InitialPartyIdentifierCreateRequest'
+      additionalProperties: false
+
+    LegalEntityPutRequest:
+      type: object
+      description: >-
+        Complete replacement representation. Omitted optional properties are cleared.
+        Unknown properties are rejected. Names and legalFormCode
+        accept mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then are stored as strip().toUpperCase(Locale.ROOT).
+        For text fields, x-normalized-max-length counts normalized UTF-16 code units, not raw input;
+        uppercase expansion counts toward the limit and surrounding whitespace does not.
+        The legal name must remain nonblank after normalization. Dates are unchanged by this rule.
+      required:
+        - legalName
+        - incorporationCountryCode
+      properties:
+        legalName:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 300
+        tradeName:
+          type: string
+          x-normalized-max-length: 300
+          nullable: true
+        legalFormCode:
+          type: string
+          x-normalized-max-length: 64
+          nullable: true
+        incorporationCountryCode:
+          type: string
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
+          minLength: 2
+          x-normalized-max-length: 2
+        incorporatedOn:
+          type: string
+          format: date
+          nullable: true
+        dissolvedOn:
+          type: string
+          format: date
+          nullable: true
+
+      additionalProperties: false
+
+    LegalEntityPatchRequest:
+      type: object
+      description: >-
+        Presence-aware partial update: omitted properties are retained and explicit null clears a nullable property.
+        Unknown properties are rejected. Legal name and incorporation country cannot be cleared. Only submitted names
+        and legalFormCode are normalized; omitted values are not rewritten. They accept mixed case
+        and surrounding whitespace removed by Java String.strip() (Character.isWhitespace), then
+        are stored as strip().toUpperCase(Locale.ROOT). For text fields, x-normalized-max-length
+        counts normalized UTF-16 code units, not raw input; uppercase expansion counts toward the
+        limit and surrounding whitespace does not. The legal name must remain nonblank after
+        normalization. Dates are unchanged by this rule.
+      minProperties: 1
+      properties:
+        legalName:
+          type: string
+          minLength: 1
+          x-normalized-max-length: 300
+        tradeName:
+          type: string
+          x-normalized-max-length: 300
+          nullable: true
+        legalFormCode:
+          type: string
+          x-normalized-max-length: 64
+          nullable: true
+        incorporationCountryCode:
+          type: string
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
+          minLength: 2
+          x-normalized-max-length: 2
+        incorporatedOn:
+          type: string
+          format: date
+          nullable: true
+        dissolvedOn:
+          type: string
+          format: date
+          nullable: true
+
+      additionalProperties: false
+
+    LegalEntityResponse:
+      allOf:
+        - $ref: '#/components/schemas/PartyBase'
+        - type: object
+          required:
+            - legalEntityDetails
+          properties:
+            legalEntityDetails:
+              $ref: '#/components/schemas/LegalEntityDetails'
+
+    LegalEntityApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/LegalEntityResponse'
+
+    LegalEntityCreateResponse:
+      allOf:
+        - $ref: '#/components/schemas/LegalEntityResponse'
+        - type: object
+          required:
+            - initialIdentifier
+          properties:
+            initialIdentifier:
+              $ref: '#/components/schemas/InitialPartyIdentifierResponse'
+
+    LegalEntityCreateApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/LegalEntityCreateResponse'
+
+    PartyDetailResponse:
+      type: object
+      additionalProperties: false
+      description: >-
+        Safe root representation preserving historical text and audit values. Exactly one subtype
+        detail is present and matches type. No initialIdentifier, identifiers, nationalities,
+        tenantId, or pagination properties are exposed.
+      required: [partyId, type, displayName, recordStatus, version, createdAt, updatedAt, createdBy, updatedBy]
+      properties:
+        partyId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PartyType'
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 300
+        recordStatus:
+          $ref: '#/components/schemas/PartyRecordStatus'
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          maxLength: 128
+        updatedBy:
+          type: string
+          maxLength: 128
+        naturalPersonDetails:
+          $ref: '#/components/schemas/NaturalPersonDetails'
+        legalEntityDetails:
+          $ref: '#/components/schemas/LegalEntityDetails'
+      oneOf:
+        - type: object
+          required: [naturalPersonDetails]
+          properties:
+            type:
+              type: string
+              enum: [NATURAL_PERSON]
+          not:
+            required: [legalEntityDetails]
+        - type: object
+          required: [legalEntityDetails]
+          properties:
+            type:
+              type: string
+              enum: [LEGAL_ENTITY]
+          not:
+            required: [naturalPersonDetails]
+
+    PartyDetailApiResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+          enum: [200]
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/PartyDetailResponse'
+
+    PartyCollectionApiResponse:
+      type: object
+      additionalProperties: false
+      description: >-
+        Exact tenant/filter totals and summaries from one consistent view. Counts are never null.
+        Unavailable cursor directions are explicit nulls; an empty matching dataset has all counts
+        zero. The current shared response implementation supports counts up to 2147483647;
+        unrepresentable counts produce a sanitized technical failure rather than partial totals.
+      required:
+        - status
+        - code
+        - data
+        - nextCursor
+        - prevCursor
+        - totalElements
+        - totalPages
+        - numberOfElements
+      properties:
+        status:
+          type: integer
+          enum: [200]
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PartySummary'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Next-page continuation, or explicit null when unavailable.
+        prevCursor:
+          type: string
+          nullable: true
+          description: Previous-page continuation, or explicit null when unavailable.
+        totalElements:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+          description: Exact number of tenant/filter matches before applying the cursor boundary.
+        totalPages:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+          description: Ceiling of totalElements divided by the effective limit; zero for no matches.
+        numberOfElements:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 200
+          description: Number of summaries in this response's data array.
+
+    PartyUpdateRequest:
+      type: object
+      additionalProperties: false
+      description: >-
+        Strict root display-name correction. Only the required string displayName is accepted;
+        unknown or duplicate properties and non-string tokens are bad-request. Missing/null body
+        is request-body-required; missing/null displayName is display-name-required (all HTTP 400).
+        An empty or whitespace-only string is rejected later as 422 blank-display-name, after
+        tenant-scoped absence and expected-version checks. The display name
+        accepts mixed case and surrounding whitespace removed by Java String.strip()
+        (Character.isWhitespace), then is stored as strip().toUpperCase(Locale.ROOT).
+        The x-normalized-max-length limit counts normalized UTF-16 code units, not raw input,
+        including uppercase expansion; excess length is 400 display-name-too-long during body validation.
+        Accents, punctuation, and interior whitespace are preserved. Corrections are permitted in all
+        four statuses, including ARCHIVED; identical canonical writes still advance the version once.
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          x-normalized-max-length: 300
+
+    NationalityCreateRequest:
+      type: object
+      description: >-
+        Future nationality contract; nationality endpoints are not implemented. The country input
+        normalization rule described here will apply when this operation is implemented.
+      required:
+        - countryCode
+      properties:
+        countryCode:
+          type: string
+          description: >-
+            Accepts exactly two ASCII letters in either case, optionally surrounded by Java
+            String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
+            letters after trimming; non-ASCII letters and embedded whitespace are invalid.
+            The normalized length is exactly two; raw input may be longer due to surrounding whitespace.
+          pattern: '^[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*[A-Za-z]{2}[\u0009-\u000D\u001C-\u0020\u1680\u2000-\u2006\u2008-\u200A\u2028-\u2029\u205F\u3000]*$'
+          minLength: 2
+          x-normalized-max-length: 2
+        isPrimary:
+          type: boolean
+          default: false
+        validFrom:
+          type: string
+          format: date
+          nullable: true
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+
+    NationalityUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        validFrom:
+          type: string
+          format: date
+          nullable: true
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+
+    NationalityResponse:
+      type: object
+      required:
+        - nationalityId
+        - partyId
+        - countryCode
+        - isPrimary
+        - createdAt
+        - updatedAt
+      properties:
+        nationalityId:
+          type: string
+          format: uuid
+        partyId:
+          type: string
+          format: uuid
+        countryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        isPrimary:
+          type: boolean
+        validFrom:
+          type: string
+          format: date
+          nullable: true
+        validUntil:
+          type: string
+          format: date
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NationalityApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/NationalityResponse'
+
+    NationalityCollectionApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+        - nextCursor
+        - prevCursor
+        - totalElements
+        - totalPages
+        - numberOfElements
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/NationalityResponse'
+        nextCursor:
+          type: string
+          nullable: true
+        prevCursor:
+          type: string
+          nullable: true
+        totalElements:
+          type: integer
+          nullable: true
+        totalPages:
+          type: integer
+          nullable: true
+        numberOfElements:
+          type: integer
+          nullable: true
+
+    IdentifierSchemeCreateRequest:
+      type: object
+      required:
+        - code
+        - issuingCountryCode
+        - category
+        - applicableSubjectType
+        - name
+        - normalizerKey
+        - validatorKey
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+        issuingCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
+        category:
+          $ref: '#/components/schemas/IdentifierCategory'
+        applicableSubjectType:
+          $ref: '#/components/schemas/IdentifierSubjectType'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        normalizerKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        validatorKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        minimumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        maximumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        requiresExpiration:
+          type: boolean
+          default: false
+          deprecated: true
+          description: Legacy metadata only. Expiration is optional for every document, regardless of this value.
+
+    IdentifierSchemeUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        normalizerKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        validatorKey:
+          type: string
+          minLength: 1
+          maxLength: 64
+        minimumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        maximumLength:
+          type: integer
+          nullable: true
+          minimum: 1
+        requiresExpiration:
+          type: boolean
+          deprecated: true
+          description: Legacy metadata only. Expiration is optional for every document, regardless of this value.
+
+    IdentifierSchemeResponse:
+      type: object
+      required:
+        - id
+        - code
+        - issuingCountryCode
+        - category
+        - applicableSubjectType
+        - name
+        - normalizerKey
+        - validatorKey
+        - status
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        issuingCountryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        category:
+          $ref: '#/components/schemas/IdentifierCategory'
+        applicableSubjectType:
+          $ref: '#/components/schemas/IdentifierSubjectType'
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        normalizerKey:
+          type: string
+        validatorKey:
+          type: string
+        minimumLength:
+          type: integer
+          nullable: true
+        maximumLength:
+          type: integer
+          nullable: true
+        requiresExpiration:
+          type: boolean
+          deprecated: true
+          description: Legacy metadata only; a historical true value does not make expiresOn mandatory.
+        status:
+          $ref: '#/components/schemas/IdentifierSchemeStatus'
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    IdentifierSchemeApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/IdentifierSchemeResponse'
+
+    IdentifierSchemeCollectionApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+        - nextCursor
+        - prevCursor
+        - totalElements
+        - totalPages
+        - numberOfElements
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/IdentifierSchemeResponse'
+        nextCursor:
+          type: string
+          nullable: true
+        prevCursor:
+          type: string
+          nullable: true
+        totalElements:
+          type: integer
+          nullable: true
+        totalPages:
+          type: integer
+          nullable: true
+        numberOfElements:
+          type: integer
+          nullable: true
+
+    InitialPartyIdentifierCreateRequest:
+      description: >-
+        Required official identifier supplied during Party creation. The referenced scheme must be
+        active and compatible with the Party type. The complete value is accepted only as input,
+        protected before persistence, and never returned.
+      allOf:
+        - $ref: '#/components/schemas/PartyIdentifierCreateRequest'
+
+    PartyIdentifierCreateRequest:
+      type: object
+      description: >-
+        Expiration is optional for all document types, including national IDs, tax IDs, and passports.
+        Omitted or null expiresOn values are accepted regardless of legacy requiresExpiration metadata.
+        A supplied expiration must not precede the evaluation date or a supplied issuedOn date.
+      required:
+        - identifierSchemeCode
+        - value
+      properties:
+        identifierSchemeCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: '.*\S.*'
+        value:
+          type: string
+          writeOnly: true
+          description: >-
+            The 256-character maximum applies to the raw submitted identifier value, before its
+            scheme-specific normalization. Party text normalization does not change this limit.
+          minLength: 1
+          maxLength: 256
+          pattern: '.*\S.*'
+        issuerCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        issuedOn:
+          type: string
+          format: date
+          nullable: true
+        expiresOn:
+          type: string
+          format: date
+          nullable: true
+        isPrimary:
+          type: boolean
+          default: false
+      additionalProperties: false
+
+    PartyIdentifierUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        issuerCode:
+          type: string
+          maxLength: 64
+          nullable: true
+        issuedOn:
+          type: string
+          format: date
+          nullable: true
+        expiresOn:
+          type: string
+          format: date
+          nullable: true
+
+    PartyIdentifierResponse:
+      type: object
+      required:
+        - identifierId
+        - partyId
+        - identifierSchemeId
+        - schemeCode
+        - maskedValue
+        - status
+        - isPrimary
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        identifierId:
+          type: string
+          format: uuid
+        partyId:
+          type: string
+          format: uuid
+        identifierSchemeId:
+          type: string
+          format: uuid
+        schemeCode:
+          type: string
+        maskedValue:
+          type: string
+          maxLength: 64
+        status:
+          $ref: '#/components/schemas/PartyIdentifierStatus'
+        isPrimary:
+          type: boolean
+        issuerCode:
+          type: string
+          nullable: true
+        issuedOn:
+          type: string
+          format: date
+          nullable: true
+        expiresOn:
+          type: string
+          format: date
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        verifiedBy:
+          type: string
+          maxLength: 128
+          nullable: true
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    InitialPartyIdentifierResponse:
+      description: >-
+        Protected representation of the identifier created atomically with the Party. Its complete
+        value is never exposed and its initial lifecycle status is `PENDING_VERIFICATION`.
+      allOf:
+        - $ref: '#/components/schemas/PartyIdentifierResponse'
+        - type: object
+          required:
+            - status
+          properties:
+            status:
+              type: string
+              enum:
+                - PENDING_VERIFICATION
+
+    PartyIdentifierApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          $ref: '#/components/schemas/PartyIdentifierResponse'
+
+    PartyIdentifierCollectionApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+        - nextCursor
+        - prevCursor
+        - totalElements
+        - totalPages
+        - numberOfElements
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierResponse'
+        nextCursor:
+          type: string
+          nullable: true
+        prevCursor:
+          type: string
+          nullable: true
+        totalElements:
+          type: integer
+          nullable: true
+        totalPages:
+          type: integer
+          nullable: true
+        numberOfElements:
+          type: integer
+          nullable: true
+
+    ReasonActionRequest:
+      type: object
+      properties:
+        reasonCode:
+          type: string
+          maxLength: 64
+        reasonDetail:
+          type: string
+          maxLength: 1000
+
+    SetPrimaryIdentifierRequest:
+      type: object
+      properties:
+        replaceCurrentPrimary:
+          type: boolean
+          default: false
+
+    IdentifierSearchExactRequest:
+      type: object
+      required:
+        - identifierSchemeCode
+        - value
+      properties:
+        identifierSchemeCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        value:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 256
+        identifierStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierStatus'
+        partyRecordStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyRecordStatus'
+
+    IdentifierSearchPrefixRequest:
+      type: object
+      required:
+        - identifierSchemeCode
+        - prefix
+      properties:
+        identifierSchemeCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        prefix:
+          type: string
+          minLength: 1
+          maxLength: 64
+        identifierStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierStatus'
+        partyRecordStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyRecordStatus'
+        cursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+
+    PartyIdentifierSearchIdentifier:
+      type: object
+      required:
+        - identifierId
+        - schemeCode
+        - maskedValue
+        - status
+        - isPrimary
+      properties:
+        identifierId:
+          type: string
+          format: uuid
+        schemeCode:
+          type: string
+        maskedValue:
+          type: string
+        status:
+          $ref: '#/components/schemas/PartyIdentifierStatus'
+        isPrimary:
+          type: boolean
+
+    PartyIdentifierSearchItem:
+      type: object
+      required:
+        - partyId
+        - type
+        - displayName
+        - recordStatus
+        - identifier
+      properties:
+        partyId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/PartyType'
+        displayName:
+          type: string
+        recordStatus:
+          $ref: '#/components/schemas/PartyRecordStatus'
+        identifier:
+          $ref: '#/components/schemas/PartyIdentifierSearchIdentifier'
+
+    IdentifierSearchApiResponse:
+      type: object
+      required:
+        - status
+        - code
+        - data
+        - nextCursor
+        - prevCursor
+        - totalElements
+        - totalPages
+        - numberOfElements
+      properties:
+        status:
+          type: integer
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartyIdentifierSearchItem'
+        nextCursor:
+          type: string
+          nullable: true
+        prevCursor:
+          type: string
+          nullable: true
+        totalElements:
+          type: integer
+          nullable: true
+        totalPages:
+          type: integer
+          nullable: true
+        numberOfElements:
+          type: integer
+          nullable: true
