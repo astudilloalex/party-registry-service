@@ -143,6 +143,17 @@ class ApiRequestSupportTest {
                 headers(ApiRequestSupport.IF_MATCH_HEADER, "1", "2")), "if-match-duplicated");
     }
 
+    @Test
+    void distinguishesCanonicalPartyIdFromNationalityUuid() {
+        String uuid = "0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1";
+        assertEquals(UUID.fromString(uuid), support.parseNationalityId(uuid).value());
+        assertEquals(UUID.fromString(uuid), support.parseNationalityId(uuid.toUpperCase(Locale.ROOT)).value());
+        assertBadRequest(() -> support.parsePartyId(uuid.toUpperCase(Locale.ROOT)), PARTY_ID_INVALID);
+        for (String invalid : List.of("not-a-uuid", "0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab", " " + uuid)) {
+            assertBadRequest(() -> support.parseNationalityId(invalid), BAD_REQUEST);
+        }
+    }
+
     private static StubHttpHeaders headers(String name, String... values) {
         StubHttpHeaders headers = new StubHttpHeaders();
         for (String value : values) {

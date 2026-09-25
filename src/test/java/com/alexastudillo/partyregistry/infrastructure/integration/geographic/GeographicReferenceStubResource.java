@@ -99,7 +99,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
         }
     }
 
-    static int requestCount(String alpha2Code) {
+    public static int requestCount(String alpha2Code) {
         AtomicInteger count = REQUEST_COUNTS.get(alpha2Code);
         return count == null ? 0 : count.get();
     }
@@ -157,6 +157,8 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
                     .replace("\"numericCode\": \"218\"", "\"numericCode\": \"826\"")
                     .replace("\"defaultName\": \"Ecuador\"", "\"defaultName\": \"United Kingdom\"")
                     .replace("Republic of Ecuador", "United Kingdom of Great Britain and Northern Ireland"), true);
+            case "IN" -> send(exchange, 200, SUCCESS_RESPONSE.formatted(alpha2Code)
+                    .replace("\"status\": \"ACTIVE\"", "\"status\": \"RETIRED\""), true);
             case "ZZ" -> send(exchange, 404, "{\"status\":404,\"code\":\"country-not-found\"}", true);
             case "SE" -> send(exchange, 503, "{\"status\":503,\"code\":\"server-error\"}", true);
             case "MJ" -> send(exchange, 200, "{", true);

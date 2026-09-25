@@ -3,6 +3,7 @@ package com.alexastudillo.partyregistry.application.error;
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
+import com.alexastudillo.partyregistry.domain.model.NationalityId;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
@@ -35,6 +36,19 @@ class ApplicationExceptionTest {
                 new FailureDescription(
                         new ApplicationFailure.InvalidPartyCursor(),
                         "Invalid Party cursor"),
+                new FailureDescription(new ApplicationFailure.InvalidNationalityCursor(), "Invalid nationality cursor"),
+                new FailureDescription(new ApplicationFailure.NationalityNotFound(), "Nationality not found"),
+                new FailureDescription(new ApplicationFailure.UnrecognizedNationalityCountry(),
+                        "Unrecognized nationality country"),
+                new FailureDescription(new ApplicationFailure.NationalityValidityInvalid(),
+                        "Invalid nationality validity period"),
+                new FailureDescription(new ApplicationFailure.NationalityValidityConflict(),
+                        "Nationality validity conflict"),
+                new FailureDescription(new ApplicationFailure.PrimaryNationalityConflict(),
+                        "Primary nationality conflict"),
+                new FailureDescription(
+                        new ApplicationFailure.NationalityNotEffective(new NationalityId(UUID.randomUUID())),
+                        "Nationality is not effective"),
                 new FailureDescription(
                         new ApplicationFailure.NaturalPersonNotFound(partyId, tenantId),
                         "Natural person not found"),

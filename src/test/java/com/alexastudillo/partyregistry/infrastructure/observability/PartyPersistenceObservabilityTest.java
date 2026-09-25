@@ -95,4 +95,26 @@ class PartyPersistenceObservabilityTest {
             registry.close();
         }
     }
+
+    @Test
+    void nationalityKeyWaitUsesOnlyTwoOperationLabelsAndTerminalOutcomes() {
+        var registry = new SimpleMeterRegistry();
+        try {
+            var observer = new PartyPersistenceObservability(registry);
+            for (String operation : Set.of("create", "set-primary")) {
+                observer.observeNationalityKeyWait(operation, () -> Uni.createFrom().voidItem())
+                        .subscribe().withSubscriber(UniAssertSubscriber.create()).awaitItem(TIMEOUT).assertCompleted();
+                var cancelled = observer.observeNationalityKeyWait(operation, () -> Uni.createFrom().nothing())
+                        .subscribe().withSubscriber(UniAssertSubscriber.create());
+                cancelled.cancel();
+                cancelled.assertNotTerminated();
+            }
+            assertEquals(4, registry.find(PartyPersistenceObservability.NATIONALITY_KEY_WAIT).timers().size());
+            registry.find(PartyPersistenceObservability.NATIONALITY_KEY_WAIT).timers().forEach(timer ->
+                    assertEquals(Set.of("operation", "outcome"), timer.getId().getTags().stream()
+                            .map(Tag::getKey).collect(Collectors.toSet())));
+        } finally {
+            registry.close();
+        }
+    }
 }

@@ -66,6 +66,7 @@ class MigrationRegressionTest {
                 "3", "db/migration/V3__seed_ecuador_identifier_schemes.sql",
                 "4", "db/migration/V4__make_identifier_expiration_optional.sql",
                 "5", "db/migration/V5__add_party_listing_order_index.sql",
+                "6", "db/migration/V6__add_nationality_listing_order_index.sql",
                 "1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql"),
                 appliedMigrations);
         assertDoesNotThrow(flyway::validate);

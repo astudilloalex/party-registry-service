@@ -63,7 +63,7 @@ class PartyHttpObservabilityTest {
         assertEquals(1, counterCount(
                 registry,
                 PartyHttpObservability.IDEMPOTENCY_METRIC,
-                PartyHttpObservability.OUTCOME_TAG, "conflict"));
+                PartyHttpObservability.OUTCOME_TAG, PartyHttpObservability.CONFLICT_OUTCOME));
         assertEquals(1, counterCount(
                 registry,
                 PartyHttpObservability.OPTIMISTIC_CONFLICT_METRIC,
@@ -142,8 +142,10 @@ class PartyHttpObservabilityTest {
     void legalResourcesDeclareTypedEnvelopesAndSpecificSpans() throws ReflectiveOperationException {
         List<Method> methods = List.of(
                 LegalEntityResource.class.getMethod("getLegalEntity", String.class),
-                LegalEntityResource.class.getMethod("replaceLegalEntity", String.class, LegalEntityPutRequest.class, HttpHeaders.class),
-                LegalEntityResource.class.getMethod("patchLegalEntity", String.class, LegalEntityPatchRequest.class, HttpHeaders.class));
+                LegalEntityResource.class.getMethod("replaceLegalEntity", String.class, LegalEntityPutRequest.class,
+                        HttpHeaders.class),
+                LegalEntityResource.class.getMethod("patchLegalEntity", String.class, LegalEntityPatchRequest.class,
+                        HttpHeaders.class));
         List<String> spans = List.of("legal-entity.retrieve", "legal-entity.replace", "legal-entity.patch");
         for (int index = 0; index < methods.size(); index++) {
             Method method = methods.get(index);

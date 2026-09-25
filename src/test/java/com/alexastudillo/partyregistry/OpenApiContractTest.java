@@ -571,7 +571,7 @@ class OpenApiContractTest {
             assertFalse(schema(name).getDescription().contains("not implemented"));
         }
         assertFalse(schema("PartyUpdateRequest").getDescription().contains("not implemented"));
-        assertTrue(schema("NationalityCreateRequest").getDescription().contains("not implemented"));
+        assertFalse(schema("NationalityCreateRequest").getDescription().contains("not implemented"));
 
         Schema<?> identifier = schema("PartyIdentifierCreateRequest");
         assertEquals(256, property(identifier, "value").getMaxLength());
@@ -836,6 +836,81 @@ class OpenApiContractTest {
         assertHasProcessIdEcho(itemPath.getGet(), "200");
         assertHasProcessIdEcho(itemPath.getPut(), "200");
         assertHasProcessIdEcho(itemPath.getPatch(), "200");
+    }
+
+    @Test
+    void documentsFiveImplementedNationalityRoutesAndSuccessHeaders() {
+        PathItem collection = openApi.getPaths().get("/v1/parties/{partyId}/nationalities");
+        PathItem detail = openApi.getPaths().get("/v1/parties/{partyId}/nationalities/{nationalityId}");
+        PathItem primary = openApi.getPaths().get("/v1/parties/{partyId}/nationalities/{nationalityId}/set-primary");
+        assertEquals(Set.of(PathItem.HttpMethod.GET, PathItem.HttpMethod.POST), collection.readOperationsMap().keySet());
+        assertEquals(Set.of(PathItem.HttpMethod.GET, PathItem.HttpMethod.PATCH), detail.readOperationsMap().keySet());
+        assertEquals(Set.of(PathItem.HttpMethod.POST), primary.readOperationsMap().keySet());
+        assertEquals(Set.of("createNationality", "listNationalities", "getNationality", "updateNationality",
+                "setPrimaryNationality"), List.of(collection, detail, primary).stream()
+                .flatMap(path -> path.readOperations().stream()).map(Operation::getOperationId)
+                .collect(java.util.stream.Collectors.toSet()));
+        for (Operation operation : List.of(collection.getPost(), collection.getGet(), detail.getGet(), detail.getPatch(),
+                primary.getPost())) {
+            String status = operation == collection.getPost() ? "201" : "200";
+            assertHasProcessIdEcho(operation, status);
+            assertResponseReference(operation, "400", "NationalityBadRequest");
+            assertResponseReference(operation, "404", "NationalityNotFound");
+            assertResponseReference(operation, "405", "NationalityMethodNotAllowed");
+            assertResponseReference(operation, "default", "DefaultError");
+            assertTrue(operation.getDescription().contains("country") || operation.getDescription().contains("Country"));
+        }
+        assertResponseReference(collection.getPost(), "415", "NationalityUnsupportedMediaType");
+        assertResponseReference(detail.getPatch(), "415", "NationalityUnsupportedMediaType");
+        assertResponseReference(collection.getPost(), "503", "DependencyUnavailable");
+        assertNull(primary.getPost().getRequestBody());
+        assertNull(detail.getPatch().getParameters());
+        assertEquals("NationalityPrimaryIdempotencyKey", primary.getPost().getParameters().getFirst().get$ref()
+                .replace("#/components/parameters/", ""));
+    }
+
+    @Test
+    void pinsNationalityInputQuerySnapshotMetadataAndSpecificFailureExamples() {
+        Schema<?> create = schema("NationalityCreateRequest");
+        Schema<?> patch = schema("NationalityUpdateRequest");
+        assertEquals(Boolean.FALSE, create.getAdditionalProperties());
+        assertEquals(Boolean.FALSE, patch.getAdditionalProperties());
+        assertEquals(List.of("countryCode"), create.getRequired());
+        assertEquals(1, patch.getMinProperties());
+        assertEquals(Set.of("validFrom", "validUntil"), patch.getProperties().keySet());
+        assertEquals(Boolean.TRUE, property(patch, "validUntil").getNullable());
+        assertEquals(false, property(create, "isPrimary").getDefault());
+        assertEquals("date", property(create, "validFrom").getFormat());
+
+        Operation list = openApi.getPaths().get("/v1/parties/{partyId}/nationalities").getGet();
+        assertEquals(Set.of("countryCode", "isPrimary", "asOfDate", "includeExpired", "cursor", "limit"),
+                list.getParameters().stream().map(OpenApiContractTest::resolveParameter).map(Parameter::getName)
+                        .collect(java.util.stream.Collectors.toSet()));
+        assertEquals(200, property(schema("NationalityCollectionApiResponse"), "data").getMaxItems());
+        assertEquals(Boolean.FALSE, schema("NationalityCollectionApiResponse").getAdditionalProperties());
+        for (String field : List.of("nextCursor", "prevCursor", "totalElements", "totalPages", "numberOfElements")) {
+            assertTrue(schema("NationalityCollectionApiResponse").getRequired().contains(field));
+        }
+        JsonNode empty = assertInstanceOf(JsonNode.class, list.getResponses().get("200").getContent()
+                .get("application/json").getExamples().get("empty").getValue());
+        assertEquals(0, empty.path("totalElements").intValue());
+        assertTrue(empty.path("nextCursor").isNull());
+        for (var expected : Map.of("NationalityBadRequest", "country-code-required",
+                "NationalityNotFound", "nationality-not-found", "NationalityConflict", "primary-nationality-conflict",
+                "NationalityUnprocessableEntity", "nationality-not-effective").entrySet()) {
+            assertTrue(openApi.getComponents().getResponses().get(expected.getKey()).getContent().get("application/json")
+                    .getExamples().values().stream().map(Example::getValue)
+                    .map(JsonNode.class::cast).anyMatch(node -> expected.getValue().equals(node.path("code").textValue())));
+        }
+    }
+
+    @Test
+    void packagesTheApprovedNationalityContractVerbatim() throws java.io.IOException {
+        String source = java.nio.file.Files.readString(CONTRACT);
+        try (var packaged = OpenApiContractTest.class.getResourceAsStream("/META-INF/openapi.yaml")) {
+            assertNotNull(packaged);
+            assertEquals(source, new String(packaged.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+        }
     }
 
     private static Parameter parameter(String name) {
