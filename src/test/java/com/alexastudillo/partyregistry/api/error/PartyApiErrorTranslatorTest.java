@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
+import com.alexastudillo.partyregistry.domain.model.NationalityId;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
@@ -124,6 +125,33 @@ class PartyApiErrorTranslatorTest {
             assertEquals(422, code.getStatus());
         });
         assertEquals("missing-qualifying-identifier", PartyResponseCode.MISSING_QUALIFYING_IDENTIFIER.getCode());
+    }
+
+    @Test
+    void translatesNationalityFailuresWithoutReclassifyingInternalErrors() {
+        assertTranslation(new ApplicationFailure.InvalidNationalityCursor(), PartyResponseCode.BAD_REQUEST);
+        assertTranslation(new ApplicationFailure.NationalityNotFound(), PartyResponseCode.NATIONALITY_NOT_FOUND);
+        assertTranslation(new ApplicationFailure.PartyNotFound(new PartyId(PARTY_ID), new TenantId(TENANT_ID)),
+                PartyResponseCode.PARTY_NOT_FOUND);
+        assertTranslation(new ApplicationFailure.UnrecognizedNationalityCountry(),
+                PartyResponseCode.UNRECOGNIZED_NATIONALITY_COUNTRY);
+        assertTranslation(new ApplicationFailure.NationalityValidityInvalid(),
+                PartyResponseCode.NATIONALITY_VALIDITY_INVALID);
+        assertTranslation(new ApplicationFailure.NationalityValidityConflict(),
+                PartyResponseCode.NATIONALITY_VALIDITY_CONFLICT);
+        assertTranslation(new ApplicationFailure.PrimaryNationalityConflict(),
+                PartyResponseCode.PRIMARY_NATIONALITY_CONFLICT);
+        assertTranslation(new ApplicationFailure.NationalityNotEffective(new NationalityId(UUID.randomUUID())),
+                PartyResponseCode.NATIONALITY_NOT_EFFECTIVE);
+        assertTranslation(new ApplicationFailure.DependencyUnavailable("geographic-reference"),
+                PartyResponseCode.DEPENDENCY_UNAVAILABLE);
+        for (var entry : Map.of(
+                DomainViolation.NATIONALITY_VALIDITY_DATE_ORDER, PartyResponseCode.NATIONALITY_VALIDITY_INVALID,
+                DomainViolation.NATIONALITY_VALIDITY_CONFLICT, PartyResponseCode.NATIONALITY_VALIDITY_CONFLICT,
+                DomainViolation.PRIMARY_NATIONALITY_CONFLICT, PartyResponseCode.PRIMARY_NATIONALITY_CONFLICT,
+                DomainViolation.NATIONALITY_NOT_EFFECTIVE, PartyResponseCode.NATIONALITY_NOT_EFFECTIVE).entrySet()) {
+            assertTranslation(new ApplicationFailure.InvalidBusinessState(entry.getKey()), entry.getValue());
+        }
     }
 
     @Test

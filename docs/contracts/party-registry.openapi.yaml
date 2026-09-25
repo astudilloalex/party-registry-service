@@ -927,9 +927,30 @@ paths:
       tags:
         - nationalities
       operationId: createNationality
-      summary: Crear nacionalidad
+      summary: Register a Party nationality
+      description: |
+        Registers a nationality for either tenant-owned Party type in any retained lifecycle state,
+        including ARCHIVED. Validates exactly one required Idempotency-Key and a strict JSON object;
+        missing/null bodies return 400 request-body-required, missing/null countryCode returns 400
+        country-code-required, and non-ASCII or malformed codes return 400 country-code-invalid.
+        Unknown or repeated properties, wrong JSON types and invalid ISO calendar dates return
+        400 bad-request. Strips only surrounding Java String.strip() whitespace, accepts two ASCII
+        letters in either case and stores uppercase countryCode. Omitted isPrimary means false;
+        explicit null is invalid. Missing/null dates are open bounds; provided dates are inclusive.
+        Equal dates form a single day, future starts and historical ends are allowed. An end before
+        the start returns 422 nationality-validity-invalid. Same-country overlapping periods return
+        409 nationality-validity-conflict; overlapping primary periods return 409 primary-nationality-conflict.
+        For a new request, verifies tenant Party ownership before asking Geographic Reference whether
+        the code is recognized (inactive but recognized countries remain eligible); a definite miss
+        returns 422 unrecognized-nationality-country, and an unavailable/unusable response returns
+        503 dependency-unavailable. Failed attempts consume no key or record.
+        The tenant and create action scope the key. Effective input is Party ID, normalized code,
+        boolean primary flag and nullable dates, excluding User-Id and Process-Id. Equivalent
+        completed retries return the original 201 body, ID and audit timestamps without a country
+        lookup or write; changed input returns 409 idempotency-key-conflict before current-state
+        checks, even for another Party. The accepted Process-Id is echoed for each attempt.
       parameters:
-        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+        - $ref: '#/components/parameters/NationalityCreateIdempotencyKey'
       requestBody:
         required: true
         content:
@@ -938,67 +959,121 @@ paths:
               $ref: '#/components/schemas/NationalityCreateRequest'
       responses:
         '201':
-          description: Nacionalidad creada
+          description: Newly created or completed equivalent historical result
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/NationalityApiResponse'
+              example:
+                status: 201
+                code: successful
+                data:
+                  nationalityId: 0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab1
+                  partyId: 0198ce2b-d6a3-7d6e-80ba-d97b21d793e5
+                  countryCode: EC
+                  isPrimary: false
+                  createdAt: '2026-09-23T10:00:00Z'
+                  updatedAt: '2026-09-23T10:00:00Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/NationalityBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/NationalityNotFound'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/NationalityConflict'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/NationalityUnprocessableEntity'
+        '405':
+          $ref: '#/components/responses/NationalityMethodNotAllowed'
+        '415':
+          $ref: '#/components/responses/NationalityUnsupportedMediaType'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
         default:
           $ref: '#/components/responses/DefaultError'
     get:
       tags:
         - nationalities
       operationId: listNationalities
-      summary: Listar nacionalidades
+      summary: List tenant-owned Party nationalities
+      description: |
+        Accepts exactly the six declared query parameters, each at most once. Unknown, repeated,
+        blank, malformed, noncanonical or out-of-range values return 400 bad-request. The filters
+        intersect (AND): validFrom is null or no later than the single UTC asOfDate captured for
+        this request (future starts are always excluded); unless includeExpired=true, validUntil is
+        null or no earlier than that date. includeExpired=true also includes ended rows. isPrimary
+        filters the stored designation, including expired records; countryCode matches the stored
+        uppercase code. Reads never revalidate the country reference. Results are ordered by
+        createdAt DESC then nationalityId DESC. Count, page and navigation share a repeatable-read
+        snapshot. A signed opaque cursor binds tenant, Party, normalized filters, evaluation date
+        and limit; changed scope or altered tokens return 400 bad-request. A default date captured
+        after UTC midnight invalidates yesterday's cursor; supply a fixed asOfDate to cross midnight.
+        Forward/backward traversal over unchanged data has no gaps; an immutable snapshot across
+        separate requests is not promised. Metadata counts all tenant-owned matches before the
+        cursor position; empty data has zero counts and explicit null nextCursor/prevCursor.
       parameters:
         - name: countryCode
           in: query
           required: false
+          description: Exactly two uppercase ASCII letters, with no trimming or case conversion.
           schema:
             type: string
             pattern: '^[A-Z]{2}$'
         - name: isPrimary
           in: query
           required: false
+          description: Only the literal lowercase true or false is accepted; filters the stored designation.
           schema:
             type: boolean
         - name: asOfDate
           in: query
           required: false
+          description: Strict ISO YYYY-MM-DD calendar date; defaults to one UTC date captured for this request.
           schema:
             type: string
             format: date
         - name: includeExpired
           in: query
           required: false
+          description: Literal lowercase true or false; default false excludes already ended records.
           schema:
             type: boolean
             default: false
-        - $ref: '#/components/parameters/CursorQuery'
-        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/NationalityCursorQuery'
+        - $ref: '#/components/parameters/NationalityLimitQuery'
       responses:
         '200':
-          description: Lista de nacionalidades
+          description: Complete count and one bounded page from a consistent read
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/NationalityCollectionApiResponse'
+              examples:
+                empty:
+                  value:
+                    status: 200
+                    code: successful
+                    data: []
+                    nextCursor: null
+                    prevCursor: null
+                    totalElements: 0
+                    totalPages: 0
+                    numberOfElements: 0
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/NationalityBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/NationalityNotFound'
+        '405':
+          $ref: '#/components/responses/NationalityMethodNotAllowed'
         default:
           $ref: '#/components/responses/DefaultError'
 
@@ -1013,29 +1088,48 @@ paths:
       tags:
         - nationalities
       operationId: getNationality
-      summary: Obtener nacionalidad
+      summary: Retrieve a stored Party nationality
+      description: |
+        The Party must belong to the caller's tenant (404 party-not-found); a missing, cross-Party
+        or cross-tenant nationality returns 404 nationality-not-found without revealing ownership.
+        Ended and future records remain readable with their original audit timestamps. No current
+        geographic country validation, Idempotency-Key, or If-Match is required.
       responses:
         '200':
-          description: Nacionalidad
+          description: Stored nationality and modification audit
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/NationalityApiResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/NationalityBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/NationalityNotFound'
+        '405':
+          $ref: '#/components/responses/NationalityMethodNotAllowed'
         default:
           $ref: '#/components/responses/DefaultError'
     patch:
       tags:
         - nationalities
       operationId: updateNationality
-      summary: Actualizar vigencia de nacionalidad
+      summary: Correct nationality validity dates
       description: |
-        No existe borrado físico. La finalización se maneja mediante validUntil.
+        A nonempty strict JSON object may supply only validFrom and/or validUntil. Omitted bounds
+        retain stored values; explicit null clears that bound. Invalid, repeated or unknown fields,
+        wrong JSON types and malformed dates return 400 bad-request; an empty object returns
+        400 patch-property-required and an absent/null body returns 400 request-body-required.
+        The resulting inclusive interval must be coherent (422 nationality-validity-invalid),
+        must not overlap a same-country record (409 nationality-validity-conflict), and when primary
+        must not overlap another primary (409 primary-nationality-conflict). Rejected writes preserve
+        all rows and audit timestamps. Every accepted PATCH, even an unchanged value, updates the
+        modification timestamp. Country, designation, identity, dates not supplied and creation
+        audit remain unchanged. No physical deletion, country revalidation, or If-Match is involved.
       requestBody:
         required: true
         content:
@@ -1044,21 +1138,28 @@ paths:
               $ref: '#/components/schemas/NationalityUpdateRequest'
       responses:
         '200':
-          description: Nacionalidad actualizada
+          description: Stored outcome with new modification audit
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/NationalityApiResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/NationalityBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/NationalityNotFound'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/NationalityConflict'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/NationalityUnprocessableEntity'
+        '405':
+          $ref: '#/components/responses/NationalityMethodNotAllowed'
+        '415':
+          $ref: '#/components/responses/NationalityUnsupportedMediaType'
         default:
           $ref: '#/components/responses/DefaultError'
 
@@ -1069,29 +1170,47 @@ paths:
       - $ref: '#/components/parameters/TenantId'
       - $ref: '#/components/parameters/ProcessId'
       - $ref: '#/components/parameters/UserId'
-      - $ref: '#/components/parameters/IdempotencyKeyOptional'
     post:
       tags:
         - nationalities
       operationId: setPrimaryNationality
-      summary: Marcar nacionalidad primaria
+      summary: Designate an effective primary nationality
+      description: |
+        Has no request body or If-Match precondition. Captures one UTC date per request; an ended
+        or future target returns 422 nationality-not-effective without changing audit or designation.
+        On an effective target, atomically demotes only other primary records of the same Party whose
+        stored inclusive intervals intersect the target, then promotes it. All dates and
+        nonintersecting historical primaries remain unchanged; no country lookup is required.
+        An already-primary unkeyed no-op leaves audit and Party version unchanged. Optional
+        Idempotency-Key identifies the tenant and set-primary action, scoped to Party and nationality
+        ID, excluding user/process and evaluation date. Equivalent completed retries return the
+        original 200 body and timestamps even after later transfers; changed target returns
+        409 idempotency-key-conflict before eligibility checks. Successful keyed no-ops are saved;
+        failed attempts do not consume a key.
+      parameters:
+        - $ref: '#/components/parameters/NationalityPrimaryIdempotencyKey'
       responses:
         '200':
-          description: Nacionalidad marcada como primaria
+          description: Original or newly accepted primary result
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/NationalityApiResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/NationalityBadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/NationalityNotFound'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/NationalityConflict'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/NationalityUnprocessableEntity'
+        '405':
+          $ref: '#/components/responses/NationalityMethodNotAllowed'
         default:
           $ref: '#/components/responses/DefaultError'
 
@@ -1840,9 +1959,65 @@ components:
       name: nationalityId
       in: path
       required: true
+      description: Full UUID nationality identifier; invalid format returns 400 bad-request.
       schema:
         type: string
         format: uuid
+        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+    NationalityCreateIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Exactly one nonblank key of at most 128 Unicode code points, without trimming or case
+        conversion. Missing, repeated, blank and oversized keys return idempotency-key-required,
+        idempotency-key-duplicated, idempotency-key-blank and idempotency-key-too-long (400).
+        Tenant/create-action-scoped completed results survive retries and restarts; changed effective
+        input returns 409 idempotency-key-conflict. Failed attempts consume no key.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '.*\S.*'
+    NationalityPrimaryIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Optional, exactly one nonblank value of at most 128 Unicode code points, compared without
+        trimming or case conversion. Repeated, blank and oversized values return the shared
+        idempotency-key-duplicated, idempotency-key-blank and idempotency-key-too-long (400).
+        Tenant/set-primary-action-scoped completed results survive changes and restarts; changed
+        Party or nationality ID returns 409 idempotency-key-conflict. Failed attempts consume no key.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '.*\S.*'
+    NationalityCursorQuery:
+      name: cursor
+      in: query
+      required: false
+      description: >-
+        One opaque signed continuation scoped to tenant, Party, normalized country/primary/expired
+        filters, one effective UTC asOfDate, and limit. Omit for the first page. Blank, repeated,
+        altered, cross-scope, and root-Party cursors return 400 bad-request.
+      schema:
+        type: string
+        minLength: 1
+    NationalityLimitQuery:
+      name: limit
+      in: query
+      required: false
+      description: >-
+        One decimal integer from 1 through 200; defaults to 50 only when absent. Blank,
+        repeated, fractional, zero, negative and oversized values return 400 bad-request.
+        The effective limit is part of the signed cursor scope.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
     IdentifierSchemeIdPath:
       name: schemeId
       in: path
@@ -2068,6 +2243,125 @@ components:
           example:
             status: 401
             code: unauthorized
+
+    NationalityBadRequest:
+      description: >-
+        Only status/code are returned. Trusted context is checked Process-Id, Tenant-Id, User-Id;
+        within each header absence, duplicate, then invalid value. Malformed JSON, unknown/duplicate
+        properties, wrong types, invalid dates, invalid nationalityId, invalid/repeated/unknown list
+        parameters and tampered cursors use bad-request. A missing/null body uses request-body-required;
+        invalid create country and empty PATCH use their field-specific codes. A malformed/noncanonical
+        Party UUID uses party-id-invalid; invalid operation keys use idempotency-key-* codes.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            malformed:
+              value: { status: 400, code: bad-request }
+            missingBody:
+              value: { status: 400, code: request-body-required }
+            missingCountry:
+              value: { status: 400, code: country-code-required }
+            invalidCountry:
+              value: { status: 400, code: country-code-invalid }
+            emptyPatch:
+              value: { status: 400, code: patch-property-required }
+            invalidPartyId:
+              value: { status: 400, code: party-id-invalid }
+            requiredKey:
+              value: { status: 400, code: idempotency-key-required }
+            duplicateKey:
+              value: { status: 400, code: idempotency-key-duplicated }
+            blankKey:
+              value: { status: 400, code: idempotency-key-blank }
+            oversizedKey:
+              value: { status: 400, code: idempotency-key-too-long }
+
+    NationalityNotFound:
+      description: >-
+        A missing/cross-tenant Party returns party-not-found. A record absent under an owned Party,
+        belonging to another Party, or belonging to another tenant returns nationality-not-found.
+        No owner or record details are exposed. An unmatched route retains framework not-found.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            party:
+              value: { status: 404, code: party-not-found }
+            nationality:
+              value: { status: 404, code: nationality-not-found }
+            route:
+              value: { status: 404, code: not-found }
+
+    NationalityConflict:
+      description: >-
+        Inclusive same-country overlap returns nationality-validity-conflict, and overlapping
+        primary intervals return primary-nationality-conflict. A completed key reused with changed
+        effective input returns idempotency-key-conflict. All rejected writes roll back completely.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            sameCountry:
+              value: { status: 409, code: nationality-validity-conflict }
+            primary:
+              value: { status: 409, code: primary-nationality-conflict }
+            idempotency:
+              value: { status: 409, code: idempotency-key-conflict }
+
+    NationalityUnprocessableEntity:
+      description: >-
+        An inverted interval returns nationality-validity-invalid; a definite unrecognized new
+        country returns unrecognized-nationality-country; an ended or future set-primary target
+        returns nationality-not-effective. Rejected attempts change no audit, version or key state.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            invalidInterval:
+              value: { status: 422, code: nationality-validity-invalid }
+            unrecognizedCountry:
+              value: { status: 422, code: unrecognized-nationality-country }
+            ineffectiveTarget:
+              value: { status: 422, code: nationality-not-effective }
+
+    NationalityMethodNotAllowed:
+      description: A recognized nationality route was called with an unsupported method.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 405, code: method-not-allowed }
+
+    NationalityUnsupportedMediaType:
+      description: The create or PATCH request body is not application/json.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 415, code: unsupported-media-type }
 
     NotFound:
       description: >-
@@ -3190,14 +3484,18 @@ components:
 
     NationalityCreateRequest:
       type: object
+      additionalProperties: false
       description: >-
-        Future nationality contract; nationality endpoints are not implemented. The country input
-        normalization rule described here will apply when this operation is implemented.
+        Strict JSON object. Duplicate/unknown fields and wrong JSON scalar types return 400 bad-request.
+        countryCode is a required nonnull string. Omitted isPrimary defaults to false; explicit null
+        is invalid. Omitted/null dates mean open bounds; supplied values must be ISO YYYY-MM-DD
+        calendar dates. Validity and overlap rules are evaluated after structural and path/key checks.
       required:
         - countryCode
       properties:
         countryCode:
           type: string
+          nullable: false
           description: >-
             Accepts exactly two ASCII letters in either case, optionally surrounded by Java
             String.strip() whitespace (Character.isWhitespace). Stored as two uppercase ASCII
@@ -3208,6 +3506,7 @@ components:
           x-normalized-max-length: 2
         isPrimary:
           type: boolean
+          nullable: false
           default: false
         validFrom:
           type: string
@@ -3220,7 +3519,13 @@ components:
 
     NationalityUpdateRequest:
       type: object
+      additionalProperties: false
       minProperties: 1
+      maxProperties: 2
+      description: >-
+        Strict presence-aware PATCH object. At least one of validFrom/validUntil must be supplied
+        (400 patch-property-required); omitted means retain and explicit null clears that bound.
+        Duplicate/unknown properties, wrong types and invalid ISO calendar dates use 400 bad-request.
       properties:
         validFrom:
           type: string
@@ -3233,6 +3538,10 @@ components:
 
     NationalityResponse:
       type: object
+      additionalProperties: false
+      description: >-
+        Detached stored nationality without tenant identity, Party lifecycle, storage internals, or
+        pagination. Null validity bounds may be omitted. All audit timestamps are retained on replay.
       required:
         - nationalityId
         - partyId
@@ -3271,6 +3580,7 @@ components:
 
     NationalityApiResponse:
       type: object
+      additionalProperties: false
       required:
         - status
         - code
@@ -3278,6 +3588,7 @@ components:
       properties:
         status:
           type: integer
+          enum: [200, 201]
         code:
           $ref: '#/components/schemas/ApiSuccessCode'
         data:
@@ -3285,6 +3596,7 @@ components:
 
     NationalityCollectionApiResponse:
       type: object
+      additionalProperties: false
       required:
         - status
         - code
@@ -3297,10 +3609,12 @@ components:
       properties:
         status:
           type: integer
+          enum: [200]
         code:
           $ref: '#/components/schemas/ApiSuccessCode'
         data:
           type: array
+          maxItems: 200
           items:
             $ref: '#/components/schemas/NationalityResponse'
         nextCursor:
@@ -3311,13 +3625,13 @@ components:
           nullable: true
         totalElements:
           type: integer
-          nullable: true
+          minimum: 0
         totalPages:
           type: integer
-          nullable: true
+          minimum: 0
         numberOfElements:
           type: integer
-          nullable: true
+          minimum: 0
 
     IdentifierSchemeCreateRequest:
       type: object
