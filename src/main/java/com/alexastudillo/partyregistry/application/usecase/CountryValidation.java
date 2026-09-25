@@ -45,6 +45,23 @@ final class CountryValidation {
                                 new ApplicationFailure.UnrecognizedIncorporationCountry(countryCode))));
     }
 
+    /** Distinguishes a definite nationality-country miss from an unusable reference result. */
+    static Uni<Void> validateNationalityCountry(
+            CountryReferencePort countryReferencePort,
+            RequestMetadata requestMetadata,
+            String countryCode) {
+        return countryReferencePort.isRecognizedCountry(requestMetadata, countryCode)
+                .flatMap(recognized -> {
+                    if (Boolean.TRUE.equals(recognized)) {
+                        return Uni.createFrom().voidItem();
+                    }
+                    ApplicationFailure failure = Boolean.FALSE.equals(recognized)
+                            ? new ApplicationFailure.UnrecognizedNationalityCountry()
+                            : new ApplicationFailure.DependencyUnavailable("geographic-reference");
+                    return Uni.createFrom().failure(new ApplicationException(failure));
+                });
+    }
+
     static Uni<Void> validateChangedIncorporationCountry(
             CountryReferencePort countryReferencePort,
             RequestMetadata requestMetadata,

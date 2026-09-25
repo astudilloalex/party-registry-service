@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.api.support;
 
 import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
+import com.alexastudillo.partyregistry.domain.model.NationalityId;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -100,6 +101,18 @@ public class ApiRequestSupport {
             return new PartyId(parsed);
         } catch (IllegalArgumentException _) {
             throw badRequest(PartyResponseCode.PARTY_ID_INVALID, PARTY_ID_FIELD);
+        }
+    }
+
+    /** Parses a full UUID nationality path segment without requiring lowercase. */
+    public NationalityId parseNationalityId(String value) {
+        if (value == null || !value.matches("(?i)[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}")) {
+            throw badRequest(PartyResponseCode.BAD_REQUEST, "nationalityId");
+        }
+        try {
+            return new NationalityId(UUID.fromString(value));
+        } catch (IllegalArgumentException _) {
+            throw badRequest(PartyResponseCode.BAD_REQUEST, "nationalityId");
         }
     }
 

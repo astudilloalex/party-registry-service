@@ -35,6 +35,13 @@ public final class PartyApiErrorTranslator {
     private static ApiResponseCode responseCode(ApplicationFailure failure) {
         return switch (failure) {
             case ApplicationFailure.InvalidPartyCursor _ -> PartyResponseCode.BAD_REQUEST;
+            case ApplicationFailure.InvalidNationalityCursor _ -> PartyResponseCode.BAD_REQUEST;
+            case ApplicationFailure.NationalityNotFound _ -> PartyResponseCode.NATIONALITY_NOT_FOUND;
+            case ApplicationFailure.UnrecognizedNationalityCountry _ -> PartyResponseCode.UNRECOGNIZED_NATIONALITY_COUNTRY;
+            case ApplicationFailure.NationalityValidityInvalid _ -> PartyResponseCode.NATIONALITY_VALIDITY_INVALID;
+            case ApplicationFailure.NationalityValidityConflict _ -> PartyResponseCode.NATIONALITY_VALIDITY_CONFLICT;
+            case ApplicationFailure.PrimaryNationalityConflict _ -> PartyResponseCode.PRIMARY_NATIONALITY_CONFLICT;
+            case ApplicationFailure.NationalityNotEffective _ -> PartyResponseCode.NATIONALITY_NOT_EFFECTIVE;
             case ApplicationFailure.NaturalPersonNotFound _ -> PartyResponseCode.NATURAL_PERSON_NOT_FOUND;
             case ApplicationFailure.LegalEntityNotFound _ -> PartyResponseCode.LEGAL_ENTITY_NOT_FOUND;
             case ApplicationFailure.IdempotencyKeyConflict _ -> PartyResponseCode.IDEMPOTENCY_KEY_CONFLICT;
@@ -67,6 +74,10 @@ public final class PartyApiErrorTranslator {
             case INCORPORATION_DATE_IN_FUTURE -> PartyResponseCode.INCORPORATION_DATE_IN_FUTURE;
             case DISSOLUTION_DATE_IN_FUTURE -> PartyResponseCode.DISSOLUTION_DATE_IN_FUTURE;
             case DISSOLUTION_BEFORE_INCORPORATION -> PartyResponseCode.DISSOLUTION_BEFORE_INCORPORATION;
+            case NATIONALITY_VALIDITY_DATE_ORDER -> PartyResponseCode.NATIONALITY_VALIDITY_INVALID;
+            case NATIONALITY_VALIDITY_CONFLICT -> PartyResponseCode.NATIONALITY_VALIDITY_CONFLICT;
+            case PRIMARY_NATIONALITY_CONFLICT -> PartyResponseCode.PRIMARY_NATIONALITY_CONFLICT;
+            case NATIONALITY_NOT_EFFECTIVE -> PartyResponseCode.NATIONALITY_NOT_EFFECTIVE;
             // Unclassified invariants can indicate corrupted state or programming errors, not client input.
             default -> null;
         };

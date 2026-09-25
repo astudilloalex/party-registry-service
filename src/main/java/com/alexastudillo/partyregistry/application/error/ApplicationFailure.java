@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.application.error;
 
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
+import com.alexastudillo.partyregistry.domain.model.NationalityId;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
@@ -17,6 +18,37 @@ public sealed interface ApplicationFailure {
 
     /** Reports an invalid continuation without retaining or exposing client cursor material. */
     record InvalidPartyCursor() implements ApplicationFailure {
+    }
+
+    /** Reports a malformed, altered, or cross-scope nationality continuation. */
+    record InvalidNationalityCursor() implements ApplicationFailure {
+    }
+
+    /** Conceals a missing nationality or one belonging to another Party or tenant. */
+    record NationalityNotFound() implements ApplicationFailure {
+    }
+
+    /** Reports a country code definitely absent from the geographic reference. */
+    record UnrecognizedNationalityCountry() implements ApplicationFailure {
+    }
+
+    /** Rejects an interval with its end before its start. */
+    record NationalityValidityInvalid() implements ApplicationFailure {
+    }
+
+    /** Rejects overlapping inclusive intervals for the same country and Party. */
+    record NationalityValidityConflict() implements ApplicationFailure {
+    }
+
+    /** Rejects overlapping primary intervals for the same Party. */
+    record PrimaryNationalityConflict() implements ApplicationFailure {
+    }
+
+    /** Reports a target not effective on the operation's captured evaluation date. */
+    record NationalityNotEffective(NationalityId nationalityId) implements ApplicationFailure {
+        public NationalityNotEffective {
+            Objects.requireNonNull(nationalityId, "nationalityId");
+        }
     }
 
     /**

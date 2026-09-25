@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.api.observability;
 
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
+import com.alexastudillo.partyregistry.application.model.NationalityMutationOutcome;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,6 +22,7 @@ public class PartyHttpObservability {
     static final String IDEMPOTENCY_METRIC = "party.registry.http.idempotency";
     static final String OPTIMISTIC_CONFLICT_METRIC = "party.registry.http.optimistic.conflicts";
     static final String MUTATION_METRIC = "party.registry.http.mutation";
+    static final String NATIONALITY_MUTATION_METRIC = "party.registry.http.nationality.mutation";
     static final String UNMATCHED_OPERATION = "unmatched";
     private static final String UNSUPPORTED_OPERATION = "unsupported";
     private static final String PATCH_METHOD = "PATCH";
@@ -28,6 +30,7 @@ public class PartyHttpObservability {
     static final String OPERATION_TAG = "operation";
     static final String OUTCOME_TAG = "outcome";
     static final String CODE_TAG = "code";
+    static final String CONFLICT_OUTCOME = "conflict";
 
     private static final String NATURAL_PERSON_PATH = "/v1/natural-person";
     private static final String NATURAL_PERSON_ITEM_PREFIX = NATURAL_PERSON_PATH + "/";
@@ -37,6 +40,7 @@ public class PartyHttpObservability {
     private static final String PARTY_ITEM_PREFIX = PARTY_PATH + "/";
     private static final String IDENTIFIERS_SUFFIX = "/identifiers";
     private static final String ACTIVATE_SUFFIX = "/activate";
+    private static final String NATIONALITIES_SEGMENT = "nationalities";
     private static final Set<String> ROOT_MUTATIONS = Set.of("patch-party", "activate", "deactivate", "archive");
 
     private final MeterRegistry meterRegistry;
@@ -54,6 +58,10 @@ public class PartyHttpObservability {
      * @return stable operation label, {@code unsupported} for a recognized route's other methods, or {@code unmatched}
      */
     public String operationName(String method, String path) {
+        String nationalityOperation = nationalityOperationName(method, path);
+        if (!UNMATCHED_OPERATION.equals(nationalityOperation)) {
+            return nationalityOperation;
+        }
         String rootOperation = rootOperationName(method, path);
         if (!UNMATCHED_OPERATION.equals(rootOperation)) {
             return rootOperation;
@@ -127,7 +135,7 @@ public class PartyHttpObservability {
                         OUTCOME_TAG, idempotencyOutcome.name().toLowerCase(Locale.ROOT))
                         .increment();
             } else if ("idempotency-key-conflict".equals(code)) {
-                meterRegistry.counter(IDEMPOTENCY_METRIC, OUTCOME_TAG, "conflict")
+                meterRegistry.counter(IDEMPOTENCY_METRIC, OUTCOME_TAG, CONFLICT_OUTCOME)
                         .increment();
             }
         }
@@ -153,12 +161,61 @@ public class PartyHttpObservability {
         if (status < 400 && disposition != null) {
             outcome = disposition.name().toLowerCase(Locale.ROOT);
         } else if (status == 409 || status == 412) {
-            outcome = "conflict";
+            outcome = CONFLICT_OUTCOME;
         } else {
             return;
         }
         meterRegistry.counter(MUTATION_METRIC, OPERATION_TAG, operation, OUTCOME_TAG, outcome, CODE_TAG, code).increment();
         Span.current().setAttribute("party.mutation.outcome", outcome);
+    }
+
+    /** Records only keyed nationality create/set-primary dispositions and bounded conflict outcomes. */
+    public void recordNationalityCompletion(String operation, int status, String code,
+            NationalityMutationOutcome.Disposition disposition, boolean keyed) {
+        if (!keyed || (!"create-nationality".equals(operation) && !"set-primary-nationality".equals(operation))) {
+            return;
+        }
+        String outcome;
+        if (status < 400 && disposition != null) {
+            outcome = disposition.name().toLowerCase(Locale.ROOT);
+        } else if (status == 409) {
+            outcome = CONFLICT_OUTCOME;
+        } else {
+            return;
+        }
+        meterRegistry.counter(NATIONALITY_MUTATION_METRIC, OPERATION_TAG, operation, OUTCOME_TAG, outcome,
+                CODE_TAG, code).increment();
+        Span.current().setAttribute("party.nationality.mutation.outcome", outcome);
+    }
+
+    private static String nationalityOperationName(String method, String path) {
+        String[] segments = path.split("/", -1);
+        if (segments.length < 5 || !segments[0].isEmpty() || !"v1".equals(segments[1])
+                || !"parties".equals(segments[2]) || segments[3].isEmpty()
+                || !NATIONALITIES_SEGMENT.equals(segments[4])) {
+            return UNMATCHED_OPERATION;
+        }
+        if (segments.length == 5) {
+            return switch (method) {
+                case "POST" -> "create-nationality";
+                case "GET" -> "list-nationalities";
+                default -> UNSUPPORTED_OPERATION;
+            };
+        }
+        if (segments[5].isEmpty()) {
+            return UNMATCHED_OPERATION;
+        }
+        if (segments.length == 6) {
+            return switch (method) {
+                case "GET" -> "retrieve-nationality";
+                case PATCH_METHOD -> "patch-nationality";
+                default -> UNSUPPORTED_OPERATION;
+            };
+        }
+        if (segments.length == 7 && "set-primary".equals(segments[6])) {
+            return "POST".equals(method) ? "set-primary-nationality" : UNSUPPORTED_OPERATION;
+        }
+        return UNMATCHED_OPERATION;
     }
 
     private static String rootOperationName(String method, String path) {

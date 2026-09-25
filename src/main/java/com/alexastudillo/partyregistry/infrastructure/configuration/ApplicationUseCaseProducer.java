@@ -5,6 +5,9 @@ import com.alexastudillo.partyregistry.application.port.IdempotentPartyRegistrat
 import com.alexastudillo.partyregistry.application.port.IdentifierProtectionPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierSchemeRepository;
 import com.alexastudillo.partyregistry.application.port.NaturalPersonRepository;
+import com.alexastudillo.partyregistry.application.port.NationalityMutationPort;
+import com.alexastudillo.partyregistry.application.port.NationalityReadPort;
+import com.alexastudillo.partyregistry.application.port.NationalityCursorPort;
 import com.alexastudillo.partyregistry.application.port.LegalEntityRepository;
 import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
 import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
@@ -16,6 +19,11 @@ import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.CreateNationalityUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchNationalityUseCase;
+import com.alexastudillo.partyregistry.application.usecase.SetPrimaryNationalityUseCase;
+import com.alexastudillo.partyregistry.application.usecase.GetNationalityUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ListNationalitiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
@@ -45,6 +53,37 @@ import java.time.Clock;
 public class ApplicationUseCaseProducer {
 
     private static final Clock UTC_CLOCK = Clock.systemUTC();
+
+    /** Shares the existing UTC operation clock with nationality persistence and parsing. */
+    @Produces
+    Clock utcClock() {
+        return UTC_CLOCK;
+    }
+
+    @Produces
+    GetNationalityUseCase getNationalityUseCase(NationalityReadPort reads) {
+        return new GetNationalityUseCase(reads);
+    }
+
+    @Produces
+    ListNationalitiesUseCase listNationalitiesUseCase(NationalityReadPort reads, NationalityCursorPort cursors) {
+        return new ListNationalitiesUseCase(reads, cursors);
+    }
+
+    @Produces
+    CreateNationalityUseCase createNationalityUseCase(NationalityMutationPort mutations, CountryReferencePort countries) {
+        return new CreateNationalityUseCase(mutations, countries);
+    }
+
+    @Produces
+    PatchNationalityUseCase patchNationalityUseCase(NationalityMutationPort mutations) {
+        return new PatchNationalityUseCase(mutations);
+    }
+
+    @Produces
+    SetPrimaryNationalityUseCase setPrimaryNationalityUseCase(NationalityMutationPort mutations) {
+        return new SetPrimaryNationalityUseCase(mutations, UTC_CLOCK);
+    }
 
     @Produces
     CreateNaturalPersonUseCase createNaturalPersonUseCase(

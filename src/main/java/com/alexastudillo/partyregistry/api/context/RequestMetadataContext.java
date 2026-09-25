@@ -3,6 +3,7 @@ package com.alexastudillo.partyregistry.api.context;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
+import com.alexastudillo.partyregistry.application.model.NationalityMutationOutcome;
 import jakarta.enterprise.context.RequestScoped;
 
 import java.util.Objects;
@@ -14,6 +15,8 @@ import java.util.Objects;
 @RequestScoped
 public class RequestMetadataContext {
 
+    private static final String OUTCOME = "outcome";
+
     private RequestMetadata metadata;
     private String acceptedProcessId;
     private String method;
@@ -22,6 +25,8 @@ public class RequestMetadataContext {
     private boolean mdcInitialized;
     private PartyRegistrationOutcome idempotencyOutcome;
     private PartyMutationOutcome.Disposition mutationDisposition;
+    private NationalityMutationOutcome.Disposition nationalityDisposition;
+    private boolean nationalityKeyed;
 
     /**
      * Starts completion tracking before request validation occurs.
@@ -97,7 +102,7 @@ public class RequestMetadataContext {
      * @param outcome idempotent creation outcome
      */
     public void recordIdempotencyOutcome(PartyRegistrationOutcome outcome) {
-        this.idempotencyOutcome = Objects.requireNonNull(outcome, "outcome");
+        this.idempotencyOutcome = Objects.requireNonNull(outcome, OUTCOME);
     }
 
     public PartyRegistrationOutcome idempotencyOutcome() {
@@ -106,10 +111,28 @@ public class RequestMetadataContext {
 
     /** Retains only the committed mutation disposition for completion telemetry, never the historical result itself. */
     public void recordMutationDisposition(PartyMutationOutcome outcome) {
-        this.mutationDisposition = Objects.requireNonNull(outcome, "outcome").disposition();
+        this.mutationDisposition = Objects.requireNonNull(outcome, OUTCOME).disposition();
     }
 
     public PartyMutationOutcome.Disposition mutationDisposition() {
         return mutationDisposition;
+    }
+
+    /** Retains only a bounded keyed-attempt marker, never the replay key itself. */
+    public void markNationalityKeyed() {
+        nationalityKeyed = true;
+    }
+
+    /** Records the accepted nationality mutation disposition for request-completion telemetry. */
+    public void recordNationalityDisposition(NationalityMutationOutcome outcome) {
+        nationalityDisposition = Objects.requireNonNull(outcome, OUTCOME).disposition();
+    }
+
+    public NationalityMutationOutcome.Disposition nationalityDisposition() {
+        return nationalityDisposition;
+    }
+
+    public boolean nationalityKeyed() {
+        return nationalityKeyed;
     }
 }

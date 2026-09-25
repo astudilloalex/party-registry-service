@@ -2,6 +2,8 @@ package com.alexastudillo.partyregistry;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -10,6 +12,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,6 +21,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -30,6 +35,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -93,7 +100,109 @@ class PartyLifecycleRestartIT {
         }
     }
 
+    @Test
+    void completedNationalityCreateAndPrimarySnapshotsSurviveARealProcessRestart() throws Exception {
+        AtomicInteger countryCalls = new AtomicInteger();
+        HttpServer countries = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor();
+                var database = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+                var client = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build()) {
+            countries.setExecutor(executor);
+            countries.createContext("/api/v1/countries/by-alpha2/", exchange -> replyCountry(exchange, countryCalls));
+            countries.start();
+            String countryUrl = "http://127.0.0.1:" + countries.getAddress().getPort();
+            database.withStartupTimeout(Duration.ofSeconds(60));
+            database.start();
+            UUID tenant = UUID.randomUUID();
+            String root;
+            JsonNode created;
+            JsonNode designated;
+            String target;
+            long firstPid;
+            try (var first = launch(database, client, "nationality-first", countryUrl)) {
+                firstPid = first.process().pid();
+                UUID party = seed(database, tenant, "LEGAL_ENTITY");
+                root = "/v1/parties/" + party + "/nationalities";
+                String process = UUID.randomUUID().toString();
+                var creation = client.send(request(first, tenant, process, "creator", root)
+                        .header("Idempotency-Key", "nationality-created-restart")
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{\"countryCode\":\"EC\"}"))
+                        .build(), HttpResponse.BodyHandlers.ofString());
+                assertEquals(201, creation.statusCode(), creation.body());
+                created = JSON.readTree(creation.body());
+                target = root + "/" + created.path("data").path("nationalityId").asText();
+                var primary = client.send(request(first, tenant, process, "creator", target + "/set-primary")
+                        .header("Idempotency-Key", "nationality-primary-restart")
+                        .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+                assertEquals(200, primary.statusCode(), primary.body());
+                designated = JSON.readTree(primary.body());
+                assertTrue(designated.path("data").path("isPrimary").asBoolean());
+                var alternative = client.send(request(first, tenant, process, "creator", root)
+                        .header("Idempotency-Key", "nationality-alternative-restart")
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{\"countryCode\":\"GB\"}"))
+                        .build(), HttpResponse.BodyHandlers.ofString());
+                assertEquals(201, alternative.statusCode(), alternative.body());
+                String otherTarget = root + "/" + JSON.readTree(alternative.body()).path("data").path("nationalityId").asText();
+                var switched = client.send(request(first, tenant, process, "creator", otherTarget + "/set-primary")
+                        .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+                assertEquals(200, switched.statusCode(), switched.body());
+                assertFalse(get(client, first, tenant, process, target).path("data").path("isPrimary").asBoolean());
+                assertEquals(2, countryCalls.get());
+                assertEquals("3", nationalityKeyCount(database, tenant));
+            }
+            try (var relaunched = launch(database, client, "nationality-relaunched", countryUrl)) {
+                assertNotEquals(firstPid, relaunched.process().pid());
+                String process = UUID.randomUUID().toString();
+                var creation = client.send(request(relaunched, tenant, process, "retry-actor", root)
+                        .header("Idempotency-Key", "nationality-created-restart")
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString("{\"countryCode\":\" ec \",\"isPrimary\":false,\"validFrom\":null,\"validUntil\":null}"))
+                        .build(), HttpResponse.BodyHandlers.ofString());
+                assertEquals(201, creation.statusCode(), creation.body());
+                assertEquals(process, creation.headers().firstValue("Process-Id").orElseThrow());
+                assertEquals(created, JSON.readTree(creation.body()));
+                var primary = client.send(request(relaunched, tenant, process, "retry-actor", target + "/set-primary")
+                        .header("Idempotency-Key", "nationality-primary-restart")
+                        .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+                assertEquals(200, primary.statusCode(), primary.body());
+                assertEquals(designated, JSON.readTree(primary.body()));
+                assertFalse(get(client, relaunched, tenant, process, target).path("data").path("isPrimary").asBoolean());
+                assertEquals(2, countryCalls.get());
+                assertEquals("3", nationalityKeyCount(database, tenant));
+            }
+        } finally {
+            countries.stop(0);
+        }
+    }
+
+    private static String nationalityKeyCount(PostgreSQLContainer database, UUID tenant) throws SQLException {
+        return sql(database, "select count(*) from api_idempotency_records where tenant_id = '%s' and operation like 'nationality.%%'"
+                .formatted(tenant)).strip();
+    }
+
+    private static void replyCountry(HttpExchange exchange, AtomicInteger calls) throws IOException {
+        String code = exchange.getRequestURI().getPath().substring("/api/v1/countries/by-alpha2/".length());
+        calls.incrementAndGet();
+        String body = "GB".equals(code)
+                ? PackagedGeographicReferenceResource.SUCCESS_RESPONSE
+                        .replace("\"alpha2Code\": \"EC\"", "\"alpha2Code\": \"GB\"")
+                : PackagedGeographicReferenceResource.SUCCESS_RESPONSE;
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.getResponseHeaders().set("Process-Id", exchange.getRequestHeaders().getFirst("Process-Id"));
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(200, bytes.length);
+        try (OutputStream stream = exchange.getResponseBody()) {
+            stream.write(bytes);
+        }
+    }
+
     private RunningApplication launch(PostgreSQLContainer database, HttpClient client, String name) throws Exception {
+        return launch(database, client, name, null);
+    }
+
+    private RunningApplication launch(PostgreSQLContainer database, HttpClient client, String name, String countryUrl) throws Exception {
         Path descriptor = Path.of("build/quarkus-artifact.properties").toAbsolutePath();
         var artifact = new Properties();
         try (var input = Files.newInputStream(descriptor)) {
@@ -126,6 +235,9 @@ class PartyLifecycleRestartIT {
                 Map.entry("QUARKUS_DATASOURCE_REACTIVE_URL", database.getJdbcUrl().substring("jdbc:".length())),
                 Map.entry("_TEST_QUARKUS_FLYWAY_LOCATIONS", "db/migration"),
                 Map.entry("_TEST_PARTY_REGISTRY_OUTBOX_MODE", "stored-only")));
+        if (countryUrl != null) {
+            builder.environment().put("TEST_GEOGRAPHIC_REFERENCE_BASE_URL", countryUrl);
+        }
         var application = new RunningApplication(builder.start(), URI.create("http://localhost:" + port));
         try {
             awaitReady(application, client);

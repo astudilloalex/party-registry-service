@@ -122,6 +122,8 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
                 durationNanos,
                 metadataContext.idempotencyOutcome());
         observability.recordMutationCompletion(operation, responseContext.getStatus(), code, metadataContext.mutationDisposition());
+        observability.recordNationalityCompletion(operation, responseContext.getStatus(), code,
+                metadataContext.nationalityDisposition(), metadataContext.nationalityKeyed());
         LOGGER.log(
                 System.Logger.Level.INFO,
                 "Request completed operation={0} status={1} code={2} durationMs={3}",

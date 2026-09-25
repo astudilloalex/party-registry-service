@@ -33,6 +33,7 @@ class IdentifierSchemeTestFixtureTest {
     private static final String V3 = "V3__seed_ecuador_identifier_schemes.sql";
     private static final String V4 = "V4__make_identifier_expiration_optional.sql";
     private static final String V5 = "V5__add_party_listing_order_index.sql";
+    private static final String V6 = "V6__add_nationality_listing_order_index.sql";
     private static final String V1000 = "V1000__seed_identifier_scheme_test_fixtures.sql";
     private static final String V1_SHA_256 =
             "7da1a66b7cddb2389da0032c5f3ccef8049e75eaa77783eda37e89758235e4d7";
@@ -66,7 +67,7 @@ class IdentifierSchemeTestFixtureTest {
         Map<String, Path> productionMigrations = migrationFiles(PRODUCTION_MIGRATIONS);
         Map<String, Path> testMigrations = migrationFiles(TEST_MIGRATIONS);
 
-        assertEquals(Set.of(V1, V2, V3, V4, V5), productionMigrations.keySet());
+        assertEquals(Set.of(V1, V2, V3, V4, V5, V6), productionMigrations.keySet());
         assertEquals(Set.of(V1000), testMigrations.keySet());
         assertEquals(V1_SHA_256, sha256(productionMigrations.get(V1)));
         assertEquals(V2_SHA_256, sha256(productionMigrations.get(V2)));

@@ -47,6 +47,13 @@ public final class ApplicationException extends RuntimeException {
         Objects.requireNonNull(failure, FAILURE);
         return switch (failure) {
             case ApplicationFailure.InvalidPartyCursor _ -> "Invalid Party cursor";
+            case ApplicationFailure.InvalidNationalityCursor _ -> "Invalid nationality cursor";
+            case ApplicationFailure.NationalityNotFound _ -> "Nationality not found";
+            case ApplicationFailure.UnrecognizedNationalityCountry _ -> "Unrecognized nationality country";
+            case ApplicationFailure.NationalityValidityInvalid _ -> "Invalid nationality validity period";
+            case ApplicationFailure.NationalityValidityConflict _ -> "Nationality validity conflict";
+            case ApplicationFailure.PrimaryNationalityConflict _ -> "Primary nationality conflict";
+            case ApplicationFailure.NationalityNotEffective _ -> "Nationality is not effective";
             case ApplicationFailure.NaturalPersonNotFound _ -> "Natural person not found";
             case ApplicationFailure.LegalEntityNotFound _ -> "Legal entity not found";
             case ApplicationFailure.IdempotencyKeyConflict _ -> "Idempotency key conflict";

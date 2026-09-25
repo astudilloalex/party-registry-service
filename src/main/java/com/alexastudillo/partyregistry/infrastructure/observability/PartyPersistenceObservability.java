@@ -20,6 +20,7 @@ public class PartyPersistenceObservability {
     static final String SCAN_ROWS = "party.registry.collection.scan.rows";
     static final String SCAN_BATCHES = "party.registry.collection.scan.batches";
     static final String KEY_WAIT = "party.registry.lifecycle.key.wait";
+    static final String NATIONALITY_KEY_WAIT = "party.registry.nationality.key.wait";
     private static final String OUTCOME_TAG = "outcome";
     private final MeterRegistry registry;
 
@@ -55,6 +56,25 @@ public class PartyPersistenceObservability {
                             // A telemetry backend must not replace a lock's terminal signal.
                         }
                     });
+        });
+    }
+
+    /** Measures the two approved nationality replay-key lock scopes without retaining key material. */
+    public Uni<Void> observeNationalityKeyWait(String operation, Supplier<Uni<Void>> work) {
+        if (!"create".equals(operation) && !"set-primary".equals(operation)) {
+            throw new IllegalArgumentException("Unknown nationality key operation");
+        }
+        return Uni.createFrom().deferred(() -> {
+            long started = System.nanoTime();
+            return Uni.createFrom().deferred(work::get).onTermination().invoke((item, failure, cancelled) -> {
+                try {
+                    registry.timer(NATIONALITY_KEY_WAIT, "operation", operation,
+                            OUTCOME_TAG, outcome(failure, cancelled))
+                            .record(Math.max(0, System.nanoTime() - started), TimeUnit.NANOSECONDS);
+                } catch (RuntimeException _) {
+                    // Observability must not alter the lock's terminal signal.
+                }
+            });
         });
     }
 

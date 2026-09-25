@@ -133,12 +133,19 @@ public final class OperationObservation {
         return switch (applicationException.failure()) {
             case ApplicationFailure.NaturalPersonNotFound _,
                     ApplicationFailure.LegalEntityNotFound _,
+                    ApplicationFailure.NationalityNotFound _,
                     ApplicationFailure.PartyNotFound _ -> OperationOutcome.NOT_FOUND;
             case ApplicationFailure.IdempotencyKeyConflict _,
+                    ApplicationFailure.NationalityValidityConflict _,
+                    ApplicationFailure.PrimaryNationalityConflict _,
                     ApplicationFailure.InvalidPartyLifecycle _ -> OperationOutcome.CONFLICT;
             case ApplicationFailure.ExpectedVersionMismatch _,
                     ApplicationFailure.StalePartyVersion _ -> OperationOutcome.PRECONDITION_FAILED;
             case ApplicationFailure.InvalidPartyCursor _,
+                    ApplicationFailure.InvalidNationalityCursor _,
+                    ApplicationFailure.UnrecognizedNationalityCountry _,
+                    ApplicationFailure.NationalityValidityInvalid _,
+                    ApplicationFailure.NationalityNotEffective _,
                     ApplicationFailure.UnrecognizedBirthCountry _,
                     ApplicationFailure.UnrecognizedIncorporationCountry _,
                     ApplicationFailure.UnknownIdentifierScheme _,

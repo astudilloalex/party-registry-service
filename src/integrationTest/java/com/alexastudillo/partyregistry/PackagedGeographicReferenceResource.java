@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 public final class PackagedGeographicReferenceResource implements QuarkusTestResourceLifecycleManager {
 
     private static final String BASE_PATH = "/api/v1/countries/by-alpha2/";
-    private static final String SUCCESS_RESPONSE = """
+    static final String SUCCESS_RESPONSE = """
             {
               "status": 200,
               "code": "successful",
