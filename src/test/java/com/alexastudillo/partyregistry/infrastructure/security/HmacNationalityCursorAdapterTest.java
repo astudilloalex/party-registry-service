@@ -80,6 +80,8 @@ class HmacNationalityCursorAdapterTest {
         alternatives.add(new NationalitySearchScope(TENANT, PARTY,
                 new NationalitySearchCriteria("EC", false, original.asOfDate(), false, 50)));
         alternatives.add(new NationalitySearchScope(TENANT, PARTY,
+                new NationalitySearchCriteria("EC", null, original.asOfDate(), false, 50)));
+        alternatives.add(new NationalitySearchScope(TENANT, PARTY,
                 new NationalitySearchCriteria("EC", true, original.asOfDate().plusDays(1), false, 50)));
         alternatives.add(new NationalitySearchScope(TENANT, PARTY,
                 new NationalitySearchCriteria("EC", true, original.asOfDate(), true, 50)));
