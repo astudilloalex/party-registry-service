@@ -31,7 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Verifies Party detail shape mappings and PartyIdentifier persistence independence.
+ * Verifies Party detail shape mappings and PartyIdentifier persistence
+ * independence.
  */
 class PartyEntityMappingTest {
 
@@ -63,6 +64,9 @@ class PartyEntityMappingTest {
                     "masked_value", "normalization_version", "is_primary", "status", "issued_on",
                     "expires_on", "verified_at", "verified_by", "created_at", "created_by",
                     "updated_at", "updated_by", "version"),
+            PartyNationalityEntity.class,
+            Set.of("id", "party_id", "country_code", "is_primary", "valid_from", "valid_until",
+                    "created_at", "created_by", "updated_at", "updated_by"),
             PartyOutboxEventEntity.class,
             Set.of(
                     "id", "tenant_id", "aggregate_type", "aggregate_id", "aggregate_version",
@@ -77,6 +81,7 @@ class PartyEntityMappingTest {
             LegalEntityDetailsEntity.class, "legal_entity_details",
             IdentifierSchemeEntity.class, "identifier_schemes",
             PartyIdentifierEntity.class, "party_identifiers",
+            PartyNationalityEntity.class, "party_nationalities",
             PartyOutboxEventEntity.class, "party_outbox_events");
 
     @Test
@@ -118,16 +123,17 @@ class PartyEntityMappingTest {
                 partyId, tenantId, PartyType.LEGAL_ENTITY, "Analytical Engines Ltd",
                 PartyRecordStatus.DRAFT, auditInfo, 0L);
 
-        assertThrows(IllegalStateException.class, () -> naturalPerson.attachLegalEntityDetails(
-                new LegalEntityDetailsEntity(
-                        partyId,
-                        new LegalEntityDetails("Analytical Engines Ltd", null, null, "GB", null, null),
-                        auditInfo)));
-        assertThrows(IllegalStateException.class, () -> legalEntity.attachNaturalPersonDetails(
-                new NaturalPersonDetailsEntity(
-                        partyId,
-                        new NaturalPersonDetails("Ada", "Lovelace", null, null, null, null),
-                        auditInfo)));
+        var legalEntityDetails = new LegalEntityDetailsEntity(
+                partyId,
+                new LegalEntityDetails("Analytical Engines Ltd", null, null, "GB", null, null),
+                auditInfo);
+        assertThrows(IllegalStateException.class, () -> naturalPerson.attachLegalEntityDetails(legalEntityDetails));
+
+        var naturalPersonDetails = new NaturalPersonDetailsEntity(
+                partyId,
+                new NaturalPersonDetails("Ada", "Lovelace", null, null, null, null),
+                auditInfo);
+        assertThrows(IllegalStateException.class, () -> legalEntity.attachNaturalPersonDetails(naturalPersonDetails));
     }
 
     @Test
