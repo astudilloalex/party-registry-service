@@ -70,12 +70,15 @@ java {
 
 sourceSets {
     test {
-        java.setSrcDirs(listOf("src/test/java"))
+        java.setSrcDirs(listOf("src/test/java", "src/contractTest/java"))
         resources.setSrcDirs(listOf("src/test/resources"))
     }
     named("integrationTest") {
-        java.setSrcDirs(listOf("src/integrationTest/java"))
+        java.setSrcDirs(listOf("src/integrationTest/java", "src/contractTest/java"))
         resources.setSrcDirs(listOf("src/integrationTest/resources"))
+        // Share schema assertions only; unit-test CDI fixtures must not enter packaged verification.
+        compileClasspath -= sourceSets["test"].output
+        runtimeClasspath -= sourceSets["test"].output
     }
 }
 
@@ -106,7 +109,12 @@ tasks.withType<Test> {
 
 tasks.named<Test>("quarkusIntTest") {
     useJUnitPlatform()
+    classpath = sourceSets["integrationTest"].runtimeClasspath
     shouldRunAfter(tasks.test)
+}
+
+tasks.named<Test>("testNative") {
+    classpath -= sourceSets["test"].output
 }
 
 tasks.check {

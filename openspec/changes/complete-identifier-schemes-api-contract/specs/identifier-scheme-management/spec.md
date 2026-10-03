@@ -252,6 +252,8 @@ THE Party Registry SHALL permit all seven supported PATCH properties subject to 
 WHILE a scheme is `ACTIVE` or `DEPRECATED`, WHEN a new PATCH with its current version is evaluated,
 THE Party Registry SHALL permit only `name` and `description`. Supplying any processing-rule, length-bound, or expiration-metadata property SHALL return `409 identifier-scheme-rules-locked`, even when the supplied value equals the stored value.
 
+For a permitted name/description-only update in `ACTIVE` or `DEPRECATED`, THE Party Registry SHALL preserve historical processing configuration without requiring its retained rule keys to remain supported. Supported-rule admission SHALL apply to creation, resulting DRAFT configuration updates, and activation; descriptive maintenance SHALL NOT readmit an operational scheme or unlock its processing properties.
+
 WHILE a scheme is `RETIRED`, WHEN a new structurally valid PATCH with its current version is evaluated,
 THE Party Registry SHALL return `409 identifier-scheme-retired` without changing it. Metadata updates SHALL NOT reactivate or otherwise change lifecycle status.
 
@@ -270,6 +272,13 @@ THE Party Registry SHALL return `409 identifier-scheme-retired` without changing
 
 - **WHEN** any otherwise valid PATCH targets a retired scheme at its current version
 - **THEN** the response is `409 identifier-scheme-retired` and all values remain unchanged
+
+#### Scenario: Descriptive maintenance retains obsolete historical rules
+
+- **GIVEN** an active or deprecated scheme retains a processing key no longer supported by the local catalog
+- **WHEN** a current-version PATCH supplies only a valid name or description
+- **THEN** it succeeds without revalidating or changing the retained processing keys
+- **AND** processing properties remain locked and the lifecycle state is unchanged
 
 ### Requirement: Mutation concurrency and audit outcome
 

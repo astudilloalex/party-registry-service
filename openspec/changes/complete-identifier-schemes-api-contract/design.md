@@ -93,6 +93,7 @@ The strict project rule that Application depends inward coexists with its explic
 - Preserve exact code/text values and count code points. Enforce bounds 1–32767 in candidate configuration and retain the mapper's defensive checked conversion.
 - Add an explicit pure configuration check using the supported-key sets; do not validate support by processing an invented sample identifier. Supported-key validation is an admission rule, not a record-construction rule: deprecated/retired schemes with obsolete keys must remain readable and withdrawable.
 - Activation performs the configuration check. Deprecation and retirement do not require supported rules. Existing `IdentifierSchemePolicy` registration checks and historical Party activation evidence rules remain intact.
+- User-confirmed legacy maintenance clarification: resulting DRAFT updates require supported rule keys, while ACTIVE/DEPRECATED name/description-only updates retain obsolete historical keys without revalidation. State locks remain mandatory; descriptive edits do not readmit processing configuration.
 
 ### Application operations and results
 
