@@ -299,6 +299,36 @@ DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./
 
 Task 2.3 is complete; section 3 now starts Domain behavior TDD.
 
+## Task 3.1: Checked independent versions and immutable audit preparation
+
+Added the version/audit tests first. Initial compile-red identified the missing `next()` operation and neutral overflow violation. With an initial ordinary increment available, the tests reached executable red: maximum-version advancement produced the existing negative-version violation after wrapping instead of the required exhaustion classification. The focused run executed four tests with exactly that failure. Added the maximum guard before addition; the same tests then pass. There is no unchecked/wrapping implementation left in the saved code.
+
+`PartyIdentifierVersion.next()` now advances exactly once and emits transport-neutral `PARTY_IDENTIFIER_VERSION_OVERFLOW` at Long.MAX_VALUE. It changes no prior value and introduces no framework/HTTP dependency. Existing immutable `AuditInfo.updated` is characterized using the controlled identifier fixture: creation attribution and prior aggregate/protected/verification identity remain intact while prospective modification audit uses the supplied actor/instant. Invalid/backward audit input leaves history unchanged. Concrete metadata/lifecycle/primary aggregate changes remain in tasks 3.2–3.4; this task establishes their checked version/audit foundation without adding a generic public aggregate setter.
+
+Focused red/green command and final architecture check:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierVersionTest --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierVersionTest --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierTest --tests com.alexastudillo.partyregistry.CleanArchitectureTest --console=plain
+```
+
+Executable red completed in 16 seconds with 1/4 failures; final focused green/architecture completed in 14 seconds. Javadoc documents exhaustion. No further production refactor was needed.
+
+Required full verification:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: BUILD SUCCESSFUL in **6m 15s**, **1,387 tests, 0 failures/skips**.
+- Build: BUILD SUCCESSFUL in **2m 19s**, unit tests up-to-date, **28 packaged JVM tests pass**.
+- Combined output: `~/.local/share/opencode/tool-output/tool_103032a120017btd4ZSJ9JcjYj`.
+- Inventory records saved blobs for `PartyIdentifierVersion`, `DomainViolation`, and the new test, with individual completed Sonar **0 issues/Hotspots** and JDTLS **0 problems**. Domain source remains synchronous, independent of Mutiny/CDI/HTTP/persistence/shared responses.
+- `git diff --check` passes; no new compiler warnings or suppressions. Native mutation behavior remains unclaimed.
+
+Task 3.1 is complete.
+
 ## Implementation progress
 
 - Task 1.1 baseline verification completed.
@@ -308,5 +338,6 @@ Task 2.3 is complete; section 3 now starts Domain behavior TDD.
 - Task 2.1 complete: contract structure/semantics implemented and verified with focused/full/package checks and saved-revision IDE evidence.
 - Task 2.2 complete: safe success/error examples, scoped declarations and output schemas implemented and verified.
 - Task 2.3 complete: controlled fixture and safe shared assertion foundation verified.
-- Tasks 3.1–14.6 remain incomplete.
-- Unit/shared-contract test foundation and approved OpenAPI completed; no production Java changed yet.
+- Task 3.1 complete: checked version advancement and immutable audit foundation verified.
+- Tasks 3.2–14.6 remain incomplete.
+- Contract/test foundation and identifier version foundation implemented; identifier mutation routes and durable storage remain pending.

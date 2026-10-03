@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 /**
  * Represents one independently versioned official identifier without plaintext values.
@@ -90,6 +91,62 @@ public final class PartyIdentifier {
                     "Evaluation date is required");
         }
         return expiresOn != null && expiresOn.isBefore(evaluatedOn);
+    }
+
+    /**
+     * Corrects eligible identifier metadata while preserving identity, protected value and verification.
+     *
+     * @param issuer optional issuer update; absent retains and present null clears
+     * @param issueDate optional issue-date update
+     * @param expiration optional expiration update
+     * @param occurredAt the one operation instant, also defining the UTC evaluation date
+     * @param updatedBy accepted modifying actor
+     * @return a corrected immutable identifier at exactly the next independent version
+     * @throws DomainValidationException when input, state, version, resulting dates or audit are invalid
+     */
+    public PartyIdentifier correctMetadata(FieldUpdate<String> issuer, FieldUpdate<LocalDate> issueDate,
+            FieldUpdate<LocalDate> expiration, Instant occurredAt, String updatedBy) {
+        validateMetadataPatch(issuer, issueDate, expiration);
+        if (status != PartyIdentifierStatus.PENDING_VERIFICATION && status != PartyIdentifierStatus.VERIFIED) {
+            throw new DomainValidationException(DomainViolation.PARTY_IDENTIFIER_INVALID_LIFECYCLE,
+                    "Identifier metadata cannot be corrected in its current state");
+        }
+        var nextVersion = version.next();
+        String nextIssuer = issuer.isPresent() ? issuer.value() : issuerCode;
+        LocalDate nextIssue = issueDate.isPresent() ? issueDate.value() : issuedOn;
+        LocalDate nextExpiration = expiration.isPresent() ? expiration.value() : expiresOn;
+        if (issuer.isPresent() && nextIssuer != null && nextIssuer.length() > MAX_ISSUER_CODE_LENGTH) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_ISSUER_CODE_TOO_LONG,
+                    "Submitted identifier issuer code exceeds the maximum length");
+        }
+        validateRegistrationMetadata(nextIssuer, nextIssue, nextExpiration);
+        Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
+                "Identifier modification timestamp is required");
+        LocalDate evaluatedOn = operationInstant.atZone(ZoneOffset.UTC).toLocalDate();
+        if (nextExpiration != null && nextExpiration.isBefore(evaluatedOn)) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_EXPIRED,
+                    "Resulting identifier expiration precedes the operation date");
+        }
+        return copyBuilder()
+                .issuerCode(nextIssuer).issuedOn(nextIssue).expiresOn(nextExpiration)
+                .version(nextVersion).auditInfo(auditInfo.updated(operationInstant, updatedBy)).build();
+    }
+
+    private static void validateMetadataPatch(FieldUpdate<String> issuer, FieldUpdate<LocalDate> issueDate,
+            FieldUpdate<LocalDate> expiration) {
+        require(issuer, DomainViolation.PATCH_REQUIRED, "Issuer update is required");
+        require(issueDate, DomainViolation.PATCH_REQUIRED, "Issue-date update is required");
+        require(expiration, DomainViolation.PATCH_REQUIRED, "Expiration update is required");
+        if (!issuer.isPresent() && !issueDate.isPresent() && !expiration.isPresent()) {
+            throw new DomainValidationException(DomainViolation.EMPTY_PATCH, "Identifier metadata correction requires a field");
+        }
+    }
+
+    private Builder copyBuilder() {
+        return builder().identifierId(identifierId).tenantId(tenantId).partyId(partyId)
+                .identifierSchemeId(identifierSchemeId).protectedValue(protectedValue)
+                .issuerCode(issuerCode).issuedOn(issuedOn).expiresOn(expiresOn).primary(primary)
+                .status(status).verifiedAt(verifiedAt).verifiedBy(verifiedBy).version(version).auditInfo(auditInfo);
     }
 
     public PartyIdentifierId identifierId() {
