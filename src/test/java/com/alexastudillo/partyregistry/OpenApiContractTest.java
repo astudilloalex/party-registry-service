@@ -791,10 +791,10 @@ class OpenApiContractTest {
             assertResponseReference(create, "503", "DependencyUnavailable");
         }
 
-        assertResponseReference(identifierCreate, "404", "NotFound");
-        assertResponseReference(identifierCreate, "409", "Conflict");
-        assertResponseReference(identifierCreate, "422", "UnprocessableEntity");
-        assertResponseReference(identifierCreate, "503", "DependencyUnavailable");
+        assertResponseReference(identifierCreate, "404", "PartyNotFound");
+        assertResponseReference(identifierCreate, "409", "PartyIdentifierCreateConflict");
+        assertResponseReference(identifierCreate, "422", "PartyIdentifierRegistrationFailure");
+        assertResponseReference(identifierCreate, "503", "PartyIdentifierDependencyUnavailable");
 
         assertResponseReference(activate, "400", "BadRequest");
         assertResponseReference(activate, "404", "PartyNotFound");
