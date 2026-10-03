@@ -1,0 +1,282 @@
+## Execution Rules and Requirement References
+
+Execute sections and tasks in numeric order. A task's prerequisites include preceding sections unless a narrower dependency is stated. Complete the quality preflight in section 1 before creating or modifying any Java production or test file. All checkboxes start unchecked and represent implementation work, not artifact-authoring progress.
+
+Requirement prefixes refer to exact titles in:
+
+- **Q:** [party-identifier-queries](specs/party-identifier-queries/spec.md).
+- **M:** [party-identifier-maintenance](specs/party-identifier-maintenance/spec.md).
+- **L:** [party-identifier-lifecycle](specs/party-identifier-lifecycle/spec.md).
+- **Quality:** proposal constraints and the testing/quality sections of [design.md](design.md): TDD, strict inward dependencies, reactive/native compatibility, Month-based fixtures, and actual Sonar/JDTLS evidence.
+
+For every behavior-producing task, write the meaningful test first, record its expected failure, implement the smallest conforming behavior, and refactor with that test passing. An initial compile-red step for a new type is allowed but must lead to executable behavioral evidence. Environmental failures do not count as a TDD red result. Tests that characterize existing behavior may already pass; the evidence must distinguish characterization from a new failing requirement.
+
+Every Java-producing task includes English responsibility Javadoc for classes, interfaces, records, enums, and nested types; documented non-obvious public contracts; per-file JDTLS diagnostics; and completed standalone Sonar analysis of the saved revision. Require zero new compiler/IDE warnings and zero unresolved findings from active applicable local rules, without blanket rule exclusions, NOSONAR, or unjustified suppressions. After Java changes run `./gradlew test`; before completing an implementation task run `./gradlew build`, resolving failures and Gradle/LSP disagreements. Final checks in section 14 verify the complete delivered revision.
+
+Use `java.time.Month` constants for every new/modified valid date fixture, including fixed-clock timestamps derived from those dates. Raw malformed date strings are reserved for tests of malformed wire tokens. Use bounded reactive assertions and coordinated concurrency, not sleeps or production synchronous waits.
+
+Keep an implementation evidence file, scenario map, and saved-file inventory under this change when implementation begins. Do not mark a task complete while its required tests, current IDE evidence, or stated native verification are unavailable. Use developer-collected diagnostics for the same revision when direct IDE access is unavailable. Planning validation and compilation are not substitutes for runtime or local-analysis evidence.
+
+## 1. Quality and Environment Preflight
+
+- [ ] 1.1 Confirm SonarQube for IDE standalone and the resolved Java 25 project in the active Antigravity window before Java edits.
+  - Requirements: Quality — verified local analyzer baseline.
+  - Verification: Record current extension/analyzer version, runtime/source level, Standard-mode Red Hat Java, resolved Gradle classpath, and one completed analysis of an existing project Java file. Reconfirm rather than reuse the historical 5.7.0/571-rule result.
+
+- [ ] 1.2 Research and record effective installed Java rules and parameters before implementing production code or tests.
+  - Requirements: Quality — preventive Sonar rule review.
+  - Verification: Record active defaults and overrides relevant to complexity, parameter count, nullability, ignored results, exception handling, logging, cryptography, cleanup, and assertions, including applicable S3776/S107/S2259/S2201/S5778/S6213 descriptions and thresholds. Keep standalone coverage distinct from a server profile.
+
+- [ ] 1.3 Establish the reproducible baseline and implementation prerequisites.
+  - Requirements: Quality; Q: Safe shared envelopes and failure behavior; M: Maintenance has one durable observable outcome.
+  - Verification: Using existing tests/tooling, record baseline test/build results, Java/Quarkus versions, resolved shared-response artifact behavior, PostgreSQL/Podman access, native-toolchain availability, and existing migration checksums. Confirm V8 is still unused and characterize shared pagination null handling. Record actual failures as prerequisites to resolve, not feature failures.
+
+- [ ] 1.4 Create the implementation evidence convention, saved-Java inventory, and scenario-to-test map.
+  - Requirements: All 27 Q/M/L requirements and 87 scenarios; Quality.
+  - Verification: Each scenario has its source title, planned test boundary, task reference, and pending evidence entry; the inventory covers main/test/contractTest/integrationTest and records saved blob, Sonar completion/results, JDTLS results, and focused red/green commands. No planned test is marked passed.
+
+## 2. Contract Completion and Test Foundation
+
+- [ ] 2.1 Test first and complete the affected OpenAPI paths, headers, strict request models, pagination constraints, and action semantics.
+  - Requirements: Q: Complete published party-identifiers contract; Q: Strict read selectors and filters; M: Strict additional registration input; M: Strict partial metadata correction; M: Strict primary-selection input and eligibility; L: Lifecycle requests follow the common boundary.
+  - Verification: Source structure tests pin all eight operations, identifier-specific If-Match, creation/action key semantics, 256-character cursor bound, closed properties, body presence/nullability, transition matrix, primary scope, validation order, and 0..2147483647 count range. Parsing reports no unresolved references; unrelated parameter contracts are preserved.
+
+- [ ] 2.2 Test first and complete OpenAPI success/error examples and the approved cause-specific error declarations.
+  - Requirements: Q: Complete published party-identifiers contract; Q: Safe shared envelopes and failure behavior; M: Identifier-version preconditions and exhaustion.
+  - Verification: Example/schema tests cover 201/200 status agreement, safe item/page shapes, explicit null cursors, accepted process echoes, 404 identifier-not-found, 409 lifecycle/primary/exhaustion conflicts, 412 expected-version-mismatch, existing 422 errors, and framework/500/503 envelopes. Error examples contain status/code only.
+
+- [ ] 2.3 Add only the reusable Month-based identifier fixtures and safe HTTP/schema assertions needed by subsequent increments.
+  - Requirements: Quality; Q: Safe shared envelopes and failure behavior; Q: Trusted context and process correlation.
+  - Verification: Fixture/helper tests cover controlled UTC dates, both Party types, masked representations, complete pagination keys, and exact status/code-only errors. Helpers use supported source-set boundaries, disclose no real secrets, and introduce no test CDI fixtures into packaged verification.
+
+## 3. Domain Rules
+
+- [ ] 3.1 Test first and implement checked independent identifier-version advancement and immutable audit preservation.
+  - Requirements: M: Identifier-version preconditions and exhaustion; M: Metadata correction eligibility and audit; L: Operator-confirmed verification and validity.
+  - Verification: Pure unit tests prove one increment, maximum-minus-one success, maximum exhaustion, unchanged creation audit/protected value/identity, and explicit actor/time contracts. Domain remains free of Mutiny, Quarkus, HTTP, persistence, and envelope dependencies.
+
+- [ ] 3.2 Test first and implement partial metadata correction on pending and verified identifiers.
+  - Requirements: M: Strict partial metadata correction; M: Metadata correction eligibility and audit.
+  - Verification: Unit tests cover omission versus null, retained-field interval validation, inclusive UTC expiration, repair of past-date pending/verified metadata, issuer-only rejection of unrepaired expiration, identical corrections, terminal-state rejection, and preserved verification/primary/value information.
+
+- [ ] 3.3 Test first and implement the closed verification/rejection/revocation matrix and verification evidence rules.
+  - Requirements: L: Explicit identifier transition matrix; L: Operator-confirmed verification and validity; L: Rejection and revocation retain safe history.
+  - Verification: Unit tests cover every state/action matrix entry, exact verification actor/instant, date boundaries, withdrawal of past-date evidence, flag clearing on reject/revoke, retained prior verification, and invalid repeats without replay. No implicit expiration, reactivation, substitute primary, or Party change occurs.
+
+- [ ] 3.4 Test first and implement primary eligibility, provisional-verification conflict rules, and the two-identifier replacement plan.
+  - Requirements: M: Strict primary-selection input and eligibility; M: Scoped atomic primary ownership; L: Verification respects provisional primary ownership.
+  - Verification: Pure policy tests cover per-tenant/Party/scheme scope, unrelated/provisional flags, conflicting verified primaries including past-date ones, nonprimary verification, explicit replacement, already-primary selection, retained fields, common actor/time, and target/former exhaustion. Both candidates are validated before any persistence.
+
+## 4. Application Contracts and Neutral Failures
+
+- [ ] 4.1 Test first and define typed identifier commands, queries, criteria/boundaries/pages, effective requests, safe mutation outcomes, and bounded observation operations.
+  - Requirements: M: Durable additional registration replay; L: Durable action key scope and request equivalence; Q: Deterministic scoped cursor navigation; Quality.
+  - Verification: Contract tests pin identifier-specific version types, exact raw creation values, omission/null/default equivalence, exact reasons, tri-state primary filters, safe results, and APPLIED/REPLAYED disposition. No command representation exposes values/reasons through generated logging, and no transport/persistence types enter Application.
+
+- [ ] 4.2 Define and test the query, cursor, fingerprint, and transaction-context port contracts with focused test doubles.
+  - Requirements: Q: Tenant and Party ownership concealment; M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes.
+  - Verification: Port/architecture tests show safe qualified read results, sequential callback capabilities, immutable tenant scope, replay-first access, one primary scope per execution, and no session/entity/SQL/HTTP API. Preserve the existing current-identifier port contract.
+
+- [ ] 4.3 Test first and add neutral identifier failures plus API-only stable-code translation.
+  - Requirements: Q: Safe shared envelopes and failure behavior; M: Identifier-version preconditions and exhaustion; L: Explicit identifier transition matrix; M: Scoped atomic primary ownership.
+  - Verification: Tests cover identifier absence/version/lifecycle/primary/exhaustion/cursor failures and unchanged unknown failures through the shared global mapper. All affected exhaustive switches compile; Domain/Application import no response code, HTTP status, or ApiResponseException.
+
+## 5. Flyway Persistence Foundation
+
+- [ ] 5.1 Test first and add the next immutable migration for identifier completions, withdrawal audit, qualified owner references, and listing order.
+  - Requirements: M: Durable additional registration replay; L: Historical action replay survives changes and restart; L: Rejection and revocation retain safe history; Q: Deterministic scoped cursor navigation.
+  - Verification: Flyway clean-install tests verify the completion primary key, qualified restrictive FKs, allowed operations/digest/schema/version constraints, audit uniqueness/binary bounds, and `(tenant_id, party_id, created_at DESC, id DESC)` index. Use tentative V8 only if still available; no manual DDL or schema generation.
+
+- [ ] 5.2 Add and pass V7-to-new-migration upgrade and historical-retention tests.
+  - Requirements: M: Maintenance has one durable observable outcome; Q: Complete historical listing and masked detail; Quality.
+  - Verification: V1–V7 checksums, historical ciphertext/hash/key versions, all identifier states/flags/metadata, original Party snapshots, and existing indexes remain intact. New tables do not fabricate pre-cutover completions, and production migrations contain no test seeds or expiration backfill.
+
+## 6. Historical Query Vertical Slice
+
+- [ ] 6.1 Test first and implement the identifier-only authenticated cursor adapter using existing rotation key material.
+  - Requirements: Q: Deterministic scoped cursor navigation; Q: Strict read selectors and filters.
+  - Verification: Unit tests prove full microsecond boundary round trips, forward/backward directions, resource domain separation, every scope dimension, absent versus false, default-limit equivalence, canonical bounded encoding, tampering/unknown key/version rejection, and retained-key rotation without token contents in failures.
+
+- [ ] 6.2 Test first and implement qualified scalar detail reads without loading protected columns.
+  - Requirements: Q: Tenant and Party ownership concealment; Q: Complete historical listing and masked detail; Q: Safe shared envelopes and failure behavior.
+  - Verification: Reactive PostgreSQL tests retrieve every stored state for owned identifiers and conceal wrong owners; source/query assertions exclude ciphertext, hashes, and key versions. Reads change no state/audit/version and leave the current natural-person projection unchanged.
+
+- [ ] 6.3 Test first and implement snapshot-consistent historical list/count/navigation queries.
+  - Requirements: Q: Strict read selectors and filters; Q: Deterministic scoped cursor navigation; Q: Exact collection metadata and empty outcomes.
+  - Verification: PostgreSQL tests cover exact filter AND semantics, unknown/mismatched schemes, descending timestamp/unsigned UUID ties, both directions, missing/changed boundaries, empty continuations, counts before continuation, and one read-only repeatable-read view. Retained memory is page-bounded; record a representative query plan.
+
+- [ ] 6.4 Test first and implement detail/list Application workflows with owner checks and cursor validation.
+  - Requirements: Q: Tenant and Party ownership concealment; Q: Complete historical listing and masked detail; Q: Deterministic scoped cursor navigation.
+  - Verification: Port-double tests verify owner-before-identifier access, invalid cursor before data retrieval, Party-not-found versus identifier-not-found, empty owned pages, safe result propagation, and support for both Party types/all Party states without protection/decryption calls.
+
+- [ ] 6.5 Test first and implement API-only canonical identifier selectors and strict list query parsing.
+  - Requirements: Q: Strict read selectors and filters; Q: Tenant and Party ownership concealment.
+  - Verification: Parser tests reject noncanonical IDs, duplicate/unknown/blank filters, wrong case/status/boolean tokens, and invalid limits; accept limits 1/200/default 50 and exact scheme codes with code-point boundaries. Public codes and raw-value non-disclosure match OpenAPI.
+
+- [ ] 6.6 Test first and extend identifier DTO/page mapping with checked counts and null-aware pagination characterization.
+  - Requirements: Q: Exact collection metadata and empty outcomes; Q: Safe shared envelopes and failure behavior.
+  - Verification: Managed-Jackson tests prove exact safe item properties, no reason/storage fields, optional-null omission, all five pagination fields, both explicit null cursors, empty counts, checked maximum/overflow behavior, and unchanged ordinary/error/unrelated envelopes.
+
+- [ ] 6.7 Test first and expose both identifier GET routes through the Application workflows and ResponseManager.
+  - Requirements: Q: Complete published party-identifiers contract; Q: Trusted context and process correlation; Q: Complete historical listing and masked detail.
+  - Verification: Live HTTP tests cover both Party types/all Party states, every identifier state, filtering/navigation, exact safe 200 envelopes, owner concealment, invalid reads, and process echoes. Signature/ArchUnit assertions prove explicit `Uni<RestResponse<ApiResponse<...>>>` and resource delegation.
+
+## 7. Atomic Mutation Infrastructure
+
+- [ ] 7.1 Test first and implement versioned HMAC effective-request fingerprints for identifier creation and actions.
+  - Requirements: M: Durable additional registration replay; L: Durable action key scope and request equivalence; Q: Safe shared envelopes and failure behavior.
+  - Verification: Unit tests pin exact code-unit encoding, all effective properties/defaults, raw representations that normalize equally but conflict, reason/target/version/replacement changes, actor/process exclusion, action/tenant isolation, and constant-time digest comparison. Reuse the existing external HMAC key with identifier domain separation; persist no raw canonical request.
+
+- [ ] 7.2 Test first and implement schema-1 safe identifier completion encoding/decoding and same-session completion storage.
+  - Requirements: M: Durable additional registration replay; L: Historical action replay survives changes and restart; Q: Safe shared envelopes and failure behavior.
+  - Verification: Codec/storage tests pin safe allowlists, row/snapshot scope consistency, original timestamps/versions, create versus action coherence, and rejection of unknown/corrupt schema/IDs/enums without payload-bearing causes. Saved completions survive fresh sessions; earlier Party/catalog codecs remain compatible.
+
+- [ ] 7.3 Test first and implement exact bounded binary reason-audit encoding and reactive persistence.
+  - Requirements: L: Rejection and revocation retain safe history; L: Atomic lifecycle concurrency and complete outcomes.
+  - Verification: Unit/PostgreSQL tests round-trip absent, empty, control/U+0000, and supplementary-character reasons with exact actor/time/action/version. Constraints reject invalid owner references or duplicate audit; audit remains independent of outbox mode and cannot leak through result/log representations.
+
+- [ ] 7.4 Test first and implement transaction-scoped replay and tenant/Party/scheme serialization with qualified row restoration.
+  - Requirements: M: Scoped atomic primary ownership; L: Verification respects provisional primary ownership; L: Durable action key scope and request equivalence.
+  - Verification: Independent-session tests observe replay-before-Party-before-scope-before-child lock order, full-tuple lookup, distinct two-integer namespaces, forced collision serialization without false replay/ownership, shared Party locking, and fresh target state after waiting. No root version is incremented.
+
+- [ ] 7.5 Test first and implement guarded identifier insert/update/reload and demotion-before-promotion storage operations.
+  - Requirements: M: Active-value uniqueness and release; M: Identifier-version preconditions and exhaustion; M: Scoped atomic primary ownership.
+  - Verification: Reactive tests prove qualified expected-version predicates, exactly one explicit version increment without ORM dirty-version duplication, protected/immutable column preservation, awaited demotion, refreshed accepted results, and neutral diagnosis of unapplied writes. Only the known value/primary constraints map to business conflicts.
+
+- [ ] 7.6 Test first and extend safe identifier event candidates, outbox encoding/decoding, and message serialization.
+  - Requirements: M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes; Q: Safe shared envelopes and failure behavior.
+  - Verification: Tests preserve exact `party.identifier-created.v1` compatibility and pin the five new schema-1 event kinds/allowlists, affected identifier/version identities, one transition event or one primary-change event per affected aggregate, and no reason/protection/replay material. All three existing outbox modes remain supported.
+
+- [ ] 7.7 Test first and implement the sequential identifier transaction-context adapter with existing timeout/cleanup policies.
+  - Requirements: M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes; Q: Safe shared envelopes and failure behavior.
+  - Verification: Adapter tests prove READ COMMITTED setup, one session/tenant/Vert.x context, illegal concurrent/reused/closed scope rejection, no writes after replay, completion/audit/event consistency, flush/commit before outcome emission, and cleanup on failure/cancellation. Infrastructure chooses no business transition or replacement policy.
+
+## 8. Additional Registration Vertical Slice
+
+- [ ] 8.1 Test first and refactor additional registration into the replay-first Application workflow.
+  - Requirements: M: Eligible independent registration; M: Durable additional registration replay; M: Active-value uniqueness and release.
+  - Verification: Port-double tests prove completed replay before Party/scheme/protection, exact fingerprint conflicts, one new-operation clock capture, locked-scheme preparation in the same context, ACTIVE/type/value/date rules, provisional flags, and safe version-0 outcomes. Initial Party registration preparation remains unchanged.
+
+- [ ] 8.2 Switch CDI composition to the durable registration workflow and retire obsolete additional-registration code only after consumer checks.
+  - Requirements: M: Maintenance has one durable observable outcome; Quality — strict composition and compatibility.
+  - Verification: Composition/startup, registration, and architecture tests pass with one selected adapter/workflow, no nested repository session during preparation, and no production references to removed types. Equivalent regression tests replace obsolete adapter-specific assertions; no initial-registration path is removed.
+
+- [ ] 8.3 Test first and complete strict POST binding, shared 201 envelopes, and live registration/replay coverage.
+  - Requirements: M: Strict additional registration input; M: Eligible independent registration; M: Durable additional registration replay; Q: Safe shared envelopes and failure behavior.
+  - Verification: HTTP tests cover raw limits, strict types/duplicates/trailing content, default/null distinctions, body→key→Party precedence, required key errors, both types, eligible/ineligible schemes, optional expiration, duplicate conflicts, failed-key reuse, and original 201 replay after later mutations with fresh correlation.
+
+## 9. Metadata PATCH Vertical Slice
+
+- [ ] 9.1 Test first and implement the strict presence-aware PATCH body and identifier-specific If-Match support.
+  - Requirements: M: Strict partial metadata correction; M: Identifier-version preconditions and exhaustion; M: Maintenance follows the common identifier boundary.
+  - Verification: Decoder/support tests preserve omission/null, reject non-metadata/duplicate/coerced/trailing input, enforce raw issuer length/calendar dates, distinguish missing/null/empty bodies, and validate header cardinality/canonical decimal/range directly into PartyIdentifierVersion. Shared Party-version parsers remain compatible.
+
+- [ ] 9.2 Test first and implement current-version metadata correction orchestration using Domain decisions and the mutation context.
+  - Requirements: M: Metadata correction eligibility and audit; M: Identifier-version preconditions and exhaustion; M: Maintenance has one durable observable outcome.
+  - Verification: Workflow tests pin absence→version→state→exhaustion→resulting dates, one clock read, unchanged protected/verification/Party data, one accepted event, and no completion/key behavior for PATCH. Failed/identical/repair cases match the specs.
+
+- [ ] 9.3 Test first and expose metadata PATCH with live success/failure and preservation assertions.
+  - Requirements: M: Strict partial metadata correction; M: Metadata correction eligibility and audit; Q: Trusted context and process correlation.
+  - Verification: HTTP tests cover pending/verified correction, terminal rejection, partial null/retained fields, date repair/inversion, identical increment, stale/exhausted versions, syntax precedence, and ignored replay headers. Stored Party/protection fields and previous creation results are byte/value-identical.
+
+## 10. Verification and Withdrawal Vertical Slice
+
+- [ ] 10.1 Test first and implement strict optional reason decoding and a nonblocking verify body-presence guard supported by the project BOM.
+  - Requirements: L: Lifecycle requests follow the common boundary; L: Rejection and revocation retain safe history.
+  - Verification: Tests distinguish absent/empty objects from literal null, enforce exact 64/1000-code-point strings and known properties, and reject verify bodies including whitespace/chunked content. Guard does not depend only on Content-Length, synchronously read a transport stream, duplicate the context filter, or become a global error handler.
+
+- [ ] 10.2 Test first and implement shared VERIFY/REJECT/REVOKE Application orchestration with durable action replay and independent audit.
+  - Requirements: L: Explicit identifier transition matrix; L: Operator-confirmed verification and validity; L: Verification respects provisional primary ownership; L: Durable action key scope and request equivalence; L: Atomic lifecycle concurrency and complete outcomes.
+  - Verification: Port-double tests cover every matrix entry, syntax-independent business precedence, one operation instant, original verification actor/time, provisional-primary conflict, permitted past-date withdrawal, retained verification, exact optional reasons, replay-before-live-state, failed-key reuse, and no automatic Party action.
+
+- [ ] 10.3 Test first and expose verify/reject/revoke through thin resources and the shared response boundary.
+  - Requirements: Q: Complete published party-identifiers contract; L: Lifecycle requests follow the common boundary; L: Rejection and revocation retain safe history.
+  - Verification: Live HTTP tests execute all allowed and forbidden transitions for both Party types, check exact 200/400/409/412/422 envelopes and process echoes, verify reason audit with events disabled, and prove failed operations leave flags, versions, evidence, reasons, and events unchanged.
+
+- [ ] 10.4 Add live historical lifecycle replay and cross-scope equivalence/conflict tests.
+  - Requirements: L: Durable action key scope and request equivalence; L: Historical action replay survives changes and restart; Q: Trusted context and process correlation.
+  - Verification: HTTP tests replay original verification after revocation and withdrawals after subsequent changes, retain original attribution while echoing the retry process, exercise exact/empty/default reason identities and changed target/version/reasons, and prove key isolation across tenants/actions/other features without duplicate audit/events.
+
+## 11. Primary Selection Vertical Slice
+
+- [ ] 11.1 Test first and implement strict optional replacement-body decoding and effective-default mapping.
+  - Requirements: M: Strict primary-selection input and eligibility; L: Durable action key scope and request equivalence.
+  - Verification: Tests equate absent body/object/property and explicit false, distinguish true, and reject literal/property null, duplicate/unknown properties, coercion, and trailing content. Action syntax follows body→Party→identifier→If-Match→key.
+
+- [ ] 11.2 Test first and implement primary-selection orchestration with a validated Domain replacement plan and replay.
+  - Requirements: M: Scoped atomic primary ownership; M: Identifier-version preconditions and exhaustion; L: Historical action replay survives changes and restart.
+  - Verification: Workflow tests cover eligibility/date boundaries, exact scope, conflict without replacement, demotion before promotion, common actor/instant, already-primary increment, former exhaustion, and historical replay without touching current primaries. No Party/scheme version changes or implicit provisional-flag overrides occur.
+
+- [ ] 11.3 Test first and expose set-primary with real two-record preservation and replay assertions.
+  - Requirements: M: Strict primary-selection input and eligibility; M: Scoped atomic primary ownership; M: Maintenance has one durable observable outcome.
+  - Verification: HTTP tests show independent scheme primaries, explicit replacement of past-date former primaries, exact target/former increments, unchanged unrelated scopes/verification/value, safe candidate-only response, and historical replay after a later replacement with unchanged current state and event counts.
+
+## 12. Concurrency, Resilience, and Compatibility Hardening
+
+- [ ] 12.1 Add coordinated database and HTTP races for creation/action key equivalence, changed inputs, and same-target versions.
+  - Requirements: M: Active-value uniqueness and release; M: Durable additional registration replay; M: Identifier-version preconditions and exhaustion; L: Atomic lifecycle concurrency and complete outcomes.
+  - Verification: Barrier-started independent sessions prove one created/action result for equivalent keys, 409 key conflict for changed-input losers, 409 active-value conflict for distinct creation keys, and 412 for independent same-version PATCH/transition losers. Assert exact accepted completion/audit/event counts for both Party types.
+
+- [ ] 12.2 Add coordinated different-target primary races and primary-versus-correction/withdrawal races.
+  - Requirements: M: Scoped atomic primary ownership; L: Verification respects provisional primary ownership; M: Identifier-version preconditions and exhaustion.
+  - Verification: Tests prove one first selection or provisional verification winner, proper 409 conflicts, no deadlock/opposite lock order, serially valid explicit replacements, and 412 when a competing demotion already changed the target. Final flags/versions/audit match an allowed serial outcome and unrelated scopes remain independent.
+
+- [ ] 12.3 Add late-failure, timeout, cancellation, and pool-reuse tests for actual mutation workflows.
+  - Requirements: M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes; Q: Safe shared envelopes and failure behavior.
+  - Verification: Test-only fault checkpoints after demotion/promotion/audit/completion/event preparation prove total rollback and key reuse. Actual lock/statement/operation waits and cancellation release context/session and permit fresh work. Classified failures return 503; ambiguous post-commit delivery is recovered by keyed retry without false rollback claims.
+
+- [ ] 12.4 Complete framework and unexpected-error HTTP coverage through the existing published global handler.
+  - Requirements: Q: Safe shared envelopes and failure behavior; L: Lifecycle requests follow the common boundary; M: Maintenance follows the common identifier boundary.
+  - Verification: Malformed JSON, Bean Validation, paths/queries, missing routes, unsupported methods/media, injected dependency failures, corrupt completions, and unexpected internal exceptions produce exact status/code-only 400/404/405/415/500/503 responses with accepted echoes and no messages/causes. Conditional authentication preserves the existing 401 contract.
+
+- [ ] 12.5 Extend bounded operation telemetry and committed identifier disposition in the existing request context.
+  - Requirements: Q: Trusted context and process correlation; L: Atomic lifecycle concurrency and complete outcomes; Quality — fixed logging format.
+  - Verification: Observation tests cover eight route labels/spans, applied/replayed/conflict/failure/cancellation, key/scope wait and page cost, and concurrent context isolation. No raw keys, IDs, reasons, values, or cursor payloads appear in dimensions. Completion remains owned by the existing filter and the exact configured logging format is unchanged.
+
+- [ ] 12.6 Run and complete focused compatibility regression coverage for existing Party, current-identifier, nationality, and scheme features.
+  - Requirements: Q: Complete historical listing and masked detail; M: Maintenance has one durable observable outcome; L: Rejection and revocation retain safe history.
+  - Verification: Existing creation snapshots/replays, natural-person current ordering/eligibility, legal/root updates, activation evidence, nationality, and catalog suites pass. New tests prove withdrawals release uniqueness without deleting history, last-evidence revocation leaves ACTIVE Party state/version unchanged, and schemes/Party details remain intact.
+
+## 13. Packaged Coverage and Operational Documentation
+
+- [ ] 13.1 Extend shared contract assertions and packaged JVM HTTP/OpenAPI coverage for all eight operations.
+  - Requirements: Q: Complete published party-identifiers contract; Q: Safe shared envelopes and failure behavior; Quality — packaged verification.
+  - Verification: Packaged tests use real ports/resources, both Party types, strict optional/missing bodies, safe schemas/null-aware pages, and business/framework errors. Served paths and referenced schemas equal the approved source, and unit-test CDI fixtures are absent from the packaged classpath.
+
+- [ ] 13.2 Add a two-process retained-data restart test for creation, lifecycle, primary replay, and durable reason audit.
+  - Requirements: M: Durable additional registration replay; L: Historical action replay survives changes and restart; L: Rejection and revocation retain safe history.
+  - Verification: Accept requests, discard their original HTTP payloads, mutate current records, restart the actual packaged service against retained isolated data, and replay original inputs. Original results/attribution survive with fresh process echoes, current state remains unchanged, and completion/audit/logical-event counts are not duplicated.
+
+- [ ] 13.3 Maintain native-safe binding/reflection metadata and prepare the packaged assertion paths for native integration execution.
+  - Requirements: Q: Complete published party-identifiers contract; Quality — native compatibility.
+  - Verification: Metadata and executable-selection checks pass, new request/deserializer/codec/DTO registration is explicit at outer boundaries, and the prepared suites include strict bodies, cursor/page serialization, snapshots, audit, and restart cases without unit-test fixture leakage. Actual native compilation/execution evidence is required in 14.3–14.4, not claimed by this preparation task.
+
+- [ ] 13.4 Update README and identifier operations documentation with implemented routes and retention/rollout guidance.
+  - Requirements: Q: Complete published party-identifiers contract; M: Durable additional registration replay; M: Scoped atomic primary ownership; Quality.
+  - Verification: English documentation covers all routes, errors, identifier If-Match, provisional flags, inclusive expiration, exact key/default semantics, primary replacement, historical versus current queries, existing secret retention/rotation prerequisites, timeouts, query cost, additive migration, pre-cutover replay limits, event compatibility, safe rollback, and local Sonar/JDTLS evidence procedure.
+
+## 14. Final Acceptance on the Delivered Revision
+
+- [ ] 14.1 Run `./gradlew test` and reconcile the full unit/reactive/HTTP/architecture suite on the final saved source.
+  - Requirements: All Q/M/L requirements; Quality.
+  - Verification: Record the actual command/environment/results with no unexplained failures or skipped required cases. Review Month-based fixtures, dependency direction, every resource signature, and HTTP assertions; compilation alone is not contract evidence.
+
+- [ ] 14.2 Run `./gradlew build` and resolve packaged JVM or compiler/IDE disagreements.
+  - Requirements: Q: Complete published party-identifiers contract; Quality.
+  - Verification: Build and wired quarkusIntTest checks pass on the delivered revision with recorded runtime overrides and no new compiler warnings. Investigate stale/unresolved JDTLS project-model diagnostics rather than accepting Gradle as a substitute.
+
+- [ ] 14.3 Run `./gradlew buildNative -Dquarkus.native.container-build=true` and resolve actual native build failures.
+  - Requirements: Quality — native compilation.
+  - Verification: Record selected container/runtime, Java/native toolchain, command overrides, and successful new executable generation. Missing tooling remains an incomplete task, not a successful compilation result.
+
+- [ ] 14.4 Run `./gradlew testNative -Dquarkus.native.container-build=true` with required packaged/restart cases enabled.
+  - Requirements: All affected Q/M/L runtime contracts; Quality — native integration.
+  - Verification: Native HTTP/binding/cursor/snapshot/audit/restart cases actually execute and pass against the newly built executable. Record failure resolution and runtime prerequisites; no required case is marked complete solely from JVM results.
+
+- [ ] 14.5 Complete final saved-revision SonarQube for IDE and JDTLS verification for every changed Java file and nested type.
+  - Requirements: Quality — zero unresolved applicable local findings and zero new compiler/IDE warnings.
+  - Verification: The full inventory, including untracked and all source-set files, links final blobs to actual completed analysis and separate diagnostics. Fix and reanalyze findings, resolve model disagreements, and confirm no unjustified exclusions/suppressions. If fixes change source after 14.1–14.4, rerun affected checks and replace invalidated JVM/native evidence before final acceptance. Historic logs and an empty Problems panel alone are insufficient.
+
+- [ ] 14.6 Complete the scenario evidence map and architectural/public-contract review, then run `openspec validate complete-party-identifiers-contract --strict`.
+  - Requirements: All 27 requirements and 87 scenarios; Quality.
+  - Verification: Every scenario links to passing appropriate unit/integration/HTTP/native evidence, all eight signatures/envelopes and neutral-error boundaries are inspected, and final migration/docs/rollback checks are satisfied. OpenSpec validation passes with no unresolved required implementation/tooling evidence; only then is implementation ready for verification/archive.
