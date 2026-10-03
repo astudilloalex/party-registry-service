@@ -70,6 +70,14 @@ final class IdentifierSchemeHttpAssertions {
         assertEquals(echo, response.header("Process-Id"));
     }
 
+    static void assertError(Response response, int status, String code, Context context) {
+        error(response, status, code, context);
+    }
+
+    static void assertError(Response response, int status, String code, String echo) {
+        error(response, status, code, echo);
+    }
+
     static Map<String, Object> create(Context context, String code) {
         return success(context.request().contentType("application/json").header("Idempotency-Key", UUID.randomUUID().toString())
                 .body(body(code)).post(ROOT), 201, context);
