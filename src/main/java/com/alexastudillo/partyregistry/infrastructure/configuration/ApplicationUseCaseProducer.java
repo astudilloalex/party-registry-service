@@ -4,6 +4,9 @@ import com.alexastudillo.partyregistry.application.port.CountryReferencePort;
 import com.alexastudillo.partyregistry.application.port.IdempotentPartyRegistrationPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierProtectionPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierSchemeRepository;
+import com.alexastudillo.partyregistry.application.port.IdentifierSchemeReadPort;
+import com.alexastudillo.partyregistry.application.port.IdentifierSchemeMutationPort;
+import com.alexastudillo.partyregistry.application.port.IdentifierSchemeCursorPort;
 import com.alexastudillo.partyregistry.application.port.NaturalPersonRepository;
 import com.alexastudillo.partyregistry.application.port.NationalityMutationPort;
 import com.alexastudillo.partyregistry.application.port.NationalityReadPort;
@@ -18,6 +21,11 @@ import com.alexastudillo.partyregistry.application.port.PartyIdentifierReadPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.CreateIdentifierSchemeUseCase;
+import com.alexastudillo.partyregistry.application.usecase.GetIdentifierSchemeUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ListIdentifierSchemesUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchIdentifierSchemeUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ChangeIdentifierSchemeLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNationalityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchNationalityUseCase;
@@ -58,6 +66,36 @@ public class ApplicationUseCaseProducer {
     @Produces
     Clock utcClock() {
         return UTC_CLOCK;
+    }
+
+    @Produces
+    CreateIdentifierSchemeUseCase createIdentifierSchemeUseCase(
+            IdentifierSchemeMutationPort mutations, Clock clock, OperationObservationPort observation) {
+        return new CreateIdentifierSchemeUseCase(mutations, new IdentifierRuleCatalog(), clock, observation);
+    }
+
+    @Produces
+    GetIdentifierSchemeUseCase getIdentifierSchemeUseCase(
+            IdentifierSchemeReadPort reads, OperationObservationPort observation) {
+        return new GetIdentifierSchemeUseCase(reads, observation);
+    }
+
+    @Produces
+    ListIdentifierSchemesUseCase listIdentifierSchemesUseCase(
+            IdentifierSchemeReadPort reads, IdentifierSchemeCursorPort cursors, OperationObservationPort observation) {
+        return new ListIdentifierSchemesUseCase(reads, cursors, observation);
+    }
+
+    @Produces
+    PatchIdentifierSchemeUseCase patchIdentifierSchemeUseCase(
+            IdentifierSchemeMutationPort mutations, Clock clock, OperationObservationPort observation) {
+        return new PatchIdentifierSchemeUseCase(mutations, new IdentifierRuleCatalog(), clock, observation);
+    }
+
+    @Produces
+    ChangeIdentifierSchemeLifecycleUseCase changeIdentifierSchemeLifecycleUseCase(
+            IdentifierSchemeMutationPort mutations, Clock clock, OperationObservationPort observation) {
+        return new ChangeIdentifierSchemeLifecycleUseCase(mutations, new IdentifierRuleCatalog(), clock, observation);
     }
 
     @Produces
