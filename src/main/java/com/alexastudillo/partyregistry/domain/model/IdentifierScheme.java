@@ -4,6 +4,7 @@ import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Defines the stable identity, lifecycle, and processing rules of an official identifier scheme.
@@ -104,6 +105,56 @@ public record IdentifierScheme(
 
     public boolean supports(PartyType partyType) {
         return applicableSubjectType.supports(partyType);
+    }
+
+    /** Requires state-appropriate maintenance before prospective configuration or version advancement. */
+    public void requireMaintenanceAllowed(IdentifierSchemeChanges changes) {
+        Objects.requireNonNull(changes, "changes");
+        if (status == IdentifierSchemeStatus.RETIRED) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_SCHEME_RETIRED,
+                    "Retired identifier schemes cannot be maintained");
+        }
+        if (status != IdentifierSchemeStatus.DRAFT && changes.hasProcessingChanges()) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_SCHEME_RULES_LOCKED,
+                    "Identifier scheme processing properties are locked after activation");
+        }
+    }
+
+    /** Applies permitted prospective configuration with one version advance and retained creation audit. */
+    public IdentifierScheme applyChanges(IdentifierSchemeChanges changes, Instant occurredAt, String userId) {
+        requireMaintenanceAllowed(changes);
+        var nextVersion = version.next();
+        var candidate = changes.merge(this);
+        var modifiedAudit = auditInfo.updated(occurredAt, userId);
+        return new IdentifierScheme(candidate.id(), candidate.code(), candidate.issuingCountryCode(), candidate.category(),
+                candidate.applicableSubjectType(), candidate.name(), candidate.description(), candidate.normalizerKey(),
+                candidate.validatorKey(), candidate.minimumLength(), candidate.maximumLength(), candidate.requiresExpiration(),
+                status, nextVersion, modifiedAudit);
+    }
+
+    /** Withdraws an active scheme from new admission without revalidating historical processing keys. */
+    public IdentifierScheme deprecate(Instant occurredAt, String userId) {
+        if (status != IdentifierSchemeStatus.ACTIVE) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_SCHEME_DEPRECATION_INVALID_STATE,
+                    "Only active identifier schemes can be deprecated");
+        }
+        return transitionTo(IdentifierSchemeStatus.DEPRECATED, occurredAt, userId);
+    }
+
+    /** Retires any nonterminal scheme directly while preserving its identity and historical processing metadata. */
+    public IdentifierScheme retire(Instant occurredAt, String userId) {
+        if (status == IdentifierSchemeStatus.RETIRED) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_SCHEME_RETIREMENT_INVALID_STATE,
+                    "Retired identifier schemes cannot be retired again");
+        }
+        return transitionTo(IdentifierSchemeStatus.RETIRED, occurredAt, userId);
+    }
+
+    private IdentifierScheme transitionTo(IdentifierSchemeStatus target, Instant occurredAt, String userId) {
+        var nextVersion = version.next();
+        return new IdentifierScheme(id, code, issuingCountryCode, category, applicableSubjectType, name, description,
+                normalizerKey, validatorKey, minimumLength, maximumLength, requiresExpiration, target,
+                nextVersion, auditInfo.updated(occurredAt, userId));
     }
 
     private static void validateCountryCode(String value) {

@@ -3,6 +3,7 @@ package com.alexastudillo.partyregistry.application.error;
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 
 import java.io.Serial;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -13,6 +14,45 @@ public final class ApplicationException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = 1L;
     private static final String FAILURE = "failure";
+
+    private static final Map<Class<? extends ApplicationFailure>, String> DESCRIPTIONS = Map.ofEntries(
+            Map.entry(ApplicationFailure.IdentifierSchemeNotFound.class, "Identifier scheme not found"),
+            Map.entry(ApplicationFailure.IdentifierSchemeCodeConflict.class, "Identifier scheme code conflict"),
+            Map.entry(ApplicationFailure.IdentifierSchemeVersionMismatch.class, "Identifier scheme version mismatch"),
+            Map.entry(ApplicationFailure.IdentifierSchemeRulesLocked.class, "Identifier scheme processing properties are locked"),
+            Map.entry(ApplicationFailure.IdentifierSchemeRetired.class, "Identifier scheme is retired"),
+            Map.entry(ApplicationFailure.InvalidIdentifierSchemeLifecycle.class, "Invalid identifier scheme lifecycle transition"),
+            Map.entry(ApplicationFailure.IdentifierSchemeVersionExhausted.class, "Identifier scheme version is exhausted"),
+            Map.entry(ApplicationFailure.IdentifierSchemeLengthRangeInvalid.class, "Invalid identifier scheme length range"),
+            Map.entry(ApplicationFailure.InvalidIdentifierSchemeConfiguration.class, "Invalid identifier scheme configuration"),
+            Map.entry(ApplicationFailure.InvalidIdentifierSchemeCursor.class, "Invalid identifier scheme cursor"),
+            Map.entry(ApplicationFailure.InvalidPartyCursor.class, "Invalid Party cursor"),
+            Map.entry(ApplicationFailure.InvalidNationalityCursor.class, "Invalid nationality cursor"),
+            Map.entry(ApplicationFailure.NationalityNotFound.class, "Nationality not found"),
+            Map.entry(ApplicationFailure.UnrecognizedNationalityCountry.class, "Unrecognized nationality country"),
+            Map.entry(ApplicationFailure.NationalityValidityInvalid.class, "Invalid nationality validity period"),
+            Map.entry(ApplicationFailure.NationalityValidityConflict.class, "Nationality validity conflict"),
+            Map.entry(ApplicationFailure.PrimaryNationalityConflict.class, "Primary nationality conflict"),
+            Map.entry(ApplicationFailure.NationalityNotEffective.class, "Nationality is not effective"),
+            Map.entry(ApplicationFailure.NaturalPersonNotFound.class, "Natural person not found"),
+            Map.entry(ApplicationFailure.LegalEntityNotFound.class, "Legal entity not found"),
+            Map.entry(ApplicationFailure.IdempotencyKeyConflict.class, "Idempotency key conflict"),
+            Map.entry(ApplicationFailure.ExpectedVersionMismatch.class, "Expected version mismatch"),
+            Map.entry(ApplicationFailure.UnrecognizedBirthCountry.class, "Unrecognized birth country"),
+            Map.entry(ApplicationFailure.UnrecognizedIncorporationCountry.class, "Unrecognized incorporation country"),
+            Map.entry(ApplicationFailure.UnknownIdentifierScheme.class, "Unknown identifier scheme"),
+            Map.entry(ApplicationFailure.InactiveIdentifierScheme.class, "Inactive identifier scheme"),
+            Map.entry(ApplicationFailure.IncompatibleIdentifierScheme.class, "Incompatible identifier scheme"),
+            Map.entry(ApplicationFailure.IdentifierValidationFailure.class, "Identifier validation failed"),
+            Map.entry(ApplicationFailure.IdentifierUniquenessConflict.class, "Identifier uniqueness conflict"),
+            Map.entry(ApplicationFailure.PartyNotFound.class, "Party not found"),
+            Map.entry(ApplicationFailure.InvalidPartyLifecycle.class, "Invalid Party lifecycle transition"),
+            Map.entry(ApplicationFailure.StalePartyVersion.class, "Stale Party version"),
+            Map.entry(ApplicationFailure.MissingQualifyingIdentifier.class, "Qualifying Party identifier required"),
+            Map.entry(ApplicationFailure.DependencyUnavailable.class, "Dependency unavailable"),
+            Map.entry(ApplicationFailure.PersistenceFailure.class, "Persistence operation failed"),
+            Map.entry(ApplicationFailure.IdentifierCatalogFailure.class, "Identifier catalog is internally inconsistent"),
+            Map.entry(ApplicationFailure.InvalidBusinessState.class, "Invalid business state"));
 
     private final transient ApplicationFailure applicationFailure;
 
@@ -45,34 +85,10 @@ public final class ApplicationException extends RuntimeException {
 
     private static String describe(ApplicationFailure failure) {
         Objects.requireNonNull(failure, FAILURE);
-        return switch (failure) {
-            case ApplicationFailure.InvalidPartyCursor _ -> "Invalid Party cursor";
-            case ApplicationFailure.InvalidNationalityCursor _ -> "Invalid nationality cursor";
-            case ApplicationFailure.NationalityNotFound _ -> "Nationality not found";
-            case ApplicationFailure.UnrecognizedNationalityCountry _ -> "Unrecognized nationality country";
-            case ApplicationFailure.NationalityValidityInvalid _ -> "Invalid nationality validity period";
-            case ApplicationFailure.NationalityValidityConflict _ -> "Nationality validity conflict";
-            case ApplicationFailure.PrimaryNationalityConflict _ -> "Primary nationality conflict";
-            case ApplicationFailure.NationalityNotEffective _ -> "Nationality is not effective";
-            case ApplicationFailure.NaturalPersonNotFound _ -> "Natural person not found";
-            case ApplicationFailure.LegalEntityNotFound _ -> "Legal entity not found";
-            case ApplicationFailure.IdempotencyKeyConflict _ -> "Idempotency key conflict";
-            case ApplicationFailure.ExpectedVersionMismatch _ -> "Expected version mismatch";
-            case ApplicationFailure.UnrecognizedBirthCountry _ -> "Unrecognized birth country";
-            case ApplicationFailure.UnrecognizedIncorporationCountry _ -> "Unrecognized incorporation country";
-            case ApplicationFailure.UnknownIdentifierScheme _ -> "Unknown identifier scheme";
-            case ApplicationFailure.InactiveIdentifierScheme _ -> "Inactive identifier scheme";
-            case ApplicationFailure.IncompatibleIdentifierScheme _ -> "Incompatible identifier scheme";
-            case ApplicationFailure.IdentifierValidationFailure _ -> "Identifier validation failed";
-            case ApplicationFailure.IdentifierUniquenessConflict _ -> "Identifier uniqueness conflict";
-            case ApplicationFailure.PartyNotFound _ -> "Party not found";
-            case ApplicationFailure.InvalidPartyLifecycle _ -> "Invalid Party lifecycle transition";
-            case ApplicationFailure.StalePartyVersion _ -> "Stale Party version";
-            case ApplicationFailure.MissingQualifyingIdentifier _ -> "Qualifying Party identifier required";
-            case ApplicationFailure.DependencyUnavailable _ -> "Dependency unavailable";
-            case ApplicationFailure.PersistenceFailure _ -> "Persistence operation failed";
-            case ApplicationFailure.IdentifierCatalogFailure _ -> "Identifier catalog is internally inconsistent";
-            case ApplicationFailure.InvalidBusinessState _ -> "Invalid business state";
-        };
+        String description = DESCRIPTIONS.get(failure.getClass());
+        if (description != null) {
+            return description;
+        }
+        throw new IllegalArgumentException("Unsupported application failure: " + failure.getClass().getName());
     }
 }

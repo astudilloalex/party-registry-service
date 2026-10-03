@@ -7,6 +7,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.EvaluationResult;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -98,6 +99,25 @@ class ArchitectureRulesTest {
                 ArchitectureRules.packagesAreFreeOfCycles(FIXTURE_ROOT + ".cycle"),
                 importFixtures(FIXTURE_ROOT + ".cycle"),
                 "LeftCycle");
+    }
+
+    @Test
+    void rejectsEveryProhibitedBusinessJsonSignature() {
+        var classes = new ClassFileImporter().importClasses(
+                com.alexastudillo.partyregistry.architecture.fixture.responses.api.resource.InvalidResponses.class);
+        assertViolation(
+                ArchitectureRules.businessJsonResourcesUseSharedEnvelope(FIXTURE_ROOT + ".responses"),
+                classes, "bareDomain", "bareDto", "unwrappedRest", "rawResponse",
+                "wrappedDomain", "wrappedEntity", "domainCollection", "unknownPayload");
+    }
+
+    @Test
+    void acceptsApiDtosAndExemptsBinaryAndInternalMethods() {
+        var classes = new ClassFileImporter().importClasses(
+                com.alexastudillo.partyregistry.architecture.fixture.responses.api.resource.ValidResponses.class);
+        var result = ArchitectureRules.businessJsonResourcesUseSharedEnvelope(FIXTURE_ROOT + ".responses")
+                .evaluate(classes);
+        assertFalse(result.hasViolation(), result.getFailureReport().toString());
     }
 
     private static JavaClasses importFixtures(String packageName) {

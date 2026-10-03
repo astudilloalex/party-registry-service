@@ -4,6 +4,7 @@ import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.NationalityMutationOutcome;
+import com.alexastudillo.partyregistry.application.model.IdentifierSchemeMutationOutcome;
 import jakarta.enterprise.context.RequestScoped;
 
 import java.util.Objects;
@@ -27,6 +28,7 @@ public class RequestMetadataContext {
     private PartyMutationOutcome.Disposition mutationDisposition;
     private NationalityMutationOutcome.Disposition nationalityDisposition;
     private boolean nationalityKeyed;
+    private IdentifierSchemeMutationOutcome.Disposition identifierSchemeDisposition;
 
     /**
      * Starts completion tracking before request validation occurs.
@@ -134,5 +136,14 @@ public class RequestMetadataContext {
 
     public boolean nationalityKeyed() {
         return nationalityKeyed;
+    }
+
+    /** Retains only committed scheme disposition for completion telemetry, never catalog data or replay keys. */
+    public void recordIdentifierSchemeDisposition(IdentifierSchemeMutationOutcome outcome) {
+        identifierSchemeDisposition = Objects.requireNonNull(outcome, OUTCOME).disposition();
+    }
+
+    public IdentifierSchemeMutationOutcome.Disposition identifierSchemeDisposition() {
+        return identifierSchemeDisposition;
     }
 }

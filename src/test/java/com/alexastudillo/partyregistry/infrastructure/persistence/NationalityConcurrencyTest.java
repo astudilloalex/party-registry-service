@@ -145,7 +145,7 @@ class NationalityConcurrencyTest {
                 () -> mutations.patch(new PatchNationalityCommand(metadata(tenant), party, january,
                         FieldUpdate.absent(), FieldUpdate.present(LocalDate.of(2026, Month.JANUARY, 25)))),
                 () -> mutations.patch(new PatchNationalityCommand(metadata(tenant), party, february,
-                        FieldUpdate.present(LocalDate.of(2026, Month.FEBRUARY, 20)), FieldUpdate.absent())));
+                        FieldUpdate.present(LocalDate.of(2026, Month.JANUARY, 20)), FieldUpdate.absent())));
         assertEquals(1, successes(attempts).size());
         assertInstanceOf(ApplicationFailure.NationalityValidityConflict.class,
                 onlyFailure(attempts).failure().failure());

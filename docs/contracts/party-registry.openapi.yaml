@@ -1219,40 +1219,203 @@ paths:
       tags:
         - identifier-schemes
       operationId: createIdentifierScheme
-      summary: Crear scheme de identificación
+      summary: Create a global identifier scheme
+      x-request-example:
+        method: POST
+        path: /v1/identifier-schemes
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+          Idempotency-Key: scheme-create-example
+          Content-Type: application/json
+        body:
+          code: Example-Passport
+          issuingCountryCode: EC
+          category: PASSPORT
+          applicableSubjectType: BOTH
+          name: Example Passport
+          description: Example administrative catalog entry
+          normalizerKey: TRIM_UPPERCASE_V1
+          validatorKey: ALPHANUMERIC_V1
+          minimumLength: 1
+          maximumLength: 32767
+          requiresExpiration: false
+      description: >-
+        Creates a global catalog entry in DRAFT, version 0, with generated identity and equal
+        createdAt/updatedAt. Exactly one Process-Id, Tenant-Id, and User-Id is validated in that
+        order before operation input; canonical lowercase UUIDs are not trimmed. Header names
+        are case-insensitive. User-Id is nonblank, at most 128 Unicode code points, with no C0/DEL/C1
+        controls. Accepted Process-Id is echoed unchanged on every success/error/replay, even after
+        later context failure; missing/duplicated/invalid process values are not echoed. /q is exempt.
+        Strict body validation precedes the required Idempotency-Key. Completed equivalent replay
+        returns the original 201 DRAFT/version-zero/timestamps across later changes and restart;
+        changed effective input returns 409 idempotency-key-conflict before global exact-code
+        uniqueness, then semantic bounds and supported-rule admission. Codes remain assigned in
+        every lifecycle state. Tenant context scopes replay, never catalog ownership. Country
+        validation is local format validation only. Client IDs, versions, statuses and audits are forbidden.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
         - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+        - $ref: '#/components/parameters/IdentifierSchemeCreateKey'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/IdentifierSchemeCreateRequest'
+            examples:
+              complete:
+                value:
+                  code: Example-Passport
+                  issuingCountryCode: EC
+                  category: PASSPORT
+                  applicableSubjectType: BOTH
+                  name: Example Passport
+                  description: Example administrative catalog entry
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+                  minimumLength: 1
+                  maximumLength: 32767
+                  requiresExpiration: false
+              omittedOptionals:
+                value:
+                  code: Example-Minimal
+                  issuingCountryCode: ZZ
+                  category: OTHER
+                  applicableSubjectType: NATURAL_PERSON
+                  name: Exact Mixed Name
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+              explicitNullOptionals:
+                value:
+                  code: Example-Nullable
+                  issuingCountryCode: ZZ
+                  category: OTHER
+                  applicableSubjectType: LEGAL_ENTITY
+                  name: Exact Mixed Name
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+                  description: null
+                  minimumLength: null
+                  maximumLength: null
+                  requiresExpiration: false
       responses:
         '201':
-          description: Scheme creado
+          description: Created draft or original historical creation replay, always 201 successful.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+                $ref: '#/components/schemas/IdentifierSchemeCreatedApiResponse'
+              examples:
+                created:
+                  value:
+                    status: 201
+                    code: successful
+                    data:
+                      id: '01950000-0000-7000-8000-000000000001'
+                      code: Example-Passport
+                      issuingCountryCode: EC
+                      category: PASSPORT
+                      applicableSubjectType: BOTH
+                      name: Example Passport
+                      description: Example administrative catalog entry
+                      normalizerKey: TRIM_UPPERCASE_V1
+                      validatorKey: ALPHANUMERIC_V1
+                      minimumLength: 1
+                      maximumLength: 32767
+                      requiresExpiration: false
+                      status: DRAFT
+                      version: 0
+                      createdAt: '2026-10-01T14:00:00.123456Z'
+                      updatedAt: '2026-10-01T14:00:00.123456Z'
+                replayAfterRetirement:
+                  summary: Original draft even when current GET is retired; correlation belongs to the retry.
+                  value:
+                    status: 201
+                    code: successful
+                    data:
+                      id: '01950000-0000-7000-8000-000000000001'
+                      code: Example-Passport
+                      issuingCountryCode: EC
+                      category: PASSPORT
+                      applicableSubjectType: BOTH
+                      name: Example Passport
+                      description: Example administrative catalog entry
+                      normalizerKey: TRIM_UPPERCASE_V1
+                      validatorKey: ALPHANUMERIC_V1
+                      minimumLength: 1
+                      maximumLength: 32767
+                      requiresExpiration: false
+                      status: DRAFT
+                      version: 0
+                      createdAt: '2026-10-01T14:00:00.123456Z'
+                      updatedAt: '2026-10-01T14:00:00.123456Z'
+                omittedOptionals:
+                  value:
+                    status: 201
+                    code: successful
+                    data:
+                      id: '01950000-0000-7000-8000-000000000002'
+                      code: Example-Minimal
+                      issuingCountryCode: ZZ
+                      category: OTHER
+                      applicableSubjectType: NATURAL_PERSON
+                      name: Exact Mixed Name
+                      normalizerKey: TRIM_UPPERCASE_V1
+                      validatorKey: ALPHANUMERIC_V1
+                      requiresExpiration: false
+                      status: DRAFT
+                      version: 0
+                      createdAt: '2026-10-01T14:00:00.123456Z'
+                      updatedAt: '2026-10-01T14:00:00.123456Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
+        '404':
+          $ref: '#/components/responses/IdentifierSchemeRouteNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/IdentifierSchemeCreateConflict'
+        '415':
+          $ref: '#/components/responses/IdentifierSchemeUnsupportedMediaType'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeConfigurationFailure'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
     get:
       tags:
         - identifier-schemes
       operationId: listIdentifierSchemes
-      summary: Listar schemes de identificación
+      summary: List the global identifier-scheme catalog
+      x-request-example:
+        method: GET
+        path: /v1/identifier-schemes?issuingCountryCode=EC&category=PASSPORT&applicableSubjectType=BOTH&status=DRAFT&limit=50
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+      description: >-
+        Reads the global catalog. Exactly one Process-Id, Tenant-Id, and User-Id is validated in
+        that order; accepted Process-Id is echoed unchanged on all outcomes, invalid process values
+        are not echoed. Context validation precedes query validation. Each query occurs at most once;
+        unknown, repeated, blank, invalid enum/country/decimal limit/cursor inputs return 400 bad-request.
+        Four exact case-sensitive filters combine with AND; NATURAL_PERSON or LEGAL_ENTITY does not
+        include BOTH. Omitted status includes every lifecycle state. Empty matches return data: [].
+        Order is createdAt ASC then id ASC, with default limit 50 and maximum 200. Opaque authenticated
+        cursors bind tenant, all four exact filters and effective limit, and only this resource; tampering
+        or changed scope returns 400 bad-request. There is no frozen snapshot across catalog changes.
+        numberOfElements equals data size; nextCursor/prevCursor appear only when navigation is
+        available. totalElements/totalPages are optional and omitted when not supplied; supplied totals
+        would describe the entire matching catalog, not just this page. Current pages supply no totals.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
@@ -1260,9 +1423,12 @@ paths:
         - name: issuingCountryCode
           in: query
           required: false
+          description: One exact uppercase two-letter country filter; no country lookup or normalization.
           schema:
             type: string
             pattern: '^[A-Z]{2}$'
+            minLength: 2
+            maxLength: 2
         - name: category
           in: query
           required: false
@@ -1278,53 +1444,127 @@ paths:
           required: false
           schema:
             $ref: '#/components/schemas/IdentifierSchemeStatus'
-        - $ref: '#/components/parameters/CursorQuery'
-        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/IdentifierSchemeCursorQuery'
+        - $ref: '#/components/parameters/IdentifierSchemeLimitQuery'
       responses:
         '200':
-          description: Lista de schemes
+          description: Current global page with available-only navigation and count-only metadata.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentifierSchemeCollectionApiResponse'
+              examples:
+                singlePage:
+                  value:
+                    status: 200
+                    code: successful
+                    numberOfElements: 1
+                    data:
+                      - { id: '01950000-0000-7000-8000-000000000001', code: Example-Passport, issuingCountryCode: EC, category: PASSPORT, applicableSubjectType: BOTH, name: Example Passport, description: Example administrative catalog entry, normalizerKey: TRIM_UPPERCASE_V1, validatorKey: ALPHANUMERIC_V1, minimumLength: 1, maximumLength: 32767, requiresExpiration: false, status: DRAFT, version: 0, createdAt: '2026-10-01T14:00:00.123456Z', updatedAt: '2026-10-01T14:00:00.123456Z' }
+                empty:
+                  value: { status: 200, code: successful, data: [], numberOfElements: 0 }
+                forward:
+                  summary: Cursor is illustrative opaque text; consumers use the actual issued token.
+                  value:
+                    status: 200
+                    code: successful
+                    numberOfElements: 1
+                    nextCursor: opaque-server-issued-next
+                    data:
+                      - { id: '01950000-0000-7000-8000-000000000001', code: Example-Passport, issuingCountryCode: EC, category: PASSPORT, applicableSubjectType: BOTH, name: Example Passport, normalizerKey: TRIM_UPPERCASE_V1, validatorKey: ALPHANUMERIC_V1, requiresExpiration: false, status: DRAFT, version: 0, createdAt: '2026-10-01T14:00:00.123456Z', updatedAt: '2026-10-01T14:00:00.123456Z' }
+                bidirectional:
+                  value:
+                    status: 200
+                    code: successful
+                    numberOfElements: 1
+                    nextCursor: opaque-server-issued-next
+                    prevCursor: opaque-server-issued-previous
+                    data:
+                      - { id: '01950000-0000-7000-8000-000000000001', code: Example-Passport, issuingCountryCode: EC, category: PASSPORT, applicableSubjectType: BOTH, name: Example Passport, normalizerKey: TRIM_UPPERCASE_V1, validatorKey: ALPHANUMERIC_V1, requiresExpiration: false, status: DRAFT, version: 0, createdAt: '2026-10-01T14:00:00.123456Z', updatedAt: '2026-10-01T14:00:00.123456Z' }
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
+        '404':
+          $ref: '#/components/responses/IdentifierSchemeRouteNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
 
   /v1/identifier-schemes/by-code/{code}:
     get:
       tags:
         - identifier-schemes
       operationId: getIdentifierSchemeByCode
-      summary: Obtener scheme por código
+      summary: Retrieve a global scheme by exact code
+      x-request-example:
+        method: GET
+        path: /v1/identifier-schemes/by-code/Example-Passport
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+      description: >-
+        Reads the current global representation in every lifecycle state without mutation or rule
+        readmission. Exactly one Process-Id, Tenant-Id, and User-Id is validated in that order before
+        the decoded code path selector. Accepted Process-Id is echoed unchanged on all outcomes;
+        missing/duplicated/invalid process values are not echoed. Code compares exactly without
+        trimming or uppercasing and is nonblank, at most 64 Unicode code points. Invalid selectors
+        return identifier-scheme-code-required or identifier-scheme-code-too-long (400); a valid absent
+        code returns 404 identifier-scheme-not-found. Tenant context does not qualify catalog rows.
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - $ref: '#/components/parameters/ProcessId'
         - $ref: '#/components/parameters/UserId'
-        - name: code
-          in: path
-          required: true
-          schema:
-            type: string
-            maxLength: 64
+        - $ref: '#/components/parameters/IdentifierSchemeCodePath'
       responses:
         '200':
-          description: Scheme encontrado
+          description: Current safe global scheme in any lifecycle state.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  id: '01950000-0000-7000-8000-000000000001'
+                  code: Example-Passport
+                  issuingCountryCode: EC
+                  category: PASSPORT
+                  applicableSubjectType: BOTH
+                  name: Example Passport
+                  description: Example administrative catalog entry
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+                  minimumLength: 1
+                  maximumLength: 32767
+                  requiresExpiration: false
+                  status: DRAFT
+                  version: 0
+                  createdAt: '2026-10-01T14:00:00.123456Z'
+                  updatedAt: '2026-10-01T14:00:00.123456Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
 
   /v1/identifier-schemes/{schemeId}:
     parameters:
@@ -1336,56 +1576,154 @@ paths:
       tags:
         - identifier-schemes
       operationId: getIdentifierScheme
-      summary: Obtener scheme por ID
+      summary: Retrieve a global scheme by canonical ID
+      x-request-example:
+        method: GET
+        path: /v1/identifier-schemes/01950000-0000-7000-8000-000000000001
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+      description: >-
+        Reads the current global representation in every lifecycle state without mutation or rule
+        readmission. Exactly one Process-Id, Tenant-Id, and User-Id is validated in that order before
+        schemeId. Accepted Process-Id is echoed unchanged on all outcomes; missing/duplicated/invalid
+        process values are not echoed. A noncanonical ID returns 400 identifier-scheme-id-invalid;
+        a canonical absent ID returns 404 identifier-scheme-not-found. Only public timestamps and
+        configuration are returned, never audit actors or internal storage details.
       responses:
         '200':
-          description: Scheme encontrado
+          description: Current safe global scheme in any lifecycle state.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  id: '01950000-0000-7000-8000-000000000001'
+                  code: Example-Passport
+                  issuingCountryCode: EC
+                  category: PASSPORT
+                  applicableSubjectType: BOTH
+                  name: Example Passport
+                  description: Example administrative catalog entry
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+                  minimumLength: 1
+                  maximumLength: 32767
+                  requiresExpiration: false
+                  status: DRAFT
+                  version: 0
+                  createdAt: '2026-10-01T14:00:00.123456Z'
+                  updatedAt: '2026-10-01T14:00:00.123456Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
     patch:
       tags:
         - identifier-schemes
       operationId: updateIdentifierScheme
-      summary: Actualizar scheme
+      summary: Partially maintain a global identifier scheme
+      x-request-example:
+        method: PATCH
+        path: /v1/identifier-schemes/01950000-0000-7000-8000-000000000001
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+          If-Match: '0'
+          Content-Type: application/json
+        body: { name: Updated Exact Name, description: null, minimumLength: 1, maximumLength: 32767 }
+      description: >-
+        Updates the global scheme. Exactly one Process-Id, Tenant-Id, and User-Id is validated in
+        that order; accepted Process-Id is echoed unchanged on all outcomes, invalid process values
+        are not echoed. Strict body checks precede schemeId then If-Match. New mutation evaluation
+        is absence, expected version, state, version exhaustion, then resulting bounds/configuration.
+        DRAFT permits all seven PATCH properties and requires resulting supported rules. ACTIVE and
+        DEPRECATED permit only name/description, retaining obsolete historical keys without revalidation.
+        Attempting a locked processing property, even an identical value, returns 409
+        identifier-scheme-rules-locked. RETIRED rejects PATCH with 409 identifier-scheme-retired.
+        Omission preserves values; explicit null clears only description/minimumLength/maximumLength.
+        Accepted identical-value edits still advance version exactly once and refresh modification
+        audit while retaining creation audit and immutable identity. PATCH has no replay semantics.
       parameters:
-        - $ref: '#/components/parameters/IfMatch'
+        - $ref: '#/components/parameters/IdentifierSchemeIfMatch'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/IdentifierSchemeUpdateRequest'
+            examples:
+              draftCorrection:
+                value: { name: Updated Exact Name, description: null, minimumLength: 1, maximumLength: 32767 }
+              clearNullableFields:
+                value: { description: null, minimumLength: null, maximumLength: null }
+              descriptiveMaintenance:
+                value: { name: Updated Exact Name }
       responses:
         '200':
-          description: Scheme actualizado
+          description: Accepted correction, including identical values, at exactly the next version.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  id: '01950000-0000-7000-8000-000000000001'
+                  code: Example-Passport
+                  issuingCountryCode: EC
+                  category: PASSPORT
+                  applicableSubjectType: BOTH
+                  name: Updated Exact Name
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+                  minimumLength: 1
+                  maximumLength: 32767
+                  requiresExpiration: false
+                  status: DRAFT
+                  version: 1
+                  createdAt: '2026-10-01T14:00:00.123456Z'
+                  updatedAt: '2026-10-01T14:01:00.123456Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/IdentifierSchemeNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/IdentifierSchemePatchConflict'
         '412':
-          $ref: '#/components/responses/PreconditionFailed'
+          $ref: '#/components/responses/IdentifierSchemeExpectedVersionMismatch'
+        '415':
+          $ref: '#/components/responses/IdentifierSchemeUnsupportedMediaType'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeConfigurationFailure'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
 
   /v1/identifier-schemes/{schemeId}/activate:
     parameters:
@@ -1393,34 +1731,106 @@ paths:
       - $ref: '#/components/parameters/TenantId'
       - $ref: '#/components/parameters/ProcessId'
       - $ref: '#/components/parameters/UserId'
-      - $ref: '#/components/parameters/IfMatch'
-      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      - $ref: '#/components/parameters/IdentifierSchemeIfMatch'
+      - $ref: '#/components/parameters/IdentifierSchemeLifecycleKey'
     post:
       tags:
         - identifier-schemes
       operationId: activateIdentifierScheme
-      summary: Activar scheme
+      summary: Activate an eligible global draft
+      x-request-example:
+        method: POST
+        path: /v1/identifier-schemes/01950000-0000-7000-8000-000000000001/activate
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+          Idempotency-Key: scheme-action-example
+          If-Match: '0'
+      description: >-
+        Only DRAFT becomes ACTIVE; every other source state returns 409 invalid-identifier-scheme-lifecycle.
+        The global scheme retains configuration/identity/creation audit and advances version once.
+        Stored configuration must pass supported rules and coherent bounds, including legacy drafts.
+        Exactly one Process-Id, Tenant-Id, and User-Id is validated in that order before operation input;
+        accepted Process-Id is echoed unchanged on all outcomes, invalid process values are not echoed.
+        Requires no body: any nonzero bytes, including {}, whitespace or null, return 400 bad-request.
+        Validate body, optional Idempotency-Key, schemeId, then If-Match, even on replay. Completed
+        equivalent keyed replay returns original 200 data/version/timestamps after later changes or
+        restart with current correlation, without changing current state. New actions check absence,
+        expected version, transition, exhaustion, then configuration. Repeated unkeyed old-version
+        actions return 412 expected-version-mismatch; current-version repeats return lifecycle conflict.
       responses:
         '200':
-          description: Scheme activado
+          description: Accepted activation or original equivalent historical activation replay.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+              examples:
+                activated:
+                  value:
+                    status: 200
+                    code: successful
+                    data:
+                      id: '01950000-0000-7000-8000-000000000001'
+                      code: Example-Passport
+                      issuingCountryCode: EC
+                      category: PASSPORT
+                      applicableSubjectType: BOTH
+                      name: Example Passport
+                      description: Example administrative catalog entry
+                      normalizerKey: TRIM_UPPERCASE_V1
+                      validatorKey: ALPHANUMERIC_V1
+                      minimumLength: 1
+                      maximumLength: 32767
+                      requiresExpiration: false
+                      status: ACTIVE
+                      version: 1
+                      createdAt: '2026-10-01T14:00:00.123456Z'
+                      updatedAt: '2026-10-01T14:01:00.123456Z'
+                replayAfterRetirement:
+                  summary: Historical activation data; current state remains retired.
+                  value:
+                    status: 200
+                    code: successful
+                    data:
+                      id: '01950000-0000-7000-8000-000000000001'
+                      code: Example-Passport
+                      issuingCountryCode: EC
+                      category: PASSPORT
+                      applicableSubjectType: BOTH
+                      name: Example Passport
+                      description: Example administrative catalog entry
+                      normalizerKey: TRIM_UPPERCASE_V1
+                      validatorKey: ALPHANUMERIC_V1
+                      minimumLength: 1
+                      maximumLength: 32767
+                      requiresExpiration: false
+                      status: ACTIVE
+                      version: 1
+                      createdAt: '2026-10-01T14:00:00.123456Z'
+                      updatedAt: '2026-10-01T14:01:00.123456Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/IdentifierSchemeNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/IdentifierSchemeLifecycleConflict'
         '412':
-          $ref: '#/components/responses/PreconditionFailed'
+          $ref: '#/components/responses/IdentifierSchemeExpectedVersionMismatch'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeConfigurationFailure'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
 
   /v1/identifier-schemes/{schemeId}/deprecate:
     parameters:
@@ -1428,34 +1838,80 @@ paths:
       - $ref: '#/components/parameters/TenantId'
       - $ref: '#/components/parameters/ProcessId'
       - $ref: '#/components/parameters/UserId'
-      - $ref: '#/components/parameters/IfMatch'
-      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      - $ref: '#/components/parameters/IdentifierSchemeIfMatch'
+      - $ref: '#/components/parameters/IdentifierSchemeLifecycleKey'
     post:
       tags:
         - identifier-schemes
       operationId: deprecateIdentifierScheme
-      summary: Deprecar scheme
+      summary: Deprecate a global active scheme
+      x-request-example:
+        method: POST
+        path: /v1/identifier-schemes/01950000-0000-7000-8000-000000000001/deprecate
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+          Idempotency-Key: scheme-action-example
+          If-Match: '1'
+      description: >-
+        Only ACTIVE becomes DEPRECATED; every other source state returns 409 invalid-identifier-scheme-lifecycle.
+        The global scheme retains even obsolete processing rules without revalidation, identity,
+        configuration, creation audit and historical identifiers; version advances once. There is no
+        reactivation. Exactly one Process-Id, Tenant-Id, and User-Id is validated in that order;
+        accepted Process-Id is echoed unchanged on all outcomes, invalid process values are not echoed.
+        Requires no body: any nonzero bytes, including {}, whitespace or null, return 400 bad-request.
+        Validate body, optional Idempotency-Key, schemeId, then If-Match, even on replay. Completed
+        equivalent keyed replay returns original 200 data/version/timestamps after later changes or
+        restart without mutation. New actions check absence, expected version, transition, then
+        exhaustion. Repeated unkeyed old-version actions return 412 expected-version-mismatch;
+        current-version repeats return lifecycle conflict. Withdrawal does not emit Party events.
       responses:
         '200':
-          description: Scheme deprecado
+          description: Accepted deprecation or original equivalent historical deprecation replay.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  id: '01950000-0000-7000-8000-000000000001'
+                  code: Example-Passport
+                  issuingCountryCode: EC
+                  category: PASSPORT
+                  applicableSubjectType: BOTH
+                  name: Example Passport
+                  description: Example administrative catalog entry
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+                  minimumLength: 1
+                  maximumLength: 32767
+                  requiresExpiration: false
+                  status: DEPRECATED
+                  version: 2
+                  createdAt: '2026-10-01T14:00:00.123456Z'
+                  updatedAt: '2026-10-01T14:02:00.123456Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/IdentifierSchemeNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/IdentifierSchemeLifecycleConflict'
         '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeExpectedVersionMismatch'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
 
   /v1/identifier-schemes/{schemeId}/retire:
     parameters:
@@ -1463,34 +1919,81 @@ paths:
       - $ref: '#/components/parameters/TenantId'
       - $ref: '#/components/parameters/ProcessId'
       - $ref: '#/components/parameters/UserId'
-      - $ref: '#/components/parameters/IfMatch'
-      - $ref: '#/components/parameters/IdempotencyKeyOptional'
+      - $ref: '#/components/parameters/IdentifierSchemeIfMatch'
+      - $ref: '#/components/parameters/IdentifierSchemeLifecycleKey'
     post:
       tags:
         - identifier-schemes
       operationId: retireIdentifierScheme
-      summary: Retirar scheme
+      summary: Directly retire a global nonterminal scheme
+      x-request-example:
+        method: POST
+        path: /v1/identifier-schemes/01950000-0000-7000-8000-000000000001/retire
+        headers:
+          Process-Id: '01950000-0000-7000-8000-000000000010'
+          Tenant-Id: '01950000-0000-7000-8000-000000000020'
+          User-Id: catalog-operator
+          Idempotency-Key: scheme-action-example
+          If-Match: '2'
+      description: >-
+        DRAFT, ACTIVE or DEPRECATED may directly become RETIRED without intermediate transitions
+        or supported-rule readmission. RETIRED is terminal and rejects every new action with 409
+        invalid-identifier-scheme-lifecycle. The global scheme retains its code, configuration,
+        creation audit, historical identifiers and prior completions; version advances once.
+        Exactly one Process-Id, Tenant-Id, and User-Id is validated in that order; accepted Process-Id
+        is echoed unchanged on all outcomes, invalid process values are not echoed. Requires no body:
+        any nonzero bytes, including {}, whitespace or null, return 400 bad-request. Validate body,
+        optional Idempotency-Key, schemeId, then If-Match, even on replay. Completed equivalent keyed
+        replay returns original 200 data/version/timestamps after later changes or restart without
+        mutation. New actions check absence, expected version, transition, then exhaustion.
+        Old-version unkeyed repeats return 412 expected-version-mismatch; current-version repeats
+        return lifecycle conflict. Retirement never deletes records or emits Party events.
       responses:
         '200':
-          description: Scheme retirado
+          description: Accepted direct retirement or original equivalent historical retirement replay.
+          headers:
+            Process-Id:
+              $ref: '#/components/headers/ProcessIdEcho'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentifierSchemeApiResponse'
+              example:
+                status: 200
+                code: successful
+                data:
+                  id: '01950000-0000-7000-8000-000000000001'
+                  code: Example-Passport
+                  issuingCountryCode: EC
+                  category: PASSPORT
+                  applicableSubjectType: BOTH
+                  name: Example Passport
+                  description: Example administrative catalog entry
+                  normalizerKey: TRIM_UPPERCASE_V1
+                  validatorKey: ALPHANUMERIC_V1
+                  minimumLength: 1
+                  maximumLength: 32767
+                  requiresExpiration: false
+                  status: RETIRED
+                  version: 3
+                  createdAt: '2026-10-01T14:00:00.123456Z'
+                  updatedAt: '2026-10-01T14:03:00.123456Z'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/IdentifierSchemeBadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          $ref: '#/components/responses/IdentifierSchemeUnauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/IdentifierSchemeNotFound'
+        '405':
+          $ref: '#/components/responses/IdentifierSchemeMethodNotAllowed'
         '409':
-          $ref: '#/components/responses/Conflict'
+          $ref: '#/components/responses/IdentifierSchemeLifecycleConflict'
         '412':
-          $ref: '#/components/responses/PreconditionFailed'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        default:
-          $ref: '#/components/responses/DefaultError'
+          $ref: '#/components/responses/IdentifierSchemeExpectedVersionMismatch'
+        '500':
+          $ref: '#/components/responses/IdentifierSchemeServerError'
+        '503':
+          $ref: '#/components/responses/IdentifierSchemeDependencyUnavailable'
 
   /v1/parties/{partyId}/identifiers:
     parameters:
@@ -2022,9 +2525,97 @@ components:
       name: schemeId
       in: path
       required: true
+      description: Canonical lowercase global scheme UUID, without trimming; invalid syntax returns 400 identifier-scheme-id-invalid.
       schema:
         type: string
         format: uuid
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        example: '01950000-0000-7000-8000-000000000001'
+    IdentifierSchemeCodePath:
+      name: code
+      in: path
+      required: true
+      description: >-
+        Exact decoded, case-sensitive global code, without trimming or uppercasing. Nonblank, at most
+        64 Unicode code points. Blank/oversized values return identifier-scheme-code-required or
+        identifier-scheme-code-too-long (400). A valid absent value returns identifier-scheme-not-found (404).
+      schema:
+        $ref: '#/components/schemas/IdentifierSchemeCode'
+      example: 'Example-Passport'
+    IdentifierSchemeCreateKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Exactly one nonblank key of at most 128 Unicode code points, compared without trimming or case
+        conversion. Missing/repeated/blank/oversized values return idempotency-key-required,
+        idempotency-key-duplicated, idempotency-key-blank, idempotency-key-too-long (400).
+        Scope is tenant/create/key, independent of Party and every lifecycle action. Effective input is
+        all accepted create properties; omitted/null description and bounds are equivalent, omitted
+        requiresExpiration equals false. Other text/values are exact. JSON order, User-Id and Process-Id
+        do not affect equivalence. Equivalent completed replay returns original 201 DRAFT/version 0 and
+        timestamps across later mutations and restart; changed input returns 409 idempotency-key-conflict
+        before uniqueness/configuration. Failed attempts consume no key. Retry still validates all syntax.
+      schema:
+        $ref: '#/components/schemas/IdentifierSchemeReplayKey'
+      example: 'scheme-create-example'
+    IdentifierSchemeLifecycleKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Optional, exactly one nonblank key of at most 128 Unicode code points, compared without trimming
+        or case conversion. Repeated/blank/oversized values return idempotency-key-duplicated,
+        idempotency-key-blank, idempotency-key-too-long (400). Scope is tenant/action/key, independent of
+        create, Party and other actions. Effective input is schemeId and expected version, excluding
+        User-Id and Process-Id. Changed target/version returns 409 idempotency-key-conflict before current
+        state checks. Equivalent completed replay returns original 200 data/version/timestamps after
+        later changes and restart, without mutation. An absent key provides no replay; failed attempts
+        consume no key. Syntax validation still precedes replay.
+      schema:
+        $ref: '#/components/schemas/IdentifierSchemeReplayKey'
+      example: 'scheme-action-example'
+    IdentifierSchemeIfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: >-
+        Exactly one bare decimal scheme version from 0 through 9223372036854775807, without quotes,
+        whitespace, sign, leading zeros or wildcard. Missing/repeated/malformed/overflowing values return
+        if-match-required, if-match-duplicated, if-match-invalid, if-match-out-of-range (400).
+        New mutations require the current version; mismatch/lost independent race returns
+        412 expected-version-mismatch after absence and before state/configuration. Completed keyed
+        lifecycle replay instead uses its original expected version; syntax remains mandatory.
+      schema:
+        type: string
+        pattern: '^(0|[1-9][0-9]*)$'
+        minLength: 1
+        maxLength: 19
+      example: '0'
+    IdentifierSchemeCursorQuery:
+      name: cursor
+      in: query
+      required: false
+      description: >-
+        One opaque authenticated scheme-only continuation bound to tenant, all four exact filters and
+        effective limit. Omit for the first page. Blank/repeated/malformed/altered/cross-scope/other-resource
+        tokens return 400 bad-request. No expiration or frozen-snapshot guarantee is introduced.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 256
+    IdentifierSchemeLimitQuery:
+      name: limit
+      in: query
+      required: false
+      description: >-
+        One decimal integer from 1 through 200, default 50 only when absent. Nondecimal, fractional,
+        blank, repeated, zero, negative or oversized values return 400 bad-request. Authenticated in cursor scope.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
     PartyIdentifierIdPath:
       name: identifierId
       in: path
@@ -2073,6 +2664,218 @@ components:
         default: 50
 
   responses:
+    IdentifierSchemeBadRequest:
+      description: |
+        Invalid scheme input; codes apply only where the named input is supported. Trusted context
+        and applicable framework checks precede operation validation. Header names are case-insensitive.
+        Process-Id then Tenant-Id then User-Id: absence, cardinality, value. Context UUIDs are exact
+        canonical lowercase, with no trimming. User checks are blank, 128-code-point length, then safety.
+        Create checks body before key; PATCH checks body before schemeId before If-Match. Lifecycle
+        rejects nonzero body bytes before optional key before schemeId before If-Match. No data/errors/
+        message/SQL/causes are returned. Accepted Process-Id survives all later failures unchanged;
+        missing/duplicated/invalid process values are never echoed. No catalog mutation or completion.
+        - process-id-required, process-id-duplicated, process-id-invalid
+        - tenant-id-required, tenant-id-duplicated, tenant-id-invalid
+        - user-id-required, user-id-duplicated, user-id-blank, user-id-too-long, user-id-unsafe
+        - request-body-required: required create/PATCH body missing or null
+        - identifier-scheme-code-required: create/code selector missing, null or blank
+        - identifier-scheme-code-too-long: code exceeds 64 Unicode code points
+        - identifier-scheme-id-invalid: noncanonical schemeId path value
+        - patch-property-required: PATCH is an empty object
+        - idempotency-key-required: create key absent
+        - idempotency-key-duplicated, idempotency-key-blank, idempotency-key-too-long: supplied key invalid
+        - if-match-required, if-match-duplicated, if-match-invalid, if-match-out-of-range: mutation version invalid
+        - bad-request: malformed/duplicate/unknown/nonobject/coerced JSON, invalid enums/text/country,
+          null nonnullable properties, wrong bound token, any nonempty lifecycle body, or unknown/
+          repeated/blank/invalid list query, decimal limit or authenticated cursor/scope.
+        Integral bounds out of range or incoherent instead reach semantic 422 after business precedence.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            missingProcess: { value: { status: 400, code: process-id-required } }
+            duplicateProcess: { value: { status: 400, code: process-id-duplicated } }
+            invalidProcess: { value: { status: 400, code: process-id-invalid } }
+            missingTenant: { value: { status: 400, code: tenant-id-required } }
+            duplicateTenant: { value: { status: 400, code: tenant-id-duplicated } }
+            invalidTenant: { value: { status: 400, code: tenant-id-invalid } }
+            missingUser: { value: { status: 400, code: user-id-required } }
+            duplicateUser: { value: { status: 400, code: user-id-duplicated } }
+            blankUser: { value: { status: 400, code: user-id-blank } }
+            longUser: { value: { status: 400, code: user-id-too-long } }
+            unsafeUser: { value: { status: 400, code: user-id-unsafe } }
+            missingBody: { value: { status: 400, code: request-body-required } }
+            missingCode: { value: { status: 400, code: identifier-scheme-code-required } }
+            longCode: { value: { status: 400, code: identifier-scheme-code-too-long } }
+            invalidId: { value: { status: 400, code: identifier-scheme-id-invalid } }
+            emptyPatch: { value: { status: 400, code: patch-property-required } }
+            missingKey: { value: { status: 400, code: idempotency-key-required } }
+            duplicateKey: { value: { status: 400, code: idempotency-key-duplicated } }
+            blankKey: { value: { status: 400, code: idempotency-key-blank } }
+            longKey: { value: { status: 400, code: idempotency-key-too-long } }
+            missingVersion: { value: { status: 400, code: if-match-required } }
+            duplicateVersion: { value: { status: 400, code: if-match-duplicated } }
+            invalidVersion: { value: { status: 400, code: if-match-invalid } }
+            overflowingVersion: { value: { status: 400, code: if-match-out-of-range } }
+            invalidBodyOrQuery: { value: { status: 400, code: bad-request } }
+    IdentifierSchemeNotFound:
+      description: Valid global scheme ID/code is absent; absence precedes expected-version/state evaluation. Unknown routes use not-found.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            absentScheme: { value: { status: 404, code: identifier-scheme-not-found } }
+            unknownRoute: { value: { status: 404, code: not-found } }
+    IdentifierSchemeRouteNotFound:
+      description: Unknown business route. A valid empty collection is a 200 empty page, not not-found.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 404, code: not-found }
+    IdentifierSchemeCreateConflict:
+      description: >-
+        Completed key with changed effective input returns idempotency-key-conflict before global
+        exact-code uniqueness. Existing codes in any state return identifier-scheme-code-conflict
+        before semantic configuration. Equivalent completed replay instead returns original 201.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            keyConflict: { value: { status: 409, code: idempotency-key-conflict } }
+            codeConflict: { value: { status: 409, code: identifier-scheme-code-conflict } }
+    IdentifierSchemePatchConflict:
+      description: >-
+        After absence/version checks, RETIRED forbids all corrections. ACTIVE/DEPRECATED lock any
+        processing-property attempt, including unchanged values. Otherwise eligible maximum-version
+        changes cannot advance. Rejection changes no fields, version or audit information.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            rulesLocked: { value: { status: 409, code: identifier-scheme-rules-locked } }
+            retired: { value: { status: 409, code: identifier-scheme-retired } }
+            exhausted: { value: { status: 409, code: identifier-scheme-version-exhausted } }
+    IdentifierSchemeLifecycleConflict:
+      description: >-
+        Changed target/version under a completed tenant/action/key conflicts before current-state
+        checks. New actions check absence, version, transition then exhaustion. Invalid matrix entries
+        are conflicts, not successful no-ops; otherwise eligible version 9223372036854775807 cannot advance.
+        Rejection changes no state/configuration/version/audit or successful completion.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            keyConflict: { value: { status: 409, code: idempotency-key-conflict } }
+            invalidTransition: { value: { status: 409, code: invalid-identifier-scheme-lifecycle } }
+            exhausted: { value: { status: 409, code: identifier-scheme-version-exhausted } }
+    IdentifierSchemeExpectedVersionMismatch:
+      description: >-
+        Valid expected version differs from current scheme version or loses an independent race.
+        Absence precedes mismatch; state/configuration follow it. Completed equivalent keyed lifecycle
+        replay instead returns the original 200 representation without reevaluating this precondition.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 412, code: expected-version-mismatch }
+    IdentifierSchemeConfigurationFailure:
+      description: >-
+        After applicable uniqueness/absence/version/state/exhaustion checks, resulting integral bounds
+        outside 1..32767 or minimumLength greater than maximumLength return identifier-scheme-length-range-invalid.
+        Unsupported exact normalizer/validator or ineligible activation configuration returns
+        invalid-identifier-scheme-configuration. Wrong JSON token types are 400 instead. ACTIVE/DEPRECATED
+        descriptive maintenance and withdrawal retain obsolete rules without readmission. Rejection mutates
+        nothing and does not consume a successful replay key.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            bounds: { value: { status: 422, code: identifier-scheme-length-range-invalid } }
+            rules: { value: { status: 422, code: invalid-identifier-scheme-configuration } }
+    IdentifierSchemeUnauthorized:
+      description: >-
+        Conditional 401 unauthorized only when the deployment authentication profile enforces it.
+        The current application/test profiles do not enable authentication; context headers are not
+        an authentication provider. Preserve the existing shared challenge when enabled.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 401, code: unauthorized }
+    IdentifierSchemeMethodNotAllowed:
+      description: Unsupported HTTP method, after applicable trusted-context checks.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 405, code: method-not-allowed }
+    IdentifierSchemeUnsupportedMediaType:
+      description: Unsupported create/PATCH request media type; trusted context precedes later media rejection.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 415, code: unsupported-media-type }
+    IdentifierSchemeServerError:
+      description: Unexpected failure or corrupted completion; logged internally and sanitized, without data/messages/SQL/causes.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 500, code: server-error }
+    IdentifierSchemeDependencyUnavailable:
+      description: Classified database connection, lock, statement, query traversal or mutation operation timeout, after owned cleanup/rollback.
+      headers:
+        Process-Id:
+          $ref: '#/components/headers/ProcessIdEcho'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          example: { status: 503, code: dependency-unavailable }
     BadRequest:
       description: |
         Invalid request. The error body contains only `status` and one stable `code`; it never
@@ -3633,8 +4436,46 @@ components:
           type: integer
           minimum: 0
 
+    IdentifierSchemeCode:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: '^[\s\S]*[^\x09-\x0D\x1C-\x20\u1680\u2000-\u2006\u2008-\u200A\u2028\u2029\u205F\u3000][\s\S]*$'
+      description: Exact nonblank text, at most 64 Unicode code points; no trimming or case conversion.
+    IdentifierSchemeReplayKey:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: '^[\s\S]*[^\x09-\x0D\x1C-\x20\u1680\u2000-\u2006\u2008-\u200A\u2028\u2029\u205F\u3000][\s\S]*$'
+    IdentifierSchemeRuleKey:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: '^[\s\S]*[^\x09-\x0D\x1C-\x20\u1680\u2000-\u2006\u2008-\u200A\u2028\u2029\u205F\u3000][\s\S]*$'
+      description: >-
+        Exact nonblank versioned key, at most 64 Unicode code points. Creation, resulting DRAFT edits
+        and activation admit normalizer TRIM_UPPERCASE_V1 and validators ALPHANUMERIC_V1,
+        EC_NATIONAL_ID_V1 or EC_TAX_ID_V1. Unknown/case-altered keys produce semantic
+        422 invalid-identifier-scheme-configuration, not a structural enum error. Historical outputs
+        and ACTIVE/DEPRECATED descriptive maintenance may retain obsolete keys; no executable expressions.
+    IdentifierSchemeName:
+      type: string
+      minLength: 1
+      maxLength: 150
+      pattern: '^[\s\S]*[^\x09-\x0D\x1C-\x20\u1680\u2000-\u2006\u2008-\u200A\u2028\u2029\u205F\u3000][\s\S]*$'
     IdentifierSchemeCreateRequest:
       type: object
+      additionalProperties: false
+      description: >-
+        Closed JSON object; reject duplicate/unknown properties, nonobject bodies and token coercion.
+        Required properties are nonnull/nonblank. Exact strings retain case and whitespace; limits
+        count Unicode code points. Missing/null body returns request-body-required (400); missing/null/
+        blank code returns identifier-scheme-code-required and oversized code identifier-scheme-code-too-long.
+        Other structure/text/country/enum errors are 400 bad-request. Omitted/null description and bounds
+        mean absent. requiresExpiration defaults false only when omitted and rejects null. Integral bound
+        tokens are decoded exactly, without narrowing: 1..32767 and minimumLength <= maximumLength are
+        semantic rules (422 identifier-scheme-length-range-invalid), whereas wrong tokens are 400 bad-request.
+        Supported-rule admission is semantic 422. Country format does not require a geographic lookup.
       required:
         - code
         - issuingCountryCode
@@ -3645,9 +4486,7 @@ components:
         - validatorKey
       properties:
         code:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/IdentifierSchemeCode'
         issuingCountryCode:
           type: string
           pattern: '^[A-Z]{2}$'
@@ -3658,29 +4497,25 @@ components:
         applicableSubjectType:
           $ref: '#/components/schemas/IdentifierSubjectType'
         name:
-          type: string
-          minLength: 1
-          maxLength: 150
+          $ref: '#/components/schemas/IdentifierSchemeName'
         description:
           type: string
           maxLength: 500
           nullable: true
         normalizerKey:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/IdentifierSchemeRuleKey'
         validatorKey:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/IdentifierSchemeRuleKey'
         minimumLength:
           type: integer
           nullable: true
           minimum: 1
+          maximum: 32767
         maximumLength:
           type: integer
           nullable: true
           minimum: 1
+          maximum: 32767
         requiresExpiration:
           type: boolean
           default: false
@@ -3689,32 +4524,37 @@ components:
 
     IdentifierSchemeUpdateRequest:
       type: object
+      additionalProperties: false
+      description: >-
+        Closed seven-field PATCH object; reject duplicate/unknown/immutable properties and token coercion.
+        Exact text limits count Unicode code points. Omission preserves values; explicit null clears
+        only description/minimumLength/maximumLength. Empty object returns patch-property-required (400).
+        Missing/null body returns request-body-required (400). Integral tokens remain exact until semantic
+        range/coherence validation (422); wrong tokens are 400 bad-request. DRAFT permits all seven fields
+        and validates resulting supported rules. ACTIVE/DEPRECATED permit name/description only, including
+        obsolete historical keys; RETIRED rejects PATCH. No identity/status/version/audit updates or replay.
       minProperties: 1
       properties:
         name:
-          type: string
-          minLength: 1
-          maxLength: 150
+          $ref: '#/components/schemas/IdentifierSchemeName'
         description:
           type: string
           maxLength: 500
           nullable: true
         normalizerKey:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/IdentifierSchemeRuleKey'
         validatorKey:
-          type: string
-          minLength: 1
-          maxLength: 64
+          $ref: '#/components/schemas/IdentifierSchemeRuleKey'
         minimumLength:
           type: integer
           nullable: true
           minimum: 1
+          maximum: 32767
         maximumLength:
           type: integer
           nullable: true
           minimum: 1
+          maximum: 32767
         requiresExpiration:
           type: boolean
           deprecated: true
@@ -3722,6 +4562,8 @@ components:
 
     IdentifierSchemeResponse:
       type: object
+      additionalProperties: false
+      description: Safe global configuration and public timestamps; no audit actors. Absent nullable fields are omitted.
       required:
         - id
         - code
@@ -3731,6 +4573,7 @@ components:
         - name
         - normalizerKey
         - validatorKey
+        - requiresExpiration
         - status
         - version
         - createdAt
@@ -3739,30 +4582,41 @@ components:
         id:
           type: string
           format: uuid
+          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         code:
-          type: string
+          $ref: '#/components/schemas/IdentifierSchemeCode'
         issuingCountryCode:
           type: string
           pattern: '^[A-Z]{2}$'
+          minLength: 2
+          maxLength: 2
         category:
           $ref: '#/components/schemas/IdentifierCategory'
         applicableSubjectType:
           $ref: '#/components/schemas/IdentifierSubjectType'
         name:
-          type: string
+          $ref: '#/components/schemas/IdentifierSchemeName'
         description:
           type: string
+          maxLength: 500
           nullable: true
+          description: Nullable stored description; omitted when absent, never emitted as null.
         normalizerKey:
-          type: string
+          $ref: '#/components/schemas/IdentifierSchemeRuleKey'
         validatorKey:
-          type: string
+          $ref: '#/components/schemas/IdentifierSchemeRuleKey'
         minimumLength:
           type: integer
           nullable: true
+          minimum: 1
+          maximum: 32767
+          description: Nullable inclusive minimum; omitted when absent, never emitted as null.
         maximumLength:
           type: integer
           nullable: true
+          minimum: 1
+          maximum: 32767
+          description: Nullable inclusive maximum; omitted when absent, never emitted as null.
         requiresExpiration:
           type: boolean
           deprecated: true
@@ -3772,6 +4626,8 @@ components:
         version:
           type: integer
           format: int64
+          minimum: 0
+          maximum: 9223372036854775807
         createdAt:
           type: string
           format: date-time
@@ -3781,6 +4637,7 @@ components:
 
     IdentifierSchemeApiResponse:
       type: object
+      additionalProperties: false
       required:
         - status
         - code
@@ -3788,46 +4645,77 @@ components:
       properties:
         status:
           type: integer
+          enum: [200]
         code:
           $ref: '#/components/schemas/ApiSuccessCode'
         data:
           $ref: '#/components/schemas/IdentifierSchemeResponse'
 
+    IdentifierSchemeCreatedApiResponse:
+      type: object
+      additionalProperties: false
+      required: [status, code, data]
+      properties:
+        status:
+          type: integer
+          enum: [201]
+        code:
+          $ref: '#/components/schemas/ApiSuccessCode'
+        data:
+          allOf:
+            - $ref: '#/components/schemas/IdentifierSchemeResponse'
+            - type: object
+              properties:
+                status:
+                  type: string
+                  enum: [DRAFT]
+                version:
+                  type: integer
+                  enum: [0]
+
     IdentifierSchemeCollectionApiResponse:
       type: object
+      additionalProperties: false
+      description: Count-only page; unavailable navigation and unsupplied totals are omitted, never null. No frozen snapshot.
       required:
         - status
         - code
         - data
-        - nextCursor
-        - prevCursor
-        - totalElements
-        - totalPages
         - numberOfElements
       properties:
         status:
           type: integer
+          enum: [200]
         code:
           $ref: '#/components/schemas/ApiSuccessCode'
         data:
           type: array
+          maxItems: 200
           items:
             $ref: '#/components/schemas/IdentifierSchemeResponse'
         nextCursor:
           type: string
-          nullable: true
+          minLength: 1
+          maxLength: 256
+          description: Optional opaque cursor, emitted only when a forward page is available.
         prevCursor:
           type: string
-          nullable: true
+          minLength: 1
+          maxLength: 256
+          description: Optional opaque cursor, emitted only when a backward page is available.
         totalElements:
           type: integer
-          nullable: true
+          minimum: 0
+          description: Optional total matching catalog count; omitted when not supplied.
         totalPages:
           type: integer
-          nullable: true
+          minimum: 0
+          description: Optional ceiling of totalElements divided by effective limit; omitted when not supplied.
         numberOfElements:
           type: integer
-          nullable: true
+          minimum: 0
+          maximum: 200
+          description: Required count equal to data array size.
 
     InitialPartyIdentifierCreateRequest:
       description: >-

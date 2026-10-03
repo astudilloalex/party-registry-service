@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.application.observability;
 
 import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
+import com.alexastudillo.partyregistry.application.model.IdentifierSchemeMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.ObservedOperation;
 import com.alexastudillo.partyregistry.application.model.OperationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
@@ -23,8 +24,23 @@ public final class OperationObservation {
 
     private static final OperationObservationPort.StartedObservation NO_OBSERVATION = ignored -> {
     };
+    private static final OperationObservationPort NO_OP_PORT = (metadata, operation) -> NO_OBSERVATION;
 
     private OperationObservation() {
+    }
+
+    /** Provides neutral observation for existing constructors without installing a telemetry implementation. */
+    public static OperationObservationPort noop() {
+        return NO_OP_PORT;
+    }
+
+    /** Classifies accepted catalog writes and immutable historical replay without inspecting scheme data. */
+    public static OperationOutcome identifierSchemeMutationOutcome(IdentifierSchemeMutationOutcome outcome) {
+        Objects.requireNonNull(outcome, "outcome");
+        return switch (outcome.disposition()) {
+            case APPLIED -> OperationOutcome.APPLIED;
+            case REPLAYED -> OperationOutcome.REPLAYED;
+        };
     }
 
     /**
@@ -132,16 +148,26 @@ public final class OperationObservation {
         }
         return switch (applicationException.failure()) {
             case ApplicationFailure.NaturalPersonNotFound _,
+                    ApplicationFailure.IdentifierSchemeNotFound _,
                     ApplicationFailure.LegalEntityNotFound _,
                     ApplicationFailure.NationalityNotFound _,
                     ApplicationFailure.PartyNotFound _ -> OperationOutcome.NOT_FOUND;
             case ApplicationFailure.IdempotencyKeyConflict _,
+                    ApplicationFailure.IdentifierSchemeCodeConflict _,
+                    ApplicationFailure.IdentifierSchemeRulesLocked _,
+                    ApplicationFailure.IdentifierSchemeRetired _,
+                    ApplicationFailure.InvalidIdentifierSchemeLifecycle _,
+                    ApplicationFailure.IdentifierSchemeVersionExhausted _,
                     ApplicationFailure.NationalityValidityConflict _,
                     ApplicationFailure.PrimaryNationalityConflict _,
                     ApplicationFailure.InvalidPartyLifecycle _ -> OperationOutcome.CONFLICT;
             case ApplicationFailure.ExpectedVersionMismatch _,
+                    ApplicationFailure.IdentifierSchemeVersionMismatch _,
                     ApplicationFailure.StalePartyVersion _ -> OperationOutcome.PRECONDITION_FAILED;
             case ApplicationFailure.InvalidPartyCursor _,
+                    ApplicationFailure.InvalidIdentifierSchemeCursor _,
+                    ApplicationFailure.IdentifierSchemeLengthRangeInvalid _,
+                    ApplicationFailure.InvalidIdentifierSchemeConfiguration _,
                     ApplicationFailure.InvalidNationalityCursor _,
                     ApplicationFailure.UnrecognizedNationalityCountry _,
                     ApplicationFailure.NationalityValidityInvalid _,

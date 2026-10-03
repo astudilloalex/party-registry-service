@@ -76,6 +76,13 @@ public class MicrometerOpenTelemetryOperationObserver implements OperationObserv
             case APPLICATION_PARTY_ACTIVATION -> "application.party-activation";
             case APPLICATION_PARTY_DEACTIVATION -> "application.party-deactivation";
             case APPLICATION_PARTY_ARCHIVAL -> "application.party-archival";
+            case APPLICATION_IDENTIFIER_SCHEME_CREATION -> "application.identifier-scheme-creation";
+            case APPLICATION_IDENTIFIER_SCHEME_RETRIEVAL -> "application.identifier-scheme-retrieval";
+            case APPLICATION_IDENTIFIER_SCHEME_LIST -> "application.identifier-scheme-list";
+            case APPLICATION_IDENTIFIER_SCHEME_PATCH -> "application.identifier-scheme-patch";
+            case APPLICATION_IDENTIFIER_SCHEME_ACTIVATION -> "application.identifier-scheme-activation";
+            case APPLICATION_IDENTIFIER_SCHEME_DEPRECATION -> "application.identifier-scheme-deprecation";
+            case APPLICATION_IDENTIFIER_SCHEME_RETIREMENT -> "application.identifier-scheme-retirement";
             case TRANSACTION_NATURAL_PERSON_REGISTRATION ->
                 "transaction.natural-person-registration";
             case TRANSACTION_LEGAL_ENTITY_REGISTRATION ->

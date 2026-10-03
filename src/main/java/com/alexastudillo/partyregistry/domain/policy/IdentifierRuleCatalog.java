@@ -3,6 +3,7 @@ package com.alexastudillo.partyregistry.domain.policy;
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 import com.alexastudillo.partyregistry.domain.model.IdentifierScheme;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.Set;
@@ -59,5 +60,20 @@ public final class IdentifierRuleCatalog {
 
     public Set<String> supportedValidatorKeys() {
         return validators.keySet();
+    }
+
+    /**
+     * Requires exact supported versioned configuration without evaluating a sample identifier.
+     *
+     * @param normalizerKey proposed normalizer key
+     * @param validatorKey proposed validator key
+     * @throws DomainValidationException when either key is missing or unsupported
+     */
+    public void requireSupportedKeys(@Nullable String normalizerKey, @Nullable String validatorKey) {
+        if (normalizerKey == null || validatorKey == null
+                || !normalizers.containsKey(normalizerKey) || !validators.containsKey(validatorKey)) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_RULE_CATALOG_INVALID,
+                    "Identifier scheme references an unsupported processing rule");
+        }
     }
 }

@@ -30,4 +30,8 @@ class CleanArchitectureTest {
         @ArchTest
         static final ArchRule RESOURCES_DELEGATE_THROUGH_USE_CASES = ArchitectureRules
                         .resourcesDelegateThroughUseCases(ArchitectureRules.PRODUCTION_ROOT);
+
+        @ArchTest
+        static final ArchRule BUSINESS_JSON_RESOURCES_USE_SHARED_ENVELOPES = ArchitectureRules
+                        .businessJsonResourcesUseSharedEnvelope(ArchitectureRules.PRODUCTION_ROOT);
 }

@@ -1,6 +1,6 @@
 # Party Registry Service
 
-Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. It registers natural persons and legal entities with one required initial official identifier, supports independently managed additional identifiers, and provides root Party listing, retrieval, display-name correction, activation, deactivation, and archival with durable lifecycle replay.
+Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. It registers natural persons and legal entities with one required initial official identifier, supports independently managed additional identifiers, and provides root Party listing, retrieval, display-name correction, activation, deactivation, and archival with durable lifecycle replay. Its global identifier-scheme catalog supports creation, listing, exact lookup, controlled maintenance, activation, deprecation, and direct retirement.
 
 ## Technology baseline
 
@@ -25,7 +25,9 @@ ArchUnit verifies layer direction, framework isolation for the inner layers, and
 
 ### Write normalization
 
-New writes strip exterior whitespace and uppercase natural-person names and preferred names, legal names/trade names/legal-form codes, supplied display names, and country codes using `Locale.ROOT`. Accents, punctuation, interior whitespace, and nulls are preserved. Country input must be two ASCII letters after stripping. Validation applies to canonical values before persistence and geographic-reference calls receive canonical country codes.
+New Party/detail writes strip exterior whitespace and uppercase natural-person names and preferred names, legal names/trade names/legal-form codes, supplied display names, and country codes using `Locale.ROOT`. Accents, punctuation, interior whitespace, and nulls are preserved. Country input must be two ASCII letters after stripping. Validation applies to canonical values before persistence and geographic-reference calls receive canonical country codes.
+
+Identifier-scheme catalog inputs retain exact text, case, and whitespace, with Unicode **code-point** limits. Scheme country codes must already match `[A-Z]{2}`; these operations do not call Geographic Reference. This catalog contract does not apply Party-name normalization.
 
 Creation request values are retained unchanged for the existing idempotency fingerprint; the API validates a separate normalized copy. Reads and idempotency snapshots do not rewrite historical text. PATCH normalizes only supplied values and preserves omitted fields. Nationality endpoints remain future work; legal-detail updates apply the same canonical write rules without a historical backfill.
 
@@ -63,7 +65,7 @@ Use GET's latest version for subsequent edits. Replaying the original creation r
 
 ## Database
 
-Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, V4 makes expiration optional, and V5 adds the tenant/creation-time/ID listing index. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.
+Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, V4 makes expiration optional, V5 adds the tenant/creation-time/ID listing index, V6 adds nationality management, and V7 adds dedicated identifier-scheme replay storage and the ascending global catalog index. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.
 
 The application configures the same PostgreSQL database through two access paths:
 
@@ -127,13 +129,17 @@ The application validates and loads all key material at startup and fails closed
 
 A fresh production database includes active Ecuadorian national-ID, taxpayer-ID, and passport schemes from V3. V4 clears historical expiration requirements without changing scheme identity or status. The `TEST_*` schemes under `src/test/resources/db/test-migration` are deterministic test fixtures and must never be deployed to production.
 
-Before accepting registration traffic, provision an independently approved, jurisdiction-specific catalog containing the supported scheme codes, Party-type applicability, lifecycle state, normalizer and validator keys, and length constraints. Expiration is optional for every document, including catalogs retaining legacy `requiresExpiration=true` metadata. Supplied expiration dates must not precede the evaluation date or a supplied issue date. Catalog changes must use new reviewed Flyway migrations; never run manual DDL/DML or edit applied migrations.
+Before accepting registration traffic, provision an independently approved, jurisdiction-specific catalog containing the supported scheme codes, Party-type applicability, lifecycle state, normalizer and validator keys, and length constraints. Expiration is optional for every document, including catalogs retaining legacy `requiresExpiration=true` metadata. Supplied expiration dates must not precede the evaluation date or a supplied issue date. Schema changes and initial/reference-data provisioning must use new reviewed Flyway migrations; never run manual DDL/DML or edit applied migrations. Normal administrative catalog records and accepted maintenance are business DML through the eight identifier-scheme API operations. The API does not provision schema or migration-controlled reference seeds.
 
 Deploy the approved catalog before enabling create traffic. Unknown, inactive, incompatible, or internally unsupported schemes are rejected by design.
+
+Catalog listing requires the externally provisioned `PARTY_CURSOR_SIGNING_KEY_V1` and current key ID/ring shared by all replicas. Tenant context isolates replay results and authenticates cursors; it does not own catalog rows or scheme codes. See [Identifier-scheme consumer and operations guide](docs/operations/identifier-scheme-contract.md) for exact requests, transition/PATCH rules, signing-key rotation, historical replay, timeouts, and V7 rollout/rollback.
 
 ### Rollback
 
 Registration writes version-two idempotency snapshots and persists Party and PartyIdentifier as separate aggregate roots. Do not delete or rewrite Party, identifier, idempotency, or outbox rows during rollback. An older identifier-free application cannot satisfy the current request contract or decode the new replay result, so rollback requires stopping create traffic or restoring another contract-compatible application version.
+
+Identifier-scheme application rollback retains the additive V7 schema, accepted global rows/states/versions, dedicated completed replay snapshots, and all historical identifier references. Do not drop replay storage, reset lifecycle/version data, or reseed a fresh catalog. Restore a contract-compatible binary before offering these operations again.
 
 ## Running and verification
 
@@ -211,6 +217,16 @@ The implemented business operations are:
 - `POST /v1/parties/{partyId}/activate`
 - `POST /v1/parties/{partyId}/deactivate`
 - `POST /v1/parties/{partyId}/archive`
+- `POST /v1/identifier-schemes`
+- `GET /v1/identifier-schemes`
+- `GET /v1/identifier-schemes/by-code/{code}`
+- `GET /v1/identifier-schemes/{schemeId}`
+- `PATCH /v1/identifier-schemes/{schemeId}`
+- `POST /v1/identifier-schemes/{schemeId}/activate`
+- `POST /v1/identifier-schemes/{schemeId}/deprecate`
+- `POST /v1/identifier-schemes/{schemeId}/retire`
+
+Scheme creation (including replay) returns `201 successful` with the original draft/version-zero result; other scheme successes return `200 successful`. Current GET is authoritative for subsequent `If-Match`. Only DRAFT activates, only ACTIVE deprecates, and every nonretired state may retire directly. ACTIVE/DEPRECATED accept descriptive PATCH only, including obsolete historical rule keys; RETIRED is terminal. Scheme pages require `numberOfElements` and omit unavailable cursors and unsupplied totals. See the [identifier-scheme guide](docs/operations/identifier-scheme-contract.md) and approved OpenAPI for full constraints and stable failure codes.
 
 Root reads return safe summaries or the matching type-specific detail, excluding identifier/nationality collections. Root PATCH changes only `displayName` in any state and requires the current `If-Match`. Lifecycle actions support an optional tenant/action-scoped `Idempotency-Key`; an equivalent retry returns its original accepted result even after later changes or restart. Current GET remains authoritative for the current version. See [Root Party operations](docs/operations/root-party-contract.md) for exact validation, cursor secrets and rotation, timeouts, capacity, observability, rollout/rollback, and local IDE verification.
 

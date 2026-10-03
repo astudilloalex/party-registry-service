@@ -16,6 +16,36 @@ import java.util.Objects;
  */
 public sealed interface ApplicationFailure {
 
+    /** Reports absence in the global catalog independently of identifier admission. */
+    record IdentifierSchemeNotFound() implements ApplicationFailure { }
+
+    /** Reports an exact catalog code already assigned to any global scheme. */
+    record IdentifierSchemeCodeConflict() implements ApplicationFailure { }
+
+    /** Reports a stale catalog precondition or a losing independent scheme write. */
+    record IdentifierSchemeVersionMismatch() implements ApplicationFailure { }
+
+    /** Rejects any supplied processing-property edit after activation. */
+    record IdentifierSchemeRulesLocked() implements ApplicationFailure { }
+
+    /** Rejects maintenance of a terminal retired catalog entry. */
+    record IdentifierSchemeRetired() implements ApplicationFailure { }
+
+    /** Rejects a new action outside the permitted scheme state/action matrix. */
+    record InvalidIdentifierSchemeLifecycle() implements ApplicationFailure { }
+
+    /** Reports that an otherwise permitted catalog mutation cannot advance its version. */
+    record IdentifierSchemeVersionExhausted() implements ApplicationFailure { }
+
+    /** Rejects out-of-range or incoherent resulting catalog length bounds. */
+    record IdentifierSchemeLengthRangeInvalid() implements ApplicationFailure { }
+
+    /** Rejects processing configuration that cannot be admitted by the supported local rule catalog. */
+    record InvalidIdentifierSchemeConfiguration() implements ApplicationFailure { }
+
+    /** Rejects malformed, altered, foreign-resource, or cross-scope scheme navigation. */
+    record InvalidIdentifierSchemeCursor() implements ApplicationFailure { }
+
     /** Reports an invalid continuation without retaining or exposing client cursor material. */
     record InvalidPartyCursor() implements ApplicationFailure {
     }

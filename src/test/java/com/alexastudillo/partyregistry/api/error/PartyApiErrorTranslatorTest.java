@@ -170,6 +170,33 @@ class PartyApiErrorTranslatorTest {
         assertSame(internalInvariant, translator.translate(internalInvariant));
     }
 
+    @Test
+    void mapsCatalogAdministrationIndependentlyOfIdentifierRegistration() {
+        Map<ApplicationFailure, PartyResponseCode> codes = Map.ofEntries(
+                Map.entry(new ApplicationFailure.IdentifierSchemeNotFound(), PartyResponseCode.IDENTIFIER_SCHEME_NOT_FOUND),
+                Map.entry(new ApplicationFailure.IdentifierSchemeCodeConflict(), PartyResponseCode.IDENTIFIER_SCHEME_CODE_CONFLICT),
+                Map.entry(new ApplicationFailure.IdentifierSchemeVersionMismatch(), PartyResponseCode.EXPECTED_VERSION_MISMATCH),
+                Map.entry(new ApplicationFailure.IdentifierSchemeRulesLocked(), PartyResponseCode.IDENTIFIER_SCHEME_RULES_LOCKED),
+                Map.entry(new ApplicationFailure.IdentifierSchemeRetired(), PartyResponseCode.IDENTIFIER_SCHEME_RETIRED),
+                Map.entry(new ApplicationFailure.InvalidIdentifierSchemeLifecycle(), PartyResponseCode.INVALID_IDENTIFIER_SCHEME_LIFECYCLE),
+                Map.entry(new ApplicationFailure.IdentifierSchemeVersionExhausted(), PartyResponseCode.IDENTIFIER_SCHEME_VERSION_EXHAUSTED),
+                Map.entry(new ApplicationFailure.IdentifierSchemeLengthRangeInvalid(), PartyResponseCode.IDENTIFIER_SCHEME_LENGTH_RANGE_INVALID),
+                Map.entry(new ApplicationFailure.InvalidIdentifierSchemeConfiguration(), PartyResponseCode.INVALID_IDENTIFIER_SCHEME_CONFIGURATION),
+                Map.entry(new ApplicationFailure.InvalidIdentifierSchemeCursor(), PartyResponseCode.BAD_REQUEST));
+        codes.forEach(this::assertTranslation);
+        assertEquals(404, PartyResponseCode.IDENTIFIER_SCHEME_NOT_FOUND.getStatus());
+        assertEquals(409, PartyResponseCode.IDENTIFIER_SCHEME_CODE_CONFLICT.getStatus());
+        assertEquals(409, PartyResponseCode.IDENTIFIER_SCHEME_RULES_LOCKED.getStatus());
+        assertEquals(409, PartyResponseCode.IDENTIFIER_SCHEME_RETIRED.getStatus());
+        assertEquals(409, PartyResponseCode.INVALID_IDENTIFIER_SCHEME_LIFECYCLE.getStatus());
+        assertEquals(409, PartyResponseCode.IDENTIFIER_SCHEME_VERSION_EXHAUSTED.getStatus());
+        assertEquals(412, PartyResponseCode.EXPECTED_VERSION_MISMATCH.getStatus());
+        assertEquals(422, PartyResponseCode.IDENTIFIER_SCHEME_LENGTH_RANGE_INVALID.getStatus());
+        assertEquals(422, PartyResponseCode.INVALID_IDENTIFIER_SCHEME_CONFIGURATION.getStatus());
+        var cancellation = new java.util.concurrent.CancellationException();
+        assertSame(cancellation, translator.translate(cancellation));
+    }
+
     private void assertTranslation(ApplicationFailure failure, PartyResponseCode expectedCode) {
         ApplicationException source = new ApplicationException(failure);
 

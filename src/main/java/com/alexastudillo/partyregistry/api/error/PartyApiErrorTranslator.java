@@ -34,6 +34,16 @@ public final class PartyApiErrorTranslator {
 
     private static ApiResponseCode responseCode(ApplicationFailure failure) {
         return switch (failure) {
+            case ApplicationFailure.IdentifierSchemeNotFound _ -> PartyResponseCode.IDENTIFIER_SCHEME_NOT_FOUND;
+            case ApplicationFailure.IdentifierSchemeCodeConflict _ -> PartyResponseCode.IDENTIFIER_SCHEME_CODE_CONFLICT;
+            case ApplicationFailure.IdentifierSchemeVersionMismatch _ -> PartyResponseCode.EXPECTED_VERSION_MISMATCH;
+            case ApplicationFailure.IdentifierSchemeRulesLocked _ -> PartyResponseCode.IDENTIFIER_SCHEME_RULES_LOCKED;
+            case ApplicationFailure.IdentifierSchemeRetired _ -> PartyResponseCode.IDENTIFIER_SCHEME_RETIRED;
+            case ApplicationFailure.InvalidIdentifierSchemeLifecycle _ -> PartyResponseCode.INVALID_IDENTIFIER_SCHEME_LIFECYCLE;
+            case ApplicationFailure.IdentifierSchemeVersionExhausted _ -> PartyResponseCode.IDENTIFIER_SCHEME_VERSION_EXHAUSTED;
+            case ApplicationFailure.IdentifierSchemeLengthRangeInvalid _ -> PartyResponseCode.IDENTIFIER_SCHEME_LENGTH_RANGE_INVALID;
+            case ApplicationFailure.InvalidIdentifierSchemeConfiguration _ -> PartyResponseCode.INVALID_IDENTIFIER_SCHEME_CONFIGURATION;
+            case ApplicationFailure.InvalidIdentifierSchemeCursor _ -> PartyResponseCode.BAD_REQUEST;
             case ApplicationFailure.InvalidPartyCursor _ -> PartyResponseCode.BAD_REQUEST;
             case ApplicationFailure.InvalidNationalityCursor _ -> PartyResponseCode.BAD_REQUEST;
             case ApplicationFailure.NationalityNotFound _ -> PartyResponseCode.NATIONALITY_NOT_FOUND;

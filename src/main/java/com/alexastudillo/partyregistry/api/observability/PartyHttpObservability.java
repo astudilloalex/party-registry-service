@@ -3,6 +3,7 @@ package com.alexastudillo.partyregistry.api.observability;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.NationalityMutationOutcome;
+import com.alexastudillo.partyregistry.application.model.IdentifierSchemeMutationOutcome;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -42,6 +43,8 @@ public class PartyHttpObservability {
     private static final String ACTIVATE_SUFFIX = "/activate";
     private static final String NATIONALITIES_SEGMENT = "nationalities";
     private static final Set<String> ROOT_MUTATIONS = Set.of("patch-party", "activate", "deactivate", "archive");
+    private static final Set<String> SCHEME_MUTATIONS = Set.of("create-identifier-scheme", "patch-identifier-scheme",
+            "activate-identifier-scheme", "deprecate-identifier-scheme", "retire-identifier-scheme");
 
     private final MeterRegistry meterRegistry;
 
@@ -58,6 +61,10 @@ public class PartyHttpObservability {
      * @return stable operation label, {@code unsupported} for a recognized route's other methods, or {@code unmatched}
      */
     public String operationName(String method, String path) {
+        String schemeOperation = identifierSchemeOperationName(method, path);
+        if (!UNMATCHED_OPERATION.equals(schemeOperation)) {
+            return schemeOperation;
+        }
         String nationalityOperation = nationalityOperationName(method, path);
         if (!UNMATCHED_OPERATION.equals(nationalityOperation)) {
             return nationalityOperation;
@@ -186,6 +193,57 @@ public class PartyHttpObservability {
         meterRegistry.counter(NATIONALITY_MUTATION_METRIC, OPERATION_TAG, operation, OUTCOME_TAG, outcome,
                 CODE_TAG, code).increment();
         Span.current().setAttribute("party.nationality.mutation.outcome", outcome);
+    }
+
+    /** Records bounded committed scheme dispositions and conflicts without retaining IDs, keys, or catalog data. */
+    public void recordIdentifierSchemeCompletion(String operation, int status, String code,
+            IdentifierSchemeMutationOutcome.Disposition disposition) {
+        if (!SCHEME_MUTATIONS.contains(operation)) {
+            return;
+        }
+        String outcome;
+        if (status < 400 && disposition != null) {
+            outcome = disposition.name().toLowerCase(Locale.ROOT);
+        } else if (status == 409 || status == 412) {
+            outcome = CONFLICT_OUTCOME;
+        } else {
+            return;
+        }
+        meterRegistry.counter("party.registry.http.identifier.scheme.mutation", OPERATION_TAG, operation,
+                OUTCOME_TAG, outcome, CODE_TAG, code).increment();
+        Span.current().setAttribute("party.identifier.scheme.mutation.outcome", outcome);
+    }
+
+    private static String identifierSchemeOperationName(String method, String path) {
+        String[] segments = path.split("/", -1);
+        if (segments.length < 3 || !segments[0].isEmpty() || !"v1".equals(segments[1]) || !"identifier-schemes".equals(segments[2])) {
+            return UNMATCHED_OPERATION;
+        }
+        if (segments.length == 3) {
+            return switch (method) {
+                case "POST" -> "create-identifier-scheme";
+                case "GET" -> "list-identifier-schemes";
+                default -> UNSUPPORTED_OPERATION;
+            };
+        }
+        if (segments[3].isEmpty()) return UNMATCHED_OPERATION;
+        if (segments.length == 4) {
+            return switch (method) {
+                case "GET" -> "retrieve-identifier-scheme";
+                case PATCH_METHOD -> "patch-identifier-scheme";
+                default -> UNSUPPORTED_OPERATION;
+            };
+        }
+        if (segments.length == 5 && !segments[4].isEmpty()) {
+            if ("by-code".equals(segments[3])) {
+                return "GET".equals(method) ? "retrieve-identifier-scheme-by-code" : UNSUPPORTED_OPERATION;
+            }
+            return switch (segments[4]) {
+                case "activate", "deprecate", "retire" -> "POST".equals(method) ? segments[4] + "-identifier-scheme" : UNSUPPORTED_OPERATION;
+                default -> UNMATCHED_OPERATION;
+            };
+        }
+        return UNMATCHED_OPERATION;
     }
 
     private static String nationalityOperationName(String method, String path) {

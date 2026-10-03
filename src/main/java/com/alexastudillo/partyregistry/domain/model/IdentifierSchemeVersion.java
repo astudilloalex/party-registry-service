@@ -19,4 +19,13 @@ public record IdentifierSchemeVersion(long value) {
     public static IdentifierSchemeVersion initial() {
         return new IdentifierSchemeVersion(0);
     }
+
+    /** Returns the next immutable version or rejects exhaustion without numeric overflow. */
+    public IdentifierSchemeVersion next() {
+        if (value == Long.MAX_VALUE) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_SCHEME_VERSION_OVERFLOW,
+                    "Identifier scheme version cannot advance beyond its maximum value");
+        }
+        return new IdentifierSchemeVersion(value + 1);
+    }
 }
