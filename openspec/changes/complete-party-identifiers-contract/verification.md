@@ -329,6 +329,36 @@ DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./
 
 Task 3.1 is complete.
 
+## Task 3.2: Immutable partial metadata correction
+
+Added `PartyIdentifierMetadataTest` before aggregate behavior. Initial compile-red identified missing `correctMetadata` and neutral lifecycle classification. The first immutable-copy implementation reached executable red: **11 cases, 5 failures** for unrepaired past-date issuer-only changes and terminal-state-before-exhaustion precedence. Those were behavior failures, not infrastructure setup failures. Added the state/date gates with the checked version foundation; all cases then pass.
+
+`PartyIdentifier.correctMetadata` accepts three `FieldUpdate` values, the operation instant and accepted actor. Omission retains and null clears. Pending/verified state admission precedes target-version exhaustion, then raw submitted issuer and resulting retained/new validity rules. One supplied instant defines UTC expiration qualification and modification audit; expiration equality is inclusive. Past evidence can be coherently repaired/cleared, but issuer-only correction cannot bypass it. Identical correction increments once. Immutable copying retains identity/scope, protected-value object, primary flag, verification and creation audit; no Party/scheme or historical snapshot is touched. Future issuedOn is not newly prohibited when the resulting expiration is absent/coherent.
+
+The internal copy builder is private; no generic public version/audit setter or framework dependency was introduced. Existing constructor restoration rules remain intact, including retained historical issuer representation. Public responsibility Javadoc covers omission/null, results and failures; nested builder responsibility Javadoc remains present.
+
+Focused red and final green/architecture commands:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierMetadataTest --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierMetadataTest --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierVersionTest --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierTest --tests com.alexastudillo.partyregistry.CleanArchitectureTest --console=plain
+```
+
+Executable red completed in 19 seconds; focused green/architecture completed in 15 seconds. Full verification:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: BUILD SUCCESSFUL in **6m 3s**, **1,398 tests, 0 failures/skips**.
+- Build: BUILD SUCCESSFUL in **2m 26s**, unit tests up-to-date, **28 packaged JVM tests pass**.
+- Combined output: `~/.local/share/opencode/tool-output/tool_10315ac02001yW04KNar6MeiUv`.
+- Saved aggregate: `4d6f0f1c69a12329260fd3ce82b5ddbb8c64d73b`; enum: `05ca298a7cdafbbc2d8f3282981377b4e2095e7e`; metadata test: `a667b6c361b8de9e585a1ad4e5b3fd618fa019a5`.
+- Inventory links each saved file/type to actual completed Sonar **0 issues/Hotspots** and independent JDTLS **0 problems**. No new compiler warnings or suppressions; `git diff --check` passes. Existing cleanup diagnostics remain tracked separately.
+
+Task 3.2 is complete. HTTP PATCH binding/orchestration/persistence remain tasks 9.1–9.3, not inferred from Domain green.
+
 ## Implementation progress
 
 - Task 1.1 baseline verification completed.
@@ -339,5 +369,6 @@ Task 3.1 is complete.
 - Task 2.2 complete: safe success/error examples, scoped declarations and output schemas implemented and verified.
 - Task 2.3 complete: controlled fixture and safe shared assertion foundation verified.
 - Task 3.1 complete: checked version advancement and immutable audit foundation verified.
-- Tasks 3.2–14.6 remain incomplete.
-- Contract/test foundation and identifier version foundation implemented; identifier mutation routes and durable storage remain pending.
+- Task 3.2 complete: immutable partial metadata correction and state/date preservation rules verified.
+- Tasks 3.3–14.6 remain incomplete.
+- Contract/test foundation, checked versions and Domain metadata correction implemented; identifier mutation routes and durable storage remain pending.

@@ -63,9 +63,10 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Pure unit tests prove one increment, maximum-minus-one success, maximum exhaustion, unchanged creation audit/protected value/identity, and explicit actor/time contracts. Domain remains free of Mutiny, Quarkus, HTTP, persistence, and envelope dependencies.
   - Evidence: `verification.md` records compile-red then executable overflow-classification red, checked `PartyIdentifierVersion.next()` green, immutable audit/protected-history characterization, passing architecture checks, 1,387 full tests and 28 packaged JVM tests, and current zero-finding Sonar/JDTLS analyses for all three changed Java files.
 
-- [ ] 3.2 Test first and implement partial metadata correction on pending and verified identifiers.
+- [x] 3.2 Test first and implement partial metadata correction on pending and verified identifiers.
   - Requirements: M: Strict partial metadata correction; M: Metadata correction eligibility and audit.
   - Verification: Unit tests cover omission versus null, retained-field interval validation, inclusive UTC expiration, repair of past-date pending/verified metadata, issuer-only rejection of unrepaired expiration, identical corrections, terminal-state rejection, and preserved verification/primary/value information.
+  - Evidence: `verification.md` records compile-red and 5/11 executable state/date-precedence failures, immutable `correctMetadata` green, 1,398 full tests and 28 packaged JVM tests passing, inward-dependency checks, and zero current Sonar/JDTLS findings for the aggregate/builder, neutral violation enum and new metadata test.
 
 - [ ] 3.3 Test first and implement the closed verification/rejection/revocation matrix and verification evidence rules.
   - Requirements: L: Explicit identifier transition matrix; L: Operator-confirmed verification and validity; L: Rejection and revocation retain safe history.
