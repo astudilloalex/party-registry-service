@@ -29,33 +29,39 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Record active defaults and overrides relevant to complexity, parameter count, nullability, ignored results, exception handling, logging, cryptography, cleanup, and assertions, including applicable S3776/S107/S2259/S2201/S5778/S6213 descriptions and thresholds. Keep standalone coverage distinct from a server profile.
   - Evidence: `verification.md` records installed 550+21 default-profile membership, bundled rule descriptions, S3776 Threshold=15 and S107 max/constructorMax=7 bytecode annotations, analyzer archive identities, and unchanged local settings.
 
-- [ ] 1.3 Establish the reproducible baseline and implementation prerequisites.
+- [x] 1.3 Establish the reproducible baseline and implementation prerequisites.
   - Requirements: Quality; Q: Safe shared envelopes and failure behavior; M: Maintenance has one durable observable outcome.
   - Verification: Using existing tests/tooling, record baseline test/build results, Java/Quarkus versions, resolved shared-response artifact behavior, PostgreSQL/Podman access, native-toolchain availability, and existing migration checksums. Confirm V8 is still unused and characterize shared pagination null handling. Record actual failures as prerequisites to resolve, not feature failures.
+  - Evidence: `verification.md` records successful full test/build runs, 1,364 unit/reactive/HTTP/architecture tests and 28 packaged JVM tests without failures/skips, shared pagination characterization, artifact identities, executable Mandrel availability, unchanged V1–V7 checksums, and baseline runtime warnings.
 
-- [ ] 1.4 Create the implementation evidence convention, saved-Java inventory, and scenario-to-test map.
+- [x] 1.4 Create the implementation evidence convention, saved-Java inventory, and scenario-to-test map.
   - Requirements: All 27 Q/M/L requirements and 87 scenarios; Quality.
   - Verification: Each scenario has its source title, planned test boundary, task reference, and pending evidence entry; the inventory covers main/test/contractTest/integrationTest and records saved blob, Sonar completion/results, JDTLS results, and focused red/green commands. No planned test is marked passed.
+  - Evidence: `scenario-evidence.md` covers 27 requirements and 87 scenarios with pending evidence; `java-inventory.md` defines all four source sets, nested types, saved blobs, separate IDE analyses, and test evidence. Source/map totals both contain 114 requirement/scenario entries; `git diff --check` passes.
 
 ## 2. Contract Completion and Test Foundation
 
-- [ ] 2.1 Test first and complete the affected OpenAPI paths, headers, strict request models, pagination constraints, and action semantics.
+- [x] 2.1 Test first and complete the affected OpenAPI paths, headers, strict request models, pagination constraints, and action semantics.
   - Requirements: Q: Complete published party-identifiers contract; Q: Strict read selectors and filters; M: Strict additional registration input; M: Strict partial metadata correction; M: Strict primary-selection input and eligibility; L: Lifecycle requests follow the common boundary.
   - Verification: Source structure tests pin all eight operations, identifier-specific If-Match, creation/action key semantics, 256-character cursor bound, closed properties, body presence/nullability, transition matrix, primary scope, validation order, and 0..2147483647 count range. Parsing reports no unresolved references; unrelated parameter contracts are preserved.
+  - Evidence: `verification.md` records the six-test red, completed contract, nine passing structural checks including the full matrix/precedence, preserved general/scheme contracts, 1,373 passing tests and 28 packaged JVM tests, plus current saved-revision Sonar/JDTLS zero findings. Cause-specific examples remain task 2.2; runtime implementation remains in subsequent tasks.
 
-- [ ] 2.2 Test first and complete OpenAPI success/error examples and the approved cause-specific error declarations.
+- [x] 2.2 Test first and complete OpenAPI success/error examples and the approved cause-specific error declarations.
   - Requirements: Q: Complete published party-identifiers contract; Q: Safe shared envelopes and failure behavior; M: Identifier-version preconditions and exhaustion.
   - Verification: Example/schema tests cover 201/200 status agreement, safe item/page shapes, explicit null cursors, accepted process echoes, 404 identifier-not-found, 409 lifecycle/primary/exhaustion conflicts, 412 expected-version-mismatch, existing 422 errors, and framework/500/503 envelopes. Error examples contain status/code only.
+  - Evidence: `verification.md` records six executable example/schema failures before implementation, 49 focused passing checks, 1,379 full tests and 28 packaged JVM tests passing, and zero current Sonar/JDTLS findings for both affected Java files. All eight success examples and cause-specific error examples validate against their declared schemas.
 
-- [ ] 2.3 Add only the reusable Month-based identifier fixtures and safe HTTP/schema assertions needed by subsequent increments.
+- [x] 2.3 Add only the reusable Month-based identifier fixtures and safe HTTP/schema assertions needed by subsequent increments.
   - Requirements: Quality; Q: Safe shared envelopes and failure behavior; Q: Trusted context and process correlation.
   - Verification: Fixture/helper tests cover controlled UTC dates, both Party types, masked representations, complete pagination keys, and exact status/code-only errors. Helpers use supported source-set boundaries, disclose no real secrets, and introduce no test CDI fixtures into packaged verification.
+  - Evidence: `verification.md` records four focused helper/fixture checks, 1,383 full tests and 28 packaged JVM tests passing, both-source-set shared assertion compilation, and actual zero-finding Sonar/JDTLS analyses for all four saved Java files.
 
 ## 3. Domain Rules
 
-- [ ] 3.1 Test first and implement checked independent identifier-version advancement and immutable audit preservation.
+- [x] 3.1 Test first and implement checked independent identifier-version advancement and immutable audit preservation.
   - Requirements: M: Identifier-version preconditions and exhaustion; M: Metadata correction eligibility and audit; L: Operator-confirmed verification and validity.
   - Verification: Pure unit tests prove one increment, maximum-minus-one success, maximum exhaustion, unchanged creation audit/protected value/identity, and explicit actor/time contracts. Domain remains free of Mutiny, Quarkus, HTTP, persistence, and envelope dependencies.
+  - Evidence: `verification.md` records compile-red then executable overflow-classification red, checked `PartyIdentifierVersion.next()` green, immutable audit/protected-history characterization, passing architecture checks, 1,387 full tests and 28 packaged JVM tests, and current zero-finding Sonar/JDTLS analyses for all three changed Java files.
 
 - [ ] 3.2 Test first and implement partial metadata correction on pending and verified identifiers.
   - Requirements: M: Strict partial metadata correction; M: Metadata correction eligibility and audit.
