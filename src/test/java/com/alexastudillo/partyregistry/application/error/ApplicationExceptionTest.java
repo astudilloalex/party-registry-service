@@ -33,6 +33,16 @@ class ApplicationExceptionTest {
         var version2 = version1.next();
 
         List<FailureDescription> descriptions = List.of(
+                new FailureDescription(new ApplicationFailure.IdentifierSchemeNotFound(), "Identifier scheme not found"),
+                new FailureDescription(new ApplicationFailure.IdentifierSchemeCodeConflict(), "Identifier scheme code conflict"),
+                new FailureDescription(new ApplicationFailure.IdentifierSchemeVersionMismatch(), "Identifier scheme version mismatch"),
+                new FailureDescription(new ApplicationFailure.IdentifierSchemeRulesLocked(), "Identifier scheme processing properties are locked"),
+                new FailureDescription(new ApplicationFailure.IdentifierSchemeRetired(), "Identifier scheme is retired"),
+                new FailureDescription(new ApplicationFailure.InvalidIdentifierSchemeLifecycle(), "Invalid identifier scheme lifecycle transition"),
+                new FailureDescription(new ApplicationFailure.IdentifierSchemeVersionExhausted(), "Identifier scheme version is exhausted"),
+                new FailureDescription(new ApplicationFailure.IdentifierSchemeLengthRangeInvalid(), "Invalid identifier scheme length range"),
+                new FailureDescription(new ApplicationFailure.InvalidIdentifierSchemeConfiguration(), "Invalid identifier scheme configuration"),
+                new FailureDescription(new ApplicationFailure.InvalidIdentifierSchemeCursor(), "Invalid identifier scheme cursor"),
                 new FailureDescription(
                         new ApplicationFailure.InvalidPartyCursor(),
                         "Invalid Party cursor"),
