@@ -19,13 +19,15 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
 
 ## 1. Quality and Environment Preflight
 
-- [ ] 1.1 Confirm SonarQube for IDE standalone and the resolved Java 25 project in the active Antigravity window before Java edits.
+- [x] 1.1 Confirm SonarQube for IDE standalone and the resolved Java 25 project in the active Antigravity window before Java edits.
   - Requirements: Quality — verified local analyzer baseline.
   - Verification: Record current extension/analyzer version, runtime/source level, Standard-mode Red Hat Java, resolved Gradle classpath, and one completed analysis of an existing project Java file. Reconfirm rather than reuse the historical 5.7.0/571-rule result.
+  - Evidence: `verification.md` records fresh Sonar 5.7.0 analysis with 571 active Java rules, Java 25, 0 issues, and separate JDTLS Standard-mode validation with 0 problems for the saved baseline resource.
 
-- [ ] 1.2 Research and record effective installed Java rules and parameters before implementing production code or tests.
+- [x] 1.2 Research and record effective installed Java rules and parameters before implementing production code or tests.
   - Requirements: Quality — preventive Sonar rule review.
   - Verification: Record active defaults and overrides relevant to complexity, parameter count, nullability, ignored results, exception handling, logging, cryptography, cleanup, and assertions, including applicable S3776/S107/S2259/S2201/S5778/S6213 descriptions and thresholds. Keep standalone coverage distinct from a server profile.
+  - Evidence: `verification.md` records installed 550+21 default-profile membership, bundled rule descriptions, S3776 Threshold=15 and S107 max/constructorMax=7 bytecode annotations, analyzer archive identities, and unchanged local settings.
 
 - [ ] 1.3 Establish the reproducible baseline and implementation prerequisites.
   - Requirements: Quality; Q: Safe shared envelopes and failure behavior; M: Maintenance has one durable observable outcome.
