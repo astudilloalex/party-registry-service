@@ -34,7 +34,10 @@ class IdentifierSchemeTestFixtureTest {
     private static final String V4 = "V4__make_identifier_expiration_optional.sql";
     private static final String V5 = "V5__add_party_listing_order_index.sql";
     private static final String V6 = "V6__add_nationality_listing_order_index.sql";
+    private static final String V7 = "V7__add_identifier_scheme_management.sql";
     private static final String V1000 = "V1000__seed_identifier_scheme_test_fixtures.sql";
+    private static final String V1004 = "V1004__seed_identifier_scheme_http_boundaries.sql";
+    private static final String V1005 = "V1005__seed_scheme_historical_party_evidence.sql";
     private static final String V1_SHA_256 =
             "7da1a66b7cddb2389da0032c5f3ccef8049e75eaa77783eda37e89758235e4d7";
     private static final String V2_SHA_256 =
@@ -43,6 +46,10 @@ class IdentifierSchemeTestFixtureTest {
             "8ad6ac7d0b7d461c617d5ad48e9ed9f0fe3fab25b2019c0ef22b4cc6a9f02d22";
     private static final String V4_SHA_256 =
             "01a3268e611b67e85de112e7e343ce28e3d66eb28cc13982b3cc2f07a3e08734";
+    private static final String V5_SHA_256 =
+            "e26b9f31f7d8f9da8d8501e9c47d35a32d2313ddde97e3ad3188aec7ce266e50";
+    private static final String V6_SHA_256 =
+            "eddda2f94edaab77d72b171c263a827bc010798db5c1d6ee64684664f1bbd405";
     private static final Path PRODUCTION_MIGRATIONS = Path.of("src/main/resources/db/migration");
     private static final Path TEST_MIGRATIONS = Path.of("src/test/resources/db/test-migration");
     private static final String TEST_MIGRATION_RESOURCE = "/db/test-migration/" + V1000;
@@ -62,17 +69,19 @@ class IdentifierSchemeTestFixtureTest {
     }
 
     @Test
-    void preservesImmutableProductionMigrationsAndIsolatesTheOnlyFixtureMigration()
+    void preservesImmutableProductionMigrationsAndIsolatesFixtureMigrations()
             throws IOException, NoSuchAlgorithmException {
         Map<String, Path> productionMigrations = migrationFiles(PRODUCTION_MIGRATIONS);
         Map<String, Path> testMigrations = migrationFiles(TEST_MIGRATIONS);
 
-        assertEquals(Set.of(V1, V2, V3, V4, V5, V6), productionMigrations.keySet());
-        assertEquals(Set.of(V1000), testMigrations.keySet());
+        assertEquals(Set.of(V1, V2, V3, V4, V5, V6, V7), productionMigrations.keySet());
+        assertEquals(Set.of(V1000, V1004, V1005), testMigrations.keySet());
         assertEquals(V1_SHA_256, sha256(productionMigrations.get(V1)));
         assertEquals(V2_SHA_256, sha256(productionMigrations.get(V2)));
         assertEquals(V3_SHA_256, sha256(productionMigrations.get(V3)));
         assertEquals(V4_SHA_256, sha256(productionMigrations.get(V4)));
+        assertEquals(V5_SHA_256, sha256(productionMigrations.get(V5)));
+        assertEquals(V6_SHA_256, sha256(productionMigrations.get(V6)));
     }
 
     @Test

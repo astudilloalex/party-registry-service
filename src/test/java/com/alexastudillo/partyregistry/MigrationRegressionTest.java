@@ -67,7 +67,10 @@ class MigrationRegressionTest {
                 "4", "db/migration/V4__make_identifier_expiration_optional.sql",
                 "5", "db/migration/V5__add_party_listing_order_index.sql",
                 "6", "db/migration/V6__add_nationality_listing_order_index.sql",
-                "1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql"),
+                "7", "db/migration/V7__add_identifier_scheme_management.sql",
+                "1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql",
+                "1004", "db/test-migration/V1004__seed_identifier_scheme_http_boundaries.sql",
+                "1005", "db/test-migration/V1005__seed_scheme_historical_party_evidence.sql"),
                 appliedMigrations);
         assertDoesNotThrow(flyway::validate);
 
