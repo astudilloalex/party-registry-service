@@ -13,6 +13,9 @@ import jakarta.persistence.Version;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
@@ -121,6 +124,36 @@ class IdentifierSchemePersistenceMapperTest {
         assertNamedEnum("status");
         assertTrue(IdentifierSchemeEntity.class.getDeclaredField("version")
                 .isAnnotationPresent(Version.class));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {"null,null", "1,1", "32767,32767", "1,32767", "null,32767", "1,null"}, nullValues = "null")
+    void roundTripsInclusiveSmallintBoundsInEveryLifecycleState(Integer minimum, Integer maximum) {
+        for (IdentifierSchemeStatus status : IdentifierSchemeStatus.values()) {
+            IdentifierScheme original = scheme(minimum, maximum, status);
+            IdentifierSchemeEntity entity = mapper.toEntity(original);
+            assertEquals(minimum == null ? null : minimum.shortValue(), entity.minimumLength());
+            assertEquals(maximum == null ? null : maximum.shortValue(), entity.maximumLength());
+            assertEquals(original, mapper.toDomain(entity));
+            assertEquals(Long.MAX_VALUE, entity.version());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {32768, 65536, Integer.MAX_VALUE})
+    void rejectsBothOversizedBoundsInsteadOfWrappingOrTruncating(int oversized) {
+        var bothOversized = scheme(oversized, oversized, IdentifierSchemeStatus.DRAFT);
+        assertThrows(IllegalArgumentException.class, () -> mapper.toEntity(bothOversized));
+        var maxOversized = scheme(null, oversized, IdentifierSchemeStatus.DRAFT);
+        assertThrows(IllegalArgumentException.class, () -> mapper.toEntity(maxOversized));
+    }
+
+    private static IdentifierScheme scheme(Integer minimum, Integer maximum, IdentifierSchemeStatus status) {
+        return new IdentifierScheme(SCHEME_ID, " Exact.Mixed-Case ", "GB", IdentifierCategory.OTHER,
+                IdentifierSubjectType.BOTH, " Exact Name ", null, "HISTORICAL_NORMALIZER_V1",
+                "HISTORICAL_VALIDATOR_V1", minimum, maximum, true, status,
+                new IdentifierSchemeVersion(Long.MAX_VALUE),
+                new AuditInfo(CREATED_AT, "catalog-creator", UPDATED_AT, "catalog-updater"));
     }
 
     private static void assertNamedEnum(String fieldName) throws NoSuchFieldException {
