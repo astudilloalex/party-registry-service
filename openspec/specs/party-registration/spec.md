@@ -13,8 +13,11 @@ This capability defines the observable behavior for registering a natural-person
 WHEN a client submits `POST /v1/natural-person` or `POST /v1/legal-entity`,
 THE Party Registry SHALL require exactly one `initialIdentifier` containing a nonblank `identifierSchemeCode` and a nonblank complete `value`.
 
-IF `initialIdentifier`, `identifierSchemeCode`, or `value` is missing, null, structurally invalid, or blank,
-THEN THE Party Registry SHALL reject the request with HTTP `400` and code `bad-request` without creating a Party or identifier.
+IF initialIdentifier is missing or null, or its required scheme/value is missing, null, or blank,
+THEN THE Party Registry SHALL return HTTP `400` with `initial-identifier-required`, `identifier-scheme-code-required`, or `identifier-value-required`, as applicable, without creating a Party or identifier.
+
+IF JSON structure or value types are invalid,
+THEN THE Party Registry SHALL retain the shared `400 bad-request` binding failure response.
 
 #### Scenario: Natural person includes one initial identifier
 
@@ -32,14 +35,14 @@ THEN THE Party Registry SHALL reject the request with HTTP `400` and code `bad-r
 
 - **GIVEN** an otherwise valid Party creation request omits `initialIdentifier`
 - **WHEN** the request is submitted
-- **THEN** the response has HTTP status `400` and code `bad-request`
+- **THEN** the response is `400 initial-identifier-required`
 - **AND** no Party or identifier from the request is created
 
 #### Scenario: Initial identifier value is blank
 
 - **GIVEN** a Party creation request contains a blank initial identifier `value`
 - **WHEN** the request is submitted
-- **THEN** the response has HTTP status `400` and code `bad-request`
+- **THEN** the response is `400 identifier-value-required`
 - **AND** no Party or identifier from the request is created
 
 ### Requirement: Initial identifier scheme eligibility
@@ -50,7 +53,7 @@ WHEN a structurally valid initial identifier is evaluated,
 THE Party Registry SHALL require its scheme code to identify a known `ACTIVE` scheme whose applicable subject type is the Party type or `BOTH`.
 
 IF the scheme is unknown, inactive, or incompatible with the Party type,
-THEN THE Party Registry SHALL reject the registration with HTTP `422` and code `unprocessable-entity` without creating a Party or identifier.
+THEN THE Party Registry SHALL reject registration with HTTP `422` and respectively `unknown-identifier-scheme`, `inactive-identifier-scheme`, or `incompatible-identifier-scheme`, without creating a Party or identifier.
 
 #### Scenario: Natural-person scheme is accepted
 
@@ -68,14 +71,14 @@ THEN THE Party Registry SHALL reject the registration with HTTP `422` and code `
 
 - **GIVEN** an `ACTIVE` identifier scheme applicable only to `LEGAL_ENTITY`
 - **WHEN** a natural person is registered with that scheme code
-- **THEN** the response has HTTP status `422` and code `unprocessable-entity`
+- **THEN** the response is `422 incompatible-identifier-scheme`
 - **AND** no Party or identifier from the request is created
 
 #### Scenario: Unknown or inactive scheme is rejected
 
 - **GIVEN** an initial identifier references an unknown, `DRAFT`, `DEPRECATED`, or `RETIRED` scheme
 - **WHEN** the Party registration is submitted
-- **THEN** the response has HTTP status `422` and code `unprocessable-entity`
+- **THEN** the response is respectively `422 unknown-identifier-scheme` or `422 inactive-identifier-scheme`
 - **AND** no Party or identifier from the request is created
 
 ### Requirement: Initial identifier semantic validity
@@ -86,7 +89,7 @@ WHEN an eligible initial identifier is evaluated,
 THE Party Registry SHALL require its complete value, length, format, issuing metadata, and validity dates to satisfy the selected scheme and the request evaluation date.
 
 IF the identifier fails scheme normalization or validation, exceeds scheme length limits, has incoherent validity dates, or is already expired,
-THEN THE Party Registry SHALL reject the registration with HTTP `422` and code `unprocessable-entity` without creating a Party or identifier.
+THEN THE Party Registry SHALL return `422 identifier-validation-failure` without creating a Party or identifier.
 
 For new registrations, the plaintext selected for identifier encryption SHALL be the validated normalized value, not the original submitted representation. Existing encrypted identifiers and idempotency results SHALL NOT be rewritten by this change.
 
@@ -103,7 +106,7 @@ THEN THE Party Registry SHALL reject the registration with HTTP `503` and code `
 
 - **GIVEN** an initial identifier value does not satisfy its scheme rules
 - **WHEN** the Party registration is submitted
-- **THEN** the response has HTTP status `422` and code `unprocessable-entity`
+- **THEN** the response is `422 identifier-validation-failure`
 - **AND** no Party or identifier from the request is created
 
 #### Scenario: Expiration is omitted or null
@@ -117,7 +120,7 @@ THEN THE Party Registry SHALL reject the registration with HTTP `503` and code `
 
 - **GIVEN** `expiresOn` is earlier than the request evaluation date
 - **WHEN** the Party registration is submitted
-- **THEN** the response has HTTP status `422` and code `unprocessable-entity`
+- **THEN** the response is `422 identifier-validation-failure`
 
 #### Scenario: Identifier dependency is unavailable
 
@@ -201,7 +204,7 @@ WHILE an identifier is `PENDING_VERIFICATION` or `VERIFIED`,
 THE Party Registry SHALL prevent another Party in the same tenant and identifier scheme from registering the same normalized identifier value.
 
 IF a Party registration conflicts with an existing active identifier in the same tenant and scheme,
-THEN THE Party Registry SHALL reject the registration with HTTP `409` and code `conflict` without changing the existing Party or identifier.
+THEN THE Party Registry SHALL return `409 identifier-uniqueness-conflict` without changing the existing Party or identifier.
 
 WHEN equivalent registrations with different idempotency keys race for the same tenant-scoped identifier,
 THE Party Registry SHALL make at most one new Party and initial identifier observable.
@@ -210,7 +213,7 @@ THE Party Registry SHALL make at most one new Party and initial identifier obser
 
 - **GIVEN** one Party owns a `PENDING_VERIFICATION` or `VERIFIED` identifier in a tenant and scheme
 - **WHEN** another Party registration uses the same normalized identifier in that tenant and scheme
-- **THEN** the response has HTTP status `409` and code `conflict`
+- **THEN** the response is `409 identifier-uniqueness-conflict`
 - **AND** the existing Party and identifier remain unchanged
 - **AND** no second Party is created
 
@@ -225,7 +228,7 @@ THE Party Registry SHALL make at most one new Party and initial identifier obser
 - **GIVEN** two valid registration requests use different idempotency keys and the same tenant, scheme, and normalized identifier
 - **WHEN** the requests are processed concurrently
 - **THEN** at most one request creates a Party and initial identifier
-- **AND** each losing request receives HTTP `409` and code `conflict`
+- **AND** each losing request receives `409 identifier-uniqueness-conflict`
 
 ### Requirement: Idempotent Party registration includes the initial identifier
 
@@ -238,7 +241,7 @@ WHEN the same tenant repeats an equivalent request with the same `Idempotency-Ke
 THE Party Registry SHALL return the original HTTP `201` result with the original Party, initial identifier, and versions without creating another Party or identifier.
 
 IF the same tenant reuses an `Idempotency-Key` with different effective Party or initial-identifier input,
-THEN THE Party Registry SHALL reject the request with HTTP `409` and code `conflict` without changing or disclosing the original result.
+THEN THE Party Registry SHALL return `409 idempotency-key-conflict` without changing or disclosing the original result.
 
 WHEN equivalent requests with the same tenant and idempotency key are processed concurrently,
 THE Party Registry SHALL make one Party and one initial identifier observable and SHALL return that original result to each successful replay.
@@ -262,7 +265,7 @@ THE Party Registry SHALL make one Party and one initial identifier observable an
 
 - **GIVEN** a completed Party registration exists for an idempotency key
 - **WHEN** the tenant reuses the key with a different identifier scheme, complete value, or identifier metadata
-- **THEN** the response has HTTP status `409` and code `conflict`
+- **THEN** the response is `409 idempotency-key-conflict`
 - **AND** the original Party and identifier remain unchanged
 
 #### Scenario: Concurrent equivalent retries converge
@@ -337,3 +340,28 @@ Creation and complete replacement SHALL normalize the supplied representations. 
 - **WHEN** a partial update supplies only a preferred name
 - **THEN** the preferred name is trimmed and uppercased
 - **AND** omitted fields and any saved idempotency result remain unchanged
+
+### Requirement: Cause-specific Party data validation failures
+
+**User Story:** As an API consumer, I want invalid Party data identified by a stable cause code, so that I can correct it without receiving internal exception details.
+
+WHEN a structurally valid registration violates a known Party data invariant,
+THE Party Registry SHALL retain HTTP `422` and return its specific business code: `birth-date-in-future`, `date-of-death-in-future`, `death-before-birth`, `incorporation-date-in-future`, `dissolution-date-in-future`, `dissolution-before-incorporation`, or `blank-display-name`, as applicable.
+
+IF a supplied country is definitively unrecognized,
+THEN THE Party Registry SHALL return `422 unrecognized-birth-country` or `422 unrecognized-incorporation-country` according to the Party field.
+
+WHEN a known failure is returned,
+THE Party Registry SHALL expose only status and the stable code, without technical messages, rejected values, or internal causes.
+
+#### Scenario: Client can identify the invalid legal history
+
+- **WHEN** an otherwise valid legal registration supplies a dissolution date before its incorporation date
+- **THEN** the response is `422 dissolution-before-incorporation`
+- **AND** no Party or identifier is created
+
+#### Scenario: Client can identify the invalid natural-person history
+
+- **WHEN** an otherwise valid natural-person registration supplies a future birth date
+- **THEN** the response is `422 birth-date-in-future`
+- **AND** the response contains no exception message
