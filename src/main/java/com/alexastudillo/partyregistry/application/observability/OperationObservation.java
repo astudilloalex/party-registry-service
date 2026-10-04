@@ -148,11 +148,15 @@ public final class OperationObservation {
         }
         return switch (applicationException.failure()) {
             case ApplicationFailure.NaturalPersonNotFound _,
+                    ApplicationFailure.IdentifierNotFound _,
                     ApplicationFailure.IdentifierSchemeNotFound _,
                     ApplicationFailure.LegalEntityNotFound _,
                     ApplicationFailure.NationalityNotFound _,
                     ApplicationFailure.PartyNotFound _ -> OperationOutcome.NOT_FOUND;
             case ApplicationFailure.IdempotencyKeyConflict _,
+                    ApplicationFailure.InvalidIdentifierLifecycle _,
+                    ApplicationFailure.PrimaryIdentifierConflict _,
+                    ApplicationFailure.IdentifierVersionExhausted _,
                     ApplicationFailure.IdentifierSchemeCodeConflict _,
                     ApplicationFailure.IdentifierSchemeRulesLocked _,
                     ApplicationFailure.IdentifierSchemeRetired _,
@@ -162,9 +166,11 @@ public final class OperationObservation {
                     ApplicationFailure.PrimaryNationalityConflict _,
                     ApplicationFailure.InvalidPartyLifecycle _ -> OperationOutcome.CONFLICT;
             case ApplicationFailure.ExpectedVersionMismatch _,
+                    ApplicationFailure.IdentifierVersionMismatch _,
                     ApplicationFailure.IdentifierSchemeVersionMismatch _,
                     ApplicationFailure.StalePartyVersion _ -> OperationOutcome.PRECONDITION_FAILED;
             case ApplicationFailure.InvalidPartyCursor _,
+                    ApplicationFailure.InvalidIdentifierCursor _,
                     ApplicationFailure.InvalidIdentifierSchemeCursor _,
                     ApplicationFailure.IdentifierSchemeLengthRangeInvalid _,
                     ApplicationFailure.InvalidIdentifierSchemeConfiguration _,

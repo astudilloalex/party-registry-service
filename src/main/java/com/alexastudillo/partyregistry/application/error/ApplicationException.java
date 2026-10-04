@@ -16,6 +16,12 @@ public final class ApplicationException extends RuntimeException {
     private static final String FAILURE = "failure";
 
     private static final Map<Class<? extends ApplicationFailure>, String> DESCRIPTIONS = Map.ofEntries(
+            Map.entry(ApplicationFailure.IdentifierNotFound.class, "Identifier not found"),
+            Map.entry(ApplicationFailure.IdentifierVersionMismatch.class, "Identifier version mismatch"),
+            Map.entry(ApplicationFailure.InvalidIdentifierLifecycle.class, "Invalid identifier lifecycle transition"),
+            Map.entry(ApplicationFailure.PrimaryIdentifierConflict.class, "Primary identifier conflict"),
+            Map.entry(ApplicationFailure.IdentifierVersionExhausted.class, "Identifier version is exhausted"),
+            Map.entry(ApplicationFailure.InvalidIdentifierCursor.class, "Invalid identifier cursor"),
             Map.entry(ApplicationFailure.IdentifierSchemeNotFound.class, "Identifier scheme not found"),
             Map.entry(ApplicationFailure.IdentifierSchemeCodeConflict.class, "Identifier scheme code conflict"),
             Map.entry(ApplicationFailure.IdentifierSchemeVersionMismatch.class, "Identifier scheme version mismatch"),
@@ -77,6 +83,20 @@ public final class ApplicationException extends RuntimeException {
         return new ApplicationException(
                 new ApplicationFailure.InvalidBusinessState(exception.violation()),
                 exception);
+    }
+
+    /** Classifies identifier-owned invariants neutrally while retaining unknown invariants for sanitized handling. */
+    public static ApplicationException forIdentifier(DomainValidationException exception) {
+        Objects.requireNonNull(exception, "exception");
+        ApplicationFailure failure = switch (exception.violation()) {
+            case PARTY_IDENTIFIER_INVALID_LIFECYCLE -> new ApplicationFailure.InvalidIdentifierLifecycle();
+            case PARTY_IDENTIFIER_VERSION_OVERFLOW -> new ApplicationFailure.IdentifierVersionExhausted();
+            case PRIMARY_IDENTIFIER_CONFLICT -> new ApplicationFailure.PrimaryIdentifierConflict();
+            case IDENTIFIER_EXPIRED, IDENTIFIER_VALIDITY_DATE_ORDER ->
+                new ApplicationFailure.IdentifierValidationFailure(exception.violation());
+            default -> new ApplicationFailure.InvalidBusinessState(exception.violation());
+        };
+        return new ApplicationException(failure, exception);
     }
 
     public ApplicationFailure failure() {

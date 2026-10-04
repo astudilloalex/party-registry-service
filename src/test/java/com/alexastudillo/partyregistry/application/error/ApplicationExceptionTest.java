@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
 import com.alexastudillo.partyregistry.domain.model.NationalityId;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
+import com.alexastudillo.partyregistry.domain.model.PartyIdentifierVersion;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
 import com.alexastudillo.partyregistry.domain.model.PartyVersion;
@@ -33,6 +34,13 @@ class ApplicationExceptionTest {
         var version2 = version1.next();
 
         List<FailureDescription> descriptions = List.of(
+                new FailureDescription(new ApplicationFailure.IdentifierNotFound(), "Identifier not found"),
+                new FailureDescription(new ApplicationFailure.IdentifierVersionMismatch(
+                        new PartyIdentifierVersion(1), new PartyIdentifierVersion(2)), "Identifier version mismatch"),
+                new FailureDescription(new ApplicationFailure.InvalidIdentifierLifecycle(), "Invalid identifier lifecycle transition"),
+                new FailureDescription(new ApplicationFailure.PrimaryIdentifierConflict(), "Primary identifier conflict"),
+                new FailureDescription(new ApplicationFailure.IdentifierVersionExhausted(), "Identifier version is exhausted"),
+                new FailureDescription(new ApplicationFailure.InvalidIdentifierCursor(), "Invalid identifier cursor"),
                 new FailureDescription(new ApplicationFailure.IdentifierSchemeNotFound(), "Identifier scheme not found"),
                 new FailureDescription(new ApplicationFailure.IdentifierSchemeCodeConflict(), "Identifier scheme code conflict"),
                 new FailureDescription(new ApplicationFailure.IdentifierSchemeVersionMismatch(), "Identifier scheme version mismatch"),

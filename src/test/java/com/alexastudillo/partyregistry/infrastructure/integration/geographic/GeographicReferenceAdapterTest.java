@@ -15,18 +15,23 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import io.quarkus.rest.client.reactive.QuarkusRestClientBuilder;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.Config;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.alexastudillo.partyregistry.infrastructure.integration.geographic.GeographicReferenceStubResource.PROCESS_ID;
 import static com.alexastudillo.partyregistry.infrastructure.integration.geographic.GeographicReferenceStubResource.TENANT_ID;
@@ -54,6 +59,12 @@ class GeographicReferenceAdapterTest {
     @Inject
     MeterRegistry meterRegistry;
 
+    @Inject
+    ObjectMapper objectMapper;
+
+    @Inject
+    Config config;
+
     @BeforeEach
     void resetStubObservations() {
         GeographicReferenceStubResource.resetObservations();
@@ -68,6 +79,12 @@ class GeographicReferenceAdapterTest {
         String traceparent = GeographicReferenceStubResource.traceparent("EC");
         assertNotNull(traceparent);
         assertTrue(traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]"));
+    }
+
+    @Test
+    void acceptsValidProviderLatencyWithinTheNormalServiceBudget() {
+        assertTrue(awaitItem(countryReferencePort.isRecognizedCountry(metadata(), "SD")));
+        assertEquals(1, GeographicReferenceStubResource.requestCount("SD"));
     }
 
     @Test
@@ -113,9 +130,27 @@ class GeographicReferenceAdapterTest {
     }
 
     @Test
-    void mapsReadTimeoutsToDependencyUnavailableWithinFiniteTimeWithoutRetry() {
-        assertDependencyUnavailable(countryReferencePort.isRecognizedCountry(metadata(), "TO"));
-        assertEquals(1, GeographicReferenceStubResource.requestCount("TO"));
+    void mapsReadTimeoutsToDependencyUnavailableWithinFiniteTimeWithoutRetry() throws Exception {
+        var client = QuarkusRestClientBuilder.newBuilder()
+                .baseUri(URI.create(config.getValue("quarkus.rest-client.geographic-reference.url", String.class)))
+                .connectTimeout(2, TimeUnit.SECONDS)
+                .readTimeout(1, TimeUnit.SECONDS)
+                .build(GeographicReferenceClient.class);
+        var registry = new SimpleMeterRegistry();
+        try (var _ = (AutoCloseable) client) {
+            var adapter = new GeographicReferenceAdapter(client, objectMapper, registry);
+            assertTrue(awaitItem(adapter.isRecognizedCountry(metadata(), "EC")));
+            var subscriber = adapter.isRecognizedCountry(metadata(), "TO").subscribe()
+                    .withSubscriber(UniAssertSubscriber.create());
+            subscriber.awaitFailure(MAXIMUM_WAIT).assertFailed();
+            var exception = assertInstanceOf(ApplicationException.class, subscriber.getFailure());
+            assertInstanceOf(ApplicationFailure.DependencyUnavailable.class, exception.failure());
+            assertInstanceOf(TimeoutException.class, exception.getCause());
+            assertEquals(1, GeographicReferenceStubResource.requestCount("TO"));
+            assertEquals(1, callCount(registry, "unavailable"));
+        } finally {
+            registry.close();
+        }
     }
 
     @Test
