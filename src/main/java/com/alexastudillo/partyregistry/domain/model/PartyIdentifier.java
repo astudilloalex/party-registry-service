@@ -122,14 +122,75 @@ public final class PartyIdentifier {
         validateRegistrationMetadata(nextIssuer, nextIssue, nextExpiration);
         Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
                 "Identifier modification timestamp is required");
-        LocalDate evaluatedOn = operationInstant.atZone(ZoneOffset.UTC).toLocalDate();
-        if (nextExpiration != null && nextExpiration.isBefore(evaluatedOn)) {
-            throw new DomainValidationException(DomainViolation.IDENTIFIER_EXPIRED,
-                    "Resulting identifier expiration precedes the operation date");
-        }
+        validateQualification(nextExpiration, operationInstant);
         return copyBuilder()
                 .issuerCode(nextIssuer).issuedOn(nextIssue).expiresOn(nextExpiration)
                 .version(nextVersion).auditInfo(auditInfo.updated(operationInstant, updatedBy)).build();
+    }
+
+    /**
+     * Records operator confirmation of pending evidence, retaining its value, metadata and provisional flag.
+     *
+     * @param occurredAt one operation instant defining verification, modification audit and UTC validity
+     * @param verifiedBy accepted operator identity
+     * @return verified evidence at exactly the next identifier version
+     * @throws DomainValidationException when state, version, validity or audit prevents verification
+     */
+    public PartyIdentifier verify(Instant occurredAt, String verifiedBy) {
+        requireState(PartyIdentifierStatus.PENDING_VERIFICATION);
+        var nextVersion = version.next();
+        Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
+                "Identifier verification timestamp is required");
+        validateValidityDates(issuedOn, expiresOn);
+        validateQualification(expiresOn, operationInstant);
+        return copyBuilder().status(PartyIdentifierStatus.VERIFIED).verifiedAt(operationInstant).verifiedBy(verifiedBy)
+                .version(nextVersion).auditInfo(auditInfo.updated(operationInstant, verifiedBy)).build();
+    }
+
+    /**
+     * Rejects pending evidence and clears its provisional primary flag without deleting history.
+     *
+     * @param occurredAt modification instant; past expiration does not prevent withdrawal
+     * @param updatedBy accepted operator identity
+     * @return rejected evidence at exactly the next identifier version
+     * @throws DomainValidationException when the state, version or audit prevents rejection
+     */
+    public PartyIdentifier reject(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.PENDING_VERIFICATION);
+        return withdraw(PartyIdentifierStatus.REJECTED, occurredAt, updatedBy);
+    }
+
+    /**
+     * Revokes verified evidence, retaining verification history while clearing its primary flag.
+     *
+     * @param occurredAt modification instant; past expiration does not prevent withdrawal
+     * @param updatedBy accepted operator identity
+     * @return revoked evidence at exactly the next identifier version
+     * @throws DomainValidationException when the state, version or audit prevents revocation
+     */
+    public PartyIdentifier revoke(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.VERIFIED);
+        return withdraw(PartyIdentifierStatus.REVOKED, occurredAt, updatedBy);
+    }
+
+    private void requireState(PartyIdentifierStatus requiredState) {
+        if (status != requiredState) {
+            throw new DomainValidationException(DomainViolation.PARTY_IDENTIFIER_INVALID_LIFECYCLE,
+                    "Identifier action is forbidden in its current state");
+        }
+    }
+
+    private static void validateQualification(LocalDate expiration, Instant operationInstant) {
+        LocalDate evaluatedOn = operationInstant.atZone(ZoneOffset.UTC).toLocalDate();
+        if (expiration != null && expiration.isBefore(evaluatedOn)) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_EXPIRED,
+                    "Identifier expiration precedes the operation date");
+        }
+    }
+
+    private PartyIdentifier withdraw(PartyIdentifierStatus resultingState, Instant occurredAt, String updatedBy) {
+        return copyBuilder().status(resultingState).primary(false).version(version.next())
+                .auditInfo(auditInfo.updated(occurredAt, updatedBy)).build();
     }
 
     private static void validateMetadataPatch(FieldUpdate<String> issuer, FieldUpdate<LocalDate> issueDate,

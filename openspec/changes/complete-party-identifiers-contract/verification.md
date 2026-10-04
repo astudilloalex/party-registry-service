@@ -359,6 +359,52 @@ DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./
 
 Task 3.2 is complete. HTTP PATCH binding/orchestration/persistence remain tasks 9.1–9.3, not inferred from Domain green.
 
+## Task 3.3: Lifecycle Domain green, final gate incomplete
+
+Added `PartyIdentifierLifecycleTest` first with all 15 state/action matrix entries, each exercising both Party types, plus attribution, UTC-midnight/inclusive expiration, no-expiration qualification, past-date withdrawal, retained verification, state/exhaustion precedence and invalid repeats. Initial compile-red identified absent methods. The first immutable transition implementation reached executable red: **20 cases, 15 failures** on missing state gates, qualification and repeat rejection. Added the closed state matrix and validity checks; all cases pass.
+
+`PartyIdentifier.verify` now requires pending state, checks next-version capacity before validity, captures qualification from its supplied instant's UTC date, sets exact accepted verification actor/instant and retains the provisional flag. `reject` permits pending only and `revoke` verified only; both clear flags, increment once, retain all history and permit past expiration. All operations are immutable and preserve creation audit/scope/protection; no external provider, Party operation, event or reason storage occurs in Domain. Shared expiration qualification was extracted privately while metadata regression tests remain green. Provisional-primary arbitration remains task 3.4 and is not claimed here.
+
+Focused red/green commands:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierLifecycleTest --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierLifecycleTest --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierMetadataTest --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierVersionTest --tests com.alexastudillo.partyregistry.CleanArchitectureTest --console=plain
+```
+
+Executable red completed in 12 seconds; focused green/architecture completed in nine seconds. An initial full test/build run then passed (**1,418 tests**, **28 packaged JVM tests**, 5m 41s / 2m 26s); output `~/.local/share/opencode/tool-output/tool_10327bf3c001zGDMzaXQEWLjo6`.
+
+The initial test analysis during compile-red reported a preview-feature runtime warning despite preview disabled. After resolving dependencies and clarifying responsibility Javadoc, a fresh full 1/1 analysis of the final saved test reports **0 issues/Hotspots with no preview warning**. JDTLS independently reports **0 problems**. The source uses stable Java constructs; inspection of the compiled class was also performed. Earlier incomplete-model analysis is not substituted for current evidence.
+
+Final saved aggregate: `df1e41cfd8e18d90f7f8114dccb98cac81249709`. Final test after Javadoc clarification: `ce781a68da1fcbc1be6d44b314e51e4d1c26dad4`. Focused lifecycle rerun on that test revision passes all 20 cases in 12 seconds. Individual current Sonar/JDTLS evidence is linked in the inventory; no compiler warnings or suppressions were introduced.
+
+### Latest full-suite failure
+
+The required full test/build sequence was rerun on the final saved source:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+The shell chained these with `&&`. The test ran **1,418 cases with one failure** and completed BUILD FAILED in **15m 27s**, so the build command did not execute. Output: `~/.local/share/opencode/tool-output/tool_10357f7b60016bOX6YPIVIMO75`.
+
+Failure: existing `LegalEntityDetailsResourceContractTest.typedBindingsAndValidationPrecedenceUseTheSharedErrorEnvelope`, at its fixture creation (`:115`, helper `:395/:426`), expected 201 but received exact `503 dependency-unavailable`. Its XML logs Geographic Reference `outcome=unavailable` for that setup request; later calls in the same class are recognized. Source: `build/test-results/test/TEST-com.alexastudillo.partyregistry.api.resource.LegalEntityDetailsResourceContractTest.xml:4–15,28–33`. No root cause or harmless-flake classification is assumed from those observations. The new lifecycle cases pass in that run.
+
+Task 3.3 remains unchecked until the full-suite failure is reconciled and the required final build gate passes. Native/HTTP lifecycle coverage remains in later tasks.
+
+## Implementation design blocker: issuer representation
+
+Review of subsequent persistence work identified an approved-contract/storage mismatch:
+
+- Maintenance specifies issuer as nullable string, maximum 64 raw UTF-16 units, with exact preservation on correction and no declared character restriction. The approved creation/update schemas have no issuer character pattern. Existing `PartyIdentifierCreateRequest` applies nullable `@Size` only (`:21`); Domain issuer validation likewise does not exclude U+0000.
+- V1 stores `party_identifiers.issuer_code` as `varchar(64)` (`V1__create_party_registry_schema.sql:248`). PostgreSQL text cannot represent U+0000.
+- Existing registration snapshots use JSONB (`V2__create_api_idempotency_records.sql:8`) and include issuer directly (`IdempotencyResultSnapshotCodec.java:269/289`). New historical completion snapshots also require safe issuer retention.
+- The official PostgreSQL 18 JSON documentation explicitly rejects `\u0000` in JSONB because PostgreSQL text cannot represent it, and requires valid surrogate pairs: <https://www.postgresql.org/docs/18/datatype-json.html>. This is confirmed representation documentation plus source inspection, not a claimed new database/runtime test.
+- The approved design explicitly supplies binary UTF-16 storage for exact withdrawal reasons, but supplies no compatible issuer-column/snapshot representation. Silently stripping or rejecting otherwise accepted issuer strings would narrow the specification; preserving them requires extra representation/migration/codec work, including compatibility assessment of initial registration and its retained snapshots.
+
+Implementation pauses before further tasks. Required decision: either authorize design/task updates for compatible exact issuer storage and snapshots, or explicitly constrain issuer input through revised specifications/OpenAPI and validation. No such constraint, schema change, codec change or historical rewrite has been implemented. Historical migrations and the untracked deployment work remain untouched by this agent.
+
 ## Implementation progress
 
 - Task 1.1 baseline verification completed.
@@ -370,5 +416,6 @@ Task 3.2 is complete. HTTP PATCH binding/orchestration/persistence remain tasks 
 - Task 2.3 complete: controlled fixture and safe shared assertion foundation verified.
 - Task 3.1 complete: checked version advancement and immutable audit foundation verified.
 - Task 3.2 complete: immutable partial metadata correction and state/date preservation rules verified.
-- Tasks 3.3–14.6 remain incomplete.
-- Contract/test foundation, checked versions and Domain metadata correction implemented; identifier mutation routes and durable storage remain pending.
+- Task 3.3 Domain behavior and focused checks implemented; latest full-suite failure leaves its final verification incomplete.
+- Tasks 3.3–14.6 remain incomplete; overall **9/59 tasks complete**.
+- Paused on the issuer representation decision and the unexpected existing Geographic Reference setup failure. Identifier mutation routes/durable storage/native execution remain pending.
