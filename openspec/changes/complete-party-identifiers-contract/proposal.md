@@ -20,6 +20,7 @@ Completing this contract allows registry operators to maintain official identity
 - Return the approved success envelopes with matching HTTP/body status, masked identifier data, stable declared failure codes, and sanitized unexpected errors. Never disclose plaintext, ciphertext, lookup hashes, encryption key versions, or internal exception details.
 - Make concurrency failures and rejected operations leave no partial identifier, primary-selection, replay, or enabled-event changes. Preserve registration, natural-person identifier projections, and Party activation evidence compatibility.
 - Complete the affected OpenAPI semantics, examples, and operational documentation so that the published contract and implemented behavior agree.
+- Apply the confirmed optional issuing-entity code rule consistently to initial/additional registration and metadata correction: up to 64 Unicode code points, ASCII letter groups with single underscore separators, uppercase new writes, bounded blank input as null, and no Geographic Reference lookup. Preserve historical stored issuer values and original raw-input fingerprint semantics.
 
 ## User Stories
 
@@ -38,7 +39,7 @@ Completing this contract allows registry operators to maintain official identity
 
 ### Modified Capabilities
 
-None proposed at this stage. Existing `party-registration` and `party-activation` requirements remain compatibility constraints; any agreed behavioral change to them must receive its own delta specification.
+- `party-registration`: add the same confirmed optional initial-identifier issuer validation/canonicalization rule. Party identity, lifecycle, subtype data, protected values, and historical results remain compatibility constraints.
 
 ## Impact
 
@@ -53,7 +54,7 @@ None proposed at this stage. Existing `party-registration` and `party-activation
 ## Out of Scope
 
 - New identifier search, plaintext retrieval, bulk operations, physical deletion, or identifier lifecycle routes beyond those shown in the approved contract.
-- Changes to Party registration requirements, Party lifecycle rules, subtype details, nationalities, or identifier-scheme management beyond necessary compatibility coverage.
+- Changes to Party registration requirements beyond the confirmed issuer metadata rule, or to Party lifecycle rules, subtype details, nationalities, or identifier-scheme management beyond necessary compatibility coverage.
 - External verification-provider integration or a new scheduled expiration workflow.
 - Rewriting historical protected values, creation snapshots, or accepted replay results.
 - Repository-wide architectural restructuring or remediation of unrelated pre-existing quality findings.

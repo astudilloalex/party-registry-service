@@ -337,7 +337,7 @@ Create a scenario evidence map covering all 27 requirements and 87 approved scen
 
 - Domain: full 5-state/3-action matrix, allowed metadata states, omission/null behavior, retained verification/protected value, inclusive expiration, coherent resulting dates, exact one increment, already-primary selection, former-primary exhaustion, and scope invariants. Cover both Party types where compatibility affects behavior.
 - Application with port doubles: replay before live reads/protection, exact equivalence/defaults, failure precedence, one clock capture per new operation, one transaction context, primary plan persistence, audit/event/completion order, and propagation of classified/unknown failures. Use bounded UniAssertSubscriber waits; verify no production manual subscriptions.
-- API mapping/parsers/codecs: raw UTF-16 creation/issuer limits versus code-point query/header/reason limits; exact case-sensitive filters; type-safe versions; closed/duplicate-safe bodies; literal null versus absent optional bodies; byte-exact fingerprints and audit encoding; safe snapshots, scope validation, and cursor authentication/tampering/cross-resource rejection.
+- API mapping/parsers/codecs: raw UTF-16 scheme/value limits versus code-point issuer/query/header/reason limits; issuing-entity structure, uppercase/blank-null new writes and unchanged historical issuer text; exact case-sensitive filters; type-safe versions; closed/duplicate-safe bodies; literal null versus absent optional bodies; byte-exact fingerprints and audit encoding; safe snapshots, scope validation, and cursor authentication/tampering/cross-resource rejection.
 
 Every new/modified valid date fixture uses `java.time.Month`, for example `LocalDate.of(2026, Month.JANUARY, 15)` and a fixed UTC clock derived from that date. Do not hardcode numeric months in constructor calls or bury them in valid timestamp strings. Derive midnight/precision/boundary instants from Month-based dates. Raw malformed wire-date strings are allowed only when the malformed token itself is the behavior being tested. Use leap-year, previous/current/next-day, UTC-midnight, and maximum-version boundaries without sleeps.
 
@@ -387,6 +387,30 @@ openspec validate complete-party-identifiers-contract --strict
 `build` already includes packaged `quarkusIntTest` through `check`. Preserve test/contract/integration source separation. Record necessary Podman socket, dynamic HTTP port, and native container-runtime overrides in evidence; never mark missing native execution or IDE diagnostics as passing. A passing OpenSpec validation checks artifacts, not implementation behavior or static analysis.
 
 ## Decisions
+
+### Decision: Optional canonical issuing-entity code
+
+**Choice:** `issuerCode` is an optional issuing-entity code, not a country. Validate submitted length at
+64 Unicode code points and structure as ASCII letter groups with single underscore separators.
+Normalize valid nonblank new writes with `Locale.ROOT` uppercase; bounded empty/Java-blank input
+becomes null. Do not trim nonblank codes or consult Geographic Reference. Apply the same rule to
+initial/additional registration and supplied metadata corrections. Validation syntax uses existing
+`issuer-code-too-long` and new `issuer-code-invalid` 400 codes; Domain failures remain neutral.
+
+**Rationale:** The developer explicitly confirmed the issuer's meaning and selected these four rules.
+ASCII accepted codes are directly representable in existing text/JSONB storage, resolving the
+unrestricted-issuer representation issue without a new issuer encoding or historical migration.
+
+**Compatibility:** Normalize only new/supplied issuer values. Restoration, omitted metadata,
+verification/withdrawal, historical reads and completed snapshots preserve accepted values.
+Keep original parsed creation strings for fingerprint comparison before write normalization.
+No old fingerprint/snapshot or V1–V7 migration is rewritten. Empty/blank mapping affects the write
+representation; existing exact raw-string retry identity remains unchanged.
+
+**Cutover context:** The user confirms a new database with two existing records whose issuers are null.
+Previously accepted invalid-issuer requests are not a required deployment compatibility case.
+Keep current syntax validation on retries; do not introduce a grandfathering lookup or validation-order
+exception. Stored null issuers, snapshots and fingerprints remain unchanged.
 
 ### Decision: Application-owned transaction workflow with Infrastructure mechanics
 

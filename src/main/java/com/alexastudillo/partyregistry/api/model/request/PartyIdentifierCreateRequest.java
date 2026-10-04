@@ -18,7 +18,7 @@ public record PartyIdentifierCreateRequest(
         @NotBlank(message = "identifier-value-required")
         @Size(max = 256, message = "identifier-value-too-long")
         String value,
-        @Nullable @Size(max = 64, message = "issuer-code-too-long") String issuerCode,
+        @Nullable @ValidIssuerCode String issuerCode,
         @Nullable LocalDate issuedOn,
         @Nullable LocalDate expiresOn,
         boolean isPrimary) {

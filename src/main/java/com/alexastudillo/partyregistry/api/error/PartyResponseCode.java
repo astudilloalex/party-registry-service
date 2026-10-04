@@ -37,6 +37,7 @@ public enum PartyResponseCode implements ApiResponseCode {
     IDENTIFIER_VALUE_REQUIRED("identifier-value-required", 400),
     IDENTIFIER_VALUE_TOO_LONG("identifier-value-too-long", 400),
     ISSUER_CODE_TOO_LONG("issuer-code-too-long", 400),
+    ISSUER_CODE_INVALID("issuer-code-invalid", 400),
     LEGAL_NAME_REQUIRED("legal-name-required", 400),
     LEGAL_NAME_INVALID("legal-name-invalid", 400),
     TRADE_NAME_TOO_LONG("trade-name-too-long", 400),

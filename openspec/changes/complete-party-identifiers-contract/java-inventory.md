@@ -18,7 +18,7 @@ Do not use blanket exclusions, NOSONAR, unjustified suppressions, or weakened nu
 
 ## Changed Java files
 
-The inventory was created before Java edits. Task 2.1 subsequently added the unit-test file below. No production/shared-contract/integration-test Java file or nested type has been changed.
+The first table retains earlier increment revisions. The issuing-entity table below supersedes its rows for files changed by the refinement; unchanged rows remain valid. Both tables cover production, unit-test and shared-contract sources. Native acceptance remains pending.
 
 | Path | Source set | Types, including nested declarations | Task / scenarios | Saved Git blob | Sonar completion / findings / evidence | JDTLS completion / diagnostics / evidence | Focused red / green / refactor evidence | Full test / build evidence |
 |---|---|---|---|---|---|---|---|---|
@@ -39,3 +39,45 @@ The inventory was created before Java edits. Task 2.1 subsequently added the uni
 ## Baseline reference (not a changed file)
 
 The existing `PartyIdentifierResource` baseline blob and actual standalone Sonar/JDTLS execution are recorded in `verification.md`, task 1.1. They do not satisfy analysis of future saved revisions.
+
+## Current issuing-entity refinement revisions
+
+Paths below are relative to `src/`; every named file has responsibility Javadoc. Only `PartyIdentifier.Builder` is nested among these refinement types. The unchanged lifecycle test additionally has its nested `Action` enum as listed above.
+
+Sonar evidence uses `~/.config/Antigravity IDE/logs/20261003T114758/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log` (**S**). Independent JDTLS evidence uses the workspace `.metadata/.log` path recorded in `verification.md` (**J**). Each S range includes input-file identity, Java 25/571-rule configuration, full 1/1 completion and **0 issues/Hotspots**; each J range reports **0 problems**. Earlier findings on the normalizer regex and unused test context were followed by fixed-revision zero analyses, with no rule/configuration changes.
+
+| Path / type | Task | Saved Git blob | Sonar result timestamp / lines | JDTLS result timestamp / lines |
+|---|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/domain/model/PartyIdentifier.java`; `PartyIdentifier`, `Builder` | 2.4, 3.2–3.3 | `01ed5635b15e86f2b2d0f732afb910a489d4608a` | 16:34:45.633; S1351–1381 | 17:23:30.719; J19500–19510 |
+| `main/java/com/alexastudillo/partyregistry/domain/error/DomainViolation.java`; `DomainViolation` | 2.4 | `31a21c22c9e5e9c803915c965140db36c7208876` | 17:23:28.779; S1450–1480 | 17:23:23.931; J19485–19498 |
+| `main/java/com/alexastudillo/partyregistry/domain/normalization/IssuerCodeNormalization.java`; `IssuerCodeNormalization` | 2.4 | `1d63a3a7ebe83be1ac6df0b549f2fd1879933742` | 17:19:48.720; S1419–1449 | 18:07:04.664; J19874–19884 |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/ValidIssuerCode.java`; `ValidIssuerCode` annotation | 2.4 | `38a03ba56b74321cd520cde7dcccb3f7c4f488d9` | 17:23:39.666; S1481–1511 | 17:23:36.726; J19512–19525 |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/IssuerCodeValidator.java`; `IssuerCodeValidator` | 2.4 | `bb92b847bc42ba04d9eea80b2432764cf32eac98` | 18:09:05.538; S2014–2044 | 18:09:54.810; J19937–19947 |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/InitialPartyIdentifierCreateRequest.java`; same-named record | 2.4 | `fa8df4342dcaa668cd0a78ed9128e75d8ce969e5` | 17:23:53.370; S1543–1573 | 17:23:51.310; J19542–19555 |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierCreateRequest.java`; same-named record | 2.4 | `b915a11ed56a24a4fcb32b7254e0f5dd2add0192` | 17:23:59.475; S1574–1604 | 17:23:56.049; J19557–19570 |
+| `main/java/com/alexastudillo/partyregistry/api/error/PartyResponseCode.java`; `PartyResponseCode` enum | 2.4 | `7c8b9c8a9c58749610ca510ad2140722f1ef4d3c` | 17:24:04.031; S1605–1635 | 17:24:00.049; J19572–19585 |
+| `test/java/com/alexastudillo/partyregistry/domain/normalization/IssuerCodeNormalizationTest.java`; same-named class | 2.4 | `323bfbef0fec785ee47687c24a339e3609952e8c` | 17:24:09.780; S1636–1666 | 17:24:08.315; J19587–19600 |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/IssuerCodeRequestValidationTest.java`; same-named class | 2.4 | `e2bed0a472ed0b3f01bfbf576a6eeac6bed33224` | 18:08:36.827; S1983–2013 | 18:11:01.220; J19949–19959 |
+| `test/java/com/alexastudillo/partyregistry/domain/model/IssuerCodeWriteTest.java`; same-named class | 2.4, 3.2 | `7f3393cc426d0dfc34c982b11d4bebf75689eca1` | 17:24:24.598; S1698–1728 | 17:24:22.623; J19617–19630 |
+| `test/java/com/alexastudillo/partyregistry/domain/model/PartyIdentifierMetadataTest.java`; same-named class | 3.2 | `082dc9e5f1dea0a63848bed21f9a39628e0de876` | 17:24:32.116; S1729–1759 | 17:24:28.949; J19632–19645 |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyRequestDtoTest.java`; same-named class | 2.4 compatibility | `b85b1cec3173768f33f97b4bfc97d1a7bdcefccf` | 17:24:37.880; S1760–1790 | 17:24:35.143; J19711–19718 |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/NaturalPersonRequestTest.java`; same-named class | 2.4 compatibility | `adbd8db3370c2154a73e521cc38e1c6d5ff93ee8` | 17:24:47.067; S1791–1821 | 17:24:43.950; J19784–19791 |
+| `test/java/com/alexastudillo/partyregistry/api/resource/IssuerCodeResourceContractTest.java`; same-named class | 2.4; R01–R03 | `425089c2cc3d4161f1e579899b3193c5ae0a0cb3` | 18:09:39.889; S2045–2075 | 18:09:39.589; J19925–19935 |
+| `test/java/com/alexastudillo/partyregistry/PartyIdentifierOpenApiStructureTest.java`; same-named class | 2.1 | `04bbc17f9b9fabee07fc973bce269260f901dda7` | 17:58:23.604; S1921–1951 | 17:58:23.205; J19856–19872 |
+| `test/java/com/alexastudillo/partyregistry/PartyIdentifierOpenApiExamplesTest.java`; same-named class | 2.2 | `5e4f39ce53ca9325cc6fb17f7426f2143f137ca7` | 18:07:34.094; S1952–1982 | 18:07:33.892; J19886–19899 |
+
+Focused executable red/green and final full/package evidence is recorded in `verification.md`, issuing-entity continuation. Final JVM gates: **1,434 tests and 28 packaged tests, zero failures/skips**. The unchanged lifecycle-test blob remains `ce781a68da1fcbc1be6d44b314e51e4d1c26dad4`; its earlier source analysis is retained, and its 20 cases pass in this final full run. Native behavior is not inferred from these JVM gates.
+
+JDTLS's Microsoft Java test-discovery delegate logged an internal `UnresolvedAnnotationBinding` NullPointerException while discovering the two existing DTO test classes at 17:24:34/43. Their document validations separately completed with zero problems and Sonar completed full analysis; Gradle compiled and executed them. This is retained as an IDE test-discovery diagnostic, not claimed as a source compiler warning or concealed by a setting change.
+
+## Task 3.4 current revisions
+
+This table supersedes the issuing-entity rows for the aggregate and violation enum. All five files have responsibility/contract Javadoc; no new nested types were added. S/J refer to the same logs above, and each analysis completed on 2026-10-03 with **0 issues/Hotspots / 0 source problems**. All eight new policy/plan cases and metadata/lifecycle/architecture regression checks pass. Full test and build each execute **1,442 tests**; packaged build additionally executes **28 JVM tests**, with zero failures/skips. See `verification.md` task 3.4 for red/green commands and separate gate durations.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/domain/model/PartyIdentifier.java`; `PartyIdentifier`, `Builder` | `95ba0a29cada11e847b1b7815fa68cf2ed1e82eb` | 18:29:18.070; S2217–2247 | 18:29:17.430; J19985–19995 |
+| `main/java/com/alexastudillo/partyregistry/domain/error/DomainViolation.java`; enum | `4d78cf113b525ee7dff8037c5b34a66303071c47` | 18:27:48.558; S2186–2216 | 18:27:48.220; J19973–19983 |
+| `main/java/com/alexastudillo/partyregistry/domain/model/PartyIdentifierPrimaryPlan.java`; record | `00050f12b9da8345c0b2ee8d786bb9c033515028` | 18:32:57.552; S2279–2309 | 18:32:57.513; J20012–20025 |
+| `main/java/com/alexastudillo/partyregistry/domain/policy/PartyIdentifierPrimaryPolicy.java`; class | `6695daf3cae71426a7456d4fea5828014623287c` | 18:30:49.916; S2248–2278 | 18:30:50.086; J19997–20010 |
+| `test/java/com/alexastudillo/partyregistry/domain/policy/PartyIdentifierPrimaryPolicyTest.java`; class | `4fb1ce4fa7ea3fd4e0cb269149cbc815c11232e3` | 18:33:24.286; S2310–2340 | 18:33:23.168; J20027–20040 |

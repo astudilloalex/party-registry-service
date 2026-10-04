@@ -3402,6 +3402,7 @@ components:
             missingValue: { value: { status: 400, code: identifier-value-required } }
             longValue: { value: { status: 400, code: identifier-value-too-long } }
             longIssuer: { value: { status: 400, code: issuer-code-too-long } }
+            invalidIssuer: { value: { status: 400, code: issuer-code-invalid } }
             emptyPatch: { value: { status: 400, code: patch-property-required } }
             invalidParty: { value: { status: 400, code: party-id-invalid } }
             missingKey: { value: { status: 400, code: idempotency-key-required } }
@@ -3632,7 +3633,9 @@ components:
         - `identifier-scheme-code-required`, `identifier-value-required`: `identifierSchemeCode`
           or `value` is missing, null, or blank in an initial or additional identifier.
         - `identifier-scheme-code-too-long`, `identifier-value-too-long`, `issuer-code-too-long`:
-          the corresponding identifier property exceeds 64, 256, or 64 characters, respectively.
+          scheme/value exceed 64/256 raw UTF-16 units, or issuer exceeds 64 Unicode code points.
+        - `issuer-code-invalid`: supplied nonblank issuing-entity metadata is not ASCII letter groups
+          with single underscore separators. Null or bounded empty/Java-blank issuer input is valid.
         - `legal-name-required`: `legalName` is missing, null, or blank on legal-entity creation
           or PUT; on legal-entity PATCH, this rule applies only to a submitted legalName.
         - `legal-name-invalid`: `legalName` falls outside the 1-300 character length range.
@@ -3688,6 +3691,12 @@ components:
               value:
                 status: 400
                 code: bad-request
+            invalidIssuer:
+              summary: Invalid issuing-entity code, not a country-validation failure
+              value: { status: 400, code: issuer-code-invalid }
+            oversizedIssuer:
+              summary: Submitted issuing-entity code exceeds 64 Unicode code points
+              value: { status: 400, code: issuer-code-too-long }
             requiredTenant:
               summary: Process-Id is valid but Tenant-Id is missing
               value:
@@ -5451,9 +5460,13 @@ components:
         Strict object: reject duplicate/unknown properties, incompatible types, scalar coercion,
         trailing content and impossible ISO calendar dates with 400 bad-request.
         Missing/null body gives request-body-required. Missing/null/blank required strings use
-        identifier-scheme-code-required or identifier-value-required. Raw field maxima are 64/256/64
-        UTF-16 units for scheme/value/issuer before normalization, using identifier-scheme-code-too-long,
-        identifier-value-too-long or issuer-code-too-long on overflow. Required-rule violations precede
+        identifier-scheme-code-required or identifier-value-required. Raw scheme/value maxima are 64/256
+        UTF-16 units before normalization, using identifier-scheme-code-too-long,
+        identifier-value-too-long on overflow. Issuer is optional issuing-entity metadata, not a country,
+        bounded to 64 Unicode code points before canonicalization; overflow uses issuer-code-too-long
+        and invalid structure uses issuer-code-invalid. Valid nonblank ASCII letter groups separated
+        by single underscores are uppercased with no trimming. Bounded empty/Java-blank input writes
+        null, as do omission/null. No issuer Geographic Reference lookup occurs. Required-rule violations precede
         property-name order, then rule-code order. Nullable metadata accepts omission or null;
         isPrimary defaults only when omitted and otherwise requires a nonnull JSON boolean.
         Expiration is optional for all document types, including national IDs, tax IDs, and passports.
@@ -5481,6 +5494,17 @@ components:
           type: string
           maxLength: 64
           nullable: true
+          description: >-
+            Optional issuing-entity code, maximum 64 Unicode code points before normalization.
+            ASCII letter groups with single underscore separators, for example civil_registry,
+            write as CIVIL_REGISTRY. Bounded empty/Java-blank input writes null; nonblank text is not
+            trimmed. Invalid separators, digits, non-ASCII letters, controls or nonblank whitespace
+            use 400 issuer-code-invalid. This is not an ISO country and is not looked up geographically.
+          anyOf:
+            - pattern: '^[A-Za-z]+(?:_[A-Za-z]+)*$'
+              not:
+                pattern: '[^A-Za-z_]'
+            - pattern: '^[\t-\r\u001C-\u001F \u1680\u2000-\u2006\u2008-\u200A\u2028\u2029\u205F\u3000]*$'
         issuedOn:
           type: string
           format: date
@@ -5498,11 +5522,15 @@ components:
       type: object
       description: >-
         Strict nonempty metadata-only object. Omitted fields retain stored values; null clears nullable
-        metadata. Issuer is preserved exactly without trimming/case conversion, maximum 64 raw UTF-16
-        units. Dates are valid ISO calendar strings or null; validate the resulting retained/new interval.
+        metadata. Supplied issuer codes follow the issuing-entity grammar: ASCII letter groups with
+        single underscores, maximum 64 Unicode code points, uppercase new writes without trimming.
+        Bounded empty/Java-blank input clears the issuer. Omitted historical issuer values remain
+        unchanged. Scheme/value creation inputs keep their separate raw UTF-16 bounds.
+        Dates are valid ISO calendar strings or null; validate the resulting retained/new interval.
         Reject duplicate/unknown properties, incompatible types/coercion, trailing content or impossible
         dates with 400 bad-request. Missing/null body gives request-body-required, empty object gives
-        patch-property-required, oversized issuer gives issuer-code-too-long. Never accept identity,
+        patch-property-required, oversized issuer gives issuer-code-too-long, invalid issuer structure
+        gives issuer-code-invalid. Never accept identity,
         value, scheme, status, flags, verification, versions or audit through this body.
       additionalProperties: false
       minProperties: 1
@@ -5511,6 +5539,16 @@ components:
           type: string
           maxLength: 64
           nullable: true
+          description: >-
+            Supplied issuing-entity code, not country metadata. At most 64 Unicode code points;
+            ASCII letter groups separated by single underscores write uppercase. Null or bounded
+            empty/Java-blank text clears it; omission preserves stored text. No nonblank trimming
+            or Geographic Reference lookup. Invalid structure uses 400 issuer-code-invalid.
+          anyOf:
+            - pattern: '^[A-Za-z]+(?:_[A-Za-z]+)*$'
+              not:
+                pattern: '[^A-Za-z_]'
+            - pattern: '^[\t-\r\u001C-\u001F \u1680\u2000-\u2006\u2008-\u200A\u2028\u2029\u205F\u3000]*$'
         issuedOn:
           type: string
           format: date

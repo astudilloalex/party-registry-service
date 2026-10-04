@@ -1,6 +1,6 @@
 # Party Identifier Scenario Evidence Map
 
-This map covers the 27 approved requirements and 87 scenarios. Titles are copied from the approved specifications; test boundaries and task references are plans, not passing evidence. Every row starts pending. Update evidence only after the relevant saved source has executable test results and the required IDE diagnostics. Final acceptance also requires packaged/native coverage where applicable.
+This map originally covered 27 Q/M/L requirements and 87 scenarios. The confirmed issuing-entity refinement adds one R requirement and three scenarios, for 28 requirements and 90 scenarios. Titles are copied from the approved specifications; test boundaries and task references are plans, not passing evidence. Every row starts pending. Update evidence only after the relevant saved source has executable test results and the required IDE diagnostics. Final acceptance also requires packaged/native coverage where applicable.
 
 Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [maintenance](specs/party-identifier-maintenance/spec.md), **L** = [lifecycle](specs/party-identifier-lifecycle/spec.md). Each group heading is the exact source requirement title. Boundary abbreviations: **contract** = static OpenAPI/schema checks; **domain** = pure aggregate/policy tests; **application** = workflow/port-double tests; **API** = parser/mapper tests; **DB** = real reactive PostgreSQL tests; **HTTP** = live resource tests; **packaged/native** = actual executable integration tests. Task references use the numeric IDs in `tasks.md`.
 
@@ -225,6 +225,16 @@ Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [mai
 | L26 | Competing distinct actions cannot both use one version | coordinated DB/HTTP, audit/outbox | 7.4–7.7, 12.1 | Pending |
 | L27 | Late failure rolls back the whole lifecycle outcome | transaction context, DB/HTTP fault injection | 7.7, 12.3 | Pending |
 | L28 | Verification feeds existing activation without changing its policy | application, DB, HTTP compatibility, packaged/native | 10.2–10.3, 12.6, 13.1, 14.4 | Pending |
+
+## R: Initial identifier issuer metadata is canonical issuing-entity code
+
+Source: [party-registration issuer refinement](specs/party-registration/spec.md).
+
+| ID | Source scenario title | Planned boundaries | Tasks | Evidence |
+|---|---|---|---|---|
+| R01 | Optional issuer and blank issuer produce no stored value | Domain, API, application, HTTP, packaged/native | 2.4, 12.6, 13.1, 14.4 | Pending |
+| R02 | Lowercase issuing-entity code is canonicalized | Domain, API, application, fingerprint compatibility, HTTP, packaged/native | 2.4, 7.1, 12.6, 13.1–13.2, 14.4 | Pending |
+| R03 | Invalid issuer fails before registration side effects | Domain, API, HTTP preservation, packaged/native | 2.4, 12.6, 13.1, 14.4 | Pending |
 
 ## Evidence entry convention
 

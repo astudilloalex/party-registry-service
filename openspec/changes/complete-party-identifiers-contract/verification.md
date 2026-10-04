@@ -405,7 +405,32 @@ Review of subsequent persistence work identified an approved-contract/storage mi
 
 Implementation pauses before further tasks. Required decision: either authorize design/task updates for compatible exact issuer storage and snapshots, or explicitly constrain issuer input through revised specifications/OpenAPI and validation. No such constraint, schema change, codec change or historical rewrite has been implemented. Historical migrations and the untracked deployment work remain untouched by this agent.
 
-## Implementation progress
+## User clarification: optional issuing-entity code
+
+The user retracted the interim country interpretation and confirmed that `issuerCode` is an optional
+issuing-entity code, for example `CIVIL_REGISTRY` or another issuer code. It is not an ISO alpha-2
+country and does not acquire Geographic Reference validation. Omission/null and the approved
+64-UTF-16-unit input limit retain their existing meaning. No new alphabet, case conversion,
+catalog-membership rule, or character restriction is inferred from those examples.
+
+The country reinterpretation was cancelled before any specification, OpenAPI, or Java changes for
+it were applied. Both unstaged and staged diffs for the identifier request models, preparation
+coordinator, and OpenAPI contain no country reinterpretation edits. No code rollback was necessary.
+Previously implemented identifier work is not reverted by this clarification.
+
+The separate existing legal-entity setup test was rerun in isolation with the same Podman/dynamic-port
+environment and passed in 34 seconds:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests 'com.alexastudillo.partyregistry.api.resource.LegalEntityDetailsResourceContractTest.typedBindingsAndValidationPrecedenceUseTheSharedErrorEnvelope' --console=plain
+```
+
+This targeted pass does not replace the failed full-suite result or establish its root cause. No
+issuer-country validation code or country-recognition failures were added. The original storage
+representation question for unrestricted issuer strings has not been resolved by imposing an
+undeclared restriction; full verification and remaining implementation tasks remain pending.
+
+## Historical progress before the confirmed refinement
 
 - Task 1.1 baseline verification completed.
 - Task 1.2 effective installed rule research completed.
@@ -419,3 +444,94 @@ Implementation pauses before further tasks. Required decision: either authorize 
 - Task 3.3 Domain behavior and focused checks implemented; latest full-suite failure leaves its final verification incomplete.
 - Tasks 3.3–14.6 remain incomplete; overall **9/59 tasks complete**.
 - Paused on the issuer representation decision and the unexpected existing Geographic Reference setup failure. Identifier mutation routes/durable storage/native execution remain pending.
+
+## Issuing-entity continuation: tasks 2.1, 2.2, 2.4 and Domain gates
+
+The subsequent explicit user decision supersedes the unrestricted-issuer discussion above: issuer is optional issuing-entity metadata, ASCII letter groups with single underscores, uppercase new writes without trimming, bounded Java-blank input as null, maximum **64 Unicode code points before normalization**, and no Geographic Reference validation. Proposal/design/deltas now reflect this rule; the source map contains **28 requirements / 90 scenarios**. No issuer binary storage or migration rewrite is needed for the accepted alphabet.
+
+### Implementation and compatibility
+
+- `IssuerCodeNormalization` validates new/supplied input and uses `Locale.ROOT`. A linear ASCII scanner replaces the initial regex after local Sonar reported a finding; the saved scanner revision has completed zero-finding analysis.
+- Both creation DTOs share `@ValidIssuerCode`. The validator reports exceeded length before structure, retains original parsed strings, and does not canonicalize fingerprint input. A 64-code-point supplementary string is structurally invalid, not oversized; a 65-code-point supplementary string is oversized.
+- `PartyIdentifier.Builder.created` activates new-write canonicalization. Restoration does not apply the new alphabet; omitted correction, verification and withdrawal preserve historical issuer text. Supplied correction canonicalizes or clears only that field.
+- Existing creation mapper/preparation/fingerprint/snapshot paths were inspected; no raw-input fingerprint format or stored snapshot codec was changed. Existing fingerprint, snapshot, persistence and registration compatibility suites pass. HTTP retry with `civil_registry` replays its original result, while changing only its raw representation to `CIVIL_REGISTRY` conflicts.
+- OpenAPI includes the nullable ASCII/Java-blank alternatives, code-point bound, canonical-write semantics and unchanged historical response schema. New schema assertions reject NUL, non-ASCII letters, malformed underscores, nonblank spaces, newline suffixes and oversized inputs. Initial and additional registration/correction error examples declare both issuer codes.
+- The existing registration resource still explicitly returns `Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>>`, maps Application result to API DTO, and uses CDI `ResponseManager` for 201. Current HTTP checks verify matching status/code/data and accepted Process-Id; field syntax precedes path/business evaluation. The new mutation routes remain later tasks.
+
+### Executable evidence and fixture diagnosis
+
+The earlier normalization/DTO and Domain-write red runs are followed by green focused checks. In this continuation, new example coverage reached executable red: **33 tests, one failure** because the shared initial-registration 400 response lacked the oversized-issuer example. Added that declared example; schema/example checks subsequently pass. The new issuer HTTP failure was a test-fixture context mismatch: its random tenant/operator tuple was not authorized in the strict geographic stub. The test now registers exactly its tuple with a scoped cleanup handle. Counts prove that only legal incorporation country EC is queried, never issuer, and additional registration adds no country call. Initial syntax failures for both Party types make no country call.
+
+The separate earlier legal-detail first-request 503 passed in the 33-case focused run and both subsequent full runs. Its historical cause remains undetermined; this is not relabeled as a harmless flake, nor corrected by increasing timeouts, retries or weakening assertions. Neither its Java source nor production Geographic Reference code was changed.
+
+An added length/structure-precedence case reached executable red independently: **2 DTO tests, one failure** for 65 supplementary code points producing both issuer violations. Fixed the validator to emit only `issuer-code-too-long` before alphabet validation; final HTTP assertions verify that code on both initial Party types. This is behavior evidence, separate from environmental setup failures.
+
+Focused commands (same Podman/dynamic-port environment as below):
+
+```bash
+./gradlew test --tests com.alexastudillo.partyregistry.PartyIdentifierOpenApiStructureTest --tests com.alexastudillo.partyregistry.PartyIdentifierOpenApiExamplesTest --tests com.alexastudillo.partyregistry.api.resource.IssuerCodeResourceContractTest --tests com.alexastudillo.partyregistry.api.resource.LegalEntityDetailsResourceContractTest --console=plain
+./gradlew test --tests com.alexastudillo.partyregistry.api.model.request.IssuerCodeRequestValidationTest --console=plain
+./gradlew test --tests com.alexastudillo.partyregistry.api.model.request.IssuerCodeRequestValidationTest --tests com.alexastudillo.partyregistry.api.resource.IssuerCodeResourceContractTest --tests com.alexastudillo.partyregistry.PartyIdentifierOpenApiStructureTest --tests com.alexastudillo.partyregistry.PartyIdentifierOpenApiExamplesTest --console=plain
+```
+
+The first red run completed in 54s, precedence red in 9s, and final focused green (**24 cases**) in 32s. Original fixture assertions about spaces and raw mixed-case correction were reconciled with the confirmed contract, without weakening scheme/value, date, lifecycle or audit checks.
+
+Final required gates after the last Java change:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: **BUILD SUCCESSFUL in 5m 52s**, **1,434 tests, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 2m 34s**, tests up-to-date and **28 packaged JVM tests, zero failures/skips**.
+- Combined captured output: `~/.local/share/opencode/tool-output/tool_1040af508001jKiUB1M7ILpE1D`.
+- Before the additional precedence fix, a full 1,433-case test run passed in 5m 38s (`tool_103ff59ac001aEBAExmgh7io5G`), followed by a passing build in 2m 18s. Those results are historical, not substituted for the final revision.
+- Current saved-file inventory records all 17 refinement Java files with exact blobs, full Sonar completion/zero findings and independent JDTLS zero source problems. No new compiler warnings, suppressions or rule exclusions were introduced. Existing runtime duplicate-meter, injected SQL/error and cancellation-cleanup diagnostics remain visible and separately recorded.
+- `git diff --check` and `openspec validate complete-party-identifiers-contract --strict` pass. Existing V1–V7 and response-contract library ownership remain intact. Native/new mutation HTTP acceptance remains pending in its designated tasks.
+
+Task 2.1 contract refinement and 2.2 examples can now be reclosed. Task 2.4 issuer behavior is verified for existing creation and Domain correction/history boundaries. Task 3.2 supplied/omitted issuer correction is reverified; task 3.3's Domain matrix final test/build gate now passes. Each checkbox is updated only after its recorded current quality gates.
+
+## Task 3.4: Scoped primary eligibility and complete immutable plans
+
+Wrote `PartyIdentifierPrimaryPolicyTest` first. Compile-red in 5s identified absent policy/plan and neutral primary-conflict vocabulary. A runnable initial selection/verification skeleton reached **7/7 executable failures in 15s**, covering missing eligibility, checked increments, scoped conflicts, replacement consent and former-version exhaustion. Added aggregate `selectPrimary`/`demotePrimary` and policy orchestration. A separate plan-constructor invariant case then reached **1/8 executable failures in 10s**; the compact constructor now rejects incomplete flags, duplicate identity and cross-scope pairs before persistence can observe a plan. No skeleton remains in saved production code.
+
+The policy checks target state, checked next version and UTC validity before scoped primary conflicts. An already-primary target advances once. Explicit replacement validates both immutable candidates using the same actor/instant; past-date former primaries can be demoted, maximum former version rejects the whole plan, and unrelated/provisional/nonprimary records are not displaced. Verification retains provisional flags only when no different scoped verified primary exists; nonprimary verification is independent, and expired-by-date existing primaries still conflict. The aggregate and originals retain protected-value identity, issuer/date metadata, verification and creation audit. Plan data contains at most two same-tenant/Party/scheme identifiers. Domain stays synchronous and free of framework, HTTP, persistence and logging dependencies.
+
+Focused final regression command:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.domain.policy.PartyIdentifierPrimaryPolicyTest --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierLifecycleTest --tests com.alexastudillo.partyregistry.domain.model.PartyIdentifierMetadataTest --tests '*CleanArchitectureTest' --console=plain
+```
+
+Focused green passes the eight new cases, existing metadata/lifecycle and both architecture suites in **1m 39s**. Fixtures derive dates/instants from the Month-based shared fixture; no new numeric-month date literal or synchronous production wait was introduced.
+
+Required final commands used the same environment/deadline and ran sequentially:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: **BUILD SUCCESSFUL in 5m 18s**, **1,442 tests, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 8m 12s**, full tests execute again and **28 packaged JVM tests pass without failures/skips**.
+- Output: `~/.local/share/opencode/tool-output/tool_1041f5083001g1v43RHbt6QBRV`, success markers at lines 4763 and 9541; both test executions are recorded, not collapsed into one duration.
+- `java-inventory.md` records all five saved blobs with full zero-finding Sonar and independent zero-problem JDTLS validation. `git diff --check` passes; no compiler warnings, suppressions or exclusions were introduced. Existing timeout/cancellation and failure-injection runtime diagnostics remain visible.
+
+Task 3.4 Domain behavior is complete. Database demotion-before-promotion, scope locking/races, API translation and HTTP primary routes remain tasks 4.3, 7.4–7.5, 10–12; this Domain increment does not claim those outcomes.
+
+## Compatibility decision before task 4.1: replay of a previously accepted issuer
+
+Review of the existing registration specification before defining effective request/replay contracts reveals an outcome that needs explicit reconciliation:
+
+- `openspec/specs/party-registration/spec.md:233–275` requires the original 201 result for an equivalent completed Party-registration request, including original initial-identifier data. It has no migration-cutover exception for old issuer metadata.
+- The approved refinement requires invalid issuer structure to return `400 issuer-code-invalid` and preserves historical stored text, snapshots and raw fingerprint identity. A previously accepted issuer such as `legacy-authority` is now invalid under the new alphabet.
+- `NaturalPersonResource.java:179–193` validates the nested DTO before constructing the original-input command; `CreateNaturalPersonUseCase.java:87–95` looks up completion only after receiving that command. Thus a retry with the exact old key/raw issuer is rejected before the existing saved result can be considered. Legal registration has the same validation boundary. Replacing the raw issuer with a new canonical code would instead change fingerprint identity, so it cannot recover the old result equivalently.
+
+This is a source/specification compatibility finding, not a claimed seeded historical HTTP test. Existing tests prove current invalid-issuer 400 behavior, historical Domain restoration and current-valid-input replay; they do not decide this pre-cutover case. Stored snapshots and fingerprints have not been rewritten.
+
+Pause before adding task 4.1 Application contracts. Task 2.4 is reopened until the user explicitly chooses whether current issuer syntax applies to every retry (old invalid text gives 400 while retained data remains intact), or whether an equivalent pre-cutover completion must still return its original 201 (requiring a narrow issuer-validation/replay-order exception and a historical HTTP regression). Do not silently introduce either migration exception or weakened replay guarantee. Overall acceptance remains **11/60** after reopening; Domain task 3.4 is independently verified.
+
+### User resolution
+
+The user confirms this is a new database with only **two existing records, both with null issuer**. This is user-supplied deployment context, not a claimed inspection of the live database. Consequently the hypothetical previously accepted invalid-issuer completion is not a required cutover case. Retain the specified current-request grammar and existing syntax-before-replay boundary, preserve stored null issuer/snapshots/fingerprints, and add no legacy admission exception, rewrite, or migration. No Java change is needed for this clarification. The previously passing saved-revision gates remain valid; task 2.4 is closed again and overall progress is **12/60**. Resume task 4.1.
