@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry;
 
 import com.alexastudillo.partyregistry.contract.IdentifierSchemeContractValidator;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -104,6 +105,37 @@ class PartyIdentifierOpenApiExamplesTest {
             if (action.equals("verify") || action.equals("set-primary")) expected.add("primary-identifier-conflict");
             assertEquals(expected, codes(operation, "409"), action);
             assertEquals(Set.of("expected-version-mismatch"), codes(operation, "412"), action);
+        }
+    }
+
+    @Test
+    void issuerSchemasAcceptOptionalBlankAndAsciiCodesButRejectInvalidSubmittedText() {
+        var mapper = new ObjectMapper();
+        for (String schema : List.of("PartyIdentifierCreateRequest", "PartyIdentifierUpdateRequest")) {
+            ObjectNode body = mapper.createObjectNode();
+            if (schema.equals("PartyIdentifierCreateRequest")) {
+                body.put("identifierSchemeCode", "TEST_NATURAL_ACTIVE");
+                body.put("value", "EXAMPLE123");
+            }
+            body.putNull("issuerCode");
+            validator.assertSchema(schema, body);
+            for (String accepted : List.of("", "\t\n", "\u2003", "civil_registry", "A".repeat(64))) {
+                body.put("issuerCode", accepted);
+                validator.assertSchema(schema, body);
+            }
+            for (String invalid : List.of("_REGISTRY", "REGISTRY_", "CIVIL__REGISTRY", "REGISTRY1", "REGÍSTRY",
+                    "REG\0ISTRY", " registry ", "registry\n", "A".repeat(65), " ".repeat(65))) {
+                body.put("issuerCode", invalid);
+                assertThrows(AssertionError.class, () -> validator.assertSchema(schema, body), invalid);
+            }
+        }
+    }
+
+    @Test
+    void creationAndCorrectionDeclareIssuerSyntaxErrorsWithSafeExamples() {
+        for (Operation operation : List.of(api.getPaths().get(ROOT).getPost(), api.getPaths().get(ITEM).getPatch(),
+                api.getPaths().get("/v1/natural-person").getPost(), api.getPaths().get("/v1/legal-entity").getPost())) {
+            assertTrue(codes(operation, "400").containsAll(Set.of("issuer-code-invalid", "issuer-code-too-long")));
         }
     }
 

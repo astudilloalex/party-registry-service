@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.domain.model;
 
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
+import com.alexastudillo.partyregistry.domain.normalization.IssuerCodeNormalization;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,8 +40,9 @@ public final class PartyIdentifier {
                 "Identifier scheme ID is required");
         this.protectedValue = require(builder.protectedValue, DomainViolation.PROTECTED_IDENTIFIER_VALUE_REQUIRED,
                 "Protected identifier value is required");
-        validateRegistrationMetadata(builder.issuerCode, builder.issuedOn, builder.expiresOn);
-        this.issuerCode = builder.issuerCode;
+        validateIssuerCode(builder.issuerCode);
+        validateValidityDates(builder.issuedOn, builder.expiresOn);
+        this.issuerCode = builder.newWrite ? IssuerCodeNormalization.forWrite(builder.issuerCode) : builder.issuerCode;
         this.issuedOn = builder.issuedOn;
         this.expiresOn = builder.expiresOn;
         this.primary = builder.primary;
@@ -80,7 +82,7 @@ public final class PartyIdentifier {
             String issuerCode,
             LocalDate issuedOn,
             LocalDate expiresOn) {
-        validateIssuerCode(issuerCode);
+        IssuerCodeNormalization.validateSubmitted(issuerCode);
         validateValidityDates(issuedOn, expiresOn);
     }
 
@@ -112,14 +114,10 @@ public final class PartyIdentifier {
                     "Identifier metadata cannot be corrected in its current state");
         }
         var nextVersion = version.next();
-        String nextIssuer = issuer.isPresent() ? issuer.value() : issuerCode;
+        String nextIssuer = issuer.isPresent() ? IssuerCodeNormalization.forWrite(issuer.value()) : issuerCode;
         LocalDate nextIssue = issueDate.isPresent() ? issueDate.value() : issuedOn;
         LocalDate nextExpiration = expiration.isPresent() ? expiration.value() : expiresOn;
-        if (issuer.isPresent() && nextIssuer != null && nextIssuer.length() > MAX_ISSUER_CODE_LENGTH) {
-            throw new DomainValidationException(DomainViolation.IDENTIFIER_ISSUER_CODE_TOO_LONG,
-                    "Submitted identifier issuer code exceeds the maximum length");
-        }
-        validateRegistrationMetadata(nextIssuer, nextIssue, nextExpiration);
+        validateValidityDates(nextIssue, nextExpiration);
         Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
                 "Identifier modification timestamp is required");
         validateQualification(nextExpiration, operationInstant);
@@ -171,6 +169,50 @@ public final class PartyIdentifier {
     public PartyIdentifier revoke(Instant occurredAt, String updatedBy) {
         requireState(PartyIdentifierStatus.VERIFIED);
         return withdraw(PartyIdentifierStatus.REVOKED, occurredAt, updatedBy);
+    }
+
+    /**
+     * Selects usable verified evidence, including an already-primary target, at exactly its next version.
+     * Cross-identifier ownership is coordinated by the primary policy before persistence.
+     *
+     * @param occurredAt one modification instant defining UTC qualification
+     * @param updatedBy accepted operator identity
+     * @return immutable selected evidence with all verification and protected history retained
+     * @throws DomainValidationException when state, version, validity or audit prevents selection
+     */
+    public PartyIdentifier selectPrimary(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.VERIFIED);
+        var nextVersion = version.next();
+        Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
+                "Identifier selection timestamp is required");
+        validateValidityDates(issuedOn, expiresOn);
+        validateQualification(expiresOn, operationInstant);
+        return copyBuilder().primary(true).version(nextVersion)
+                .auditInfo(auditInfo.updated(operationInstant, updatedBy)).build();
+    }
+
+    /**
+     * Demotes a verified primary as part of an explicit replacement, even when its expiration is past.
+     *
+     * @param occurredAt the same modification instant used for the selected candidate
+     * @param updatedBy the same accepted operator used for the selected candidate
+     * @return immutable nonprimary evidence at exactly its next independent version
+     * @throws DomainValidationException when the record is not a verified primary or version/audit is invalid
+     */
+    public PartyIdentifier demotePrimary(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.VERIFIED);
+        if (!primary) {
+            throw new DomainValidationException(DomainViolation.PARTY_IDENTIFIER_INVALID_LIFECYCLE,
+                    "Only a verified primary can be demoted for replacement");
+        }
+        return copyBuilder().primary(false).version(version.next())
+                .auditInfo(auditInfo.updated(occurredAt, updatedBy)).build();
+    }
+
+    /** Returns whether another identifier has the same immutable tenant, Party and scheme ownership. */
+    public boolean sharesPrimaryScope(PartyIdentifier other) {
+        return other != null && tenantId.equals(other.tenantId) && partyId.equals(other.partyId)
+                && identifierSchemeId.equals(other.identifierSchemeId);
     }
 
     private void requireState(PartyIdentifierStatus requiredState) {
@@ -329,6 +371,7 @@ public final class PartyIdentifier {
         private String verifiedBy;
         private PartyIdentifierVersion version;
         private AuditInfo auditInfo;
+        private boolean newWrite;
 
         private Builder() {
         }
@@ -411,6 +454,7 @@ public final class PartyIdentifier {
          * @return this builder
          */
         public Builder created(Instant occurredAt, String createdBy) {
+            this.newWrite = true;
             this.status = PartyIdentifierStatus.PENDING_VERIFICATION;
             this.version = PartyIdentifierVersion.initial();
             this.auditInfo = AuditInfo.initial(occurredAt, createdBy);

@@ -113,6 +113,23 @@ class PartyIdentifierOpenApiStructureTest {
     }
 
     @Test
+    void definesOptionalIssuingEntityCodesSeparatelyFromHistoricalResponses() {
+        for (String name : List.of("PartyIdentifierCreateRequest", "PartyIdentifierUpdateRequest")) {
+            Schema<?> issuer = schema(name).getProperties().get("issuerCode");
+            assertEquals(64, issuer.getMaxLength());
+            assertEquals(Boolean.TRUE, issuer.getNullable());
+            assertEquals(2, issuer.getAnyOf().size());
+            assertEquals("^[A-Za-z]+(?:_[A-Za-z]+)*$", issuer.getAnyOf().getFirst().getPattern());
+            for (String rule : List.of("issuing-entity", "Unicode code points", "Java-blank", "issuer-code-invalid")) {
+                assertTrue(issuer.getDescription().contains(rule), name + ": " + rule);
+            }
+        }
+        Schema<?> historical = schema("PartyIdentifierResponse").getProperties().get("issuerCode");
+        assertNull(historical.getPattern());
+        assertNull(historical.getAnyOf());
+    }
+
+    @Test
     void closesOptionalActionBodiesAndPreservesStrictDefaults() {
         Schema<?> reason = schema("PartyIdentifierReasonRequest");
         assertEquals(Boolean.FALSE, reason.getAdditionalProperties());

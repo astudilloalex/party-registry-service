@@ -48,7 +48,7 @@ class PartyIdentifierMetadataTest {
             assertEquals(6, corrected.version().value());
             assertPreserved(current, corrected);
         }
-        FieldUpdate<String> changedIssuer = FieldUpdate.present("new authority");
+        FieldUpdate<String> changedIssuer = FieldUpdate.present("new_authority");
         FieldUpdate<LocalDate> omittedDate = FieldUpdate.absent();
         var failure = assertThrows(DomainValidationException.class,
                 () -> current.correctMetadata(changedIssuer, omittedDate, omittedDate,
@@ -102,16 +102,16 @@ class PartyIdentifierMetadataTest {
     }
 
     @Test
-    void identicalCorrectionsAdvanceOnceAndExactIssuerTextIsNotNormalized() {
+    void identicalCorrectionsAdvanceOnceAndSuppliedIssuerTextIsCanonicalized() {
         var current = fixture(PartyIdentifierStatus.PENDING_VERIFICATION, 5, PartyIdentifierFixtures.EVALUATED_ON);
         var identical = current.correctMetadata(FieldUpdate.present(current.issuerCode()), FieldUpdate.absent(), FieldUpdate.absent(),
                 PartyIdentifierFixtures.OCCURRED_AT, PartyIdentifierFixtures.ACTOR);
         assertEquals(6, identical.version().value());
         assertEquals(current.issuerCode(), identical.issuerCode());
-        var exactIssuer = "  Mixed authority  ";
+        var exactIssuer = "mixed_authority";
         var exact = current.correctMetadata(FieldUpdate.present(exactIssuer), FieldUpdate.absent(), FieldUpdate.absent(),
                 PartyIdentifierFixtures.OCCURRED_AT, PartyIdentifierFixtures.ACTOR);
-        assertEquals(exactIssuer, exact.issuerCode());
+        assertEquals("MIXED_AUTHORITY", exact.issuerCode());
         assertEquals(6, exact.version().value());
     }
 

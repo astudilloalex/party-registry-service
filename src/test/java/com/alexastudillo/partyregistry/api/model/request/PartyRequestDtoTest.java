@@ -69,7 +69,7 @@ class PartyRequestDtoTest {
         LocalDate incorporatedOn = LocalDate.of(2000, Month.JANUARY, 2);
         LocalDate dissolvedOn = LocalDate.of(2020, Month.JANUARY, 2);
         InitialPartyIdentifierCreateRequest identifier = new InitialPartyIdentifierCreateRequest(
-                " scheme ", " ab-123 ", " issuer ", incorporatedOn, dissolvedOn, true);
+                " scheme ", " ab-123 ", "issuer", incorporatedOn, dissolvedOn, true);
         LegalEntityCreateRequest raw = new LegalEntityCreateRequest(
                 " Company ", "\u2003Stra\u00dfe Ltd\u2003", " Trade ", " ltd ", "\t eC \n",
                 incorporatedOn, dissolvedOn, identifier);
@@ -149,7 +149,7 @@ class PartyRequestDtoTest {
     @Test
     void leavesRawIdentifierLimitsUnchangedInValidationCopies() {
         InitialPartyIdentifierCreateRequest identifier = new InitialPartyIdentifierCreateRequest(
-                " " + "s".repeat(64) + " ", " " + "v".repeat(256) + " ", " " + "i".repeat(64) + " ",
+                " " + "s".repeat(64) + " ", " " + "v".repeat(256) + " ", "i".repeat(65),
                 null, null, true);
         Set<String> expected = Set.of("identifier-scheme-code-too-long", "identifier-value-too-long",
                 "issuer-code-too-long");

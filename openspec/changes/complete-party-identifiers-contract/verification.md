@@ -535,3 +535,34 @@ Pause before adding task 4.1 Application contracts. Task 2.4 is reopened until t
 ### User resolution
 
 The user confirms this is a new database with only **two existing records, both with null issuer**. This is user-supplied deployment context, not a claimed inspection of the live database. Consequently the hypothetical previously accepted invalid-issuer completion is not a required cutover case. Retain the specified current-request grammar and existing syntax-before-replay boundary, preserve stored null issuer/snapshots/fingerprints, and add no legacy admission exception, rewrite, or migration. No Java change is needed for this clarification. The previously passing saved-revision gates remain valid; task 2.4 is closed again and overall progress is **12/60**. Resume task 4.1.
+
+## Task 4.1: Typed Application identities, commands, queries and safe outcomes
+
+Added the contract tests first. Compile-red in 6s identified missing identifier-specific request/query/page/outcome types. After those types were runnable, the focused test reached **7 cases / 3 executable failures in 9s**: missing page-capacity validation, absent bounded operation names and generated additional-registration command logging its raw key. Implemented criteria bounds, redacted command output and closed observation vocabulary. The enum extension also identified its exhaustive Infrastructure label switch at compilation; all labels are now explicit and retain old names.
+
+The architecture regression then caught a real cycle: an effective creation model referenced `InitialPartyIdentifierInput` in the command package, while commands already depend on model. Resolved this by expressing effective creation identity directly as its Party ID and six original parsed properties; no existing initial-registration input was moved or rewritten. Both architecture suites pass after the refactor. This is a focused boundary correction, not a repository restructuring.
+
+Current contracts cover metadata PATCH, lifecycle and set-primary commands; qualified detail/list queries; exact filter scope including absent-versus-false primary; full-precision identifier boundaries; immutable safe slices/pages with long totals; original creation identity; exact private reason/action identity and effective defaults; safe APPLIED/REPLAYED outcomes; and eight additional bounded observation names. Creation/action identities exclude accepted actor/process/key, preserve original issuer/value/reason strings and default-equivalent action input, and do not print secrets. Commands use `PartyIdentifierVersion` directly and metadata uses `FieldUpdate` presence/null semantics. Bodies are parsed later in API; these contracts import no transport, persistence or framework type. Existing additional registration namespace/workflow remains unchanged until its designated refactor.
+
+Final focused command:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.application.model.PartyIdentifierApplicationContractTest --tests '*CleanArchitectureTest' --tests '*MicrometerOpenTelemetryOperationObserverTest' --console=plain
+```
+
+All **16 focused checks** pass in **1m 39s**, including eight new contract cases, both architecture suites and closed-label telemetry assertions. List defensive copying, precision and existing-safe-result characterization are identified separately from the three new executable-red behaviors. A later case also verifies exact empty/NUL/whitespace reasons and rejects impossible action-body/key combinations. No numeric-month valid fixture was introduced.
+
+Required commands on the final source:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: **BUILD SUCCESSFUL in 6m**, **1,450 tests, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 8m 47s**, full tests execute again and **28 packaged JVM tests pass without failures/skips**.
+- Combined output: `~/.local/share/opencode/tool-output/tool_10456c63e001MDjLbgGNDLHTgC`, separate success markers at lines 4661 and 9337.
+- All 21 changed Java revisions, including nested types, have exact blobs and completed full zero-finding Sonar/independent zero-problem JDTLS in `java-inventory.md`. The transient IDE lifecycle-command parse error is explicitly excluded from acceptance; the subsequent successful parse/current saved source and final build agree.
+- `git diff --check` and strict OpenSpec validation pass. No rule suppression, compiler warning or application dependency on HTTP/persistence was introduced. Existing runtime diagnostics remain visible.
+
+Task 4.1 is complete; functional workflows, port adapters, public parsers and native runtime acceptance are not inferred from these typed contract foundations.

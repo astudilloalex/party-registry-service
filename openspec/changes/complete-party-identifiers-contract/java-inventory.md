@@ -81,3 +81,33 @@ This table supersedes the issuing-entity rows for the aggregate and violation en
 | `main/java/com/alexastudillo/partyregistry/domain/model/PartyIdentifierPrimaryPlan.java`; record | `00050f12b9da8345c0b2ee8d786bb9c033515028` | 18:32:57.552; S2279–2309 | 18:32:57.513; J20012–20025 |
 | `main/java/com/alexastudillo/partyregistry/domain/policy/PartyIdentifierPrimaryPolicy.java`; class | `6695daf3cae71426a7456d4fea5828014623287c` | 18:30:49.916; S2248–2278 | 18:30:50.086; J19997–20010 |
 | `test/java/com/alexastudillo/partyregistry/domain/policy/PartyIdentifierPrimaryPolicyTest.java`; class | `4fb1ce4fa7ea3fd4e0cb269149cbc815c11232e3` | 18:33:24.286; S2310–2340 | 18:33:23.168; J20027–20040 |
+
+## Task 4.1 current revisions
+
+All paths are relative to `src/`. Types have responsibility Javadoc; nested types are explicitly identified. S/J are the same standalone Sonar and independent JDTLS logs above. Every listed final revision has a full 1/1 Java analysis with **0 issues/Hotspots** and **0 source problems**; no suppression or rule override was added. Final full/package evidence is **1,450 tests / 28 packaged JVM tests, zero failures/skips**, recorded separately in `verification.md`.
+
+| Path / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierOperation.java`; enum | `5f2a57004a50a73dc6a24252acb7f1a7048bef6a` | 19:33:46.820; S2407–2437 | 19:33:42.516; J20042–20055 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierReason.java`; record | `d399b0e589c4ef6a48fdf546cfade8b072895e60` | 19:33:50.419; S2438–2468 | 19:33:48.526; J20057–20070 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierCreationRequest.java`; record | `8fcf217a11af00409fdc4c2cd674cd98c7165865` | 19:33:55.341; S2469–2499 | 19:33:55.312; J20072–20085 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierActionRequest.java`; record | `0c25ed6804f7657678b4869fb863eb32adf32f65` | 19:34:01.732; S2500–2530 | 19:34:01.846; J20087–20100 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierSearchCriteria.java`; record | `6ee56620c5ac8ab9fb22991b19a90f0972bee19b` | 19:34:07.732; S2531–2561 | 19:34:08.002; J20102–20115 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierSearchScope.java`; record | `ae015dea31e44f6868c96e03416924e92f5eba42` | 19:34:15.088; S2562–2592 | 19:34:15.020; J20117–20130 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierPagePosition.java`; record | `d4af141034cf64ffe7bb25b7b240cbe080cc9a36` | 19:34:21.553; S2593–2623 | 19:34:21.697; J20132–20145 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierPageBoundary.java`; record, nested `Direction` enum | `46a0d5eedffe86309371a7177435117f3ac58821` | 19:34:28.279; S2624–2654 | 19:34:27.609; J20147–20160 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierPageSlice.java`; record | `ab9d73341801c10986cba22fde7f89bd7ff60adf` | 19:34:33.943; S2655–2685 | 19:34:34.059; J20162–20175 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierPageResult.java`; record | `55c211483df34aab6006d5522d19b29a679325ed` | 19:34:40.302; S2686–2716 | 19:34:40.483; J20177–20190 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierMutationOutcome.java`; record, nested `Disposition` enum | `3b1e4c5d4b46e5a01b3497c205a30b4b29fc0e05` | 19:34:47.527; S2717–2747 | 19:34:47.830; J20192–20205 |
+| `main/java/com/alexastudillo/partyregistry/application/query/GetPartyIdentifierQuery.java`; record | `84a2978760db81a1f8559ffb736b466c35d5f191` | 19:34:54.297; S2748–2778 | 19:34:54.494; J20207–20220 |
+| `main/java/com/alexastudillo/partyregistry/application/query/ListPartyIdentifiersQuery.java`; record | `68fc7609ea449ec8896ef6daee82b27d7c44f07d` | 19:35:08.064; S2779–2809 | 19:35:08.237; J20222–20253 |
+| `main/java/com/alexastudillo/partyregistry/application/command/PartyIdentifierCommandKeys.java`; class | `08a24dad8ac2e338f90103428b411cd2e9653479` | 19:35:08.366; S2810–2840 | 19:35:08.220; J20222–20253 |
+| `main/java/com/alexastudillo/partyregistry/application/command/PatchPartyIdentifierCommand.java`; record | `f4eef79e06b5fbd046467be2c08505b5a603ffca` | 19:35:13.960; S2841–2871 | 19:35:14.164; J20255–20268 |
+| `main/java/com/alexastudillo/partyregistry/application/command/ChangePartyIdentifierLifecycleCommand.java`; record | `0426a8d1879b6b60ddad6cce4e1fce5897f9e0d5` | 19:35:24.023; S2934–2964 | 19:35:24.226; J20294–20304 |
+| `main/java/com/alexastudillo/partyregistry/application/command/SetPrimaryPartyIdentifierCommand.java`; record | `f3fc073fbd8256f93fec66031524d9295d4cbc53` | 19:35:27.755; S2965–2995 | 19:35:27.509; J20306–20319 |
+| `main/java/com/alexastudillo/partyregistry/application/command/RegisterPartyIdentifierCommand.java`; record | `ec78227e715d0a1968eba18a2b7e7a85c2102440` | 19:35:33.117; S2996–3026 | 19:35:33.188; J20321–20334 |
+| `main/java/com/alexastudillo/partyregistry/application/model/ObservedOperation.java`; enum | `370cf9647d1fc464c8496d5d6ae41dfdbc14d329` | 19:35:39.579; S3027–3057 | 19:35:39.796; J20336–20349 |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/observability/MicrometerOpenTelemetryOperationObserver.java`; class, existing nested `TelemetryObservation` | `a34245836d20fa52fdc31f5e4ed999e1db78c431` | 19:35:46.957; S3058–3088 | 19:35:46.574; J20351–20364 |
+| `test/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierApplicationContractTest.java`; class | `657128a05da83435495b963d1168e133543e7c4a` | 19:35:53.481; S3089–3119 | 19:35:53.622; J20366–20379 |
+
+The lifecycle command had a transient IDE document parse error (`chpackage`, S2919–2920/J20285–20292). Do not treat that analysis's zero issue count as a successful parse. The subsequent current document fully parsed and completed zero-finding Sonar and independent zero-problem JDTLS; its saved source starts with `package` and the final build compiled/executed it. Current successful analyses above supersede the transient document result.

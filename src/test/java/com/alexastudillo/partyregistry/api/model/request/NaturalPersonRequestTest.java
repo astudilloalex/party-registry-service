@@ -67,7 +67,7 @@ class NaturalPersonRequestTest {
         LocalDate birthDate = LocalDate.of(1815, Month.DECEMBER, 10);
         LocalDate dateOfDeath = LocalDate.of(1852, Month.NOVEMBER, 27);
         InitialPartyIdentifierCreateRequest identifier = new InitialPartyIdentifierCreateRequest(
-                " scheme ", " ab-123 ", " issuer ", birthDate, dateOfDeath, true);
+                " scheme ", " ab-123 ", "issuer", birthDate, dateOfDeath, true);
         NaturalPersonCreateRequest raw = new NaturalPersonCreateRequest(
                 "  Ada L.  ", "\u2003Ada\u2003", "  LoveLace\t", " aDa ", birthDate, dateOfDeath,
                 "\n gB \t", identifier);
