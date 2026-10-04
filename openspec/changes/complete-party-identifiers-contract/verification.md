@@ -647,3 +647,112 @@ DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./
 - All nine saved Java revisions and nested types are inventoried with completed full zero-finding Sonar and independent zero-problem JDTLS. No new compiler warning, suppression, rule exclusion or numeric-month date fixture was introduced. Existing runtime injected-error/cleanup diagnostics remain visible and separate from source findings.
 
 Task 4.3 is complete. **User-requested stop after 4.3:** pause the session here for continuation tomorrow. Accepted progress is **15/60**. Next task is **5.1**, the next immutable Flyway migration; confirm its next available version when resuming. No section 5 implementation has started and native final verification remains pending.
+
+## Task 5.1: Additive identifier completion, audit and listing foundation
+
+Resumed on 2026-10-04. V8 was unused. The current Antigravity repository window completed a fresh Java-25 resource baseline with 571 active Java rules, full 1/1 analysis and zero issues/Hotspots at 10:42:50.254; JDTLS Standard-mode validation independently reports zero problems at 10:42:48.801. Current Sonar log: `~/.config/Antigravity IDE/logs/20261004T103628/window2/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log:76–106`; JDTLS uses the unchanged workspace log, lines 21596–21612. Initial startup unresolved-model warnings at 10:39 are not acceptance evidence.
+
+Wrote `PartyIdentifierContractMigrationTest` first. The initial explicit target-8 run failed because Flyway could not find V8 (1m). The revised latest-migration invocation successfully applied the existing history, then failed the executable eight-versus-seven migration assertion (45s). Added `V8__add_party_identifier_contract_support.sql` without changing V1–V7. It adds qualified restrictive owner references, a tenant/action/exact-key completion primary key, the five allowed operation namespaces, safe JSON-object snapshot/digest/schema/expected-version constraints, independently durable binary withdrawal audit with uniqueness/even-byte/bounded-size constraints, and descending historical and retention indexes. It seeds no identifiers, completions or audit and performs no expiration/protected-data rewrite.
+
+Focused clean-install tests also verify exact column types/nullability, creation/action expected-version semantics, cross-owner and missing references, restrictive deletion, exact key scope, malformed hashes/schemas, null/empty/maximum binary reason sizes and rejected shapes. A candidate initially violated both operation and expected-version checks; the fixture now supplies a valid expected version when testing the operation allowlist. No constraint was weakened. The focused run passes **22 tests** (eight new migration cases and 14 existing migration regressions) in **1m 36s**:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.PartyIdentifierContractMigrationTest --tests com.alexastudillo.partyregistry.MigrationRegressionTest --console=plain
+```
+
+The first full run failed only the existing `IdentifierSchemeTestFixtureTest` exact production-file inventory (**1/1,468**, 12m 28s; output `tool_107a5c4a5001gUAePLAyxGvrxJ`). Updated that allowlist to include V8 while retaining every old checksum and test-only seed assertion. The main migration inventory also includes V8 using `Map.ofEntries` because the map now exceeds ten entries. Final commands:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: **BUILD SUCCESSFUL in 7m 6s**, **1,468 tests, zero failures/skips**; output `~/.local/share/opencode/tool-output/tool_107afb079001H0obW2oo5wXlow`.
+- Build: **BUILD SUCCESSFUL in 2m 24s**, test up-to-date, **28 packaged JVM tests, zero failures/skips**.
+- All seven prior SHA-256 migration identities match the baseline table. V8 blob: `098ad5f42e3ad892843827e65f5a092cef627b53`.
+- All three Java revisions have complete zero-finding Sonar and independent zero-problem JDTLS analysis in the inventory. No new compiler warnings, exclusions, suppressions, numeric-month fixtures or request-path JDBC were added. Existing injected-error, duplicate-meter and HR000090 cleanup diagnostics remain visible.
+- External repository activity advanced HEAD to `86c8537` while verification ran and incorporated some saved files; this agent issued no commit/staging command. The recorded source blobs remain unchanged. Unrelated deployment work is preserved.
+
+Task 5.1 is complete; V7 retained-data upgrade, identifier adapters/routes and native acceptance remain their subsequent tasks.
+
+## Task 5.2: Retained-data upgrade passes; local analysis finding blocks completion
+
+Added `PartyIdentifierContractUpgradeTest`, using an isolated PostgreSQL 18.4 database migrated by Flyway to V7, then seeded through test-only DML with both owner types and all five identifier states. Fixtures preserve synthetic ciphertext, hashes, key/normalization versions, primary flags, legacy issuer metadata, past validity dates, independent versions, verification and creation/modification attribution, plus original Party replay snapshots. Valid dates and microsecond instants derive from Month-based fixtures. V8 is applied once and reapplication executes zero migrations. Full JSON row comparisons, all seven prior Flyway checksums and every prior identifier index/constraint definition remain identical; new completion/audit tables remain empty.
+
+The first focused run failed on an incorrect fixture column (`parties.status` rather than `record_status`); this is a fixture defect, not feature TDD red. Corrected the DML column without changing production code/migrations. The following focused run passes **nine cases in 17s** (one retained-data upgrade plus eight clean-install/constraint cases). This is characterization of the completed additive migration, not a fabricated new production red/green claim:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.PartyIdentifierContractUpgradeTest --tests com.alexastudillo.partyregistry.PartyIdentifierContractMigrationTest --console=plain
+```
+
+Required post-Java checks on saved blob `b2558714f6c637adf034c2202356b7839397e14f`:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: **BUILD SUCCESSFUL in 5m 34s**, **1,469 tests, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 5s**, all tasks up-to-date. Packaged tests did not reexecute; task 5.1's unchanged packaged application/source-set result remains the actual 28-case execution evidence.
+- Combined output: `~/.local/share/opencode/tool-output/tool_107bd2d5a001q9rJFz2R5EnoT4`. Existing injected-error/HR000090/duplicate-meter diagnostics remain visible and unsuppressed. No new compiler warning was emitted; `git diff --check` passes.
+- Current standalone Sonar completes full 1/1 Java-25 analysis at **11:23:52.924** with **1 issue / 0 Hotspots**. Source: current S2 log, lines **879–909**. The log has no diagnostic rule key, message or source location; no specific rule is inferred from its count.
+- Independent JDTLS validation at **11:23:53.700** reports **zero problems** for the same saved revision; current project log lines **21917–21927**.
+
+Pause before task 6.1. Obtain the current `PartyIdentifierContractUpgradeTest.java` diagnostic from the Antigravity Problems view (message, rule and location or screenshot), then fix and reanalyze the exact saved revision and rerun invalidated checks. Task 5.2 remains unchecked because required zero-finding local evidence is missing; overall progress is **16/60**. No analysis setting, exclusion, suppression or acceptance criterion is relaxed. Native final acceptance remains pending.
+
+### Task 5.2: Assertion-count finding resolved
+
+The supplied Problems-view screenshot identifies **java:S5961** on the upgrade test: reduce 29 assertions to fewer than 25. Split the original case into retained owner/identifier/snapshot history and prior checksums/indexes/constraints, each using its own isolated V7 database. Every original assertion remains; no assertion is concealed through a new helper, removed or suppressed. Current saved blob: `ae4447b8b83ac36c569fefea82455b26a5442983`.
+
+- Focused migration command above: **10 cases pass in 21s** (two upgrade and eight clean-install cases).
+- Required full `./gradlew test` with the existing Podman/dynamic-port environment: **BUILD SUCCESSFUL in 5m 32s**, **1,470 cases, zero failures/skips**.
+- Required `./gradlew build`: **BUILD SUCCESSFUL in 5s**, tasks up-to-date; no new packaged/native execution is inferred.
+- Combined output: `~/.local/share/opencode/tool-output/tool_107cb8e640017x6AB15aS2zTjT`.
+- Full 1/1 Sonar Java-25/571-rule analysis at **11:39:19.989** reports **zero issues/Hotspots**; S2 lines **932–962**.
+- Independent JDTLS validation at **11:39:21.271** reports **zero problems**; J lines **21929–21939**.
+
+The blocker is resolved and task 5.2 is complete. No configuration, rule exclusion or suppression changed. Proceed to task 6.1; functional/native scenario acceptance remains pending.
+
+## Task 6.1: Authenticated identifier-only continuation
+
+Wrote seven focused cursor tests first. Compile-red (4s) identifies the missing adapter. The first runnable boundary/key/tenant/Party implementation reaches **7 cases / 2 executable failures in 7s** for missing effective filter scope and exact Unicode representation. Extended the resource-specific scope digest to include optional scheme ID, exact scheme code, optional status, tri-state primary and effective limit. Modified UTF preserves distinct Java code units, including isolated surrogates, rather than replacing them during UTF-8 conversion. No initial incomplete scope encoder remains in saved production code.
+
+`HmacPartyIdentifierCursorAdapter` implements the existing port with CDI composition and eagerly validated `PartyCursorKeyMaterial`. Tokens retain exact epoch-second/nanosecond/unsigned UUID tuples and direction, canonical bounded Base64url, version/current key ID and authenticated scope. HMAC uses a separate identifier resource domain, constant-time verification precedes trusted decoding, and malformed/version/key/scope/direction/timestamp failures expose only neutral `InvalidIdentifierCursor` without token-bearing causes. No cursor expiry or persistent snapshot is introduced; existing resource encoders/key material remain unchanged.
+
+Tests cover both directions and effective 1/50/200 capacities, microseconds and pre-epoch nanoseconds, default-50 equivalence, every scope dimension, case, absent versus false, Unicode code units, canonical bounds/padding/tampering, unknown versions/keys, correctly signed impossible fields, cross-nationality rejection with shared keys, and retained-key rotation. Fixtures use Month-based instants and synthetic test-only secrets. No additional production refactor was needed.
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*Hmac*Cursor*Test' --tests '*CleanArchitectureTest' --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Cursor and architecture regression passes in **2m 43s**; all seven new cases pass.
+- Full test: **BUILD SUCCESSFUL in 6m 42s**, **1,477 tests, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 2m 15s**, tests up-to-date and **28 packaged JVM tests execute and pass**.
+- Full output: `~/.local/share/opencode/tool-output/tool_107d9997a001TbGwGVqn5WGLC8`.
+- Both saved Java files have full zero-finding Sonar and separate zero-problem JDTLS in the inventory. English responsibility Javadoc is present, no new compiler warning/suppression/exclusion is introduced, and existing runtime failure-injection/cleanup diagnostics remain visible. `git diff --check` passes.
+
+Task 6.1 is complete; live historical query/HTTP/native coverage remains subsequent work.
+
+## Task 6.2: Qualified scalar historical detail
+
+Wrote `PartyIdentifierDetailReaderTest` first. Compile-red (4s) identifies the absent reader. A runnable query retaining current-state admission reaches **4 cases / 3 executable failures in 23s**: terminal history is absent and the source contract rejects the current-state predicate. Removed that predicate for historical detail; no initial state-restricted query remains. The qualified scalar query selects only 15 safe columns plus stable scheme code, with tenant/Party/identifier predicates and no date/state admission. It reuses the existing safe scalar mapper without altering the current-reader query.
+
+`PartyIdentifierDetailReader` owns bounded read-only reactive transaction mechanics and translates only classified persistence failures. It retains no session, loads no protected entity, decrypts no value and performs no update. It is the Infrastructure detail collaborator for the subsequent combined query-port adapter; no incomplete port implementation or production placeholder is added.
+
+Four tests cover every identifier state across both owner types/all four Party states, missing/wrong-owner/cross-tenant concealment, exact preserved historical issuer/date/version/time, retained verification/flags, whole-row identifier/Party nonmutation and unchanged narrower current projections. Source assertions explicitly exclude ciphertext, hashes, normalization/encryption key versions and require the full owner tuple. All valid date/instant fixtures derive from Month constants.
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.infrastructure.persistence.PartyIdentifierDetailReaderTest --tests '*PartyIdentifierReadAdapterTest' --tests '*CleanArchitectureTest' --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Focused detail/current-reader/architecture checks pass in **1m 47s**.
+- Full test: **BUILD SUCCESSFUL in 5m 48s**, **1,481 tests, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 2m 51s**, unit tests up-to-date and **28 packaged JVM tests execute and pass**.
+- Combined output: `~/.local/share/opencode/tool-output/tool_107e94b2a001TwAJ2Hy1zlWPce`.
+- Both final saved Java revisions have full zero-finding Sonar and independent zero-problem JDTLS in the inventory. No compiler warning, suppression/exclusion or request-path blocking API is added. Existing controlled failure/cleanup logs remain visible. `git diff --check` passes.
+
+Task 6.2 is complete; snapshot-consistent list queries and public query routes remain subsequent tasks.

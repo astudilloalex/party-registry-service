@@ -7,6 +7,7 @@ Requirement prefixes refer to exact titles in:
 - **Q:** [party-identifier-queries](specs/party-identifier-queries/spec.md).
 - **M:** [party-identifier-maintenance](specs/party-identifier-maintenance/spec.md).
 - **L:** [party-identifier-lifecycle](specs/party-identifier-lifecycle/spec.md).
+- **R:** [party-registration issuer refinement](specs/party-registration/spec.md).
 - **Quality:** proposal constraints and the testing/quality sections of [design.md](design.md): TDD, strict inward dependencies, reactive/native compatibility, Month-based fixtures, and actual Sonar/JDTLS evidence.
 
 For every behavior-producing task, write the meaningful test first, record its expected failure, implement the smallest conforming behavior, and refactor with that test passing. An initial compile-red step for a new type is allowed but must lead to executable behavioral evidence. Environmental failures do not count as a TDD red result. Tests that characterize existing behavior may already pass; the evidence must distinguish characterization from a new failing requirement.
@@ -45,16 +46,24 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Requirements: Q: Complete published party-identifiers contract; Q: Strict read selectors and filters; M: Strict additional registration input; M: Strict partial metadata correction; M: Strict primary-selection input and eligibility; L: Lifecycle requests follow the common boundary.
   - Verification: Source structure tests pin all eight operations, identifier-specific If-Match, creation/action key semantics, 256-character cursor bound, closed properties, body presence/nullability, transition matrix, primary scope, validation order, and 0..2147483647 count range. Parsing reports no unresolved references; unrelated parameter contracts are preserved.
   - Evidence: `verification.md` records the six-test red, completed contract, nine passing structural checks including the full matrix/precedence, preserved general/scheme contracts, 1,373 passing tests and 28 packaged JVM tests, plus current saved-revision Sonar/JDTLS zero findings. Cause-specific examples remain task 2.2; runtime implementation remains in subsequent tasks.
+  - Reverified: Issuing-entity schema/semantics and preserved historical response constraints pass 10 structural checks, final full test/build and current zero-finding Sonar/JDTLS; see the issuing-entity continuation in `verification.md`.
 
 - [x] 2.2 Test first and complete OpenAPI success/error examples and the approved cause-specific error declarations.
   - Requirements: Q: Complete published party-identifiers contract; Q: Safe shared envelopes and failure behavior; M: Identifier-version preconditions and exhaustion.
   - Verification: Example/schema tests cover 201/200 status agreement, safe item/page shapes, explicit null cursors, accepted process echoes, 404 identifier-not-found, 409 lifecycle/primary/exhaustion conflicts, 412 expected-version-mismatch, existing 422 errors, and framework/500/503 envelopes. Error examples contain status/code only.
   - Evidence: `verification.md` records six executable example/schema failures before implementation, 49 focused passing checks, 1,379 full tests and 28 packaged JVM tests passing, and zero current Sonar/JDTLS findings for both affected Java files. All eight success examples and cause-specific error examples validate against their declared schemas.
+  - Reverified: New example red identified missing initial oversized-issuer coverage; both issuer codes and accepted/rejected schemas now pass 8 example/schema cases, final full test/build and current zero-finding Sonar/JDTLS. See `verification.md`.
 
 - [x] 2.3 Add only the reusable Month-based identifier fixtures and safe HTTP/schema assertions needed by subsequent increments.
   - Requirements: Quality; Q: Safe shared envelopes and failure behavior; Q: Trusted context and process correlation.
   - Verification: Fixture/helper tests cover controlled UTC dates, both Party types, masked representations, complete pagination keys, and exact status/code-only errors. Helpers use supported source-set boundaries, disclose no real secrets, and introduce no test CDI fixtures into packaged verification.
   - Evidence: `verification.md` records four focused helper/fixture checks, 1,383 full tests and 28 packaged JVM tests passing, both-source-set shared assertion compilation, and actual zero-finding Sonar/JDTLS analyses for all four saved Java files.
+
+- [x] 2.4 Implement the confirmed optional issuing-entity refinement with historical compatibility.
+  - Requirements: R: Initial identifier issuer metadata is canonical issuing-entity code; M: Strict additional registration input; M: Strict partial metadata correction.
+  - Verification: Test first initial/additional DTO validation, null/omission/bounded blank mapping, ASCII letter groups with single underscores, locale-independent uppercase, 64-code-point limits, no trimming of nonblank codes and no Geographic Reference lookup. Domain creation/correction enforce the same new-write rules, while restoration, omitted historical metadata and snapshots remain unchanged. Original parsed strings remain fingerprint inputs. Reconcile fixture expectations, saved-revision IDE diagnostics and full test/build gates without changing V1–V7 or adding issuer binary storage.
+  - Evidence: `verification.md` records normalization/DTO/Domain red-green, supplementary length-precedence red-green, 4 real HTTP cases for both Party types/no issuer-country lookup/raw retry identity, retained historical restoration and compatibility checks, 1,434 full tests and 28 packaged JVM tests, and all saved-revision zero Sonar/JDTLS results in `java-inventory.md`.
+  - Compatibility clarified: The user confirms a new database with only two existing records, both with null issuer. The hypothetical old-invalid-issuer replay is not a deployment requirement. Keep current request validation and preserved null/snapshot/fingerprint behavior; introduce no grandfathering or migration exception. Existing final gates remain valid; see `verification.md`.
 
 ## 3. Domain Rules
 
@@ -67,48 +76,58 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Requirements: M: Strict partial metadata correction; M: Metadata correction eligibility and audit.
   - Verification: Unit tests cover omission versus null, retained-field interval validation, inclusive UTC expiration, repair of past-date pending/verified metadata, issuer-only rejection of unrepaired expiration, identical corrections, terminal-state rejection, and preserved verification/primary/value information.
   - Evidence: `verification.md` records compile-red and 5/11 executable state/date-precedence failures, immutable `correctMetadata` green, 1,398 full tests and 28 packaged JVM tests passing, inward-dependency checks, and zero current Sonar/JDTLS findings for the aggregate/builder, neutral violation enum and new metadata test.
+  - Reverified: Supplied issuer corrections canonicalize uppercase/bounded blank-null; omitted legacy issuer remains unchanged. Revised metadata and new issuer-write tests pass with 1,434 full tests, 28 packaged JVM tests and current zero Sonar/JDTLS findings; see `verification.md`.
 
-- [ ] 3.3 Test first and implement the closed verification/rejection/revocation matrix and verification evidence rules.
+- [x] 3.3 Test first and implement the closed verification/rejection/revocation matrix and verification evidence rules.
   - Requirements: L: Explicit identifier transition matrix; L: Operator-confirmed verification and validity; L: Rejection and revocation retain safe history.
   - Verification: Unit tests cover every state/action matrix entry, exact verification actor/instant, date boundaries, withdrawal of past-date evidence, flag clearing on reject/revoke, retained prior verification, and invalid repeats without replay. No implicit expiration, reactivation, substitute primary, or Party change occurs.
+  - Evidence: Domain methods and all 20 lifecycle cases pass after 15 executable red failures, with current saved aggregate/test Sonar/JDTLS zero findings. Issuer clarification resolves the representation decision; the final continuation run passes 1,434 tests and 28 packaged JVM tests. Earlier legal setup failures and passing reruns remain recorded separately in `verification.md`; no timeout or assertion was weakened.
 
-- [ ] 3.4 Test first and implement primary eligibility, provisional-verification conflict rules, and the two-identifier replacement plan.
+- [x] 3.4 Test first and implement primary eligibility, provisional-verification conflict rules, and the two-identifier replacement plan.
   - Requirements: M: Strict primary-selection input and eligibility; M: Scoped atomic primary ownership; L: Verification respects provisional primary ownership.
   - Verification: Pure policy tests cover per-tenant/Party/scheme scope, unrelated/provisional flags, conflicting verified primaries including past-date ones, nonprimary verification, explicit replacement, already-primary selection, retained fields, common actor/time, and target/former exhaustion. Both candidates are validated before any persistence.
+  - Evidence: `verification.md` records compile-red then 7 executable policy failures and one constructor-invariant failure, all eight cases green, metadata/lifecycle/architecture regression, 1,442 full tests and 28 packaged JVM tests, and current zero-finding Sonar/JDTLS for all five Java files in `java-inventory.md`.
 
 ## 4. Application Contracts and Neutral Failures
 
-- [ ] 4.1 Test first and define typed identifier commands, queries, criteria/boundaries/pages, effective requests, safe mutation outcomes, and bounded observation operations.
+- [x] 4.1 Test first and define typed identifier commands, queries, criteria/boundaries/pages, effective requests, safe mutation outcomes, and bounded observation operations.
   - Requirements: M: Durable additional registration replay; L: Durable action key scope and request equivalence; Q: Deterministic scoped cursor navigation; Quality.
   - Verification: Contract tests pin identifier-specific version types, exact raw creation values, omission/null/default equivalence, exact reasons, tri-state primary filters, safe results, and APPLIED/REPLAYED disposition. No command representation exposes values/reasons through generated logging, and no transport/persistence types enter Application.
+  - Evidence: `verification.md` records compile-red and 3/7 executable failures, package-cycle correction, 16 focused checks passing, 1,450 full tests and 28 packaged JVM tests, and current full zero-finding Sonar/JDTLS analyses for all 21 Java revisions in `java-inventory.md`.
 
-- [ ] 4.2 Define and test the query, cursor, fingerprint, and transaction-context port contracts with focused test doubles.
+- [x] 4.2 Define and test the query, cursor, fingerprint, and transaction-context port contracts with focused test doubles.
   - Requirements: Q: Tenant and Party ownership concealment; M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes.
   - Verification: Port/architecture tests show safe qualified read results, sequential callback capabilities, immutable tenant scope, replay-first access, one primary scope per execution, and no session/entity/SQL/HTTP API. Preserve the existing current-identifier port contract.
+  - Evidence: `verification.md` records 2/4 executable record/privacy failures, 18 focused checks green and all eight saved Java files with zero Sonar/JDTLS findings. Shared fixture timeout isolation reproduces and resolves the normal-call budget defect; final test/build pass 1,456 full tests and 28 packaged JVM tests, with all three changed fixture/test revisions independently verified. Earlier failed gates remain recorded as historical evidence.
 
-- [ ] 4.3 Test first and add neutral identifier failures plus API-only stable-code translation.
+- [x] 4.3 Test first and add neutral identifier failures plus API-only stable-code translation.
   - Requirements: Q: Safe shared envelopes and failure behavior; M: Identifier-version preconditions and exhaustion; L: Explicit identifier transition matrix; M: Scoped atomic primary ownership.
   - Verification: Tests cover identifier absence/version/lifecycle/primary/exhaustion/cursor failures and unchanged unknown failures through the shared global mapper. All affected exhaustive switches compile; Domain/Application import no response code, HTTP status, or ApiResponseException.
+  - Evidence: `verification.md` records compile-red and 2/3 executable translation failures, six neutral variants and identifier-specific Domain classification, eight real HTTP failure probes, preserved exhaustive descriptions/architecture checks, 1,460 full tests and 28 packaged JVM tests passing, and current zero-finding Sonar/JDTLS for all nine Java revisions. User requested a stop here; resume with 5.1 tomorrow.
 
 ## 5. Flyway Persistence Foundation
 
-- [ ] 5.1 Test first and add the next immutable migration for identifier completions, withdrawal audit, qualified owner references, and listing order.
+- [x] 5.1 Test first and add the next immutable migration for identifier completions, withdrawal audit, qualified owner references, and listing order.
   - Requirements: M: Durable additional registration replay; L: Historical action replay survives changes and restart; L: Rejection and revocation retain safe history; Q: Deterministic scoped cursor navigation.
   - Verification: Flyway clean-install tests verify the completion primary key, qualified restrictive FKs, allowed operations/digest/schema/version constraints, audit uniqueness/binary bounds, and `(tenant_id, party_id, created_at DESC, id DESC)` index. Use tentative V8 only if still available; no manual DDL or schema generation.
+  - Evidence: `verification.md` records missing-migration red, eight clean-install/constraint cases green, unchanged V1–V7 hashes, 1,468 full tests and 28 packaged JVM tests passing, and current zero-finding Sonar/JDTLS for all three saved Java revisions in `java-inventory.md`.
 
-- [ ] 5.2 Add and pass V7-to-new-migration upgrade and historical-retention tests.
+- [x] 5.2 Add and pass V7-to-new-migration upgrade and historical-retention tests.
   - Requirements: M: Maintenance has one durable observable outcome; Q: Complete historical listing and masked detail; Quality.
   - Verification: V1–V7 checksums, historical ciphertext/hash/key versions, all identifier states/flags/metadata, original Party snapshots, and existing indexes remain intact. New tables do not fabricate pre-cutover completions, and production migrations contain no test seeds or expiration backfill.
+  - Evidence: User-supplied `java:S5961` diagnostic resolved by splitting retained-data and schema-history tests without removing assertions. Both upgrade tests, 1,470 full cases and build pass; the final saved revision has zero Sonar/JDTLS findings. See the resolved task 5.2 continuation in `verification.md` and `java-inventory.md`.
 
 ## 6. Historical Query Vertical Slice
 
-- [ ] 6.1 Test first and implement the identifier-only authenticated cursor adapter using existing rotation key material.
+- [x] 6.1 Test first and implement the identifier-only authenticated cursor adapter using existing rotation key material.
   - Requirements: Q: Deterministic scoped cursor navigation; Q: Strict read selectors and filters.
   - Verification: Unit tests prove full microsecond boundary round trips, forward/backward directions, resource domain separation, every scope dimension, absent versus false, default-limit equivalence, canonical bounded encoding, tampering/unknown key/version rejection, and retained-key rotation without token contents in failures.
+  - Evidence: `verification.md` records compile-red then two executable scope/Unicode failures, seven cursor cases green, cursor/architecture regression, 1,477 full tests and 28 packaged JVM tests passing, and zero Sonar/JDTLS findings for both saved revisions in `java-inventory.md`.
 
-- [ ] 6.2 Test first and implement qualified scalar detail reads without loading protected columns.
+- [x] 6.2 Test first and implement qualified scalar detail reads without loading protected columns.
   - Requirements: Q: Tenant and Party ownership concealment; Q: Complete historical listing and masked detail; Q: Safe shared envelopes and failure behavior.
   - Verification: Reactive PostgreSQL tests retrieve every stored state for owned identifiers and conceal wrong owners; source/query assertions exclude ciphertext, hashes, and key versions. Reads change no state/audit/version and leave the current natural-person projection unchanged.
+  - Evidence: `verification.md` records compile-red and three executable historical-state failures, four focused cases green across both Party types/all owner states, current-reader/architecture regression, 1,481 full tests and 28 packaged JVM tests passing, and zero saved-revision Sonar/JDTLS findings.
 
 - [ ] 6.3 Test first and implement snapshot-consistent historical list/count/navigation queries.
   - Requirements: Q: Strict read selectors and filters; Q: Deterministic scoped cursor navigation; Q: Exact collection metadata and empty outcomes.

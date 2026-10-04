@@ -239,3 +239,9 @@ Source: [party-registration issuer refinement](specs/party-registration/spec.md)
 ## Evidence entry convention
 
 Replace a Pending entry with links to an increment in `verification.md` and the saved-file inventory rows. Record test class/method, command, outcome, artifact path, source blob identity, and execution mode. Preserve separate red, green, characterization, refactor, JVM, native, Sonar, and JDTLS outcomes. A single row can reference several tests. A planned boundary or passing baseline does not prove a new scenario. Record additional granular cases (controls/U+0000, maximum versions, lock collisions, cancellation, count overflow, and replay scope) within the relevant increment rather than inventing extra approved scenarios.
+
+## Persistence-foundation evidence (tasks 5.1–5.2)
+
+Task 5.1's `PartyIdentifierContractMigrationTest` verifies completion/audit constraints, qualified ownership and historical ordering indexes, with passing runtime and saved-revision local analysis evidence in `verification.md` and `java-inventory.md`. Task 5.2's `PartyIdentifierContractUpgradeTest` verifies V7 retention for both Party types/all identifier states, protected columns, snapshots, checksums and existing indexes; runtime passes but one Sonar finding blocks task completion. These are infrastructure prerequisites for the maintenance/replay/history scenarios, not evidence that their unimplemented HTTP/workflow/native behavior passes. Scenario acceptance entries remain pending until those boundaries execute.
+
+Task 5.2 continuation resolves the supplied java:S5961 finding with separate data-retention and schema-history tests. The final saved revision passes focused/full checks and zero-finding Sonar/JDTLS; both persistence-foundation tasks are complete. Workflow/HTTP/native scenario acceptance still requires subsequent tasks.

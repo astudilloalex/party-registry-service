@@ -156,3 +156,47 @@ S is the current active Sonar log and J is the workspace JDTLS log above. All ni
 | `test/java/com/alexastudillo/partyregistry/application/error/ApplicationExceptionTest.java`; class, existing nested `FailureDescription` record | `193d352a2c575ae3e7ea408ccd27a3a209631381` | 21:42:28.816; S857–887 | 21:42:28.930; J21362–21375 |
 
 The first extended failure-interface revision reported two Sonar issues. Identifier-specific version null-check descriptions remove the newly duplicated validation literals, and the final saved interface is reanalyzed with zero findings. Its earlier two-issue analysis is not substituted for final acceptance. No precise rule-key claim is inferred from the count-only output.
+
+## Task 5.1 final saved revisions
+
+S2 is `~/.config/Antigravity IDE/logs/20261004T103628/window2/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log`. J remains the project JDTLS log documented above. All three files are test sources with responsibility Javadoc. Each listed analysis is full 1/1, Java 25/571 rules, **zero issues/Hotspots**; independent JDTLS validation reports **zero problems**. Final test/build pass **1,468 tests / 28 packaged JVM tests**; `verification.md` records red/green, fixture corrections and actual commands.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/PartyIdentifierContractMigrationTest.java`; class, nested `Owner`, `Completion`, `Audit` records | `edd933dc44e520bb96c493ea814a687af6d6072b` | 10:53:41.445; S2:277–307 | 10:53:40.627; J21662–21675 |
+| `test/java/com/alexastudillo/partyregistry/MigrationRegressionTest.java`; class, existing nested `ColumnDefinition` record | `2728a37ab0a87e5db1a6879f0386cab154fa1851` | 10:50:21.150; S2:169–199 | 10:50:19.783; J21641–21654 |
+| `test/java/com/alexastudillo/partyregistry/IdentifierSchemeTestFixtureTest.java`; class, no nested types | `874938d60b71e648fc14f6cd52a4e90fd1868102` | 11:08:41.167; S2:795–825 | 11:08:41.955; J21887–21900 |
+
+## Task 5.2 saved revision: runtime passes, Sonar finding pending
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/PartyIdentifierContractUpgradeTest.java`; class, no nested types | `b2558714f6c637adf034c2202356b7839397e14f` | 11:23:52.924; S2:879–909; full 1/1 Java 25/571 rules, **1 issue / 0 Hotspots**; diagnostic details unavailable in log | 11:23:53.700; J21917–21927; **0 problems** |
+
+The nine focused migration cases and full **1,469 tests** pass. Build succeeds up-to-date; no new packaged/native execution is inferred. Responsibility Javadoc and Month-based valid fixtures are present. The task remains incomplete until Problems-view details identify the current Sonar finding, a corrected revision has zero findings, and invalidated verification is rerun. No guessed rule key or historical zero-result substitutes for that evidence.
+
+### Task 5.2 final revision (supersedes the pending row)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/PartyIdentifierContractUpgradeTest.java`; class, no nested types | `ae4447b8b83ac36c569fefea82455b26a5442983` | 11:39:19.989; S2:932–962; full 1/1 Java 25/571 rules, **0 issues/Hotspots** | 11:39:21.271; J21929–21939; **0 problems** |
+
+The supplied java:S5961 assertion-count diagnostic is resolved by two responsibility-focused tests, retaining every assertion. Ten focused migration cases and full **1,470 tests** pass; build succeeds up-to-date. No compiler warning, exclusion, suppression or Month-fixture regression is introduced.
+
+## Task 6.1 final saved revisions
+
+S2/J are the current log paths above. Each listed file has full Java-25/571-rule 1/1 analysis with **zero issues/Hotspots**, independent **zero source problems**, English responsibility Javadoc and no new suppression/configuration change. Full **1,477 tests and 28 packaged JVM tests** pass; red/green and actual commands are in `verification.md`.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/security/HmacPartyIdentifierCursorAdapter.java`; class, no nested types | `f42da0ea6f14d237991554b8ae2822ea8177c47a` | 11:52:18.110; S2:985–1015 | 11:52:16.817; J21941–21954 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/security/HmacPartyIdentifierCursorAdapterTest.java`; class, nested `TestConfiguration` record | `2ae052a117cdc0f832d25f4b4a0185083a1fb325` | 11:55:22.019; S2:1016–1046 | 11:55:20.751; J21956–21969 |
+
+## Task 6.2 final saved revisions
+
+Each S2/J analysis below corresponds to the saved revision, full 1/1 Java-25/571-rule Sonar with **0 issues/Hotspots**, independent **0 JDTLS problems**. Both files have responsibility Javadoc and no nested declarations. Focused detail/current-reader/architecture, **1,481 full tests and 28 packaged JVM tests** pass as recorded in `verification.md`.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierDetailReader.java`; class | `b78aeb32f87773583299b41d580a3ab4b6de2e46` | 12:10:43.057; S2:1069–1099 | 12:10:43.402; J21971–21984 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierDetailReaderTest.java`; class | `b70390d82053101832d4357b1a9591b162465e92` | 12:12:55.859; S2:1100–1130 | 12:12:56.351; J21986–21999 |
