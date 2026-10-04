@@ -61,8 +61,8 @@ Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [mai
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
 | Q18 | Every operation returns only its safe envelope | API, HTTP, outbox codec, architecture, packaged/native | 2.2–2.3, 6.6–6.7, 7.6, 8.3, 9.3, 10.3, 11.3, 13.1, 14.4, 14.6 | Pending |
-| Q19 | Framework and dependency failures retain the envelope | HTTP, packaged/native | 4.3, 12.3–12.4, 13.1, 14.4 | Pending |
-| Q20 | Unexpected failure is sanitized | completion codec, HTTP, packaged/native | 7.2, 12.4, 13.1–13.2, 14.4 | Pending |
+| Q19 | Framework and dependency failures retain the envelope | HTTP, packaged/native | 4.3, 12.3–12.4, 13.1, 14.4 | Partial foundation: task 4.3 [verification](verification.md) / [saved revisions](java-inventory.md), `PartyIdentifierErrorContractTest` pins known-error exact envelopes/echoes. Actual identifier-route framework/dependency and packaged/native cases remain pending. |
+| Q20 | Unexpected failure is sanitized | completion codec, HTTP, packaged/native | 7.2, 12.4, 13.1–13.2, 14.4 | Partial HTTP foundation: task 4.3 [verification](verification.md), unknown identifier invariant produces exact 500/server-error without its private cause. Completion corruption, actual routes and packaged/native cases remain pending. |
 | Q21 | Unrepresentable collection count does not wrap | API, HTTP failure injection, packaged/native | 6.6, 12.4, 13.1, 14.4 | Pending |
 
 ## M: Maintenance follows the common identifier boundary
@@ -128,8 +128,8 @@ Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [mai
 
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
-| M25 | Party version is not the identifier precondition | API, application, HTTP, packaged/native | 4.1, 9.1–9.3, 10.2–10.3, 11.2–11.3, 13.1, 14.4 | Pending |
-| M26 | Syntax boundaries and exhaustion are distinct | domain, API, application, HTTP, packaged/native | 3.1, 3.4, 4.3, 9.1, 9.3, 10.3, 11.3, 13.1, 14.4 | Pending |
+| M25 | Party version is not the identifier precondition | API, application, HTTP, packaged/native | 4.1, 9.1–9.3, 10.2–10.3, 11.2–11.3, 13.1, 14.4 | Partial typed-contract foundation: tasks 4.1/4.3 [verification](verification.md), commands and mismatch failures use `PartyIdentifierVersion`; known HTTP probe yields 412. Real request preconditions/races and packaged/native behavior remain pending. |
+| M26 | Syntax boundaries and exhaustion are distinct | domain, API, application, HTTP, packaged/native | 3.1, 3.4, 4.3, 9.1, 9.3, 10.3, 11.3, 13.1, 14.4 | Partial Domain/translation foundation: tasks 3.1/3.4/4.3 [verification](verification.md) pin checked capacity and exact 409 identifier-version-exhausted. Version-header parsing, real routes and packaged/native cases remain pending. |
 | M27 | PATCH and lifecycle race share one identifier version | coordinated DB/HTTP | 7.4–7.5, 12.1–12.2 | Pending |
 
 ## M: Strict primary-selection input and eligibility

@@ -566,3 +566,84 @@ DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./
 - `git diff --check` and strict OpenSpec validation pass. No rule suppression, compiler warning or application dependency on HTTP/persistence was introduced. Existing runtime diagnostics remain visible.
 
 Task 4.1 is complete; functional workflows, port adapters, public parsers and native runtime acceptance are not inferred from these typed contract foundations.
+
+## Task 4.2: Identifier ports and private records, final gate blocked
+
+Added port-contract tests first. Compile-red identified absent query/cursor/fingerprint/mutation capabilities and private completion/audit records. Runnable contracts reached **4 cases / 2 executable failures in 14s**: generated completion output exposed its digest, and withdrawal audit accepted a verification action. Added redacted private representations and coherent operation/version/actor/shape guards. Qualified safe read signatures and one immutable-tenant callback capability are characterized with focused doubles; ports expose no ORM session/entity, SQL or HTTP/envelope type. The mutation callback returns only `PartyIdentifierMutationOutcome` rather than an unrestricted generic result. Existing current-identifier read port remains unchanged.
+
+Focused green command:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.application.port.PartyIdentifierPortContractTest --tests com.alexastudillo.partyregistry.application.model.PartyIdentifierApplicationContractTest --tests '*CleanArchitectureTest' --console=plain
+```
+
+The **18 focused checks pass in 7m 48s**. Interface contracts establish sequential replay/owner/scope/child capabilities and safe outcomes; actual locking, closed-context enforcement, rollback/commit and concurrency remain the infrastructure/workflow tasks, not inferred from the focused double. All eight saved Java revisions have completed full zero-finding Sonar and independent zero-problem JDTLS analyses in `java-inventory.md`.
+
+The mandatory full test/build sequence was attempted with the usual Podman socket, dynamic HTTP port and 1,200,000-ms deadline. The test reached **1,454 cases / one failure**, ending **BUILD FAILED in 19m 32s**; `&&` therefore prevented the build from executing. Output: `~/.local/share/opencode/tool-output/tool_1048526a2001CNSUSf1q2MLD3L`, failure at lines 183 / 4660–4673.
+
+Failure is again `LegalEntityDetailsResourceContractTest.typedBindingsAndValidationPrecedenceUseTheSharedErrorEnvelope`: its creation fixture expected 201 and received exactly `503 dependency-unavailable`. XML at `build/test-results/test/TEST-com.alexastudillo.partyregistry.api.resource.LegalEntityDetailsResourceContractTest.xml:4–15,28–33` records Geographic Reference `outcome=unavailable` for that first setup request (741ms), followed by recognized requests in the class. No cause is assumed from that timing. New port/model cases pass in the full run. No timeout, retry, assertion or production Geographic Reference code was changed.
+
+Pause before task 4.3. Task 4.2 stays unchecked until the recurrent legal/geographic setup failure is diagnosed/reconciled and the final full test/build gates pass. Overall accepted progress is **13/60**. Earlier 1,450-case / 28-packaged green is historical task 4.1 evidence and does not substitute for this failed gate. Native execution remains pending.
+
+Concurrent repository activity is recorded, not altered: current HEAD is `628c14e` after externally observed commits `735fec3`, `6a676db`, `d759684` and `628c14e`. This agent issued no commit/staging commands and preserves the external deployment work.
+
+## Geographic Reference test timeout isolation: blocker resolved
+
+The user confirms the real Geographic Reference service responds successfully and requests a concrete solution. Investigation identifies the shared fixture's configuration fault: `GeographicReferenceStubResource.start()` globally supplied **100ms connect/read timeouts** alongside its local URL. The service's normal configuration defines finite **2000ms connect / 5000ms read** defaults. Because the shared resource is used across HTTP contract classes, timeout-fault settings also governed ordinary legal registration.
+
+Added two meaningful regressions before the fix: the fixture must override only its local URL, and a controlled valid provider reply delayed 300ms must succeed with the normal service budget. Both fail in the old setup (**2/2 executable red, 38s**). The delayed-success failure includes an `ApplicationException` caused by **`io.vertx.core.impl.NoStackTraceTimeoutException`**, proving the configuration can turn a valid local reply into dependency-unavailable. This reproduces the shared budget defect directly rather than assuming every earlier unavailable outcome had the same exception.
+
+Correction is limited to test sources:
+
+- Shared resource overrides only the local HTTP provider URL; normal clients retain the existing service timeout configuration.
+- The read-timeout test creates and closes a separate reactive Quarkus client with a 2s connect / 1s read budget. It first verifies a valid response, then asserts a real `TimeoutException` translated to neutral dependency-unavailable, exactly one provider request and one unavailable observation. The private registry is closed in finally.
+- The controlled timeout reply is delayed 10s, beyond both that isolated budget and the ordinary service's 5s read budget. Existing legal HTTP dependency/timeout failure assertions still execute and pass.
+- A regression checks that the fixture cannot reintroduce globally short timeouts. No production client, URL, response mapping, database or deployed microservice setting is changed.
+
+Focused command executes all adapter/fixture and both legal/issuer HTTP suites:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.infrastructure.integration.geographic.GeographicReferenceStubResourceTest --tests com.alexastudillo.partyregistry.infrastructure.integration.geographic.GeographicReferenceAdapterTest --tests com.alexastudillo.partyregistry.api.resource.LegalEntityDetailsResourceContractTest --tests com.alexastudillo.partyregistry.api.resource.IssuerCodeResourceContractTest --console=plain
+```
+
+All **26 focused cases pass in 1m 10s**. Final required gates on the saved correction:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: **BUILD SUCCESSFUL in 6m 19s**, **1,456 tests, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 2m 33s**, unit tests up-to-date, **28 packaged JVM tests pass without failures/skips**.
+- Captured output: `~/.local/share/opencode/tool-output/tool_104ad81c6001hTANUG10QAZZQC`.
+- All three current test-source blobs have complete zero-finding Sonar and independent zero-problem JDTLS in `java-inventory.md`; no compiler warning, suppression, exclusion, retry or removed error assertion was introduced. Expected injected SQL/error and pre-existing cleanup diagnostics remain visible.
+
+The previous full-suite blocker is resolved. Task 4.2's port/model revisions now satisfy their required final gates and can be marked complete; overall progress becomes **14/60**. Remaining functional routes, mutation adapters and native final checks remain incomplete.
+
+## Task 4.3: Neutral identifier failures and API-only stable translation
+
+Added failure-translation tests before implementation. Compile-red identified the missing sealed failure variants and identifier-specific Domain classification helper. Once runnable, the focused test reached **3 cases / 2 executable failures in 13s** for missing typed-failure and Domain-failure HTTP translations. Implemented the six neutral variants, sanitized internal descriptions and `ApplicationException.forIdentifier`; the existing generic `of` contract remains unchanged. Both exhaustive Application observation and API translation switches are extended explicitly.
+
+Identifier absence, independent-version mismatch, invalid lifecycle, primary conflict, version exhaustion and invalid continuation now translate at API only to the approved 404/412/409/400 stable codes. Known Domain lifecycle/capacity/primary/validity violations become corresponding neutral Application failures; unknown invariants and unexpected technical failures remain unchanged for sanitized global handling. Domain/Application import no HTTP, shared response code or response exception. New failure markers retain no cursor payload or owner detail, and versions use `PartyIdentifierVersion`.
+
+A test-only reactive HTTP resource exercises the actual translator and published global handler. Its eight probes verify exact status/code-only 400/404/409/412/422/500 envelopes and accepted Process-Id echoes, including an unknown invariant with a private cause that is absent from the response. No new global mapper or production verification endpoint is added. The existing exhaustive failure-description test initially detected the six added variants; its expected descriptions were extended while retaining the coverage-count assertion.
+
+Focused command:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests com.alexastudillo.partyregistry.api.error.PartyIdentifierFailureTranslationTest --tests com.alexastudillo.partyregistry.api.error.PartyIdentifierErrorContractTest --tests com.alexastudillo.partyregistry.api.error.PartyApiErrorTranslatorTest --tests '*ApplicationExceptionTest' --tests '*OperationObservationTest' --tests '*CleanArchitectureTest' --console=plain
+```
+
+New translation and real HTTP probes pass in the focused run; its single exhaustive-description regression was reconciled as above and passes in subsequent full gates. Initial full gates then passed (6m 41s / 2m 39s, output `tool_104cd461b001syCpiWRkKO7Q9C`). The first local interface analysis reported two findings; the new version-specific null-check descriptions remove duplicated literals and a fresh full analysis reports zero findings. Final gates were rerun after that last source fix, rather than reusing the earlier result.
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Final test: **BUILD SUCCESSFUL in 6m 25s**, **1,460 tests, zero failures/skips**.
+- Final build: **BUILD SUCCESSFUL in 2m 38s**, tests up-to-date, **28 packaged JVM tests pass without failures/skips**.
+- Final output: `~/.local/share/opencode/tool-output/tool_104d7be830013YeK4dZsX8I6oB`.
+- All nine saved Java revisions and nested types are inventoried with completed full zero-finding Sonar and independent zero-problem JDTLS. No new compiler warning, suppression, rule exclusion or numeric-month date fixture was introduced. Existing runtime injected-error/cleanup diagnostics remain visible and separate from source findings.
+
+Task 4.3 is complete. **User-requested stop after 4.3:** pause the session here for continuation tomorrow. Accepted progress is **15/60**. Next task is **5.1**, the next immutable Flyway migration; confirm its next available version when resuming. No section 5 implementation has started and native final verification remains pending.

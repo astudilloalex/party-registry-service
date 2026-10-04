@@ -46,6 +46,8 @@ Paths below are relative to `src/`; every named file has responsibility Javadoc.
 
 Sonar evidence uses `~/.config/Antigravity IDE/logs/20261003T114758/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log` (**S**). Independent JDTLS evidence uses the workspace `.metadata/.log` path recorded in `verification.md` (**J**). Each S range includes input-file identity, Java 25/571-rule configuration, full 1/1 completion and **0 issues/Hotspots**; each J range reports **0 problems**. Earlier findings on the normalizer regex and unused test context were followed by fixed-revision zero analyses, with no rule/configuration changes.
 
+Log rotation note: on 2026-10-03 at 20:12 the earlier S ranges, including tasks 2–4.1, moved unchanged to the adjacent **`SonarQube for IDE.1.log`**. Use that rotated file for the historical line numbers above; it remains available and was inspected. Current task 4.2 evidence below distinguishes rotated and active output explicitly.
+
 | Path / type | Task | Saved Git blob | Sonar result timestamp / lines | JDTLS result timestamp / lines |
 |---|---|---|---|---|
 | `main/java/com/alexastudillo/partyregistry/domain/model/PartyIdentifier.java`; `PartyIdentifier`, `Builder` | 2.4, 3.2–3.3 | `01ed5635b15e86f2b2d0f732afb910a489d4608a` | 16:34:45.633; S1351–1381 | 17:23:30.719; J19500–19510 |
@@ -111,3 +113,46 @@ All paths are relative to `src/`. Types have responsibility Javadoc; nested type
 | `test/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierApplicationContractTest.java`; class | `657128a05da83435495b963d1168e133543e7c4a` | 19:35:53.481; S3089–3119 | 19:35:53.622; J20366–20379 |
 
 The lifecycle command had a transient IDE document parse error (`chpackage`, S2919–2920/J20285–20292). Do not treat that analysis's zero issue count as a successful parse. The subsequent current document fully parsed and completed zero-finding Sonar and independent zero-problem JDTLS; its saved source starts with `package` and the final build compiled/executed it. Current successful analyses above supersede the transient document result.
+
+## Task 4.2 saved revisions: focused green, full gate blocked
+
+All eight files have responsibility/contract Javadoc and no nested declarations. S1 is the rotated `SonarQube for IDE.1.log`; S is the current active log; J is the unchanged JDTLS path above. Every listed revision reports full Java analysis with **0 issues/Hotspots** and independent **0 source problems**. These results do not close the task: the full test run failed in existing legal-entity setup and the chained build did not execute.
+
+| Path relative to src / type | Saved Git blob | Sonar completion / source | JDTLS completion / lines |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/model/CompletedPartyIdentifierMutation.java`; record | `0bd736fe3a48d2128d68dbd3eb4be3e4a589bef5` | 20:08:58.676; S1:3235–3265 | 20:12:15.873; J21014–21024 |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierActionAudit.java`; record | `d308cc12f3e2e8b4fb16cec3bb052b49e4d6f0e4` | 20:09:06.612; S1:3266–3296 | 20:12:25.884; J21026–21036 |
+| `main/java/com/alexastudillo/partyregistry/application/port/PartyIdentifierQueryPort.java`; interface | `ef304c03a9845d40be3734b99a407c2bf8fb00b3` | 20:13:19.947; S:116–146 | 20:13:17.800; J21146–21159 |
+| `main/java/com/alexastudillo/partyregistry/application/port/PartyIdentifierCursorPort.java`; interface | `47c72b0eab4e444da213a0a3840e90da0db1632a` | 20:12:38.632; configuration at end of S1, completion S:1–22 | 20:12:38.060; J21086–21099 |
+| `main/java/com/alexastudillo/partyregistry/application/port/PartyIdentifierFingerprintPort.java`; interface | `093ef04ad53af50df1ff5d240a6febef00d26ed4` | 20:12:46.195; S:23–53 | 20:12:43.881; J21101–21114 |
+| `main/java/com/alexastudillo/partyregistry/application/port/PartyIdentifierMutationPort.java`; interface | `c570a0ebdd0d09264045992e0c85339cfa8349ee` | 20:13:11.644; S:85–115 | 20:13:11.264; J21131–21144 |
+| `main/java/com/alexastudillo/partyregistry/application/port/PartyIdentifierMutationContext.java`; interface | `89dd8b98bf1dfdadbc2829ec153d3a60694e8347` | 20:12:54.462; S:54–84 | 20:12:51.034; J21116–21129 |
+| `test/java/com/alexastudillo/partyregistry/application/port/PartyIdentifierPortContractTest.java`; class | `c97a8c7cc8d4f633efef8a4c10613908ed2e517b` | 20:13:30.181; S:147–177 | 20:13:29.459; J21161–21174 |
+
+## Shared Geographic Reference fixture correction
+
+The previously blocked task 4.2 gate now passes on the same port/model revisions after fixing the shared test fixture's global 100ms timeout override. Only the following test-source revisions were added/modified for that correction. All have responsibility Javadoc; existing nested `TrustedHeaders` and `GeographicReferenceProfile` retain their Javadoc. Each current analysis reports **0 issues/Hotspots** and independent **0 source problems**. S is the current active log and J is the same workspace log above. Required final checks pass **1,456 tests and 28 packaged JVM tests, zero failures/skips**; native final acceptance remains pending.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / lines | JDTLS completion / lines |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/GeographicReferenceStubResource.java`; class, nested `TrustedHeaders` record | `58e4e5e1a1f5c69ef90f5bfe8d19523199279ad9` | 21:05:25.708; S432–462 | 21:05:24.347; J21185–21198 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/GeographicReferenceStubResourceTest.java`; class | `a3864050caf7fef58f5e37e312ed5d0a3d916d57` | 21:05:30.366; S463–493 | 21:05:30.406; J21200–21213 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/integration/geographic/GeographicReferenceAdapterTest.java`; class, nested `GeographicReferenceProfile` class | `ad5887ac429f65471aab1591c45e2fc199b35361` | 21:05:37.300; S494–524 | 21:05:37.001; J21215–21228 |
+
+## Task 4.3 final saved revisions
+
+S is the current active Sonar log and J is the workspace JDTLS log above. All nine final revisions have full 1/1 Java analysis with **0 issues/Hotspots** and independent **0 source problems**. New classes and nested failure records have responsibility Javadoc. No settings, exclusions or suppressions were changed. The final gates pass **1,460 tests and 28 packaged JVM tests**, without failures/skips; see `verification.md` task 4.3.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/error/ApplicationFailure.java`; sealed interface and existing nested records plus `IdentifierNotFound`, `IdentifierVersionMismatch`, `InvalidIdentifierLifecycle`, `PrimaryIdentifierConflict`, `IdentifierVersionExhausted`, `InvalidIdentifierCursor` | `ca5e0a9b44f987afe9237cd995c434b407ded006` | 21:53:42.769; S888–918 | 21:54:24.623; J21389–21399 |
+| `main/java/com/alexastudillo/partyregistry/application/error/ApplicationException.java`; class | `e0c7a8e192d0b36352abec5fd5081dda49c1c11e` | 21:37:22.100; S622–652 | 21:37:21.209; J21257–21270 |
+| `main/java/com/alexastudillo/partyregistry/api/error/PartyApiErrorTranslator.java`; class | `d8d5c51f194f20e6d9fecff459fba8032d62d800` | 21:37:28.638; S653–681 | 21:37:27.671; J21272–21285 |
+| `main/java/com/alexastudillo/partyregistry/api/error/PartyResponseCode.java`; enum | `860c00c6347e9968cd406f81928b9b9f510fa0a9` | 21:37:33.977; S682–712 | 21:37:33.990; J21287–21300 |
+| `main/java/com/alexastudillo/partyregistry/application/observability/OperationObservation.java`; class, no nested declarations | `c56120bd200d00c2635b96a2e41291d96486e761` | 21:37:41.316; S713–741 | 21:37:41.097; J21302–21315 |
+| `test/java/com/alexastudillo/partyregistry/api/error/PartyIdentifierFailureTranslationTest.java`; class | `d122059f68babee79e94facc4090ff562dcd10a1` | 21:37:47.993; S742–772 | 21:37:47.940; J21317–21330 |
+| `test/java/com/alexastudillo/partyregistry/api/error/PartyIdentifierErrorVerificationResource.java`; test-only class | `68aef73d4f5071e2a88fafbc789d191c0e972024` | 21:37:55.529; S773–803 | 21:37:55.574; J21332–21345 |
+| `test/java/com/alexastudillo/partyregistry/api/error/PartyIdentifierErrorContractTest.java`; class | `584a7d4e70ee65b49f604e336043c0f879e18da8` | 21:38:02.596; S804–834 | 21:38:02.741; J21347–21360 |
+| `test/java/com/alexastudillo/partyregistry/application/error/ApplicationExceptionTest.java`; class, existing nested `FailureDescription` record | `193d352a2c575ae3e7ea408ccd27a3a209631381` | 21:42:28.816; S857–887 | 21:42:28.930; J21362–21375 |
+
+The first extended failure-interface revision reported two Sonar issues. Identifier-specific version null-check descriptions remove the newly duplicated validation literals, and the final saved interface is reanalyzed with zero findings. Its earlier two-issue analysis is not substituted for final acceptance. No precise rule-key claim is inferred from the count-only output.
