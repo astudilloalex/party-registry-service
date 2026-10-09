@@ -369,3 +369,27 @@ All entries use active S2 and independent J paths above, with analysis on 2026-1
 ### Task 7.6 current serializer analysis, 2026-10-09
 
 The unchanged serializer blob `db644c28a987e8bf469e02afde837c664f65a299` received fresh full **1/1** standalone Java-25/571-rule analysis at **11:13:14.428**, reporting **one issue / zero Hotspots**. Source: `~/.config/Antigravity IDE/logs/20261009T110402/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log:327–357`. Rule/message/location remain absent from the count-only output; obtain the actual Problems diagnostic before correcting it. Historical JDTLS and JVM results above remain historical, with no new acceptance claim or source edit. See the continuation in `verification.md`; task 7.6 remains incomplete.
+
+### Task 7.6 final serializer revision (supersedes the pending row)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range / result | JDTLS completion / range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/messaging/OutboxMessageSerializer.java`; class, no nested types | `d036f91b253af22633731954cf31f3b0476fef05` | 2026-10-09 11:17:40.484; current `20261009T110402/window1` Sonar log 358–388; full 1/1 Java 25/571 rules, **zero issues/Hotspots** | 2026-10-09 11:17:41.586; documented workspace log 23586–23596; **zero problems** |
+
+The supplied java:S3824 finding is resolved with computeIfPresent. Focused event/mode/outbox/architecture checks and final **1,604 full tests / 28 actual packaged JVM cases** pass without failure/skip; see `verification.md`. All seven task-7.6 revisions now have zero saved-source findings, with no suppression or configuration change.
+
+## Task 7.7 saved revisions: runtime green, journal finding pending
+
+**S3** is `~/.config/Antigravity IDE/logs/20261009T110402/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log`; **J** is the previously documented project workspace `.metadata/.log`. All listed analyses are current full **1/1**, Java 25/571-rule standalone runs on 2026-10-09. Every independent JDTLS validation reports zero source problems. All types have responsibility Javadoc, including the journal's `AcceptedWrite` and the test's `Fixture`/`Budgets`. Final 11 focused adapter cases, architecture, **1,615 full tests / 28 actual packaged JVM cases** pass. One production journal finding prevents acceptance; no rule key is inferred from count-only output.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierAtomicSession.java`; class | `09381adfa983c17ddf0281b7aee7a345193d1bd6` | 11:46:35.646 / 1899–1929 / zero | 11:46:35.891 / 24431–24444 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierPersistenceFailures.java`; class | `74b0bfd090b42e741d486a93f16326c6be8cf4be` | 11:51:10.625 / 1930–1960 / zero | 11:51:10.098 / 24446–24459 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationEffects.java`; class | `c3ff4f572561b6252eb7ab6b2f66f50887c8af25` | 11:51:36.131 / 1961–1991 / zero | 11:51:36.208 / 24461–24474 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationJournal.java`; class, nested `AcceptedWrite` record | `d3529c40cdd3f1c6b34f5d1135ffe96984e7704b` | 11:55:17.220 / 1992–2022 / **one issue, zero Hotspots; diagnostic pending** | 11:55:13.377 / 24476–24489 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierMutationContext.java`; class | `4757158044e5179f723225bb934da5a1b825c873` | 11:55:27.327 / 2023–2053 / zero | 11:55:27.098 / 24491–24504 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierMutationAdapter.java`; class | `75dab7cf761ebe8c82d9957a486eef200dec2b6e` | 12:09:06.038 / 2054–2084 / zero | 12:09:02.485 / 24506–24519 / zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierMutationAdapterTest.java`; class, nested `Fixture` and `Budgets` records | `3b705f5a5a5e5b81ea8024937a1ee94bc2c7a340` | 12:09:19.385 / 2085–2115 / zero | 12:09:17.390 / 24521–24534 / zero |
+
+The implementation's qualified nested-type nullable annotation and test entity accessor compilation errors were corrected before the focused/full green runs; they are not behavioral-red evidence or unresolved diagnostics. No unjustified suppression, settings change or native acceptance claim is present. See `verification.md` for the full TDD/runtime chronology and the pending Problems diagnostic.
