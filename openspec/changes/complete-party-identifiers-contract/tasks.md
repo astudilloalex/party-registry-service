@@ -193,9 +193,10 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
 
 ## 8. Additional Registration Vertical Slice
 
-- [ ] 8.1 Test first and refactor additional registration into the replay-first Application workflow.
+- [x] 8.1 Test first and refactor additional registration into the replay-first Application workflow.
   - Requirements: M: Eligible independent registration; M: Durable additional registration replay; M: Active-value uniqueness and release.
   - Verification: Port-double tests prove completed replay before Party/scheme/protection, exact fingerprint conflicts, one new-operation clock capture, locked-scheme preparation in the same context, ACTIVE/type/value/date rules, provisional flags, and safe version-0 outcomes. Initial Party registration preparation remains unchanged.
+  - Evidence: Ten workflow cases and registration/architecture regression pass after eight executable red failures. All four saved revisions have zero Sonar/JDTLS findings; 1,625 full tests pass. The user-authorized standalone build completes in 3m 51s with unit tests up-to-date and all 28 packaged JVM cases passing, resolving the combined-command deadline. See `verification.md` and `java-inventory.md`.
 
 - [ ] 8.2 Switch CDI composition to the durable registration workflow and retire obsolete additional-registration code only after consumer checks.
   - Requirements: M: Maintenance has one durable observable outcome; Quality — strict composition and compatibility.

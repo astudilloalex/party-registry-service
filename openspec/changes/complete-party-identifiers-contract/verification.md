@@ -1090,3 +1090,39 @@ The user supplied the actual **java:S6213** diagnostic on the journal's `record`
 Current full 1/1 Java-25/571-rule Sonar reports **zero issues/Hotspots** for the journal at **2026-10-09 12:16:21.085**, S3 **2160–2190**, and the context at **12:16:22.284**, S3 **2191–2221**. Independent JDTLS reports **zero problems** for the journal at **12:16:36.252**, J **24566–24576**, and the context at **12:16:48.596**, J **24578–24588**. The five unchanged task-7.7 saved revisions retain their previously recorded zero findings.
 
 Focused adapter/architecture checks pass in **3m 3s**. Required final `./gradlew test` passes in **9m 31s** with **1,615 tests, zero failures/skips**; `./gradlew build` passes in **3m 21s**, with **28 actually executed packaged JVM cases, zero failures/skips**. Both commands use the recorded test-scoped Podman API and dynamic HTTP-port environment; combined output: `~/.local/share/opencode/tool-output/tool_121b0d0ec0018XFWs0ycoelq24`. No new compiler warning, suppression or rule setting was introduced; existing controlled runtime diagnostics remain visible. Task 7.7 is complete and progress becomes **31/60**. Proceed to 8.1; complete new mutation HTTP/native acceptance remains in its later tasks.
+
+## Task 8.1: Replay-first Application workflow, build deadline incomplete
+
+Added `PartyIdentifierRegistrationWorkflowTest` first. The focused command reaches compile-red in **9s** for the new constructor and outcome method. A runnable nonimplementing workflow then produces **eight executable feature failures in 3m 1s**, covering missing replay, eligibility, safe creation, locked-scheme validation and failure identity. Fourteen reported cases include six existing automatically selected fixture checks; only eight are feature-red cases.
+
+Implemented `PartyIdentifierRegistrationWorkflow` behind the new durable constructor of `RegisterPartyIdentifierUseCase`. It captures one keyed fingerprint per subscription from exact original parsed input, serializes/reads the completed creation key first, returns an equivalent original safe result without owner/catalog/protection/clock access, and rejects changed fingerprints before new-operation dependencies. On a miss it resolves the owned Party/type, resolves and serializes the exact scheme identity, read-locks/rechecks the same scheme, applies shared admission policies, captures one UTC instant truncated to PostgreSQL microseconds, normalizes/protects only a newly admitted value, and inserts the identifier, safe completion and original compatible creation-event intent through the same mutation context.
+
+`PartyIdentifierPreparation.requireEligible` now accepts a caller-supplied locked scheme at package scope; existing initial-registration repository lookup and policies remain intact. `RegisterPartyIdentifierUseCase.executeOutcome` exposes the safe committed disposition and observation. The existing constructor remains available only through this staged implementation until the specified task-8.2 CDI cutover and obsolete-consumer checks. No CDI producer, HTTP binding, retired port/adapter or initial-registration path was changed in 8.1; this internal workflow increment does not claim public durable replay rollout.
+
+The eight new cases and existing additional/initial registration plus architecture regression pass in **3m 11s**. Two added characterization cases verify lazy per-subscription fingerprint/clock capture and locked-scheme normalized length limits; the final ten workflow cases and compatibility/architecture checks pass in **3m 30s**. Coverage includes both Party types, exact raw value/issuer fingerprints, replay after owner absence/scheme retirement/dependency failure with a new actor/process, current-scheme identity inconsistency, known eligibility failures, optional/inclusive expiration, future issue dates, coherent interval rejection, provisional flags, original creation completion and event metadata, protected normalized values, and failed-key reuse.
+
+Commands:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*PartyIdentifierRegistrationWorkflowTest' --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*PartyIdentifierRegistrationWorkflowTest' --tests '*RegisterPartyIdentifierUseCaseTest' --tests '*CreateNaturalPersonUseCaseTest' --tests '*CreateLegalEntityUseCaseTest' --tests '*CleanArchitectureTest' --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain && DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+The combined full command had a **1,200,000ms deadline**. Standalone `test` completed **BUILD SUCCESSFUL in 9m 18s**, output line **4860**. The following `build` reran `compileTestJava` and the complete unit suite, then reached packaged build/`integrationTestClasses` before the shell deadline interrupted it. Current full report contains **1,625 tests, zero failures/skips**. There is no final build success or accepted packaged result for this revision; earlier 28-case packaged results are not substituted. Output: `~/.local/share/opencode/tool-output/tool_121cbc03e001ix1jFdfVc8o7C7`. After interruption `./gradlew --status` reports the daemon IDLE. No root cause is inferred for the rerun beyond the observed tasks, and no test budget/assertion was weakened.
+
+All four saved Java revisions have completed full 1/1 Java-25/571-rule standalone Sonar with **zero issues/Hotspots**, plus independent **zero-problem JDTLS**, recorded in `java-inventory.md`. Responsibility Javadoc covers the two test nested types; valid dates use Month and derived instants. No compiler warnings, exclusions, suppression or rule/configuration changes were introduced. Saved blobs were rechecked after the interrupted gate and remain unchanged.
+
+Task **8.1 remains unchecked**, accepted progress **31/60**. Asked for guidance to rerun `./gradlew build` separately with a 30-minute deadline and continue on success; the developer requested an explanation of the current work before that decision. The workflow and gate status were explained, and no retry or task-8.2 cutover is claimed yet. Native/public replay acceptance remains later work.
+
+### Task 8.1 build deadline resolved
+
+After the requested explanation, the user explicitly authorized execution. Ran the build separately with an **1,800,000ms deadline**, without changing source or skipping required tests:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --info --console=plain
+```
+
+**BUILD SUCCESSFUL in 3m 51s**, **17 tasks: one executed, sixteen up-to-date**. Gradle explicitly reports `compileTestJava` and `test` **UP-TO-DATE**, preserving the passing 1,625-case full suite, and actually executes all **28 packaged JVM cases with zero failures/skips**. Output: `~/.local/share/opencode/tool-output/tool_121e17bb1001YWiOwmB7wczKSQ`, unit-test up-to-date evidence at **92–116**, packaged execution at **187 onward**, final success at **984**. The interrupted combined run's redundant compilation/test execution is observed, but its exact invalidation cause is not established by this new log. No runtime budget, assertion, cache setting or acceptance criterion was relaxed.
+
+The four source blobs and completed zero Sonar/JDTLS results remain valid; no further Java edits occurred. Task 8.1 is complete at **32/60**. The prior shell-deadline interruption remains historical evidence. Next is task 8.2's CDI cutover and obsolete-consumer cleanup.

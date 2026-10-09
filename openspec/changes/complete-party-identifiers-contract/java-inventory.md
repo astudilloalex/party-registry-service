@@ -402,3 +402,18 @@ The implementation's qualified nested-type nullable annotation and test entity a
 | `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierMutationContext.java`; class | `d10e18b0faca47ff6ff348b877c97cc7b7c4a2d0` | 2026-10-09 12:16:22.284 / 2191–2221 / zero | 12:16:48.596 / 24578–24588 / zero |
 
 The supplied java:S6213 diagnostic is resolved with recordAcceptedWrite and its two call sites. All seven current task-7.7 files have zero standalone Sonar/JDTLS findings. Eleven adapter cases, architecture, final **1,615 full tests / 28 actual packaged JVM cases** pass without failures/skips; see `verification.md`. No rule/configuration/suppression change or native acceptance claim is made.
+
+## Task 8.1 saved revisions: source and tests green, final build interrupted
+
+S3/J refer to the same current log paths above. Each listed analysis is full 1/1 Java-25/571-rule standalone Sonar with **zero issues/Hotspots** and independent **zero JDTLS problems** on 2026-10-09. Every type has responsibility Javadoc. Ten new workflow cases and existing registration/architecture regression pass; final full report contains **1,625 tests, zero failures/skips**. The combined test/build command exhausted its 20-minute shell deadline before final build/package acceptance, so 8.1 remains incomplete. See `verification.md` for actual red/green commands, staged CDI scope and retry decision.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/usecase/PartyIdentifierRegistrationWorkflow.java`; class | `cd4647c09fd75f5301d4eb98c1b7baf486963307` | 12:41:39.014 / 2244–2274 / zero | 12:41:35.185 / 24590–24603 / zero |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/RegisterPartyIdentifierUseCase.java`; class | `10b06863164cb8044f4117be7fb53ea8fcfd4eca` | 12:45:10.332 / 2275–2305 / zero | 12:45:08.230 / 24605–24618 / zero |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/PartyIdentifierPreparation.java`; class | `a625b49aac34c5e483e1524240908831955b0406` | 12:45:40.810 / 2306–2336 / zero | 12:45:40.507 / 24620–24633 / zero |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/PartyIdentifierRegistrationWorkflowTest.java`; class, nested `Harness` and `CountingClock` classes | `120b0ba4570fc8c778b2bddc4aeaa51df0792bc1` | 12:49:28.875 / 2456–2486 / zero | 12:49:28.664 / 24797–24810 / zero |
+
+The final blobs remain the same after interruption. No source-quality blocker, compiler warning, rule/configuration change or suppression is present. Existing constructor/consumer retirement is task 8.2; public/native behavior and final build acceptance are not inferred from these internal unit checks.
+
+Task 8.1's build-deadline continuation resolves the gate above: the authorized separate `./gradlew build --info --console=plain` completes in **3m 51s**, retaining the up-to-date passing **1,625-test** suite and executing all **28 packaged JVM cases** without failure/skip. No source blobs or IDE analyses changed. The four current revisions satisfy task 8.1; see `verification.md` for exact output and the earlier interruption.
