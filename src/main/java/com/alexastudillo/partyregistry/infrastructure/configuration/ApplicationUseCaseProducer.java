@@ -18,6 +18,8 @@ import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyCursorPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierReadPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierQueryPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierCursorPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
@@ -27,6 +29,8 @@ import com.alexastudillo.partyregistry.application.usecase.ListIdentifierSchemes
 import com.alexastudillo.partyregistry.application.usecase.PatchIdentifierSchemeUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ChangeIdentifierSchemeLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.GetPartyIdentifierUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ListPartyIdentifiersUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNationalityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchNationalityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.SetPrimaryNationalityUseCase;
@@ -182,6 +186,17 @@ public class ApplicationUseCaseProducer {
                         protectionPort),
                 UTC_CLOCK,
                 observationPort);
+    }
+
+    @Produces
+    GetPartyIdentifierUseCase getPartyIdentifierUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers) {
+        return new GetPartyIdentifierUseCase(owners, identifiers);
+    }
+
+    @Produces
+    ListPartyIdentifiersUseCase listPartyIdentifiersUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers,
+            PartyIdentifierCursorPort cursors) {
+        return new ListPartyIdentifiersUseCase(owners, identifiers, cursors);
     }
 
     @Produces

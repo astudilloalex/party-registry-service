@@ -10,6 +10,7 @@ import com.alexastudillo.partyregistry.api.mapper.PartyIdentifierApiMapper;
 import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierCreateRequest;
 import com.alexastudillo.partyregistry.api.model.response.PartyIdentifierResponse;
 import com.alexastudillo.partyregistry.api.support.ApiRequestSupport;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierQueryOperations;
 import com.alexastudillo.partyregistry.application.command.RegisterPartyIdentifierCommand;
 import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -19,6 +20,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -26,11 +28,14 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.UriInfo;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
+import java.util.List;
+
 /**
- * Exposes independent official-identifier registration for existing Parties.
+ * Exposes independent official-identifier registration and historical reads for existing Parties.
  */
 @Path("/v1/parties/{partyId}/identifiers")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -45,6 +50,7 @@ public class PartyIdentifierResource {
     private final PartyApiErrorTranslator errorTranslator;
     private final ResponseManager responseManager;
     private final ApiRequestSupport requestSupport;
+    private final PartyIdentifierQueryOperations queries;
 
     @Inject
     public PartyIdentifierResource(
@@ -53,13 +59,32 @@ public class PartyIdentifierResource {
             PartyIdentifierApiMapper mapper,
             PartyApiErrorTranslator errorTranslator,
             ResponseManager responseManager,
-            ApiRequestSupport requestSupport) {
+            ApiRequestSupport requestSupport,
+            PartyIdentifierQueryOperations queries) {
         this.registerUseCase = registerUseCase;
         this.metadataContext = metadataContext;
         this.mapper = mapper;
         this.errorTranslator = errorTranslator;
         this.responseManager = responseManager;
         this.requestSupport = requestSupport;
+        this.queries = queries;
+    }
+
+    /** Returns an owned historical page with strict selectors, authenticated continuation and safe shared metadata. */
+    @GET
+    @WithSpan("party-identifier.list")
+    public Uni<RestResponse<ApiResponse<List<PartyIdentifierResponse>>>> listPartyIdentifiers(
+            @PathParam("partyId") String partyId, @Context UriInfo uri) {
+        return queries.list(partyId, uri.getQueryParameters());
+    }
+
+    /** Retrieves the safe stored representation in every identifier state without changing lifecycle or audit. */
+    @GET
+    @Path("/{identifierId}")
+    @WithSpan("party-identifier.retrieve")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> getPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId) {
+        return queries.detail(partyId, identifierId);
     }
 
     /**

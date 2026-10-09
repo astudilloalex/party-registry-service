@@ -1,14 +1,17 @@
 package com.alexastudillo.partyregistry.api.mapper;
 
+import com.alexastudillo.api.response.contract.PaginationMetadata;
 import com.alexastudillo.partyregistry.api.model.request.InitialPartyIdentifierCreateRequest;
 import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierCreateRequest;
 import com.alexastudillo.partyregistry.api.model.response.InitialPartyIdentifierResponse;
 import com.alexastudillo.partyregistry.api.model.response.PartyIdentifierResponse;
 import com.alexastudillo.partyregistry.application.command.InitialPartyIdentifierInput;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierPageResult;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierStatus;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -66,6 +69,19 @@ public class PartyIdentifierApiMapper {
                 result.version().value(),
                 result.createdAt(),
                 result.updatedAt());
+    }
+
+    /** Maps historical page items to immutable API DTOs without exposing Application records. */
+    public List<PartyIdentifierResponse> toResponses(PartyIdentifierPageResult page) {
+        Objects.requireNonNull(page, "page");
+        return page.items().stream().map(this::toResponse).toList();
+    }
+
+    /** Preserves explicit navigation and rejects counts beyond the shared integer range before creating metadata. */
+    public PaginationMetadata toPagination(PartyIdentifierPageResult page) {
+        Objects.requireNonNull(page, "page");
+        return new PaginationMetadata(page.nextCursor(), page.prevCursor(), Math.toIntExact(page.totalElements()),
+                Math.toIntExact(page.totalPages()), page.numberOfElements());
     }
 
     /**

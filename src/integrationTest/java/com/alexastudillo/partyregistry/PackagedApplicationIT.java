@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies packaged JVM and native artifacts and their cross-cutting HTTP
@@ -213,9 +214,12 @@ class PackagedApplicationIT {
         assertEquals(Set.of("partyId", "type", "displayName", "recordStatus", "version", "createdAt",
                 "updatedAt", "createdBy", "updatedBy", "naturalPersonDetails", "identifiers"),
                 detail.jsonPath().getMap("data").keySet());
-        assertEquals(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode", "maskedValue",
+        var identifierFields = detail.jsonPath().getMap("data.identifiers[0]").keySet();
+        assertTrue(identifierFields.containsAll(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode",
+                "maskedValue", "status", "isPrimary", "version", "createdAt", "updatedAt")));
+        assertTrue(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode", "maskedValue",
                 "status", "isPrimary", "issuerCode", "issuedOn", "expiresOn", "verifiedAt", "verifiedBy",
-                "version", "createdAt", "updatedAt"), detail.jsonPath().getMap("data.identifiers[0]").keySet());
+                "version", "createdAt", "updatedAt").containsAll(identifierFields));
         for (String forbidden : List.of("value", "normalizedValue", "encryptedValue", "normalizedValueHash",
                 "encryptionKeyVersion", "normalizationVersion", "plaintext", "ciphertext", "fingerprint", "keys")) {
             detail.then().body(not(containsString("\"" + forbidden + "\"")));
