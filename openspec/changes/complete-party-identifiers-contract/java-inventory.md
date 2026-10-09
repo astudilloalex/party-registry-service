@@ -524,3 +524,20 @@ Both final saved files and nested test types have full individual 1/1 resolved-m
 | `test/java/com/alexastudillo/partyregistry/application/usecase/PatchPartyIdentifierUseCaseTest.java`; class, nested Harness and CountingClock | `3d33c15bb2aa30a8fb8629dea68a097526309966` | 17:20:38.698 / 890–920 / full 1/1 zero | 17:20:38.454 / 1289–1302 / zero |
 
 Review confirms inward framework-free Application code apart from allowed Mutiny, one callback/clock, neutral typed failure mapping, no replay or catalog/protection/withdrawal capability, explicit safe event/outcome and no production blocking/manual subscription. Javadoc covers every class/nested fixture, dates derive from the established Month-based fixture, and no new compiler warning/suppression or analyzer configuration change is introduced. Actual PATCH delivery and CDI composition are the subsequent HTTP task.
+
+## Task 9.3 actual PATCH boundary and stored/history preservation
+
+All eight final saved revisions below have full individual 1/1 resolved-model Java-25/571-rule **zero Sonar issues/Hotspots** and independent **zero JDTLS source problems**. Exactly **17 changed-class checks**, including eight actual PostgreSQL/HTTP cases, pass with a successful focused build. Only the modified signature/producer and new PATCH HTTP classes run; final global/package/native acceptance is not claimed or substituted.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J2 range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRegistrationOperations.java`; class | `dd4e692b0b03c86fa9623bb072f12894feaf36dc` | 2026-10-09 17:40:19.787 / 943–973 / full 1/1 zero | 17:40:19.607 / 1304–1317 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPatchOperations.java`; class | `ac284c6a1a79fde03497fcad44260b4cc9d81827` | 17:40:30.666 / 974–1004 / full 1/1 zero | 17:40:30.260 / 1319–1332 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierResource.java`; class | `7a8aa1750df9b3e743d0431c9a7ff0a7716334aa` | 17:40:44.694 / 1005–1035 / full 1/1 zero | 17:40:42.955 / 1334–1347 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducer.java`; class | `437f0d5d837f490073492d5e04fbe6aeee0df0a0` | 17:40:54.288 / 1036–1066 / full 1/1 zero | 17:40:53.663 / 1349–1362 / zero |
+| `test/java/com/alexastudillo/partyregistry/support/FixedPartyIdentifierPatchProducer.java`; class | `9bcd3bcc1ff52c9da9fd0fae1e9a852bc5ac68e0` | 17:41:08.286 / 1067–1097 / full 1/1 zero | 17:41:06.300 / 1364–1377 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierPatchResourceContractTest.java`; class, Fixture record and PatchProfile class | `316e9e16f335540a31d9f0f8934853e89f364f80` | 17:41:17.684 / 1098–1128 / full 1/1 zero | 17:41:17.292 / 1379–1392 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyResourceSignatureTest.java`; class | `f6e8d06ab517b49f79f4085457e35af55bda70be` | 17:46:19.010 / 1151–1181 / full 1/1 zero | 17:46:18.611 / 1394–1407 / zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducerTest.java`; class | `a9ef762b14c95471ce492be51355a0f983aaeb8c` | 17:46:31.445 / 1182–1212 / full 1/1 zero | 17:46:30.969 / 1409–1422 / zero |
+
+Explicit response generics, DTO-before-envelope/CDI ResponseManager, pure API transport adaptation, default/selected test composition, safe event/completion counts, unchanged stored protection/verification/parent/subtype/history and no production blocking are reviewed. The redundant resource-specific Jackson method has no Java consumers and the scoped model reader/published global handler remains authoritative. Class/nested responsibility Javadoc and new Month-based dates are retained. No rule, null-analysis setting or suppression is changed; original code-only failure expectations are not weakened. See `verification.md` for actual red/green commands and scoped build.

@@ -15,6 +15,7 @@ import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleU
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
@@ -78,5 +79,12 @@ class ApplicationUseCaseProducerTest {
         assertTrue(method.isAnnotationPresent(Produces.class));
         assertEquals(returnType, method.getReturnType());
         assertEquals(List.of(), Arrays.stream(method.getExceptionTypes()).toList());
+    }
+
+    @Test
+    void wiresIndependentMetadataCorrectionOnlyThroughOwnedMutationAndObservationPorts() throws ReflectiveOperationException {
+        Method producer = ApplicationUseCaseProducer.class.getDeclaredMethod("patchPartyIdentifierUseCase", PartyIdentifierMutationPort.class, OperationObservationPort.class);
+        assertProducer(producer, PatchPartyIdentifierUseCase.class);
+        assertEquals(1, PatchPartyIdentifierUseCase.class.getDeclaredConstructors().length);
     }
 }

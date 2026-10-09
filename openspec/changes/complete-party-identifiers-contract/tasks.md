@@ -225,9 +225,10 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Workflow tests pin absence→version→state→exhaustion→resulting dates, one clock read, unchanged protected/verification/Party data, one accepted event, and no completion/key behavior for PATCH. Failed/identical/repair cases match the specs.
   - Evidence: Compile-red followed by nine executable workflow failures; all nine changed-class cases now pass with exact sequence/preservation/effects and neutral precedence. Source review and both saved revisions' Sonar/JDTLS are zero. The developer-requested focused build succeeds in 22s with the selected tests up-to-date; global/package/native acceptance remains its final tasks. See `verification.md` and `java-inventory.md`.
 
-- [ ] 9.3 Test first and expose metadata PATCH with live success/failure and preservation assertions.
+- [x] 9.3 Test first and expose metadata PATCH with live success/failure and preservation assertions.
   - Requirements: M: Strict partial metadata correction; M: Metadata correction eligibility and audit; Q: Trusted context and process correlation.
   - Verification: HTTP tests cover pending/verified correction, terminal rejection, partial null/retained fields, date repair/inversion, identical increment, stale/exhausted versions, syntax precedence, and ignored replay headers. Stored Party/protection fields and previous creation results are byte/value-identical.
+  - Evidence: Eight actual HTTP route failures resolve; eight real PATCH cases plus modified signature/composition classes pass 17 focused checks with a successful focused build. Stored protected/immutable/verification and Party/subtype rows, creation snapshots and exact completion/event counts are verified. All eight saved revisions have zero Sonar/JDTLS findings; source/generic boundary inspection is recorded in `verification.md`/`java-inventory.md`.
 
 ## 10. Verification and Withdrawal Vertical Slice
 

@@ -3,6 +3,7 @@ package com.alexastudillo.partyregistry.api.resource;
 import com.alexastudillo.api.response.contract.ApiResponse;
 import com.alexastudillo.partyregistry.api.model.request.LegalEntityCreateRequest;
 import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierCreateRequest;
+import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierPatchRequest;
 import com.alexastudillo.partyregistry.api.model.request.PartyUpdateRequest;
 import com.alexastudillo.partyregistry.api.model.response.LegalEntityCreateResponse;
 import com.alexastudillo.partyregistry.api.model.response.PartyDetailResponse;
@@ -57,6 +58,14 @@ class PartyResourceSignatureTest {
                 HttpHeaders.class);
 
         assertPostEnvelope(method, PartyIdentifierResponse.class);
+    }
+
+    @Test
+    void exposesIndependentIdentifierMetadataPatchWithOnlyTheSafeDto() throws ReflectiveOperationException {
+        Method method = PartyIdentifierResource.class.getMethod("patchPartyIdentifier", String.class, String.class,
+                PartyIdentifierPatchRequest.class, HttpHeaders.class);
+        assertTrue(method.isAnnotationPresent(PATCH.class)); assertEquals("/{identifierId}", method.getAnnotation(Path.class).value());
+        assertEquals(PartyIdentifierResponse.class, payloadType(method));
     }
 
     @Test
