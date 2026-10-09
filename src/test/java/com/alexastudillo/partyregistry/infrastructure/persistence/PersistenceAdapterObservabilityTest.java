@@ -7,7 +7,7 @@ import com.alexastudillo.partyregistry.application.model.NaturalPersonRegistrati
 import com.alexastudillo.partyregistry.application.model.ObservedOperation;
 import com.alexastudillo.partyregistry.application.model.OperationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyDetailsResult;
-import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationResult;
@@ -28,7 +28,6 @@ import com.alexastudillo.partyregistry.domain.model.NaturalPersonDetails;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifier;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierId;
-import com.alexastudillo.partyregistry.domain.model.PartyType;
 import com.alexastudillo.partyregistry.domain.model.ProtectedIdentifierValue;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
@@ -109,27 +108,19 @@ class PersistenceAdapterObservabilityTest {
 
     @Test
     void observesAdditionalIdentifierTransactionOutcomes() {
-        PartyIdentifierRegistrationCandidate identifierCandidate = identifierCandidate();
-        PartyIdentifierResult identifierResult = PartyIdentifierResult.fromAggregate(
-                identifierCandidate.identifier(),
-                identifierCandidate.identifierScheme());
+        PartyIdentifierResult identifierResult = PartyIdentifierResult.fromAggregate(identifier(naturalPerson().partyId()), SCHEME);
+        var committed = new PartyIdentifierMutationOutcome(identifierResult, PartyIdentifierMutationOutcome.Disposition.APPLIED);
         RecordingOperationObserver identifierObserver = new RecordingOperationObserver();
-        var identifierAdapter = new HibernateReactivePartyIdentifierRegistrationAdapter(
-                sessionFactory(Uni.createFrom().item(identifierResult)),
-                new IdentifierSchemePersistenceMapper(),
-                new PartyIdentifierPersistenceMapper(),
-                new PartyOutboxEventPersistenceMapper(),
-                identifierObserver,
-                "disabled");
+        var identifierAdapter = identifierAdapter(committedFactory(Uni.createFrom().item(committed)), identifierObserver);
 
         assertTrue(identifierObserver.startedCalls().isEmpty());
-        Uni<PartyIdentifierResult> identifierOperation = identifierAdapter.register(identifierCandidate);
+        Uni<PartyIdentifierMutationOutcome> identifierOperation = identifierAdapter.execute(METADATA, _ -> { throw new AssertionError("Committed factory double must supply its terminal result"); });
         assertTrue(identifierObserver.startedCalls().isEmpty());
-        assertSame(identifierResult, awaitItem(identifierOperation));
+        assertSame(committed, awaitItem(identifierOperation));
         assertObservation(
                 identifierObserver,
-                ObservedOperation.TRANSACTION_ADDITIONAL_IDENTIFIER_REGISTRATION,
-                OperationOutcome.CREATED);
+                ObservedOperation.TRANSACTION_PARTY_IDENTIFIER_MUTATION,
+                OperationOutcome.APPLIED);
 
     }
 
@@ -151,16 +142,12 @@ class PersistenceAdapterObservabilityTest {
 
         AtomicBoolean sourceCancelled = new AtomicBoolean();
         RecordingOperationObserver cancellationObserver = new RecordingOperationObserver();
-        var identifierAdapter = new HibernateReactivePartyIdentifierRegistrationAdapter(
+        var cancellationAdapter = registrationAdapter(
                 sessionFactory(Uni.createFrom().nothing()
-                        .onCancellation().invoke(() -> sourceCancelled.set(true))),
-                new IdentifierSchemePersistenceMapper(),
-                new PartyIdentifierPersistenceMapper(),
-                new PartyOutboxEventPersistenceMapper(),
-                cancellationObserver,
-                "disabled");
-        UniAssertSubscriber<PartyIdentifierResult> subscriber = identifierAdapter
-                .register(identifierCandidate())
+                         .onCancellation().invoke(() -> sourceCancelled.set(true))),
+                cancellationObserver);
+        UniAssertSubscriber<PartyRegistrationResult> subscriber = cancellationAdapter
+                .registerNaturalPerson(candidate)
                 .subscribe().withSubscriber(UniAssertSubscriber.create());
 
         subscriber.awaitSubscription(TIMEOUT).cancel();
@@ -168,7 +155,7 @@ class PersistenceAdapterObservabilityTest {
         assertTrue(sourceCancelled.get());
         assertObservation(
                 cancellationObserver,
-                ObservedOperation.TRANSACTION_ADDITIONAL_IDENTIFIER_REGISTRATION,
+                ObservedOperation.TRANSACTION_NATURAL_PERSON_REGISTRATION,
                 OperationOutcome.CANCELLED);
     }
 
@@ -245,15 +232,31 @@ class PersistenceAdapterObservabilityTest {
                 List.of());
     }
 
-    private static PartyIdentifierRegistrationCandidate identifierCandidate() {
-        return new PartyIdentifierRegistrationCandidate(
-                METADATA,
-                "additional-key",
-                PartyType.NATURAL_PERSON,
-                identifier(naturalPerson().partyId()),
-                SCHEME,
-                List.of());
+    private static HibernateReactivePartyIdentifierMutationAdapter identifierAdapter(Mutiny.SessionFactory factory, RecordingOperationObserver observer) {
+        var reader = new PartyIdentifierMutationReader(new PartyIdentifierPersistenceMapper(), new IdentifierSchemePersistenceMapper());
+        var effects = new PartyIdentifierMutationEffects(new PartyIdentifierReplayPersistence(new PartyIdentifierCompletionCodec()),
+                new PartyIdentifierAuditPersistence(), new PartyIdentifierOutboxPersistence(new PartyOutboxEventPersistenceMapper(), "disabled"));
+        var budgets = new PartyMutationTimeouts(new Budgets(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(3)));
+        return new HibernateReactivePartyIdentifierMutationAdapter(factory, reader, new PartyIdentifierMutationPersistence(new PartyIdentifierPersistenceMapper(), reader),
+                new PartyIdentifierMutationLocks(), effects, budgets, observer);
     }
+
+    private static Mutiny.SessionFactory committedFactory(Uni<?> outcome) {
+        var session = Mutiny.Session.class.cast(Proxy.newProxyInstance(Mutiny.Session.class.getClassLoader(), new Class<?>[]{Mutiny.Session.class},
+                (_, method, _) -> switch (method.getName()) {
+                    case "withTransaction" -> outcome;
+                    case "close" -> Uni.createFrom().voidItem();
+                    default -> throw new AssertionError("Unexpected committed session operation");
+                }));
+        return Mutiny.SessionFactory.class.cast(Proxy.newProxyInstance(Mutiny.SessionFactory.class.getClassLoader(), new Class<?>[]{Mutiny.SessionFactory.class},
+                (_, method, _) -> {
+                    if (method.getName().equals("openSession")) { return Uni.createFrom().item(session); }
+                    throw new AssertionError("Unexpected committed factory operation");
+                }));
+    }
+
+    /** Provides finite configuration for the terminal-result observation double. */
+    private record Budgets(Duration lockTimeout, Duration statementTimeout, Duration operationTimeout) implements PartyMutationConfiguration { }
 
     private static NaturalPerson naturalPerson() {
         return NaturalPerson.create(

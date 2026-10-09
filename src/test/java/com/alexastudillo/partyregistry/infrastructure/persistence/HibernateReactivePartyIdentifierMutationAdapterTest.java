@@ -11,6 +11,8 @@ import com.alexastudillo.partyregistry.application.model.PartyIdentifierOperatio
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierReason;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
+import com.alexastudillo.partyregistry.application.model.ObservedOperation;
+import com.alexastudillo.partyregistry.application.model.OperationOutcome;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationContext;
 import com.alexastudillo.partyregistry.domain.model.AuditInfo;
 import com.alexastudillo.partyregistry.domain.model.IdentifierRuleVersion;
@@ -28,6 +30,7 @@ import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.domain.policy.PartyIdentifierPrimaryPolicy;
 import com.alexastudillo.partyregistry.support.IdentifierSchemeTestFixtures;
 import com.alexastudillo.partyregistry.support.PersistenceTestProfile;
+import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.vertx.RunOnVertxContext;
@@ -231,7 +234,9 @@ class HibernateReactivePartyIdentifierMutationAdapterTest {
         var opened = new AtomicReference<Mutiny.Session>();
         var reached = new CompletableFuture<Void>();
         var escaped = new AtomicReference<PartyIdentifierMutationContext>();
-        var port = adapter(capturingFactory(opened, new AtomicInteger()), timeouts);
+        var observer = new RecordingOperationObserver();
+        var port = new HibernateReactivePartyIdentifierMutationAdapter(capturingFactory(opened, new AtomicInteger()), reader, writes,
+                new PartyIdentifierMutationLocks(), effects, timeouts, observer);
         asserter.execute(() -> seed(fixture, false));
         asserter.execute(() -> {
             UniAssertSubscriber<PartyIdentifierMutationOutcome> subscriber = port.execute(fixture.metadata(), context -> {
@@ -241,6 +246,8 @@ class HibernateReactivePartyIdentifierMutationAdapterTest {
             return Uni.createFrom().completionStage(reached).ifNoItem().after(Duration.ofSeconds(10)).fail()
                     .invoke(subscriber::cancel).chain(() -> awaitClosed(opened)).invoke(() -> {
                         assertNull(subscriber.getItem()); assertThrows(IllegalStateException.class, escaped.get()::tenantId);
+                        assertEquals(List.of(new RecordingOperationObserver.CompletedCall(fixture.metadata(),
+                                ObservedOperation.TRANSACTION_PARTY_IDENTIFIER_MUTATION, OperationOutcome.CANCELLED)), observer.completedCalls());
                     }).eventually(subscriber::cancel);
         });
         asserter.assertThat(() -> counts(fixture), row -> assertEquals(List.of(0L, 0L, 0L, 0L), row));

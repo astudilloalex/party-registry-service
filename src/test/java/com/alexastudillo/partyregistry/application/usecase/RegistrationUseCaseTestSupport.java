@@ -6,7 +6,6 @@ import com.alexastudillo.partyregistry.application.model.IdentifierProtectionReq
 import com.alexastudillo.partyregistry.application.model.LegalEntityRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.NaturalPersonRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyDetailsResult;
-import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyRegistrationResult;
@@ -15,7 +14,6 @@ import com.alexastudillo.partyregistry.application.port.CountryReferencePort;
 import com.alexastudillo.partyregistry.application.port.IdempotentPartyRegistrationPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierProtectionPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierSchemeRepository;
-import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.domain.model.AuditInfo;
@@ -34,6 +32,7 @@ import io.smallrye.mutiny.Uni;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,8 +46,8 @@ import java.util.function.Function;
  */
 final class RegistrationUseCaseTestSupport {
 
-    static final Instant NOW = Instant.parse("2026-09-04T00:30:00Z");
-    static final LocalDate TODAY = LocalDate.of(2026, 9, 4);
+    static final LocalDate TODAY = LocalDate.of(2026, Month.SEPTEMBER, 4);
+    static final Instant NOW = TODAY.atTime(0, 30).toInstant(ZoneOffset.UTC);
     static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.ofHours(-5));
     static final TenantId TENANT_ID = new TenantId(
             UUID.fromString("01991a56-f000-7000-8000-000000000001"));
@@ -314,28 +313,6 @@ final class RegistrationUseCaseTestSupport {
             PartyLookupCall call = new PartyLookupCall(tenantId, partyId);
             calls.add(call);
             return behavior.apply(call);
-        }
-    }
-
-    /** Records independent additional-identifier persistence calls. */
-    static final class IdentifierRegistrationPortDouble implements PartyIdentifierRegistrationPort {
-
-        final List<String> order;
-        final List<PartyIdentifierRegistrationCandidate> candidates = new ArrayList<>();
-        Function<PartyIdentifierRegistrationCandidate, Uni<PartyIdentifierResult>> behavior = candidate ->
-            Uni.createFrom().item(PartyIdentifierResult.fromAggregate(
-                    candidate.identifier(),
-                    candidate.identifierScheme()));
-
-        IdentifierRegistrationPortDouble(List<String> order) {
-            this.order = order;
-        }
-
-        @Override
-        public Uni<PartyIdentifierResult> register(PartyIdentifierRegistrationCandidate candidate) {
-            order.add("registerIdentifier");
-            candidates.add(candidate);
-            return behavior.apply(candidate);
         }
     }
 

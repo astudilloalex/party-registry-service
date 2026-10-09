@@ -29,6 +29,7 @@ import java.lang.reflect.RecordComponent;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -48,8 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class PartyRegistrationContractTest {
 
-        private static final Instant NOW = Instant.parse("2026-09-04T12:00:00Z");
         private static final LocalDate TODAY = LocalDate.of(2026, Month.SEPTEMBER, 4);
+        private static final Instant NOW = TODAY.atTime(12, 0).toInstant(ZoneOffset.UTC);
         private static final TenantId TENANT_ID = new TenantId(
                         UUID.fromString("01991a56-f000-7000-8000-000000000001"));
         private static final PartyId NATURAL_PARTY_ID = new PartyId(
@@ -154,20 +155,11 @@ class PartyRegistrationContractTest {
                 assertSame(naturalIdentifier, naturalCandidate.initialIdentifier());
                 assertEquals(2, naturalCandidate.outboxCandidates().size());
 
-                List<OutboxEventCandidate> additionalEvents = new ArrayList<>(
-                                List.of(naturalCandidate.outboxCandidates().get(1)));
-                PartyIdentifierRegistrationCandidate additionalCandidate = new PartyIdentifierRegistrationCandidate(
-                                naturalCandidate.requestMetadata(),
-                                "additional-key",
-                                PartyType.NATURAL_PERSON,
-                                naturalIdentifier,
-                                scheme,
-                                additionalEvents);
-                additionalEvents.clear();
-
-                assertEquals(PartyType.NATURAL_PERSON, additionalCandidate.partyType());
-                assertSame(naturalIdentifier, additionalCandidate.identifier());
-                assertEquals(1, additionalCandidate.outboxCandidates().size());
+                PartyIdentifierResult additionalResult = PartyIdentifierResult.fromAggregate(naturalIdentifier, scheme);
+                PartyIdentifierMutationOutcome additionalOutcome = new PartyIdentifierMutationOutcome(additionalResult, PartyIdentifierMutationOutcome.Disposition.APPLIED);
+                assertEquals(NATURAL_PARTY_ID, additionalOutcome.identifier().partyId());
+                assertSame(additionalResult, additionalOutcome.identifier());
+                assertEquals(PartyIdentifierMutationOutcome.Disposition.APPLIED, additionalOutcome.disposition());
 
                 LegalEntity legalEntity = legalEntity();
                 PartyIdentifier legalIdentifier = identifier(LEGAL_PARTY_ID);

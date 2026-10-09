@@ -669,7 +669,7 @@ class PackagedApplicationIT {
 
         String additionalValue = identifierValue("PA");
         String additionalKey = "packaged-additional-" + UUID.randomUUID();
-        validRequest()
+        Response additional = validRequest()
                 .header("Idempotency-Key", additionalKey)
                 .contentType(JSON)
                 .body(identifierBody(additionalValue))
@@ -682,10 +682,24 @@ class PackagedApplicationIT {
                 .body("data.partyId", equalTo(partyId))
                 .body("data.status", equalTo("PENDING_VERIFICATION"))
                 .body("data", not(hasKey("value")))
-                .body(not(containsString(additionalValue)));
+                .body(not(containsString(additionalValue)))
+                .extract().response();
+        Response additionalReplay = validRequest()
+                .header("Idempotency-Key", additionalKey)
+                .contentType(JSON)
+                .body(identifierBody(additionalValue))
+                .when().post("/v1/parties/{partyId}/identifiers", partyId)
+                .then()
+                .statusCode(201)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(201))
+                .body("code", equalTo("successful"))
+                .body(not(containsString(additionalValue)))
+                .extract().response();
+        assertEquals(additional.jsonPath().getMap("data"), additionalReplay.jsonPath().getMap("data"));
         assertError(
                 validRequest()
-                        .header("Idempotency-Key", additionalKey)
+                        .header("Idempotency-Key", "packaged-additional-duplicate-" + UUID.randomUUID())
                         .contentType(JSON)
                         .body(identifierBody(additionalValue))
                         .when().post("/v1/parties/{partyId}/identifiers", partyId),

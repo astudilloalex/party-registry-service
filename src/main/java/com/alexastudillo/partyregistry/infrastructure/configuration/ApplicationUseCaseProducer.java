@@ -16,7 +16,8 @@ import com.alexastudillo.partyregistry.application.port.OperationObservationPort
 import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
 import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyCursorPort;
-import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierFingerprintPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierReadPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierCursorPort;
@@ -171,16 +172,14 @@ public class ApplicationUseCaseProducer {
 
     @Produces
     RegisterPartyIdentifierUseCase registerPartyIdentifierUseCase(
-            PartyLookupPort partyLookupPort,
-            PartyIdentifierRegistrationPort registrationPort,
-            IdentifierSchemeRepository schemeRepository,
+            PartyIdentifierMutationPort mutations,
+            PartyIdentifierFingerprintPort fingerprints,
             IdentifierProtectionPort protectionPort,
             OperationObservationPort observationPort) {
         return new RegisterPartyIdentifierUseCase(
-                partyLookupPort,
-                registrationPort,
+                mutations,
+                fingerprints,
                 new PartyIdentifierPreparation(
-                        schemeRepository,
                         new IdentifierRuleCatalog(),
                         new IdentifierSchemePolicy(),
                         protectionPort),

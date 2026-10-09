@@ -8,8 +8,8 @@ import com.alexastudillo.partyregistry.application.port.OperationObservationPort
 import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
 import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyCursorPort;
-import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
-import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierFingerprintPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
@@ -61,9 +61,8 @@ class ApplicationUseCaseProducerTest {
         assertEquals(1, CreateLegalEntityUseCase.class.getDeclaredConstructors().length);
         assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod(
                 "registerPartyIdentifierUseCase",
-                PartyLookupPort.class,
-                PartyIdentifierRegistrationPort.class,
-                IdentifierSchemeRepository.class,
+                PartyIdentifierMutationPort.class,
+                PartyIdentifierFingerprintPort.class,
                 IdentifierProtectionPort.class,
                 OperationObservationPort.class), RegisterPartyIdentifierUseCase.class);
         assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod(
