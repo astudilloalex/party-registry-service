@@ -181,13 +181,15 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Reactive tests prove qualified expected-version predicates, exactly one explicit version increment without ORM dirty-version duplication, protected/immutable column preservation, awaited demotion, refreshed accepted results, and neutral diagnosis of unapplied writes. Only the known value/primary constraints map to business conflicts.
   - Evidence: Nine PostgreSQL cases pass after promotion-order and historical-insert red, including guarded exact increments, qualified ownership, protected/creation/verification preservation, dates/nulls, narrow constraints and late-demotion rollback. Final 1,598 tests/build pass with 28 actual packaged JVM results; both saved revisions have zero Sonar/JDTLS. See `verification.md` and `java-inventory.md`.
 
-- [ ] 7.6 Test first and extend safe identifier event candidates, outbox encoding/decoding, and message serialization.
+- [x] 7.6 Test first and extend safe identifier event candidates, outbox encoding/decoding, and message serialization.
   - Requirements: M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes; Q: Safe shared envelopes and failure behavior.
   - Verification: Tests preserve exact `party.identifier-created.v1` compatibility and pin the five new schema-1 event kinds/allowlists, affected identifier/version identities, one transition event or one primary-change event per affected aggregate, and no reason/protection/replay material. All three existing outbox modes remain supported.
+  - Evidence: Supplied java:S3824 diagnostic resolved with computeIfPresent; final serializer revision has zero Sonar/JDTLS findings. Event/mode/creation compatibility and architecture regression pass, followed by 1,604 full tests and 28 actual packaged JVM cases without failures/skips. See the task 7.6 continuation in `verification.md` and `java-inventory.md`.
 
-- [ ] 7.7 Test first and implement the sequential identifier transaction-context adapter with existing timeout/cleanup policies.
+- [x] 7.7 Test first and implement the sequential identifier transaction-context adapter with existing timeout/cleanup policies.
   - Requirements: M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes; Q: Safe shared envelopes and failure behavior.
   - Verification: Adapter tests prove READ COMMITTED setup, one session/tenant/Vert.x context, illegal concurrent/reused/closed scope rejection, no writes after replay, completion/audit/event consistency, flush/commit before outcome emission, and cleanup on failure/cancellation. Infrastructure chooses no business transition or replacement policy.
+  - Evidence: Eleven adapter cases and architecture checks pass after executable transaction-context red; real lock/statement/work timeout and cancellation tests prove rollback/cleanup and pool reuse. Supplied java:S6213 is resolved by recordAcceptedWrite; all seven saved files have zero Sonar/JDTLS findings. Final 1,615 full tests and 28 actual packaged JVM cases pass without failures/skips; see `verification.md` and `java-inventory.md`.
 
 ## 8. Additional Registration Vertical Slice
 

@@ -393,3 +393,12 @@ The supplied java:S3824 finding is resolved with computeIfPresent. Focused event
 | `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierMutationAdapterTest.java`; class, nested `Fixture` and `Budgets` records | `3b705f5a5a5e5b81ea8024937a1ee94bc2c7a340` | 12:09:19.385 / 2085–2115 / zero | 12:09:17.390 / 24521–24534 / zero |
 
 The implementation's qualified nested-type nullable annotation and test entity accessor compilation errors were corrected before the focused/full green runs; they are not behavioral-red evidence or unresolved diagnostics. No unjustified suppression, settings change or native acceptance claim is present. See `verification.md` for the full TDD/runtime chronology and the pending Problems diagnostic.
+
+### Task 7.7 final journal/context revisions (supersede the pending rows)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationJournal.java`; class, nested `AcceptedWrite` record | `3e8a25a36e784eeaef7ec1b6a3dbfdca2206ccdf` | 2026-10-09 12:16:21.085 / 2160–2190 / zero | 12:16:36.252 / 24566–24576 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierMutationContext.java`; class | `d10e18b0faca47ff6ff348b877c97cc7b7c4a2d0` | 2026-10-09 12:16:22.284 / 2191–2221 / zero | 12:16:48.596 / 24578–24588 / zero |
+
+The supplied java:S6213 diagnostic is resolved with recordAcceptedWrite and its two call sites. All seven current task-7.7 files have zero standalone Sonar/JDTLS findings. Eleven adapter cases, architecture, final **1,615 full tests / 28 actual packaged JVM cases** pass without failures/skips; see `verification.md`. No rule/configuration/suppression change or native acceptance claim is made.

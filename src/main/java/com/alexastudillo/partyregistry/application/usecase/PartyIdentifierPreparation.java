@@ -95,7 +95,8 @@ public final class PartyIdentifierPreparation {
         }
     }
 
-    private IdentifierScheme requireEligible(IdentifierScheme scheme, PartyType partyType) {
+    /** Applies admission to a caller-supplied locked scheme without another repository/session lookup. */
+    IdentifierScheme requireEligible(IdentifierScheme scheme, PartyType partyType) {
         try {
             schemePolicy.requireRegistrationEligibility(scheme, partyType);
             return scheme;

@@ -8,15 +8,19 @@ import com.alexastudillo.partyregistry.application.model.ObservedOperation;
 import com.alexastudillo.partyregistry.application.model.OperationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierMutationOutcome;
 import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierFingerprintPort;
 import com.alexastudillo.partyregistry.application.support.UuidV7;
 import com.alexastudillo.partyregistry.application.observability.OperationObservation;
 import com.alexastudillo.partyregistry.domain.model.IdentifierScheme;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifier;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
 import io.smallrye.mutiny.Uni;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -30,11 +34,12 @@ import java.util.Objects;
  */
 public final class RegisterPartyIdentifierUseCase {
 
-    private final PartyLookupPort partyLookupPort;
-    private final PartyIdentifierRegistrationPort registrationPort;
+    private final @Nullable PartyLookupPort partyLookupPort;
+    private final @Nullable PartyIdentifierRegistrationPort registrationPort;
     private final PartyIdentifierPreparation identifierPreparation;
     private final Clock clock;
     private final OperationObservationPort observationPort;
+    private final @Nullable PartyIdentifierRegistrationWorkflow durableWorkflow;
 
     /**
      * Creates the additional-identifier workflow from application ports and preparation policy.
@@ -56,6 +61,30 @@ public final class RegisterPartyIdentifierUseCase {
         this.identifierPreparation = Objects.requireNonNull(identifierPreparation, "identifierPreparation");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.observationPort = Objects.requireNonNull(observationPort, "observationPort");
+        durableWorkflow = null;
+    }
+
+    /** Composes replay-first registration; the legacy composition is retired after the cutover consumer checks. */
+    public RegisterPartyIdentifierUseCase(PartyIdentifierMutationPort mutations, PartyIdentifierFingerprintPort fingerprints,
+            PartyIdentifierPreparation preparation, Clock clock, OperationObservationPort observationPort) {
+        partyLookupPort = null;
+        registrationPort = null;
+        identifierPreparation = Objects.requireNonNull(preparation, "preparation");
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.observationPort = Objects.requireNonNull(observationPort, "observationPort");
+        durableWorkflow = new PartyIdentifierRegistrationWorkflow(mutations, fingerprints, preparation, clock);
+    }
+
+    /** Returns the safe original result with disposition only after the selected registration transaction commits. */
+    public Uni<PartyIdentifierMutationOutcome> executeOutcome(RegisterPartyIdentifierCommand command) {
+        Objects.requireNonNull(command, "command");
+        var workflow = durableWorkflow;
+        if (workflow == null) {
+            return execute(command).map(result -> new PartyIdentifierMutationOutcome(result, PartyIdentifierMutationOutcome.Disposition.APPLIED));
+        }
+        return OperationObservation.observe(command.requestMetadata(), ObservedOperation.APPLICATION_ADDITIONAL_IDENTIFIER_REGISTRATION,
+                observationPort, () -> workflow.execute(command), result -> result.disposition() == PartyIdentifierMutationOutcome.Disposition.REPLAYED
+                        ? OperationOutcome.REPLAYED : OperationOutcome.CREATED);
     }
 
     /**
@@ -66,11 +95,13 @@ public final class RegisterPartyIdentifierUseCase {
      */
     public Uni<PartyIdentifierResult> execute(RegisterPartyIdentifierCommand command) {
         Objects.requireNonNull(command, "command");
+        if (durableWorkflow != null) { return executeOutcome(command).map(PartyIdentifierMutationOutcome::identifier); }
+        var owners = Objects.requireNonNull(partyLookupPort, "Legacy owner lookup is required until composition cutover");
         return OperationObservation.observe(
                 command.requestMetadata(),
                 ObservedOperation.APPLICATION_ADDITIONAL_IDENTIFIER_REGISTRATION,
                 observationPort,
-                () -> partyLookupPort.findType(command.tenantId(), command.partyId())
+                () -> owners.findType(command.tenantId(), command.partyId())
                         .map(found -> found.orElseThrow(() -> new ApplicationException(
                                 new ApplicationFailure.PartyNotFound(
                                         command.partyId(),
@@ -93,7 +124,7 @@ public final class RegisterPartyIdentifierUseCase {
                         scheme,
                         occurredAt,
                         evaluatedOn))
-                .flatMap(registrationPort::register);
+                .flatMap(Objects.requireNonNull(registrationPort, "Legacy registration is required until composition cutover")::register);
     }
 
     private PartyIdentifierRegistrationCandidate registrationCandidate(
