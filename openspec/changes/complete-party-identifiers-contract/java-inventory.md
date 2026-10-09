@@ -479,3 +479,37 @@ The developer confirms completion/no findings for the exact six requested indivi
 | `test/java/com/alexastudillo/partyregistry/application/usecase/RegisterPartyIdentifierUseCaseTest.java` | `f03c65c2a10f1694dacaff22c93e4a103274cc55` | Developer confirms requested explicit individual analysis completed without findings; no extra local timestamp/count claimed | 15:00:21.381 / J2 758–768 / zero |
 
 This accepts the resolved current source gate and completes task 8.2. Historic mixed-source warnings remain recorded; no configuration, suppression or source-content change substitutes for analysis completion.
+
+## Task 8.3 strict creation binding and real HTTP evidence
+
+All eight final saved revisions below have individual full 1/1 Java-25/571-rule resolved-model standalone Sonar executions with **zero issues/Hotspots**, and independently completed **zero JDTLS source problems**. S3 is the active post-rotation `20261009T110402/window1` Sonar log; J2 remains the active project `.metadata/.log`. No missing-classpath/type/preview warning occurs in these analyses. Final executable evidence: six binding + thirteen live + fifteen existing DTO cases (**34 focused checks**), **1,641 full cases**, **28 actual packaged JVM cases**, zero failures/skips after the documented private-exception expectation correction.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J2 range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierJsonFields.java`; class | `9f741b6aadf86d203dcbac3b349d6313a7f956b3` | 2026-10-09 15:35:48.944 / 231–261 / full 1/1 zero | 15:35:45.126 / 935–948 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierCreateRequestDeserializer.java`; class | `5272b257741e229e208a26a82d93b7a09ec1cb39` | 15:36:07.676 / 262–292 / full 1/1 zero | 15:35:58.006 / 950–963 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/error/PartyIdentifierCreateJsonReaderInterceptor.java`; class | `ae7ad62ae548ecee4b36813a2afcdc48fbc6771d` | 15:36:12.020 / 293–323 / full 1/1 zero | 15:36:09.359 / 965–978 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierCreateRequest.java`; record | `7c75836696c68df29e597b4bd5591fae6ebe22b5` | 15:36:20.992 / 324–354 / full 1/1 zero | 15:36:20.445 / 980–993 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierCreateBindingTest.java`; class | `675eebc27d4849b02ce9892042944a5f8e2a231b` | 15:36:33.862 / 355–385 / full 1/1 zero | 15:36:33.962 / 995–1008 / zero |
+| `test/java/com/alexastudillo/partyregistry/support/FixedPartyIdentifierRegistrationProducer.java`; class | `9c140717f84c45538d2c390d1573bdbbd8db035f` | 15:36:45.956 / 386–416 / full 1/1 zero | 15:36:45.070 / 1010–1023 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierCreateResourceContractTest.java`; class, nested `Owner` record and `RegistrationProfile` class | `2787019a0f31a69b6695442da95dde9075618308` | 15:36:58.100 / 417–447 / full 1/1 zero | 15:36:57.794 / 1025–1038 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyRequestDtoTest.java`; class | `2815aa8389de8c220b80f8679d652ff60e6edcb8` | 15:57:14.804 / 514–544 / full 1/1 zero | 15:57:13.856 / 1136–1149 / zero |
+
+The decoder/request have explicit native reflection registration; actual final native verification remains later tasks. Fixed-clock alternative and JDBC fixtures exist only in the test source set and never request processing/packaged composition. Class/nested responsibility Javadoc and Month-based dates are reviewed. No source finding or compiler warning is hidden; expected runtime/fixture/regression failures and final command outputs are detailed in `verification.md`. Initial registration confidentiality assertions remain intact, with the new unknown-property check strengthened by the constant safe diagnostic.
+
+## Task 9.1 metadata input and typed version boundary
+
+All eight final revisions below have individual full 1/1 resolved-model Java-25/571-rule Sonar executions with **zero issues/Hotspots** and separate **zero JDTLS source problems**. Eight new binding/support cases, unchanged shared parser/initial-additional registration checks, final **1,649 full cases / 28 actual packaged JVM cases** pass. Build's observed generated-output/classpath invalidation and genuine executable TDD failures are recorded in `verification.md`; no source issue or compiler warning is omitted.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J2 range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/model/request/IssuerCodeUpdateValidator.java`; class | `7e2bf4debac0069e0b2e4cada3ef7393b5668a2a` | 2026-10-09 16:38:51.747 / 545–575 / full 1/1 zero | 16:38:47.309 / 1151–1164 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/ValidIssuerCode.java`; annotation | `9de45d98d71152444b1d56c9d0817f01c55699ba` | 16:39:01.750 / 576–606 / full 1/1 zero | 16:38:59.328 / 1166–1179 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierPatchRequest.java`; record | `b51bd9749d3d5a1c079bac8c569bf26a1ff9558d` | 16:39:13.766 / 607–637 / full 1/1 zero | 16:39:11.911 / 1181–1194 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierPatchRequestDeserializer.java`; class | `877ba86bc12fda0f6f447eb455637b06e0df0b13` | 16:39:24.268 / 638–668 / full 1/1 zero | 16:39:23.035 / 1196–1209 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRequestSupport.java`; class | `14827a2701684f74fc43d59c05e0be3e5ecc6e01` | 16:39:35.155 / 669–699 / full 1/1 zero | 16:39:34.806 / 1211–1224 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/error/PartyIdentifierJsonReaderInterceptor.java`; renamed class | `3a4ffc2e838d3d4ee61d3b9f1742afad94a84865` | 16:39:47.155 / 700–730 / full 1/1 zero | 16:39:46.785 / 1226–1239 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierPatchBindingTest.java`; class | `39c3619c37d36584e0a1fed0b57fde197eb0781a` | 16:39:59.361 / 731–761 / full 1/1 zero | 16:39:58.966 / 1241–1254 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPatchRequestSupportTest.java`; class, nested Headers record | `a65236fad03bb0fccc084f80c5820182c1046bb6` | 16:40:11.584 / 762–792 / full 1/1 zero | 16:40:11.090 / 1256–1269 / zero |
+
+`PartyIdentifierCreateJsonReaderInterceptor` is renamed rather than duplicated; its prior creation responsibilities and signature boundary remain and the completed new analysis supersedes its old inventory row. DTO/decoder reflection registration is explicit. Date fixtures, generic FieldUpdate validator type safety, class/nested responsibility Javadoc, non-obvious support contracts and source-set boundaries are inspected. Actual new PATCH workflow/HTTP/native acceptance remains subsequent tasks.

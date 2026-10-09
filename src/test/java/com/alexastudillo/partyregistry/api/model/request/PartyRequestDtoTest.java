@@ -3,7 +3,7 @@ package com.alexastudillo.partyregistry.api.model.request;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.validation.ConstraintViolation;
@@ -193,13 +193,14 @@ class PartyRequestDtoTest {
 
     @Test
     void rejectsUnknownPropertiesOnNewRequestTypes() {
-        assertThrows(UnrecognizedPropertyException.class, () -> objectMapper.readValue("""
+        var failure = assertThrows(MismatchedInputException.class, () -> objectMapper.readValue("""
                 {
                   "identifierSchemeCode": "TEST_NATURAL_ACTIVE",
                   "value": "AB123456",
                   "unsupported": true
                 }
                 """, PartyIdentifierCreateRequest.class));
+        assertEquals("Invalid identifier JSON body", failure.getOriginalMessage());
     }
 
     private static void assertNestedConstraint(Class<?> requestType) throws ReflectiveOperationException {

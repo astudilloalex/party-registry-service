@@ -1211,3 +1211,76 @@ Available new full 1/1 Java-25/571-rule logs additionally corroborate resolved-m
 ApplicationUseCaseProducerTest and RegisterPartyIdentifierUseCaseTest use the developer-confirmed explicit analysis completion/no findings for their same rechecked blobs; no additional local Sonar timestamp or hidden finding count is fabricated for them. Their separately observed current JDTLS diagnostics remain zero. The final assertion/import test revision independently has completed zero Sonar/JDTLS as recorded above. All task-8.2 quality evidence is now accepted, superseding the incomplete mixed-source batch.
 
 No source changed during this verification-only continuation. The final **1,622 full tests** and successful build with retained actual **28 packaged JVM results** therefore remain valid; no redundant suite rerun is necessary. Task 8.2 is complete at **33/60**. Proceed to 8.3's strict POST binding and live creation/replay coverage.
+
+## Task 8.3: Strict POST binding and live durable creation/replay
+
+Added six managed `PartyIdentifierCreateBindingTest` cases and eleven initial real-resource `PartyIdentifierCreateResourceContractTest` cases before changing production binding. The first run (**23 cases, 15 failures, 4m 3s**) includes four real missing strict-binding failures and eleven test-seeding SQL enum-cast failures. The latter are fixture failures, not TDD red. Corrected only fixture casts for `party_type`/`party_record_status` and made changed request context explicit without duplicate trusted headers. The next run (**23 cases, six behavior failures, 3m 37s**) demonstrates scalar/null-primary coercion, permissive calendar parsing, ignored duplicates/trailing content, actual HTTP body-before-key failure and a null-primary retry accepted by the old binder. Existing new-workflow HTTP behavior already passes and is characterized separately.
+
+### Smallest production boundary change
+
+- `PartyIdentifierCreateRequest` selects its native-registered streaming decoder. Only its six declared properties are allowed; duplicate decoded names, including escaped aliases, are rejected. Scheme/value/issuer must be strings or permitted nulls, dates exact valid ISO calendar strings/null, and a supplied primary flag strictly boolean. Omission retains false. Parsed raw strings and nullable defaults reach the existing ordered validation and fingerprint pipeline unchanged.
+- `PartyIdentifierJsonFields` validates only transport scalars/calendar syntax and complete root consumption. It does not evaluate dates against the clock or normalize values. The decoder's null-value hook rejects `null {}` rather than bypassing the trailing-token rule while preserving literal-null body requiredness.
+- `PartyIdentifierCreateJsonReaderInterceptor` translates only this request model's client binding/no-content failures to existing stable API codes without retaining parser causes. The published global handler remains authoritative; no global mapper/filter or success-wrapper machinery was added.
+- No Domain, Application, persistence, migration, initial-registration body or producer behavior is changed by this binding increment. Native reflection is explicit at the request/decoder boundary; actual final native acceptance remains its designated tasks.
+
+Initial focused green is **23 cases in 3m 44s**. Added two preservation/ownership characterizations: provisional pending creation beside an unchanged verified primary, and absent/cross-tenant owner concealment before scheme admission. Consolidated new/existing registration, issuer and architecture regression passes in **4m 50s**. The selected fixed-clock test producer uses the real ports/workflow, a Month-based fixed instant with a non-UTC zone and UTC-date boundaries; it is enabled only by the new HTTP profile and never enters packaged source sets.
+
+### Live HTTP evidence
+
+All thirteen real-resource cases assert exact safe single-item or status/code-only envelopes and accepted process echoes where applicable, using the shared contract assertions:
+
+| Contract behavior | Passing method(s) |
+|---|---|
+| Both Party types/all four states, independent version 0, pending status, false default, equal microsecond timestamps, unchanged root | `everyOwnedPartyTypeAndStateReceivesIndependentSafeVersionZeroEvidence` |
+| No scalar coercion, unknown/client-owned fields, duplicate/escaped names, impossible dates, null-primary and root trailing tokens; no accepted rows | `strictShapeTypesDuplicatesAndTrailingTokensFailBeforeKeysAndPaths`, managed six-case binding suite |
+| Required-rule priority, raw 64/256 UTF-16 limits, supplementary issuer code-point limits and format; no normalization rescue | `rawLimitsAndRequiredRulesUseTheirDeclaredPrecedenceWithoutNormalization` |
+| Body→key→Party syntax; missing/duplicate/blank/129-character keys and accepted 128 boundary | `creationKeyValidationPrecedesPartyPathAndPreservesCardinalityAndBounds`, strict-shape/raw-limit cases |
+| Invalid body precedes historical replay; invalid context precedes invalid body and is not echoed | `bodyValidationStillPrecedesReplayAndInvalidContextHasNoOperationEffects` |
+| Omitted/null nullable metadata, false primary and reordered properties share one completion/result | `nullableDefaultsAndPropertyOrderingHaveOneHistoricalRetryIdentity` |
+| New issuer uppercase/provisional true flag, original raw issuer/value differences conflict without rewriting retry identity | `issuerCanonicalizationAndExactRawValuesDoNotRewriteFingerprintIdentity` |
+| Expiration absent/null/today accepted under legacy requiresExpiration; previous-day/inversion rejected, future-issued-only input accepted | `expirationIsOptionalAndInclusiveUsingOneControlledUtcDate` |
+| Exact unknown/inactive/incompatible 422 codes and no failed-key consumption | `failedKeyIsReusableAndSchemeFailuresRetainTheirExactStableCodes` |
+| Normalized duplicate 409, unchanged existing safe detail, rejected duplicate key subsequently reusable | `normalizedDuplicatesConflictWithoutConsumingAnotherKeyOrMutatingHistory` |
+| Original 201 metadata/status/flag/version/timestamps after current revocation/correction and Party archival; fresh retry actor/process, unchanged current stored identifier/completion count | `originalCreationReplaysAfterCurrentEvidenceAndPartyChangeWithFreshCorrelation` |
+| Provisional true record does not displace verified true record or advance its version; original create result remains replayable | `provisionalCreationDoesNotDisplaceAnExistingVerifiedPrimary` |
+| Missing/cross-tenant owner yields only 404 party-not-found before unknown-scheme admission | `missingAndCrossTenantOwnersAreConcealedBeforeSchemeAdmission` |
+
+Protected/enabled-event preservation, complete subtype/root snapshots and outbox modes retain their task-8.2 database coverage. Restart/concurrency/native scenario completion remains assigned to later tasks; these additional live checks do not fabricate those results.
+
+### Full-suite regression correction and final gates
+
+First full test executes **1,641 cases with one failure in 10m 14s**: `PartyRequestDtoTest.rejectsUnknownPropertiesOnNewRequestTypes` expects Jackson's previous UnrecognizedPropertyException implementation subtype instead of the strict decoder's safe MismatchedInputException. Output: `~/.local/share/opencode/tool-output/tool_12269f072001l2bAt0w0LdPxP5`. Updated that single additional-request assertion to require rejection via the strict binding class and **exact constant original message**, retaining its unknown-property assertion and every confidentiality/field-validation test. No production behavior or scenario is relaxed. Final focused legacy DTO + binding + live cases pass **34 cases in 3m 58s**.
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --info --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --info --console=plain
+```
+
+Final full test: **BUILD SUCCESSFUL in 9m 57s**, **1,641 actually executed cases, zero failures/skips**; output `~/.local/share/opencode/tool-output/tool_1227c5e56001Yq6KXn7BveeP8I`. Final build: **BUILD SUCCESSFUL in 3m 52s**, unit tests explicitly up-to-date, **28 actually executed packaged JVM cases, zero failures/skips**; output `~/.local/share/opencode/tool-output/tool_122845f050012wGrN10kN11mhP`, unit up-to-date at **116**, final success **1074**. Thirty-minute separate deadlines avoid the earlier combined timeout.
+
+All **eight final saved Java files**, including `Owner`/`RegistrationProfile`, have full individual resolved-model Java-25/571-rule **zero Sonar findings/Hotspots** and separate **zero JDTLS problems**; identities and ranges are in `java-inventory.md`. No new compiler warnings, exclusions, suppressions, null-analysis settings or budgets were introduced. Existing expected duplicate-key, validation, duplicate-meter and packaged configuration warnings remain visible and separately classified. Every new valid date fixture is Month-derived; responsibility Javadoc covers all added/changed/nested types. Test-only JDBC seeding changes no migration or production I/O boundary.
+
+Explicitly inspected `PartyIdentifierResource.createPartyIdentifier`: `Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>>`, Application delegation, mapper-before-envelope, CDI ResponseManager custom 201. Public GET signatures retain their safe envelopes. Full architecture and HTTP suites prove inward/response boundaries. Task 8.3 is complete at **34/60**; proceed to 9.1.
+
+## Task 9.1: Presence-aware metadata PATCH input and independent If-Match
+
+Wrote four `PartyIdentifierPatchBindingTest` and four `PartyIdentifierPatchRequestSupportTest` cases first. `./gradlew compileTestJava --console=plain` fails as expected in **13s** for the missing DTO/support methods; this is compile-red only. Added minimal typed structure/signatures, then `./gradlew test --tests '*PartyIdentifierPatchBindingTest' --tests '*PartyIdentifierPatchRequestSupportTest' --console=plain` executes **14 cases, seven expected behavior failures, in 3m 13s**. The failures demonstrate missing omitted/null mapping, permissive unknown/trailing tokens, body-before-selector validation, independent maximum/version mapping and supplied expected-version retention. This is executable red rather than a setup failure.
+
+The native-registered DTO/streaming decoder accepts only issuerCode, issuedOn and expiresOn. FieldUpdate retains omission versus present null; raw issuer strings are untouched; the shared scalar/calendar helper rejects coerced, malformed, duplicate/escaped or trailing tokens, including after literal null. Null body remains required-body failure and a valid empty object becomes patch-property-required. Dates are not semantically repaired/qualified here; Domain evaluates resulting retained-field intervals in 9.2.
+
+Extended the existing issuer constraint with a separate FieldUpdate validator delegating to the same scalar length/format rules only when supplied. Omitted historical issuer is not revalidated. Raw bounded blank/null remain present command values for Domain clearing; lowercase input is retained for new-write Domain canonicalization. Existing String validation remains selected for initial/additional DTOs. No generic wrapper DTO or new issuer policy was introduced.
+
+`PartyIdentifierRequestSupport.identifierVersion` checks exactly one bare canonical nonnegative decimal directly into PartyIdentifierVersion, allows Long.MAX_VALUE and distinguishes missing/duplicated/invalid/out-of-range errors without retaining rejected values. It does not convert through PartyVersion. `patchCommand` performs body→Party→identifier→version and maps original presence markers; duplicate/blank Idempotency-Key headers are intentionally ignored. Existing shared Party/nationality/catalog parsers are unchanged and pass their regressions.
+
+Renamed the scoped creation reader to `PartyIdentifierJsonReaderInterceptor` and extended it only for the new metadata DTO, preserving creation translation and the authoritative shared global handler. It remains a server-only model reader, not a context filter/global mapper; parser causes are discarded. No existing production Java consumer references its old name. No PATCH business route or transaction orchestration is claimed by this input increment.
+
+Focused new/existing parser checks pass in **3m 23s**. Final commands use the established Podman/dynamic-port environment and separate 30-minute deadlines:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --info --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --info --console=plain
+```
+
+Full test: **BUILD SUCCESSFUL in 10m 2s**, **1,649 cases, zero failures/skips**; output `~/.local/share/opencode/tool-output/tool_1229db5d0001gMiv2bhaWraGo0`. Build: **BUILD SUCCESSFUL in 14m 59s**, **1,649 full cases and 28 actual packaged JVM cases pass without failures/skips**; output `~/.local/share/opencode/tool-output/tool_122a798b6001NGniSeM2SKBRGw`. Build unexpectedly reexecutes the full tests: info lines **99–100** report removed `build/classes/java/test/test-classes.idx`, and **137–140** report that removed index in candidate/stable classpaths plus an added copied V1000 test migration. The actor causing that generated-output/resource invalidation is not established. No rerun flag, budget relaxation, cache-setting change or skipped gate was requested; the final reports reflect actual passing reruns.
+
+All **eight final Java revisions** and nested Headers test double have completed individual resolved-model Java-25/571-rule **zero Sonar issues/Hotspots** and independent **zero JDTLS problems**, as recorded in `java-inventory.md`. No compiler warnings, suppressions, rule changes or new production I/O/DDL are introduced. Every class/annotation/record/nested type has responsibility Javadoc and non-obvious public methods are documented; new dates use Month. Existing expected validation, SQL-constraint, meter and packaged configuration runtime warnings remain visible. Task 9.1 is complete at **35/60**; proceed to 9.2.

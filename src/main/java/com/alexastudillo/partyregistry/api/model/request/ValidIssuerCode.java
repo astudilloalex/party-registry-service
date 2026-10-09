@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
 
 /** Validates optional issuing-entity syntax and code-point bounds without modifying raw command input. */
 @Documented
-@Constraint(validatedBy = IssuerCodeValidator.class)
+@Constraint(validatedBy = {IssuerCodeValidator.class, IssuerCodeUpdateValidator.class})
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidIssuerCode {

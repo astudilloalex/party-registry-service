@@ -206,15 +206,17 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Assertion gate resolved: The supplied unused assertFalse import diagnostic is fixed. Final reactive test has zero Sonar/JDTLS findings; 1,622 tests and build pass. Only explicit resolved-model analysis of the six BATCH-PENDING revisions remains required before task acceptance.
   - Accepted continuation: Developer confirms completion of all six requested individual analyses without findings; new resolved-model logs corroborate the production revisions and recording double. All blobs are unchanged, diagnostics are reconciled, and the passing 1,622 full / 28 packaged JVM checks remain valid. See the final saved-source evidence in `verification.md` and `java-inventory.md`.
 
-- [ ] 8.3 Test first and complete strict POST binding, shared 201 envelopes, and live registration/replay coverage.
+- [x] 8.3 Test first and complete strict POST binding, shared 201 envelopes, and live registration/replay coverage.
   - Requirements: M: Strict additional registration input; M: Eligible independent registration; M: Durable additional registration replay; Q: Safe shared envelopes and failure behavior.
   - Verification: HTTP tests cover raw limits, strict types/duplicates/trailing content, default/null distinctions, body→key→Party precedence, required key errors, both types, eligible/ineligible schemes, optional expiration, duplicate conflicts, failed-key reuse, and original 201 replay after later mutations with fresh correlation.
+  - Evidence: Six managed binding cases and thirteen real POST cases pass after six executable behavior failures. A prior Jackson-specific rejection assertion is reconciled without dropping unknown-property rejection; its safe constant message is also checked. Final 1,641 full tests and 28 actual packaged JVM cases pass, and all eight saved Java revisions have zero completed Sonar/JDTLS findings. See `verification.md`, `java-inventory.md`, and `scenario-evidence.md`.
 
 ## 9. Metadata PATCH Vertical Slice
 
-- [ ] 9.1 Test first and implement the strict presence-aware PATCH body and identifier-specific If-Match support.
+- [x] 9.1 Test first and implement the strict presence-aware PATCH body and identifier-specific If-Match support.
   - Requirements: M: Strict partial metadata correction; M: Identifier-version preconditions and exhaustion; M: Maintenance follows the common identifier boundary.
   - Verification: Decoder/support tests preserve omission/null, reject non-metadata/duplicate/coerced/trailing input, enforce raw issuer length/calendar dates, distinguish missing/null/empty bodies, and validate header cardinality/canonical decimal/range directly into PartyIdentifierVersion. Shared Party-version parsers remain compatible.
+  - Evidence: Compile-red then seven executable failures resolve with strict three-field decoding, supplied-issuer validation and directly typed version parsing. Eight new binding/support cases and existing parser/registration regressions pass; final 1,649 tests and 28 actual packaged JVM cases pass, with all eight saved-source Sonar/JDTLS results zero. Build's regenerated test-index/resource invalidation is recorded in `verification.md`. Actual PATCH orchestration/route remains 9.2–9.3.
 
 - [ ] 9.2 Test first and implement current-version metadata correction orchestration using Domain decisions and the mutation context.
   - Requirements: M: Metadata correction eligibility and audit; M: Identifier-version preconditions and exhaustion; M: Maintenance has one durable observable outcome.

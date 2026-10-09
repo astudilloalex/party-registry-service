@@ -76,25 +76,25 @@ Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [mai
 
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
-| M03 | Optional input and primary default | API, application, HTTP, packaged/native | 2.1, 4.1, 8.1, 8.3, 13.1, 14.4 | Pending |
-| M04 | Required fields and raw length boundaries | API, HTTP, packaged/native | 2.1, 8.3, 13.1, 14.4 | Pending |
-| M05 | Strict input rejects client-owned properties and coercion | API, HTTP, packaged/native | 2.1, 8.3, 13.1, 14.4 | Pending |
-| M06 | Existing creation-key precedence is preserved | API, HTTP, packaged/native | 2.1, 8.3, 13.1, 14.4 | Pending |
+| M03 | Optional input and primary default | API, application, HTTP, packaged/native | 2.1, 4.1, 8.1, 8.3, 13.1, 14.4 | Task 8.3 binding/default/equivalent-retry cases pass; [verification](verification.md). Expanded packaged/native scenarios remain designated later checks. |
+| M04 | Required fields and raw length boundaries | API, HTTP, packaged/native | 2.1, 8.3, 13.1, 14.4 | Task 8.3 real raw-limit/required-priority cases pass; no rows/completions accepted. Expanded packaged/native checks remain later tasks. |
+| M05 | Strict input rejects client-owned properties and coercion | API, HTTP, packaged/native | 2.1, 8.3, 13.1, 14.4 | Six managed binding cases plus real strict-shape case pass after executable red, including null-primary, escaped duplicates and literal-null trailing input. Packaged/native expansion remains later. |
+| M06 | Existing creation-key precedence is preserved | API, HTTP, packaged/native | 2.1, 8.3, 13.1, 14.4 | Task 8.3 real key-validation and malformed-path/body cases prove body→key→Party; 128 accepted /129 rejected. Packaged/native expansion remains later. |
 
 ## M: Eligible independent registration
 
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
-| M07 | Both Party types receive additional identifiers | application, DB, HTTP, packaged/native | 8.1–8.3, 12.6, 13.1, 14.4 | Pending |
-| M08 | Scheme errors retain their specific codes | application, HTTP, packaged/native | 4.3, 8.1, 8.3, 13.1, 14.4 | Pending |
-| M09 | Expiration boundaries and optionality | domain, application, HTTP, packaged/native | 8.1, 8.3, 12.6, 13.1, 14.4 | Pending |
-| M10 | Provisional primary coexists with existing evidence | domain, application, DB, HTTP, packaged/native | 3.4, 8.1, 8.3, 13.1, 14.4 | Pending |
+| M07 | Both Party types receive additional identifiers | application, DB, HTTP, packaged/native | 8.1–8.3, 12.6, 13.1, 14.4 | Task 8.3 live matrix covers both types/all Party states, safe pending/version-0 201 and unchanged root; task 8.2 retains complete subtype/database preservation. Expanded packaged/native cases remain later. |
+| M08 | Scheme errors retain their specific codes | application, HTTP, packaged/native | 4.3, 8.1, 8.3, 13.1, 14.4 | Task 8.3 real unknown/inactive/incompatible codes and zero accepted effects pass. Expanded packaged/native cases remain later. |
+| M09 | Expiration boundaries and optionality | domain, application, HTTP, packaged/native | 8.1, 8.3, 12.6, 13.1, 14.4 | Fixed non-UTC-clock real HTTP accepts null/absent/UTC-today despite legacy requirement, rejects previous-day/inversion and retains future issue-only eligibility. Expanded packaged/native cases remain later. |
+| M10 | Provisional primary coexists with existing evidence | domain, application, DB, HTTP, packaged/native | 3.4, 8.1, 8.3, 13.1, 14.4 | Task 8.3 real provisional true beside verified true passes with original verified stored row/version unchanged. Expanded packaged/native cases remain later. |
 
 ## M: Active-value uniqueness and release
 
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
-| M11 | Same-Party and other-Party duplicates conflict | DB, HTTP, packaged/native | 7.5, 8.3, 12.1, 13.1, 14.4 | Pending |
+| M11 | Same-Party and other-Party duplicates conflict | DB, HTTP, packaged/native | 7.5, 8.3, 12.1, 13.1, 14.4 | Task 8.3 real same-Party normalized duplicate, unchanged detail and failed-key reuse pass; both-owner database reservation retained from 8.2. Race/expanded packaged/native acceptance remains later. |
 | M12 | Time passing alone preserves reservation | DB, HTTP, packaged/native | 7.5, 8.3, 12.6, 13.1, 14.4 | Pending |
 | M13 | Withdrawal releases uniqueness without deleting history | DB, HTTP compatibility, packaged/native | 7.5, 10.3, 12.6, 13.1, 14.4 | Pending |
 | M14 | Distinct-key duplicate race has one winner | coordinated DB/HTTP | 12.1 | Pending |
@@ -103,9 +103,9 @@ Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [mai
 
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
-| M15 | Historical retry survives restart and mutation | application, completion codec, HTTP, two-process packaged/native | 7.1–7.2, 8.1, 8.3, 13.2, 14.4 | Pending |
-| M16 | Normalization does not erase request differences | fingerprint, application, HTTP, packaged/native | 4.1, 7.1, 8.1, 8.3, 13.1, 14.4 | Pending |
-| M17 | Concurrent replay and failed key reuse | application, coordinated DB/HTTP, packaged/native | 7.4, 7.7, 8.1, 8.3, 12.1, 12.3, 13.1, 14.4 | Pending |
+| M15 | Historical retry survives restart and mutation | application, completion codec, HTTP, two-process packaged/native | 7.1–7.2, 8.1, 8.3, 13.2, 14.4 | Task 8.3 real original 201 after current revocation/correction and Party archival, both types/fresh actor/process, unchanged current stored record/counts. Actual two-process/native acceptance remains 13.2/14.4. |
+| M16 | Normalization does not erase request differences | fingerprint, application, HTTP, packaged/native | 4.1, 7.1, 8.1, 8.3, 13.1, 14.4 | Task 8.3 real original raw issuer/value conflicts and default/property-order equivalence pass; existing HMAC/workflow foundations retained. Expanded packaged/native cases remain later. |
+| M17 | Concurrent replay and failed key reuse | application, coordinated DB/HTTP, packaged/native | 7.4, 7.7, 8.1, 8.3, 12.1, 12.3, 13.1, 14.4 | Task 8.3 real scheme/uniqueness rejection key reuse passes with exact counts. Actual workflow races, resilience and expanded packaged/native acceptance remain later tasks. |
 
 ## M: Strict partial metadata correction
 
@@ -303,3 +303,11 @@ The assertion-correction continuation supersedes the reactive test's prior sourc
 The developer's current unused-import diagnostic is resolved on final test blob `42f37b2768977bfa317f2f183afe490faefde8bf`: full saved-revision Sonar/JDTLS both report zero findings. Final 1,622 cases execute and pass; build succeeds up-to-date with retained actual 28 packaged JVM results. Task 8.2 is pending solely for the six explicit resolved-model analyses, not the now-resolved reactive-test assertion/import findings. See final revision evidence and log rotation in `verification.md`/`java-inventory.md`.
 
 The developer confirms completion/no findings for all six requested individual analyses on unchanged rechecked blobs; available new resolved-model single-file logs corroborate the production files and recording double. Current source evidence is accepted in `verification.md`/`java-inventory.md`; task 8.2's composition/consumer-retirement foundation is complete. The full strict-body, historical mutation/restart and native scenarios remain their designated subsequent work.
+
+## Strict creation and real historical replay (task 8.3)
+
+Six managed strict-token/default cases and thirteen real POST cases pass, including both types/all Party states, exact safe 201/status-code-only failure envelopes, trusted correlation, syntax order, raw limits, nullable defaults, effective/raw identity, scheme/validity eligibility, ownership concealment, unchanged verified primary, duplicate conflict/failed-key reuse, and original creation result after current evidence/Party changes. The existing unknown-property DTO assertion retains rejection and now also requires the constant safe diagnostic. Final **1,641 full / 28 actual packaged JVM cases** and all eight saved-revision Sonar/JDTLS zero results pass; see `verification.md`/`java-inventory.md`. M03–M11/M15–M17 rows record the actual stage/boundary; concurrency, restart and expanded native scenarios are not prematurely accepted.
+
+## Presence-aware metadata input and independent version syntax (task 9.1)
+
+Four strict binding/four support cases prove omission/clearing, exact raw issuer/date transport, closed duplicate/coercion/trailing rejection, required/null/empty distinctions, raw issuer/code-point rules and body→Party→identifier→If-Match. Bare maximum version maps directly to PartyIdentifierVersion, malformed/duplicate/overflow cases use distinct existing codes, and replay headers are ignored. Existing parser/registration checks plus **1,649 full / 28 actual packaged JVM cases** and all eight saved-revision Sonar/JDTLS zero results pass. This establishes the API/input foundations for M01/M18/M20/M25/M26; actual metadata decision/HTTP and final native scenarios remain 9.2–9.3/later tasks, not accepted from parser tests alone. See `verification.md`/`java-inventory.md`.
