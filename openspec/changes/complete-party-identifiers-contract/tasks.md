@@ -129,47 +129,57 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Reactive PostgreSQL tests retrieve every stored state for owned identifiers and conceal wrong owners; source/query assertions exclude ciphertext, hashes, and key versions. Reads change no state/audit/version and leave the current natural-person projection unchanged.
   - Evidence: `verification.md` records compile-red and three executable historical-state failures, four focused cases green across both Party types/all owner states, current-reader/architecture regression, 1,481 full tests and 28 packaged JVM tests passing, and zero saved-revision Sonar/JDTLS findings.
 
-- [ ] 6.3 Test first and implement snapshot-consistent historical list/count/navigation queries.
+- [x] 6.3 Test first and implement snapshot-consistent historical list/count/navigation queries.
   - Requirements: Q: Strict read selectors and filters; Q: Deterministic scoped cursor navigation; Q: Exact collection metadata and empty outcomes.
   - Verification: PostgreSQL tests cover exact filter AND semantics, unknown/mismatched schemes, descending timestamp/unsigned UUID ties, both directions, missing/changed boundaries, empty continuations, counts before continuation, and one read-only repeatable-read view. Retained memory is page-bounded; record a representative query plan.
+  - Evidence: Nine query cases and 1,490 full tests pass with zero saved-revision Sonar/JDTLS findings. The previous packaged Podman startup failure is reconciled by a fresh build against a test-scoped API service with `--time=0`; all 28 packaged JVM cases execute and pass without skips. See the task 6.3 runtime continuation in `verification.md`.
 
-- [ ] 6.4 Test first and implement detail/list Application workflows with owner checks and cursor validation.
+- [x] 6.4 Test first and implement detail/list Application workflows with owner checks and cursor validation.
   - Requirements: Q: Tenant and Party ownership concealment; Q: Complete historical listing and masked detail; Q: Deterministic scoped cursor navigation.
   - Verification: Port-double tests verify owner-before-identifier access, invalid cursor before data retrieval, Party-not-found versus identifier-not-found, empty owned pages, safe result propagation, and support for both Party types/all Party states without protection/decryption calls.
+  - Evidence: `verification.md` records compile-red and six executable precedence failures, nine query-workflow tests and architecture regression green, 1,499 full tests plus 28 packaged JVM tests passing on the stable test-scoped Podman API, and zero Sonar/JDTLS findings for all three saved revisions.
 
-- [ ] 6.5 Test first and implement API-only canonical identifier selectors and strict list query parsing.
+- [x] 6.5 Test first and implement API-only canonical identifier selectors and strict list query parsing.
   - Requirements: Q: Strict read selectors and filters; Q: Tenant and Party ownership concealment.
   - Verification: Parser tests reject noncanonical IDs, duplicate/unknown/blank filters, wrong case/status/boolean tokens, and invalid limits; accept limits 1/200/default 50 and exact scheme codes with code-point boundaries. Public codes and raw-value non-disclosure match OpenAPI.
+  - Evidence: Ten parser/support cases, compatibility/architecture regression, 1,509 full tests and 28 packaged JVM tests pass. The supplied concise-character-class diagnostic is resolved with `\\d+`; current Sonar/JDTLS both report zero findings on the final saved parser revision, and the other three saved-file analyses remain valid. See the task 6.5 continuation in `verification.md` and `java-inventory.md`.
 
-- [ ] 6.6 Test first and extend identifier DTO/page mapping with checked counts and null-aware pagination characterization.
+- [x] 6.6 Test first and extend identifier DTO/page mapping with checked counts and null-aware pagination characterization.
   - Requirements: Q: Exact collection metadata and empty outcomes; Q: Safe shared envelopes and failure behavior.
   - Verification: Managed-Jackson tests prove exact safe item properties, no reason/storage fields, optional-null omission, all five pagination fields, both explicit null cursors, empty counts, checked maximum/overflow behavior, and unchanged ordinary/error/unrelated envelopes.
+  - Evidence: Seven managed-mapper cases pass after executable overflow/null-omission red; existing current-identifier HTTP assertions now enforce required/allowlisted fields per the approved optional-null schema. Final 1,516 full tests and 28 packaged JVM tests pass, with zero saved-revision Sonar/JDTLS for all five changed files; see `verification.md` and `java-inventory.md`.
 
-- [ ] 6.7 Test first and expose both identifier GET routes through the Application workflows and ResponseManager.
+- [x] 6.7 Test first and expose both identifier GET routes through the Application workflows and ResponseManager.
   - Requirements: Q: Complete published party-identifiers contract; Q: Trusted context and process correlation; Q: Complete historical listing and masked detail.
   - Verification: Live HTTP tests cover both Party types/all Party states, every identifier state, filtering/navigation, exact safe 200 envelopes, owner concealment, invalid reads, and process echoes. Signature/ArchUnit assertions prove explicit `Uni<RestResponse<ApiResponse<...>>>` and resource delegation.
+  - Evidence: Thirty-seven live GET cases pass after missing-route and missing-pagination red, including both types/all owner states/all identifier states, exact filters/opaque cursors, ownership, syntax and process echoes. Explicit shared-DTO signatures and architecture are inspected; final 1,553 full tests plus 28 packaged JVM cases pass with zero Sonar/JDTLS for all four changed revisions. See `verification.md` and `java-inventory.md`.
 
 ## 7. Atomic Mutation Infrastructure
 
-- [ ] 7.1 Test first and implement versioned HMAC effective-request fingerprints for identifier creation and actions.
+- [x] 7.1 Test first and implement versioned HMAC effective-request fingerprints for identifier creation and actions.
   - Requirements: M: Durable additional registration replay; L: Durable action key scope and request equivalence; Q: Safe shared envelopes and failure behavior.
   - Verification: Unit tests pin exact code-unit encoding, all effective properties/defaults, raw representations that normalize equally but conflict, reason/target/version/replacement changes, actor/process exclusion, action/tenant isolation, and constant-time digest comparison. Reuse the existing external HMAC key with identifier domain separation; persist no raw canonical request.
+  - Evidence: Eight fingerprint cases pass after executable reason/code-unit red, including independently computed byte-exact HMAC vectors, raw/default/scope bounds and constant-length decoded comparison. Existing fingerprint/architecture regression and final 1,561 full tests plus 28 packaged JVM cases pass with zero saved-source Sonar/JDTLS; see `verification.md` and `java-inventory.md`.
 
-- [ ] 7.2 Test first and implement schema-1 safe identifier completion encoding/decoding and same-session completion storage.
+- [x] 7.2 Test first and implement schema-1 safe identifier completion encoding/decoding and same-session completion storage.
   - Requirements: M: Durable additional registration replay; L: Historical action replay survives changes and restart; Q: Safe shared envelopes and failure behavior.
   - Verification: Codec/storage tests pin safe allowlists, row/snapshot scope consistency, original timestamps/versions, create versus action coherence, and rejection of unknown/corrupt schema/IDs/enums without payload-bearing causes. Saved completions survive fresh sessions; earlier Party/catalog codecs remain compatible.
+  - Evidence: Eight codec/two reactive storage cases and earlier codec/architecture regression pass, with 1,571 full cases and 28 actual packaged JVM results. Supplied java:S1612 is resolved by Assertions::assertNull; all seven final saved revisions report zero Sonar/JDTLS. Full test/build rerun succeeds; see the task 7.2 continuation in `verification.md` and `java-inventory.md`.
 
-- [ ] 7.3 Test first and implement exact bounded binary reason-audit encoding and reactive persistence.
+- [x] 7.3 Test first and implement exact bounded binary reason-audit encoding and reactive persistence.
   - Requirements: L: Rejection and revocation retain safe history; L: Atomic lifecycle concurrency and complete outcomes.
   - Verification: Unit/PostgreSQL tests round-trip absent, empty, control/U+0000, and supplementary-character reasons with exact actor/time/action/version. Constraints reject invalid owner references or duplicate audit; audit remains independent of outbox mode and cannot leak through result/log representations.
+  - Evidence: Four codec/four PostgreSQL cases pass after executable bound/corruption and missing-reason red, including unmatched code units, maximum binary/logical bounds, exact attribution, disabled events, qualified constraints and rollback. Final 1,579 full tests/28 actual packaged JVM cases and all four saved-revision zero Sonar/JDTLS pass; see `verification.md` and `java-inventory.md`.
 
-- [ ] 7.4 Test first and implement transaction-scoped replay and tenant/Party/scheme serialization with qualified row restoration.
+- [x] 7.4 Test first and implement transaction-scoped replay and tenant/Party/scheme serialization with qualified row restoration.
   - Requirements: M: Scoped atomic primary ownership; L: Verification respects provisional primary ownership; L: Durable action key scope and request equivalence.
   - Verification: Independent-session tests observe replay-before-Party-before-scope-before-child lock order, full-tuple lookup, distinct two-integer namespaces, forced collision serialization without false replay/ownership, shared Party locking, and fresh target state after waiting. No root version is incremented.
+  - Evidence: Three identity/three reader/four coordinated cases pass, including observed PostgreSQL waiting locks, exact completion lookup after commit, forced collisions, namespace independence, shared root/NOWAIT child probes and fresh version restoration. The supplied java:S1192 findings are resolved; all five saved revisions have zero Sonar/JDTLS and final 1,589 full tests/build pass with 28 retained actual packaged JVM results. See `verification.md` and `java-inventory.md`.
 
-- [ ] 7.5 Test first and implement guarded identifier insert/update/reload and demotion-before-promotion storage operations.
+- [x] 7.5 Test first and implement guarded identifier insert/update/reload and demotion-before-promotion storage operations.
   - Requirements: M: Active-value uniqueness and release; M: Identifier-version preconditions and exhaustion; M: Scoped atomic primary ownership.
   - Verification: Reactive tests prove qualified expected-version predicates, exactly one explicit version increment without ORM dirty-version duplication, protected/immutable column preservation, awaited demotion, refreshed accepted results, and neutral diagnosis of unapplied writes. Only the known value/primary constraints map to business conflicts.
+  - Evidence: Nine PostgreSQL cases pass after promotion-order and historical-insert red, including guarded exact increments, qualified ownership, protected/creation/verification preservation, dates/nulls, narrow constraints and late-demotion rollback. Final 1,598 tests/build pass with 28 actual packaged JVM results; both saved revisions have zero Sonar/JDTLS. See `verification.md` and `java-inventory.md`.
 
 - [ ] 7.6 Test first and extend safe identifier event candidates, outbox encoding/decoding, and message serialization.
   - Requirements: M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes; Q: Safe shared envelopes and failure behavior.

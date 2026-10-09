@@ -756,3 +756,286 @@ DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./
 - Both final saved Java revisions have full zero-finding Sonar and independent zero-problem JDTLS in the inventory. No compiler warning, suppression/exclusion or request-path blocking API is added. Existing controlled failure/cleanup logs remain visible. `git diff --check` passes.
 
 Task 6.2 is complete; snapshot-consistent list queries and public query routes remain subsequent tasks.
+
+## Task 6.3: Historical pages pass; packaged container startup blocks acceptance
+
+Added the historical page tests first. Corrected an initial test syntax error before the meaningful compile-red for absent query components. The runnable ascending/current-order query reaches **8 cases / 3 executable failures in 24s** for descending forward traversal, nearest backward pages and deleted-boundary continuation. Changed traversal order to descending forward/ascending backward with response reversal. No ascending historical skeleton remains in saved production code.
+
+`PartyIdentifierPageSql` binds tenant/Party and every exact optional scheme-ID/code/status/tri-state-primary filter, counts all matches before continuation, selects only safe scalar fields, applies strict creation-instant/UUID tuple bounds and retains at most the requested page capacity. `HibernateReactivePartyIdentifierQueryAdapter` implements the full existing query port, delegates detail to the qualified reader and owns one read-only REPEATABLE READ transaction for sequential count, rows and neighbor queries. It applies the existing transaction-local statement/traversal budgets and classified-failure translation. Empty continued pages retain counts and derive actual available neighbors from the requested tuple; no boundary-row existence lookup or expiration/state rewrite is performed.
+
+Nine tests cover exact filter intersections, unknown/mismatched/case-sensitive schemes, false-versus-absent primary filters, all five historical states, microsecond ordering and unsigned UUID ties, forward/backward pages, empty collections/continuations, missing and changed-filter boundary rows and actual stable read isolation while a separately owned session deletes data. The snapshot test confirms `repeatable read/on` and still reads the prior row after the independent delete, while a subsequent request sees the new zero count. This is live continuation, not a server-held frozen dataset.
+
+Focused page/detail/architecture regression passes in **2m 1s**. The final added changed-filter case passes with all **nine page cases in 30s**. A representative PostgreSQL 18.4 `EXPLAIN (ANALYZE, BUFFERS)` uses **Index Only Scan on `ix_party_identifiers_created_id`**, tenant/Party index conditions, **one index search**, a bounded **Limit 2**, planning **0.216ms** and execution **0.089ms** in that synthetic fixture. This is an observed small-fixture plan, not production capacity evidence; no additional filter index is added. Source: `TEST-com.alexastudillo.partyregistry.infrastructure.persistence.PartyIdentifierHistoricalPageTest.xml:12–22` from the focused run.
+
+Required gate attempt:
+
+```bash
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test passes **1,490 cases, zero failures/skips**, **10m 53s**.
+- Build packages the JVM application but **fails at quarkusIntTest in 5m 31s**: **28 cases, two failures and ten skipped**. Both failing classes (`PackagedIdentifierSchemeContractIT` and `PackagedRootContractIT`) fail before exercising their contracts because `PackagedGeographicReferenceResource.start:62/97` cannot create its container. The root cause shown is **java.io.IOException: Broken pipe** in docker-java's Unix socket write through `/run/user/1000/podman/podman.sock`. This is a runtime setup blocker, not feature TDD red or a passing packaged gate.
+- Combined output: `~/.local/share/opencode/tool-output/tool_1080054160017dIF5OroVU0AIV`. Failed XML/HTML remain under `build/test-results/quarkusIntTest` and `build/reports/tests/quarkusIntTest`.
+- Read-only runtime inspection after the failure shows the Podman socket listening, the socket-activated service idle after exit status 0, local `podman info` successful and no running containers. Idle socket activation alone does not establish the cause of the failed socket writes. No runtime restart, configuration change or assertion weakening was performed.
+
+Initial source analysis reported one test issue/problem. Inspection identified an unused `java.util.Optional` import; removed it and reanalyzed. All three final source revisions now have zero Sonar issues/Hotspots and zero JDTLS problems, documented in the inventory; no rule-key claim is inferred from the earlier count-only log. After that last Java edit, the mandatory full test runs again: **BUILD SUCCESSFUL in 10m 33s, 1,490 cases, zero failures/skips**, output `~/.local/share/opencode/tool-output/tool_10815ce7e001R4qFlzaKqTFfZQ`. The production sources are unchanged from the failed packaged attempt; no successful replacement build is claimed.
+
+Pause before task 6.4 and keep 6.3 unchecked. Obtain guidance for diagnosing/retrying the packaged Podman startup failure; then rerun the actual build gate without skipping required cases. Overall accepted progress is **19/60**. Native final gates and public routes remain pending. Existing controlled runtime error/cleanup diagnostics remain visible and `git diff --check` passes.
+
+### Task 6.3: Packaged Podman gate reconciled
+
+The user authorized diagnosis and repetition. The installed `/usr/lib/systemd/user/podman.service` launches `podman system service` without a timeout override; installed help confirms the default idle timeout is **5s**. The journal during the failed packaged run records repeated API shutdown/restart cycles and retained port-helper processes. A separate persistent HTTP connection successfully pings the normal socket both initially and after eight idle seconds, so idle timeout alone is not claimed as the proven root cause of every Broken pipe.
+
+Started an isolated transient user unit for the test session, keeping the API process stable without altering the normal systemd unit or application/test code:
+
+```bash
+systemd-run --user --unit=party-registry-test-podman-api --collect /usr/bin/podman --log-level=info system service --time=0 unix:///tmp/opencode/party-registry-podman.sock
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+The endpoint returns HTTP 200/OK. Build is **SUCCESSFUL in 2m 3s**, with actual **28 packaged JVM tests, zero failures/skips** (report duration 1m 58.74s); the previously passing 1,490-test suite is up-to-date. All three saved source blobs match their final inventory entries. This actual green gate reconciles the previous environment failure; the earlier failed result remains recorded and is not relabeled as feature red or harmlessness proof.
+
+Use the test-scoped socket for the remaining session gates and stop the transient unit at session completion/pause with `systemctl --user stop party-registry-test-podman-api.service`. No permanent Podman configuration, retry, test exclusion, Java behavior or warning suppression was changed. The lifecycle hypothesis and successful isolated runtime are distinguished explicitly. Task 6.3 is now complete; accepted progress is **20/60**.
+
+## Task 6.4: Application-owned historical query workflows
+
+Wrote `PartyIdentifierQueryUseCasesTest` first. Compile-red identifies the two absent use cases; corrected the test dependency-failure constructor to supply its existing dependency name before executable behavior. The runnable workflows reach **nine cases / six executable failures in 7s** for identifier access preceding ownership and cursor decoding following owner I/O. Reordered detail to owner-before-identifier and list to authenticated cursor-before-owner-before-page. The same nine cases and architecture regression pass in **1m 40s**. No incorrect initial precedence remains in final source.
+
+`GetPartyIdentifierUseCase` distinguishes neutral Party absence from qualified identifier absence and returns the safe stored result unchanged. `ListPartyIdentifiersUseCase` authenticates the complete effective scope before any port read, checks ownership without Party lifecycle admission, requests one safe historical slice, checks actual page capacity, preserves exact long totals, computes ceiling without addition overflow and encodes only available next/previous positions through the cursor port. Both pipelines are lazy and return their Uni; no HTTP, CDI, persistence, protection/decryption, external verification or clock dependency enters Application.
+
+Port doubles cover both Party types/all identifier states, absent owner before child access, absent identifier after owner, invalid cursor before any read, valid continuation not bypassing absent ownership, successful empty owned pages, full boundary/scope delegation, safe data propagation, Long.MAX_VALUE ceiling, rejected oversized port pages and unchanged classified/unexpected failures. The owner port exposes only immutable Party type, not lifecycle; no state restriction is introduced, while the existing task 6.2 database cases already exercise all four Party states. Every asynchronous assertion has a two-second bound and fixtures use the existing Month-based test foundation.
+
+Final commands use the stable test-scoped API:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Test: **BUILD SUCCESSFUL in 5m 29s**, **1,499 cases, zero failures/skips**.
+- Build: **BUILD SUCCESSFUL in 7m 41s**; unit tests execute again and **28 actual packaged JVM cases pass without failures/skips**. These two unit executions are recorded separately, not collapsed into one duration.
+- Combined output: `~/.local/share/opencode/tool-output/tool_108aaaaa200145WAOEHxVyQNfX`, success markers at lines 4839/9693.
+- Three final Java revisions and the nested test Harness have full zero-finding Sonar and separate zero-problem JDTLS in the inventory, English responsibility Javadoc and no new compiler warning/suppression/exclusion. Existing controlled error/cleanup logs remain visible.
+
+Task 6.4 is complete; API parsers, page serialization, CDI resource composition and new HTTP/native routes remain subsequent tasks.
+
+## Task 6.5: Strict canonical selectors/query parsing, Sonar finding pending
+
+Wrote the parser/support tests first. Compile-red (5s) identifies the absent API helpers. The runnable UUID parsing reaches **nine cases / two executable failures in 7s** because the JDK accepts uppercase and shortened UUID groups. Added exact canonical-to-input comparison to identifier selectors and scheme-ID filters. Parent parsing reuses the existing `ApiRequestSupport`, preserving parent-before-child-before-query syntax and `party-id-invalid` versus generic `bad-request`. No permissive UUID skeleton remains in saved code.
+
+`PartyIdentifierQueryParameters` accepts exactly the six declared names once, rejects null/empty/blank values, preserves exact scheme-code text and tri-state primary, parses the exact five states and boolean tokens, defaults limit 50 only on absence and accepts decimal limits 1–200. Code lengths use the declared Unicode code-point bound; creation's separate UTF-16 limit remains untouched. Decimal leading zeros are accepted because the approved query contract does not require canonical decimals for limits (unlike If-Match). Cursor shape is bounded at 256 and authentication remains Application-owned. All syntax failures produce API-only stable exceptions without rejected input or parser causes.
+
+`PartyIdentifierRequestSupport` builds typed detail/list queries and delegates parent syntax to the shared existing helper. It adds no owner lookup, lifecycle admission, persistence call, error mapper, success filter or change to unrelated selectors. Tests cover accepted limits/defaults, every state/primary, exact text including whitespace/case/supplementary characters, canonical selectors, unknown/repeated/null/blank filters, overflow/coercion/token failures, parent error precedence, safe failure representation and retained metadata. Split cardinality and null-input tests by responsibility to keep the known assertion-count rule bounded while retaining every assertion; the final increment contains **ten cases**.
+
+Focused parser/support/architecture regression passes in **1m 45s**:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*QueryParametersTest' --tests '*RequestSupportTest' --tests '*CleanArchitectureTest' --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+- Final full test: **BUILD SUCCESSFUL in 5m 29s**, **1,509 cases, zero failures/skips**, including the split final parser tests.
+- Final build: **BUILD SUCCESSFUL in 2m 13s**, unit tests up-to-date and **28 actual packaged JVM cases execute and pass with no skips**.
+- Combined output: `~/.local/share/opencode/tool-output/tool_108c3ee55001BOCaiVcC5TDYmL`.
+- All four final Java revisions have independent **zero-problem JDTLS**. Three files complete full zero-finding Sonar. The production query parser completes full 1/1 Java-25/571-rule Sonar at **16:08:20.574** with **one issue / zero Hotspots**, S2 lines **1745–1775**. The log contains no rule key, finding message or source location; no specific cause is guessed.
+- English responsibility/contract Javadoc is present, no new compiler warning or suppression/exclusion/configuration change was added, and existing controlled failure/cleanup logs remain visible. `git diff --check` passes.
+
+Pause before 6.6. Obtain the `PartyIdentifierQueryParameters.java` diagnostic from the Antigravity Problems view (rule, message and location or screenshot), fix and reanalyze the exact saved revision, then rerun invalidated checks. Keep 6.5 unchecked and accepted progress at **21/60**. Runtime/native/public-route acceptance is not inferred from parser unit checks.
+
+The test-scoped transient Podman API was stopped with `systemctl --user stop party-registry-test-podman-api.service`; `is-active` reports inactive. The normal Podman unit/configuration was not edited. Restart the documented transient service when continuing runtime verification; no owned API process is left running at this pause.
+
+### Task 6.5: Concise character-class diagnostic resolved
+
+The user supplied the exact production finding: **Use concise character class syntax `\\d` instead of `[0-9]`**, on the decimal-limit matcher. Changed its Java literal to `"\\d+"`, consistent with existing query parsers. No Unicode regex flag is enabled; the existing fullwidth-digit, signed/fractional/overflow, decimal-boundary/default and exact-filter cases still pass. No rule key is inferred from the supplied message/screenshot.
+
+Final parser blob: `469f984dcee2369b46d4f85c534408833100de5b`. Full 1/1 Java-25/571-rule Sonar at **17:14:34.047** reports **zero issues/Hotspots**, S2 lines **1869–1899**. Independent JDTLS validation at **17:14:34.718** reports **zero problems**, J lines **22271–22281**. The other three unchanged saved-file analysis entries remain valid.
+
+Restarted the documented transient Podman API and ran the required full commands on that final revision. Test is **BUILD SUCCESSFUL in 5m 31s**, **1,509 cases, zero failures/skips**. Build is **BUILD SUCCESSFUL in 7m 38s**, with unit tests executing again and **28 actual packaged JVM cases passing without skips**. Combined output: `~/.local/share/opencode/tool-output/tool_108fe1bf3001GaZxRyfOQ4ItUq`, success markers 4841/9697. No suppression, exclusion, semantic narrowing or new compiler warning is introduced; existing runtime error-injection/cleanup diagnostics remain visible.
+
+The blocker is resolved and task 6.5 is complete. Accepted progress is **22/60**. Proceed to 6.6; public GET/native verification remains subsequent work.
+
+## Task 6.6: Safe item/page mapping and checked counts
+
+Wrote `PartyIdentifierPaginationMappingTest` first. Compile-red (5s) identifies missing page mapping. Runnable unchecked integer casts reach **seven cases / two executable failures in 52s**: overflow reaches shared metadata as wrapped negative data rather than failing checked conversion, and optional-null identifier DTO fields are not omitted. Added `Math.toIntExact` before metadata construction and the same DTO-local NON_NULL annotation already used by nationality responses. No unchecked cast remains. The existing pagination-only cursor writer is unchanged; managed characterization proves it supplies both explicit null directions on identifier pages while ordinary/error/unrelated envelopes retain their normal shape.
+
+The seven cases assert exactly the 15 declared populated item fields, exactly ten mandatory fields when optionals are null, historical issuer/verification/version retention, privacy allowlists, flat metadata and HTTP/body status agreement, first/middle/final and empty-continuation directions, zero counts, maximum supported integer totals and rejection of both overflowing count dimensions/Long.MAX_VALUE. API mapping first creates immutable response DTO lists and separately creates checked shared PaginationMetadata; Domain/Application records are not exposed through success envelopes.
+
+Focused pagination/architecture characterization passes in **6m 46s**. The first full run (**1,516 cases / 14 failures**, 18m 6s, output `tool_10921a025001iXwyl4wLMajDHM`) identified one repeated legacy assertion in `NaturalPersonResourceContractTest` requiring all optional properties even when null. The approved OpenAPI `PartyIdentifierResponse` at lines 5561–5577 explicitly permits omission and requires only ten properties; natural-person requirements preserve the complete array, values/order/audit rather than requiring null-property presence. Adjusted only the current-item shape check to require all mandatory fields and reject any property outside the full allowlist. Existing value/privacy/version/state/order assertions and the creation-only exact initial-identifier shape remain intact. Focused natural-person/pagination tests then pass in **2m 5s**.
+
+The subsequent full run passes **1,516 tests in 12m 39s**, but build detects the equivalent old 15-key assertion in the packaged natural-person smoke case (**1/28 failure**, 3m 39s; output `tool_109378e90001oZ6Rxrju6WU83T`). Updated its current-item required/allowlist checks identically, retaining all existing HTTP/value/privacy assertions. Corrected the new assertTrue static import; the compile-error revision is not accepted as source-analysis evidence.
+
+Final required commands use the same stable test-scoped Podman API:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+Test succeeds up-to-date in **6s**, preserving the actual **1,516-case zero-failure/zero-skip execution** immediately above. Build is **SUCCESSFUL in 2m 13s**, compiles the final integration source and executes **28 packaged JVM cases, zero failures/skips**. The five final saved revisions have full zero-finding Sonar and separate zero-problem JDTLS in the inventory; no rule/configuration suppression, compiler warning, protected-data rewrite, schema change or unrelated DTO change is introduced. The initial response model and pagination writer remain unchanged. Existing runtime error-injection/cleanup logs remain visible.
+
+Task 6.6 is complete. Accepted progress is **23/60**; public GET composition/contracts and actual native execution remain their subsequent tasks.
+
+## Task 6.7: Both public identifier GET routes
+
+Wrote `PartyIdentifierReadResourceContractTest` before exposing the routes. The real HTTP red run executes **37 cases / 36 failures in 32s** for missing collection/detail GET behavior (405/404 instead of their approved results); the existing context-filter case already passes and is characterization. After adding thin GET methods, CDI Application composition and explicit DTO/shared success envelopes, the runnable list still lacks pagination and produces **15/37 executable failures in 49s**. Switched list success to ResponseManager.paginatedHttp with checked metadata; all 37 cases and architecture pass in **2m 8s**. No missing-metadata success skeleton remains.
+
+`PartyIdentifierResource` now exposes collection GET and nested detail GET with explicit `Uni<RestResponse<ApiResponse<List<PartyIdentifierResponse>>>>` / `Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>>` signatures and bounded spans. Its API-only `PartyIdentifierQueryOperations` collaborator owns syntax adaptation, Application invocation, DTO mapping, shared wrapping and known-failure translation; it owns no lookup, SQL, lifecycle decision or success filter. This groups genuine query delivery responsibilities while keeping the resource constructor within the existing seven-parameter rule. Infrastructure producers compose both plain Application use cases from inner ports under the same existing ORM feature gate; disabled-persistence error profiles remain supported.
+
+The 37 cases exercise both Party types in every owner state, all five identifier states and past-date metadata, safe item/page schemas, exact scheme/status/primary intersections, valid unknown/mismatched schemes, timestamp ties/unsigned UUID navigation in both directions, cursor-limit scope rejection, wrong-owner/cross-tenant concealment, noncanonical/unknown/repeated/blank/range syntax, missing/invalid context and accepted Process-Id echoes. Complete stored Party/identifier JSON snapshots before/after HTTP reads prove no protection/audit/version/state rewrite. Fixture-only JDBC DML executes on ordinary test threads; request handling continues through Hibernate Reactive, with no request-path JDBC. Month-based controlled dates remain explicit.
+
+Final required commands use the stable test-scoped Podman API. **./gradlew test succeeds in 6m 7s, 1,553 cases, zero failures/skips**. **./gradlew build succeeds in 2m 36s**, unit tests up-to-date and **28 actual packaged JVM cases execute and pass without skips**. Combined output: `~/.local/share/opencode/tool-output/tool_1095daaa7001Wk72gtC7ViS69W`. Served OpenAPI compatibility and existing business/error suites execute; this does not substitute for the later all-operation packaged/native tasks.
+
+All four final saved revisions (including nested Fixture) have actual full zero-finding Sonar and independent zero-problem JDTLS in the inventory. Resource generics and transport/neutral-failure boundaries are inspected explicitly and architecture tests pass. No compiler warning, suppression/exclusion, protocol contract change or overlapping mapper/filter was introduced. Existing controlled runtime diagnostics remain visible and `git diff --check` passes.
+
+Task 6.7 is complete; accepted progress is **24/60**. Continue with the atomic mutation infrastructure at 7.1. The remaining five maintenance/action routes and durable additional registration/native acceptance remain pending.
+
+## Task 7.1: Identifier-only exact effective-request HMACs
+
+Wrote eight unit cases first. Compile-red (6s) identifies the missing adapter; a runnable creation/target/version encoder reaches **eight cases / two executable failures in 8s** because exact withdrawal reasons are absent from action identity. Added both reason strings in the defined field order before replacement choice; no incomplete action encoder remains. Fingerprint/architecture regression passes in **2m**.
+
+`HmacPartyIdentifierFingerprintAdapter` implements the existing inner port using the already eagerly validated external registration HMAC key from `CryptographicKeyMaterial`, with distinct `party-identifier-effective-request-fingerprint-v1` MAC domain and the five exact operation namespaces. It streams a version-1 binary header/body directly into a fresh per-call HMAC-SHA-256 rather than retaining/persisting a canonical raw buffer: big-endian UUIDs/versions, length-prefixed exact UTF-16 code units, -1 absence versus zero-length strings, nullable date markers/epoch days and effective booleans. Creation retains every original parsed property before write normalization; actions retain exact target/version/reasons/replacement. Key/user/process are excluded by the effective input contract. Bounds retain creation UTF-16 versus issuer/reason code-point semantics.
+
+Tests pin independently calculated Python stdlib HMAC vectors: a **145-byte creation payload** including NUL/lone surrogate/bounded blank issuer/Month dates yields `e20fa9df77784d5b3136ea5e203427d5f693d0d8c83fcedc540c3cd737b43dbb`; a **139-byte revoke payload** with exact control/surrogate reasons yields `30b06a74f3f6c4628d1c7983de45ad78c3f5566e7efd9478778aea36372c1a7a`, with synthetic 32-byte 0x5a key and the explicit null-terminated identifier domain. The reference uses independently packed version/UUID/length/epoch fields and UTF-16 big-endian surrogate-preserving encoding; it is not generated by production code.
+
+The other cases cover each creation property, normalization-equivalent raw differences, nullable/default-equivalent effective commands, accepted actor/process/key exclusion, tenant/action/key separation, action targets/versions/replacement, exact absent/empty/whitespace/control/surrogate reasons, maximum UTF-16/code-point bounds, different secret material and fixed-length supported hex matching. Comparison uses MessageDigest.isEqual on decoded 32-byte arrays (zero stand-ins for malformed inputs), rejects unsupported shapes without messages and clears comparison arrays. Existing Party-registration canonical fingerprints/key requirements remain unchanged. No request text or reason is stored/logged or exposed in the shared response.
+
+Final commands use the stable test-scoped Podman API. **./gradlew test succeeds in 6m 13s, 1,561 cases, zero failures/skips**. **./gradlew build succeeds in 2m 28s**, unit tests up-to-date and **28 actual packaged JVM cases execute and pass without skips**. Combined output: `~/.local/share/opencode/tool-output/tool_10977b05b001st3EKkZrJ9b6pW`. Both final saved revisions and nested InputWriter/MacSink have actual full zero-finding Sonar/independent zero-problem JDTLS in the inventory, English responsibility Javadoc and no new compiler warning/suppression/rule change. Existing controlled runtime logs remain visible and `git diff --check` passes.
+
+Task 7.1 is complete; accepted progress is **25/60**. Durable completion/audit storage and actual replay workflows remain subsequent tasks.
+
+## Task 7.2: Safe immutable completions; runtime green, one local finding pending
+
+Implemented the identifier-only schema-1 codec, fixed safe result field encoding, immutable completion entity/composite identity, and caller-session replay persistence. The codec's seven root fields and fifteen result fields exclude raw keys, submitted values, reason strings and protection material. It compares tenant/operation, owner/identifier, original actor/time and expected version against authoritative row metadata. Creation requires version zero, pending state, equal creation/acceptance/modification times and no verification history. Action result versions advance from the original expected version exactly once, with matching resulting state, withdrawal flag clearing, selected primary flag and verification attribution. Unsupported or corrupt fields/schema/UUIDs/enums/types fail with the constant cause-free `Stored identifier completion is invalid` failure; no parser payload is retained in the exception.
+
+The initial codec increment used compile-red followed by executable state/result-coherence red and green, then extracted fixed field names without weakening assertions. On resumption, an additional test exposed acceptance of an inverted stored validity interval. The focused command printed that executable assertion failure before its 120000ms shell deadline interrupted the run; this is a demonstrated behavioral failure, not a completed test run. Added bounded stored text, paired verification and coherent interval checks, without reapplying issuer normalization or current expiration eligibility. Codec/storage/earlier-snapshot/architecture regression then passed in **2m 14s**. Another test-first run completed in **1m 58s** with **14 cases / one expected failure** because a creation snapshot could contain modification history. Added creation-specific coherence; the final full run passes that test and the historical past-expiration/nullable-metadata characterization.
+
+Focused red/green commands (all use `DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0`):
+
+```bash
+./gradlew test --tests '*PartyIdentifierCompletionCodecTest' --console=plain
+./gradlew test --tests '*PartyIdentifierCompletionCodecTest' --tests '*PartyIdentifierReplayPersistenceTest' --tests '*SnapshotCodecTest' --tests '*CompletionCodecTest' --tests '*CleanArchitectureTest' --console=plain
+```
+
+The **eight final codec cases** cover every create/action completion, historical issuer retention, exact allowlists, detached snapshot copies, authoritative scope/acceptance/version checks, corrupt required/optional fields and sanitized cause-free errors. The **two reactive PostgreSQL cases** prove that a completion and its identifier commit together, survive fresh sessions, preserve exact whitespace-sensitive key and tenant/action isolation, and both disappear on a late failure after flush. `PartyIdentifierReplayPersistence` opens no independent session or transaction; the eventual mutation context owns these boundaries. The entity is immutable and returns detached JSON trees. Earlier Party/catalog snapshot codecs remain unmodified and their regression tests pass. English responsibility Javadoc includes the nested test Fixture; dates derive from Month constants.
+
+Final saved-source commands:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+**Test succeeds in 6m 37s: 1,571 cases, zero failures/skips. Build succeeds in 2m 40s**, unit tests up-to-date and **28 actual packaged JVM cases, zero failures/skips**. Output: `~/.local/share/opencode/tool-output/tool_109bbfeda001yNi1zFeprjaSGM`. Reports: `build/reports/tests/test/index.html` and `build/reports/tests/quarkusIntTest/index.html`; the new codec/storage XML suites report 8/2 passing cases. The earlier task-7.2 output `tool_109a67c59001PEEFNsiXyKsSyi` was also inspected and confirms test/build success in 6m 29s/2m 37s, but predates these final corruption checks and does not replace their gates. Existing controlled constraint/failure-injection, duplicate-meter and timeout/cancellation cleanup diagnostics remain visible. No compiler warning or suppression/exclusion/configuration change was introduced; `git diff --check` passes. Native and actual historical HTTP replay remain later tasks.
+
+All seven saved revisions have completed Java-25/571-rule standalone Sonar analysis and independent **zero-problem JDTLS** validation. Six files have **zero Sonar findings**; `PartyIdentifierReplayPersistenceTest.java` reports **one issue / zero Hotspots** at **2026-10-04 20:52:33.532**, S2 lines **2520–2550**, for blob `c33e3bbc1c4972743481aa151ff6b228361aeae4`. Its JDTLS validation reports zero at **20:52:33.257**, J lines **22589–22602**. The count-only Sonar log provides no rule key, message or location. Obtain the actual Problems-view diagnostic for this saved revision before choosing a fix; passing Gradle and the other files' zero results are not substitutes.
+
+Task **7.2 remains unchecked** and implementation pauses at **25/60 complete** pending that diagnostic, correction/reanalysis and invalidated gates. The saved-file inventory records all current results separately. The temporary test-scoped Podman API is stopped at this pause and can be restarted with the existing documented `--time=0` command.
+
+### Task 7.2 continuation: supplied method-reference diagnostic resolved
+
+The developer's screenshot identifies **java:S1612**, "Replace this lambda with method reference 'Assertions::assertNull'", on the post-rollback identifier assertion. Replaced only that lambda with `Assertions::assertNull`, imported Assertions and removed its now-unused static assertNull import. All assertions remain intact. Final storage-test blob: `58a0cf3162d2ea918729add00cc4d32d5d543520`.
+
+Fresh full 1/1 standalone Sonar (Java 25/571 rules) completes at **2026-10-04 21:16:23.655**, S2 **2551–2581**, with **zero issues/Hotspots**. Independent JDTLS validation at **21:16:23.516**, J **22613–22623**, reports **zero problems**. The other six Java revisions are unchanged, so their completed zero analyses remain applicable. No rule setting, exclusion or suppression changed.
+
+Restarted the documented transient test-scoped Podman API and reran the same required full commands. **./gradlew test succeeds in 5m 23s**, with the unchanged 1,571 passing cases and no failures/skips. **./gradlew build succeeds in 5s, all tasks up-to-date**; the latest 28 packaged JVM results remain the actual passing 2m 40s build above, not a newly executed packaged run. Output: `~/.local/share/opencode/tool-output/tool_109db376c001GNlFb8lIAr1Asi`. This supersedes the local gate blocker and closes task 7.2 at **26/60 complete**; exact binary reason audit follows in 7.3.
+
+## Task 7.3: Exact private binary withdrawal audit
+
+Wrote four codec tests first: compile-red identifies the missing type in **5s**. Explicit big-endian code-unit serialization initially executes **10 cases / two expected failures in 1m 41s** for missing encode/decode bounds and corrupt-payload rejection. Added the 64/1000-code-point and 256/4000-byte limits, even-byte validation and a constant cause-free stored-corruption failure. The independent `A`, NUL and supplementary-character vector is `00 41 00 00 d8 3d de 00`; no charset replacement is used. Null remains null, empty remains zero bytes, and controls, exact case/whitespace, supplementary pairs and unmatched surrogate units round-trip without normalization.
+
+Wrote four reactive storage cases before the helper: compile-red identifies the missing persistence type in **4s**. An initial compile attempt used a native-mutation convenience method absent from the resolved Hibernate Reactive API; switched to the repository's supported `createNativeQuery(...).executeUpdate()` pattern. The first executable storage run fails on test timestamp representation (native timestamptz is OffsetDateTime); after comparing its exact Instant, the next **14 cases / one failure in 1m 58s** exposes the missing stored reason columns. Added explicit binary TypedParameterValue bindings for code/detail, including nulls. Codec/storage/completion/replay/architecture regression passes in **1m 51s**. No incomplete reason-write path remains.
+
+`PartyIdentifierAuditPersistence.recordAudit` executes a fixed bound insert using the supplied Hibernate Reactive session and accepted audit metadata. PostgreSQL generates the audit UUID through V8's existing uuidv7 default. It creates no session/transaction or event, performs no eligibility decision, and checks the exact one-row result. SQL and binary conversion remain in Infrastructure; no entity/DTO/reflection or public audit route is introduced. The private audit model's redacted representation is retained. The database tests prove absent/empty/control/NUL/supplementary/unmatched-surrogate and maximum reasons survive fresh sessions with exact actor/time/action/resulting version; qualified FK and accepted-action uniqueness failures retain no extra history; late transaction failure leaves no audit; disabled outbox still retains audit and produces no event. The migration remains immutable. English responsibility Javadoc includes the nested Fixture, and controlled timestamps derive from Month.OCTOBER.
+
+Focused commands use the stable test-scoped Podman API and QUARKUS_HTTP_TEST_PORT=0:
+
+```bash
+./gradlew test --tests '*PartyIdentifierReasonCodecTest' --console=plain
+./gradlew test --tests '*PartyIdentifierReasonCodecTest' --tests '*PartyIdentifierAuditPersistenceTest' --console=plain
+./gradlew test --tests '*PartyIdentifierReasonCodecTest' --tests '*PartyIdentifierAuditPersistenceTest' --tests '*PartyIdentifierCompletionCodecTest' --tests '*PartyIdentifierReplayPersistenceTest' --tests '*CleanArchitectureTest' --console=plain
+```
+
+The first full gate passes **1,579 tests in 5m 26s** and **28 actual packaged JVM cases in the 2m 17s build**, output `tool_109f51a85001r3LsmO64QvwBg7`. Local analysis reports one initial persistence finding. Code review independently identifies its restricted `record` method name, explicitly prohibited by the researched preflight; renamed it to `recordAudit` and updated the two consumers without changing behavior. No finding rule key/message is claimed from the count-only output. The final saved persistence/test revisions both reanalyze with zero issues/Hotspots and zero JDTLS problems; both unchanged codec revisions are already clean. Final **./gradlew test succeeds in 5m 23s (1,579 cases, zero failures/skips)** and **./gradlew build succeeds in 2m 16s (28 actually executed packaged JVM cases, zero failures/skips)**. Combined output: `~/.local/share/opencode/tool-output/tool_109fe08e9001aEalN0O6PcM6i5`. Reports retain the separate unit/reactive and quarkusIntTest results. No compiler warning, suppression or rule configuration change is introduced; native/workflow/HTTP acceptance remains subsequent work.
+
+The Microsoft Java test-discovery delegate again reports an internal BinaryTypeBinding annotation-discovery NullPointerException in J lines 22670–22724 and 22732–22786. Document validation independently reports zero source problems, and Gradle compiles/executes both new tests. This is retained as an IDE test-discovery diagnostic, not a source/compiler warning or a hidden model disagreement. The final saved Java inventory records actual analyses rather than empty Problems-panel assumptions. Task 7.3 is complete at **27/60**; transaction locking/restoration is next.
+
+## Task 7.4 initial increment: exact lock identities and qualified restoration; incomplete
+
+Wrote three lock-identity cases first. Compile-red completes in **5s** for the missing helper. A runnable length-delimited UTF-8 digest executes **9 cases / one expected failure in 1m 44s**, demonstrating that different unmatched surrogate key units collapse to the same encoding. Switched to length-prefixed explicit UTF-16 code units. Lock/architecture regression passes in **1m 40s**. `PartyIdentifierMutationLocks` now uses SHA-256-truncated integer identities in fixed distinct two-integer namespaces (`0x5049524b` replay, `0x50495343` primary scope), avoiding the existing one-bigint lock space. Full persisted key tuples remain authoritative; test constructor functions permit forced hash collisions in the upcoming coordinated database checks. No raw key is logged or treated as ownership evidence.
+
+Wrote two reactive qualified-reader cases before the helper. Compile-red completes in **4s** for the missing reader; a subsequent compile correction uses the actual typed native API's SelectionQuery result rather than Query, with no cast/suppression. Runnable reader tests then execute **8 cases / one expected failure in 1m 51s** because target restoration filters out nonverified history. Removed that storage-layer eligibility restriction: all five states, archived owned Party, past-date metadata, version/protected-value/legacy-issuer preservation and wrong-owner/scheme concealment now pass in the full suite.
+
+`PartyIdentifierMutationReader` uses a qualified scalar FOR SHARE owner/type read without root mutation, a qualified immutable scheme-ID lookup, exact catalog-code resolution and shared creation-scheme locking. Target/current-primary row restoration uses qualified FOR UPDATE and clears stale session-managed state before native reads; the current-primary query includes verified flags regardless of expiration. The helper owns no lifecycle/version eligibility policy. Its calling transaction/context still owns order, lifetime and scope guards. No infrastructure entity or session crosses an inner port, no JDBC request I/O is added, and new fixture dates derive from Month.OCTOBER.
+
+Focused commands use the stable test-scoped Podman API and QUARKUS_HTTP_TEST_PORT=0:
+
+```bash
+./gradlew test --tests '*PartyIdentifierMutationLocksTest' --console=plain
+./gradlew test --tests '*PartyIdentifierMutationLocksTest' --tests '*CleanArchitectureTest' --console=plain
+./gradlew test --tests '*PartyIdentifierMutationReaderTest' --console=plain
+```
+
+Full **./gradlew test succeeds in 5m 23s**. **./gradlew build succeeds in 7m 34s**, rerunning the full test suite and packaged JVM cases. Latest reports show **1,584 tests and 28 packaged JVM cases, zero failures/skips**. Output: `~/.local/share/opencode/tool-output/tool_10a140f1e001VO5lKihVI1XdtS`, success markers at lines 4848/9711. The four current Java revisions have completed independent **zero-problem JDTLS** validation; three have clean Sonar. `PartyIdentifierMutationReader.java` reports **two issues / zero Hotspots** at **2026-10-04 22:18:52.904**, S2 **2799–2829**, on blob `38676fda368d951d22d7a90e106898941b92daa9`. Rule/message/location are absent from the count-only log; request the actual Problems diagnostics before selecting fixes. No precise rule is inferred from the count and no source warning is suppressed.
+
+Task **7.4 remains unchecked** and progress stays **27/60 complete**. Beyond resolving these findings, its independent-session observed lock-order/contention, forced-collision/full-tuple lookup, namespace isolation, shared-root blocking, catalog/current-primary and fresh-state-after-wait checks remain required. Existing unit/qualified-reader/full JVM results do not substitute for those pending checks. The temporary test-scoped Podman API is stopped at this quality pause; `git diff --check` passes.
+
+### Task 7.4 continuation: duplicate parameter-name findings resolved
+
+The supplied screenshot identifies **java:S1192** on the repeated `tenant` parameter name and also underlines the repeated `party` name. Extracted `TENANT_PARAMETER` and `PARTY_PARAMETER` constants and used them at all six binding sites. The saved reader blob is `6d352434b49dcd2d36bec5f4700aeb8c58e453a7`; SQL text, query qualification, locks and result mapping are unchanged.
+
+Actual full 1/1 standalone Sonar (Java 25/571 active Java rules) completes at **2026-10-04 22:37:53.313**, S2 **2892–2922**, with **zero issues/Hotspots**. Independent JDTLS validation at **22:37:53.363**, J **22911–22921**, reports **zero source problems**. These replace the reader's earlier two-finding analysis; the other three task-7.4 saved revisions are unchanged and their zero analyses remain applicable. No rule override, exclusion or warning suppression was introduced.
+
+Restarted the documented transient Podman API and ran the required full commands with `DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0`. **./gradlew test succeeds in 5m 19s, 1,584 cases, zero failures/skips**. **./gradlew build succeeds in 2m 11s**, unit tests up-to-date and **28 actually executed packaged JVM cases, zero failures/skips**. Output: `~/.local/share/opencode/tool-output/tool_10a25f031001j63aK06XVPl2An`; current test/quarkusIntTest HTML reports confirm both counts. Existing controlled runtime diagnostics remain visible. `git diff --check` passes. The targeted source-quality blocker is resolved; task 7.4 remains unchecked at **27/60** until its previously listed coordinated locking/restoration checks are completed.
+
+### Task 7.4 coordinated database verification complete
+
+Added `PartyIdentifierLockCoordinationTest` with independent `openSession`/READ COMMITTED transactions, bounded completion-stage barriers and a separate monitor that observes actual granted/waiting PostgreSQL advisory locks (`objsubid = 2`). It does not sleep or run concurrent operations through one session. Four cases prove: a waiting equivalent key sees the newly committed original completion; forced identical hashes serialize distinct exact keys without false replay and do not block the other namespace; shared owner locks permit other readers but block exclusive root writers; and a scope waiter reloads the committed next identifier version/issuer rather than preliminary state. A root NOWAIT probe succeeds while only the replay key is held. During observed scope contention an exclusive root probe fails with SQLState 55P03 while a child NOWAIT probe still succeeds, proving owner-before-scope-before-child locking; the winner subsequently commits and the contender restores fresh child state. Root version remains zero.
+
+The original three coordinated cases pass in the first focused **1m 53s** run and characterize the already implemented lock mechanics. Adding the explicit shared-root writer probe initially fails in **1m 51s** because the test expects an unwrapped PgException; the resolved Hibernate Reactive API exposes SQLException through LockTimeoutException. Updated only the test's SQLState assertion to recognize that observed wrapper. SQL exceptions are inspected only by test code; request processing still uses Hibernate Reactive. Added reader coverage for exact creation scheme resolution/shared recheck and retained past-date VERIFIED primary restoration. There are now **three lock-identity, three qualified-reader and four coordinated cases**.
+
+Final **./gradlew test succeeds in 5m 28s with 1,589 cases, zero failures/skips**; **./gradlew build succeeds in 4s up-to-date**, retaining the latest 28 actually executed passing packaged JVM results from the production-reader correction's 2m 11s build. Output: `~/.local/share/opencode/tool-output/tool_10a3edaf9001RhAxjyqoIwUAxN`. The prior wrapper-fix full run also passes in 5m 29s/build 6s, output `tool_10a37f2e8001qzYEdOuC36FYhU`; final probes supersede that revision. Current coordination XML has four passing cases and only the two expected NOWAIT SQLState 55P03 probe warnings, no source warning or suppressed cleanup failure. Other pre-existing controlled runtime diagnostics remain visible in the full suite.
+
+All five final task-7.4 Java files (including nested Scope/Fixture types) have full saved-source zero Sonar findings and independent zero JDTLS problems. English responsibility Javadoc and Month-derived clocks remain intact. Current final blobs and analyses are in `java-inventory.md`; no suppression/rule override, assertion weakening or production behavior change was introduced by verification. `git diff --check` passes. Task 7.4 is complete at **28/60**, with guarded writes next in 7.5; complete mutation-context/HTTP/native acceptance still belongs to later tasks.
+
+## Task 7.5: Guarded identifier writes and immediate-index-safe replacement
+
+Wrote five database tests first: compile-red identifies the missing helper in **4s**. A runnable bulk writer executes **11 cases / one expected failure in 1m 50s** because promotion precedes demotion and violates the immediate verified-primary index. Reordered the persisted Domain plan to await demotion before promotion. Added wrong-owner/protection-preservation and initial-creation guard cases; the next **13 cases / one failure in 1m 48s** demonstrates that an historical version can be inserted as a new accepted record. Added a deferred initial version/state/audit/microsecond/verification shape guard. No incomplete insertion/replacement path remains.
+
+`PartyIdentifierMutationPersistence` uses the caller's reactive session exclusively. Inserts persist/flush the mapped new candidate, clear managed state, then compare a refreshed qualified safe result. Updates freshly lock the qualified source, check its expected identifier version and immutable protected/creation history, and execute fixed bulk HQL with tenant/Party/identifier/scheme/version predicates. The Domain-computed next version is assigned exactly once; no dirty @Version entity is mutated. Only issuer/dates/state/primary/verification/modification audit/version columns are assigned. Guarded zero/unexpected writes are diagnosed within the same owner/scheme scope; actual stale versions become the neutral typed IdentifierVersionMismatch, inconsistent scope/counts remain technical failures. Reload compares safe fields, full protection and audit before returning. Stable scheme code is read in the same session without catalog lifecycle admission. Only the known active-value/verified-primary constraints map to their approved neutral conflicts; unknown failures remain for the existing outer translation/sanitized response boundary.
+
+Nine PostgreSQL cases now prove initial version-zero insert, verify/revoke exact one-step versions, preserved protected bytes/hash/key/normalization/mask and creation audit, retained verification attribution, unchanged Party version, stale expected-version nonmutation, exact active-value conflict, awaited two-record primary replacement with independent increments, primary-conflict rollback, wrong-owner/protected-candidate rejection, historical-version insert rejection, DATE/null metadata bindings, and full demotion rollback when promotion encounters an advanced target. Domain policy constructs the complete replacement plan; Infrastructure selects no lifecycle or replacement policy. No JDBC request processing, new transaction style, migration change, response mapper or API route is introduced. English responsibility Javadoc covers Fixture; test dates/clocks derive from Month.OCTOBER.
+
+Focused red/green command uses the documented stable test-scoped Podman API and dynamic HTTP port:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*PartyIdentifierMutationPersistenceTest' --console=plain
+```
+
+The first full green executes **1,596 tests in 5m 23s**, and build in **2m 15s** executes **28 packaged JVM cases**, all without failure/skip. Output: `tool_10a5615e3001pGifkalHoHTBEz`. After adding DATE/null and late-demotion rollback characterization, final **./gradlew test succeeds in 5m 23s with 1,598 cases, zero failures/skips**; final **./gradlew build succeeds in 6s up-to-date**, retaining those latest 28 actually executed passing packaged results. Output: `~/.local/share/opencode/tool-output/tool_10a62729f001RO3Z26Mv3hqGuG`. Existing controlled runtime diagnostics remain visible. Both final saved files have full Java-25/571-rule zero Sonar issues/Hotspots and independent zero JDTLS problems, without exclusions/suppressions or new compiler warnings. `git diff --check` passes. Task 7.5 completes at **29/60**; full mutation-context/workflow/HTTP/native acceptance remains subsequent work.
+
+Sonar log rotation at **2026-10-04 23:39** moved the previous S2 ranges (tasks 5.1–7.5 production, up to line 3108) unchanged to adjacent `SonarQube for IDE.1.log`. That rotated file was inspected; historical ranges must use it. New test analyses are in the active `SonarQube for IDE.log`, starting at line 1. The inventory distinguishes rotated **S2R** and active **S2** for this increment.
+
+## Task 7.6 current increment: safe event codecs/modes; serializer finding pending
+
+Wrote the new codec/message tests before production changes. Compile-red identifies the missing changed-event candidate in **5s**. A runnable candidate plus partial mapper executes **11 cases / three expected failures in 1m 50s**: primary payload field is missing, changed-event decoding lacks the safe corrupt-result failure, and the serializer rejects the five new names. Added the fixed four-field mapping, closed decoder and serializer support. New event plus existing outbox/architecture regression passes in **1m 56s**; mode coverage follows before the new identifier-only helper.
+
+`PartyIdentifierChangedOutboxCandidate` extends the existing sealed hierarchy with UPDATED/VERIFIED/REJECTED/REVOKED/PRIMARY_CHANGED kinds and their five approved v1 names. It carries only affected identifier/version, Party/scheme/status/primary and accepted event metadata; resulting shape validation is not transition eligibility. The original creation candidate, name and three-field payload remain unchanged. Mapper storage keeps its established string-valued payload convention, adding strict `isPrimary` true/false strings only for new kinds. Decoder checks aggregate/version/allowlist/canonical owner/status/flag and emits a constant cause-free `Stored identifier event is invalid` error on corrupt changed-event data. The broker serializer validates the same four safe fields and emits the new flag as a JSON boolean; existing payloads keep their exact previous serialization. Reasons, masked/protected values and replay material enter neither representation.
+
+`PartyIdentifierOutboxPersistence` validates only identifier creation/change candidates and applies the existing disabled/stored-only/published mode in the supplied session. It opens no transaction, performs no broker call, and stores only pending intent when enabled. Four codec/compatibility/mode tests and two broker-shape tests pass for all five new kinds, original event identity/version/actor/time, both primary-change flags, invalid private/enum/UUID/boolean/version fields, and all three storage modes. Complete mutation event assembly/count/replay behavior is still exercised by later context/Application workflows; this increment does not claim their HTTP/native acceptance.
+
+Commands use the stable test-scoped Podman API and dynamic HTTP port:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*PartyIdentifierChangedEventCodecTest' --tests '*PartyIdentifierChangedMessageTest' --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*PartyIdentifierChangedEventCodecTest' --tests '*PartyIdentifierChangedMessageTest' --tests '*Outbox*Test' --tests '*CleanArchitectureTest' --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+Full **test succeeds in 5m 37s with 1,604 cases, zero failures/skips**. **Build succeeds in 2m 18s**, unit tests up-to-date and **28 actually executed packaged JVM cases, zero failures/skips**. Output: `~/.local/share/opencode/tool-output/tool_10a7bfc66001PyFrcNKOseNLl6`; latest test/quarkusIntTest reports confirm counts. Existing controlled runtime diagnostics remain visible; no compiler warnings or suppression/rule changes were introduced. English responsibility Javadoc includes Kind and all new fixtures use Month-based dates. `git diff --check` passes.
+
+All seven saved Java revisions have completed full Java-25/571-rule Sonar and independent **zero-problem JDTLS**. Six report **zero Sonar issues/Hotspots**; `OutboxMessageSerializer.java` reports **one issue / zero Hotspots** at **2026-10-05 00:09:16.427**, active S2 **125–155**, on blob `db644c28a987e8bf469e02afde837c664f65a299`. Its J validation at **00:09:16.585**, **23049–23062**, reports zero source problems. The count-only log has no finding rule/message/location. Obtain the actual Problems diagnostic for that saved serializer before choosing a correction, then rerun invalidated checks and complete task-7.6 verification.
+
+Task **7.6 remains unchecked**; accepted progress is **29/60**. Implementation pauses on this real local quality gate, with current source/test evidence recorded in `java-inventory.md`. The temporary test-scoped Podman API is stopped at the pause; no permanent runtime/IDE configuration was altered.

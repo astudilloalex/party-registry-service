@@ -200,3 +200,168 @@ Each S2/J analysis below corresponds to the saved revision, full 1/1 Java-25/571
 |---|---|---|---|
 | `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierDetailReader.java`; class | `b78aeb32f87773583299b41d580a3ab4b6de2e46` | 12:10:43.057; S2:1069–1099 | 12:10:43.402; J21971–21984 |
 | `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierDetailReaderTest.java`; class | `b70390d82053101832d4357b1a9591b162465e92` | 12:12:55.859; S2:1100–1130 | 12:12:56.351; J21986–21999 |
+
+## Task 6.3 saved revisions: source/unit/database green, packaged gate blocked
+
+All three files have responsibility Javadoc and no nested declarations. S2/J are the unchanged current log paths above. Each final revision completes full 1/1 Java-25/571-rule Sonar with **zero issues/Hotspots** and separate **zero JDTLS problems**. Nine query cases, detail/architecture regression and **1,490 full tests** pass. Packaged build fails at container startup (two failures/ten skipped), so task 6.3 remains incomplete; `verification.md` records the actual setup error and subsequent post-import-removal full test.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierPageSql.java`; class | `3683f726aaf6c2452dc3ff9cc2e56095d7b5a8f4` | 12:33:26.177; S2:1462–1492 | 12:33:26.776; J22085–22098 |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierQueryAdapter.java`; class | `e3635db2f29ff4eeeffe4c0328d107993a13a5c6` | 12:36:53.073; S2:1559–1589 | 12:36:53.517; J22100–22113 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierHistoricalPageTest.java`; class | `82689bfa218465261a233d83947cc83fed8c0ee7` | 12:56:39.018; S2:1621–1651 | 12:56:34.138; J22145–22152 |
+
+The prior test blob `f850ce7a178e6b67372e78b56f76837edb27a8c0` reported one Sonar issue and one JDTLS problem. Code inspection found its unused Optional import; the final saved revision removes it and both independent analyses report zero. No suppression, rule/configuration change or precise inferred rule key is added. Full post-Java tests pass on the final blob; packaged/native acceptance is not inferred.
+
+Task 6.3 runtime continuation supersedes the packaged blocker above: a fresh build using the transient test-scoped Podman API (`--time=0`) executes and passes all **28 JVM packaged cases with no skips**, on these same three verified blobs. No Java source or local analysis configuration changed. The earlier failed attempt and source findings remain historical evidence; native final verification is still pending.
+
+## Task 6.4 final saved revisions
+
+S2/J are the unchanged standalone Sonar/JDTLS paths above. All three saved files complete full 1/1 Java-25/571-rule Sonar with **zero issues/Hotspots**, plus independent **zero JDTLS problems**. Responsibility Javadoc includes the nested Harness. Nine focused workflow cases and architecture, **1,499 full tests and 28 actual packaged JVM tests** pass with the stable test-scoped Podman API; see `verification.md` for separate red/green and full gate executions.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyIdentifierUseCase.java`; class | `89a07b404ff2ee9f45b2260228dcdeec46fae869` | 15:41:28.380; S2:1652–1682 | 15:41:27.610; J22154–22167 |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/ListPartyIdentifiersUseCase.java`; class | `76f8976299947dec155edcc845dc8f24dd4faf7f` | 15:44:05.156; S2:1683–1713 | 15:44:05.807; J22169–22182 |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/PartyIdentifierQueryUseCasesTest.java`; class, nested `Harness` | `3d586630934c201c9c7c9bef1e2335599c46a490` | 15:58:06.960; S2:1714–1744 | 15:58:03.243; J22184–22197 |
+
+## Task 6.5 saved revisions: runtime green, production Sonar finding pending
+
+All four files have responsibility Javadoc and no nested declarations. Each Sonar entry is actual full 1/1 Java-25/571-rule analysis for the saved revision, with separate current JDTLS validation. Ten parser/support cases, compatibility/architecture regression, **1,509 full tests and 28 packaged JVM tests** pass. One production-parser Sonar finding prevents task completion; its rule/message/location is absent from the log and must be supplied from Problems before a targeted fix. No guessed rule key, historic result or compiler pass substitutes for this evidence.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierQueryParameters.java`; class | `2240bf726ff05e2993d62b93249eebc2ded7cb00` | 16:08:20.574; S2:1745–1775; **1 issue / 0 Hotspots** | 16:08:20.689; J22199–22212; **0 problems** |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRequestSupport.java`; class | `8e407d6c83e0921ddb70f012cc34d5212c866ea0` | 16:11:38.223; S2:1776–1806; **0 issues/Hotspots** | 16:11:38.777; J22214–22227; **0 problems** |
+| `test/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierQueryParametersTest.java`; class | `b62b3bf3575d645b30ed44884bbbb360b9f28adb` | 16:20:52.804; S2:1807–1837; **0 issues/Hotspots** | 16:20:53.384; J22229–22242; **0 problems** |
+| `test/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRequestSupportTest.java`; class | `2df2bbc682ebbc6ffcec91384c7be67d7b761476` | 16:22:32.144; S2:1838–1868; **0 issues/Hotspots** | 16:22:32.759; J22244–22257; **0 problems** |
+
+### Task 6.5 final parser revision (supersedes the pending row)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierQueryParameters.java`; class | `469f984dcee2369b46d4f85c534408833100de5b` | 17:14:34.047; S2:1869–1899; full 1/1 Java 25/571 rules, **0 issues/Hotspots** | 17:14:34.718; J22271–22281; **0 problems** |
+
+The supplied concise-character-class finding is resolved with the Java `"\\d+"` literal. Existing malformed/Unicode/limit/filter cases and **1,509 full tests / 28 actual packaged JVM cases** pass on this final source, with no rule configuration or warning suppression. The other three task 6.5 revisions are unchanged; their zero analyses above remain applicable.
+
+## Task 6.6 final saved revisions
+
+Each listed S2/J entry is final saved-source full 1/1 Java-25/571-rule Sonar with **zero issues/Hotspots**, separate **zero JDTLS problems**. All types retain responsibility Javadoc; the new test includes its nested Unrelated record. Seven managed mapping cases, pagination/architecture/current-identifier compatibility, **1,516 full tests and 28 actual packaged JVM cases** pass. `verification.md` preserves each red/failure/green gate and the schema-based nullable-shape reconciliation.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/mapper/PartyIdentifierApiMapper.java`; class | `3ae92bc31da737a415a2a916b8859a5f5b3b8a78` | 17:40:28.559; S2:1900–1930 | 17:40:24.490; J22283–22296 |
+| `main/java/com/alexastudillo/partyregistry/api/model/response/PartyIdentifierResponse.java`; record | `9fa3b40cdea7ea7f5d749b68f4032a863aef21b0` | 17:48:33.283; S2:1931–1961 | 17:48:31.189; J22298–22311 |
+| `test/java/com/alexastudillo/partyregistry/api/mapper/PartyIdentifierPaginationMappingTest.java`; class, nested `Unrelated` record | `bd347c29a28104a2b7528a7678b7404c82e6b4cc` | 18:07:33.016; S2:1962–1992 | 18:07:30.398; J22313–22326 |
+| `test/java/com/alexastudillo/partyregistry/api/resource/NaturalPersonResourceContractTest.java`; class, no nested types | `4fbcd1b33cd5cd1cebc295293b949b51458b9d47` | 18:12:00.868; S2:1993–2023 | 18:11:58.203; J22328–22341 |
+| `integrationTest/java/com/alexastudillo/partyregistry/PackagedApplicationIT.java`; class, no nested types | `1266875702ba27060df42ebc002962b6838442b5` | 18:34:02.533; S2:2055–2085 | 18:34:03.420; J22358–22371 |
+
+The packaged test's earlier missing-import compilation/JDTLS diagnostics are resolved on the final source above; the prior zero-Sonar count does not substitute for resolved compilation. No date fixture, assertion responsibility, rule setting or suppression was altered beyond the approved optional-null current-item shape.
+
+## Task 6.7 final saved revisions
+
+Each listed S2/J entry represents actual final saved-source full 1/1 Java-25/571-rule Sonar with **zero issues/Hotspots**, separate **zero JDTLS problems**. Responsibility Javadoc covers all types and nested Fixture. Thirty-seven actual GET cases plus architecture, **1,553 full tests and 28 actual packaged JVM cases** pass; `verification.md` records missing-route/pagination red and final commands. No new warning or rule setting/suppression is introduced.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierResource.java`; class | `6d43d52b2789aa948bed0f073cf3cb7e62255d99` | 18:59:21.042; S2:2117–2147 | 18:59:20.919; J22388–22401 |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierQueryOperations.java`; class | `bb8e29d94289a81afbbfe1d719dfd3da12384128` | 18:55:34.823; S2:2086–2116 | 18:55:35.192; J22373–22386 |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducer.java`; class | `8dc7dc9286ea7e50fbdbd1f7e72a48eb232b0d8a` | 19:09:02.852; S2:2148–2178 | 19:08:57.826; J22403–22416 |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierReadResourceContractTest.java`; class, nested `Fixture` record | `8f0eae50488e39673c8134da4990c8ea5ad4ca5c` | 19:09:55.608; S2:2179–2209 | 19:09:55.531; J22424–22431 |
+
+## Task 7.1 final saved revisions
+
+Both S2/J entries are final-source full 1/1 Java-25/571-rule Sonar with **zero issues/Hotspots**, independent **zero JDTLS problems**. Responsibility Javadoc covers both nested technical types. Eight exact-input HMAC cases, existing fingerprint/architecture regression, **1,561 full tests and 28 actual packaged JVM cases** pass. See `verification.md` for independent byte vectors, executable red/green and actual full commands; no new warning/exclusion/suppression is introduced.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/security/HmacPartyIdentifierFingerprintAdapter.java`; class, nested `InputWriter` interface and `MacSink` class | `4c0deffd4a9b0755c8f5a19a204ee7e5ae95e449` | 19:24:44.659; S2:2210–2240 | 19:24:44.310; J22433–22446 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/security/HmacPartyIdentifierFingerprintAdapterTest.java`; class, no nested types | `1c5a4dcb241e02f54e216e6a01bffd1545610181` | 19:27:36.416; S2:2241–2271 | 19:27:36.690; J22448–22461 |
+
+## Task 7.2 saved revisions: runtime green, one test finding pending
+
+S2/J refer to the current log paths above; every analysis is full 1/1 Java 25 with 571 active rules on 2026-10-04. All seven revisions have responsibility Javadoc, no compiler warning and independent **zero JDTLS problems**. Sonar reports **zero issues/Hotspots** for six files and **one issue / zero Hotspots** for the replay persistence test. Rule/message/location are not available in the count-only log; task 7.2 remains incomplete until the same-revision Problems diagnostic is resolved. The final full gates pass **1,571 tests and 28 actual packaged JVM cases, no failures/skips**. Executable corruption red/green, same-session durability/rollback and unchanged earlier codec regressions are recorded in `verification.md`; no native result is inferred.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range / result | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierCompletionCodec.java`; class | `bc743b4c7a5bf3b39f6a544e941c1ee466b20e58` | 20:41:53.400; S2:2427–2457; zero | 20:41:53.588; J22535–22545; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierSnapshotFields.java`; class | `283029774ac1ed2c600df37a0f95ea832df4b718` | 20:36:01.696; S2:2334–2364; zero | 20:36:12.926; J22493–22503; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierIdempotencyRecordId.java`; class | `a731f08db4f4d6e247e4475779544b7c41ac9a35` | 20:39:01.579; S2:2365–2395; zero | 20:39:01.901; J22505–22518; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierIdempotencyRecordEntity.java`; class | `ed1326b00731fa0583772327eeeb2b0d76d08f84` | 20:39:46.322; S2:2396–2426; zero | 20:39:46.663; J22520–22533; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierReplayPersistence.java`; class | `310b12f13c13ea6f288190bd585483e7bc0e8e08` | 20:51:58.978; S2:2458–2488; zero | 20:51:57.229; J22559–22572; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierCompletionCodecTest.java`; class | `06129665e9f81faa62c89b48bf77503fd6647b63` | 20:52:15.867; S2:2489–2519; zero | 20:52:15.582; J22574–22587; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierReplayPersistenceTest.java`; class, nested `Fixture` record | `c33e3bbc1c4972743481aa151ff6b228361aeae4` | 20:52:33.532; S2:2520–2550; **one issue / zero Hotspots**, diagnostic pending | 20:52:33.257; J22589–22602; zero |
+
+### Task 7.2 final storage-test revision (supersedes the pending row)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range / result | JDTLS completion / range |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierReplayPersistenceTest.java`; class, nested `Fixture` record | `58a0cf3162d2ea918729add00cc4d32d5d543520` | 21:16:23.655; S2:2551–2581; full 1/1 Java 25/571 rules, **zero issues/Hotspots** | 21:16:23.516; J22613–22623; **zero problems** |
+
+The supplied java:S1612 finding is resolved with `Assertions::assertNull` and no assertion removal. Full tests pass all 1,571 cases; build passes up-to-date, retaining the previous 28 actually executed packaged JVM results. All seven final task-7.2 saved revisions now satisfy the local zero-finding/source-warning gate; see the continuation in `verification.md`.
+
+## Task 7.3 final saved revisions
+
+Every S2 range below is full 1/1 Java-25/571-rule standalone analysis on 2026-10-04 with **zero issues/Hotspots**. Independent J validation reports **zero source problems**. Responsibility Javadoc covers the nested Fixture; no suppression/exclusion/configuration change was introduced. Four codec/four PostgreSQL cases, completion/replay/architecture regression, **1,579 full tests and 28 actual packaged JVM cases** pass. `verification.md` records independent byte vectors, behavioral red/green, supported native SQL binding, exact private attribution/constraints/rollback and separate IDE test-discovery internal errors.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierReasonCodec.java`; class | `5154bbbd27b63c4c279585001c6b9c0a5589300d` | 21:42:41.653; S2:2582–2612 | 21:42:40.263; J22625–22638 |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierAuditPersistence.java`; class | `b6ba19ba6854acdc6c4dfbf20f053b0848bec2f3` | 21:54:12.062; S2:2706–2736 | 21:54:12.034; J22797–22813 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierReasonCodecTest.java`; class | `7f7d2b2349606e66f2e0d081692308121f1a0d31` | 21:53:17.115; S2:2644–2674 | 21:53:12.617; J22655–22668 |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierAuditPersistenceTest.java`; class, nested `Fixture` record | `4febe5ae7821f7a2435397b8d9fddc02f15f86ca` | 21:54:12.420; S2:2737–2767 | 21:54:12.143; J22797–22813 |
+
+The earlier persistence blob `a3a1f372c239fa943f220f5bf55d6fe757ce59b1` reports one issue at 21:45:01.883, S2:2613–2643. Renaming the reviewed restricted method identifier removes that source concern; final analysis above supersedes it without attributing a rule key not present in the output.
+
+## Task 7.4 initial saved revisions: partial behavior, reader findings pending
+
+All four S2 analyses are full 1/1 Java-25/571-rule runs on 2026-10-04; all J validations report **zero source problems**. English responsibility Javadoc covers nested Scope/Fixture; no warning suppression/exclusion/configuration change was introduced. Three identity/two qualified-reader tests and latest full **1,584 tests / 28 actually executed packaged JVM cases** pass. Two production-reader Sonar issues remain unidentified by count-only output, and required coordinated lock/restoration checks remain incomplete; task 7.4 is not accepted. See `verification.md` for separate red/green, API typing correction and pending coverage.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range / result | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationLocks.java`; class, nested `Scope` record | `05d68063837971a101108bfb2d62045b3e12e6f0` | 22:10:42.769; S2:2768–2798; **zero issues/Hotspots** | 22:10:42.973; J22839–22852; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationReader.java`; class | `38676fda368d951d22d7a90e106898941b92daa9` | 22:18:52.904; S2:2799–2829; **two issues / zero Hotspots**, diagnostics pending | 22:18:53.209; J22854–22867; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationLocksTest.java`; class | `ea19ea98473c02a1eb97ea99b899a6b4c8299b05` | 22:32:11.679; S2:2830–2860; **zero issues/Hotspots** | 22:32:11.559; J22869–22882; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationReaderTest.java`; class, nested `Fixture` record | `f1965daae1736c0e9e3600c8f8d5b7d9b6323fd7` | 22:32:38.636; S2:2861–2891; **zero issues/Hotspots** | 22:32:38.921; J22884–22897; zero |
+
+### Task 7.4 corrected reader revision (supersedes the pending row)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range / result | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationReader.java`; class | `6d352434b49dcd2d36bec5f4700aeb8c58e453a7` | 22:37:53.313; S2:2892–2922; full 1/1 Java 25/571 rules, **zero issues/Hotspots** | 22:37:53.363; J22911–22921; **zero problems** |
+
+Extracting tenant/party parameter-name constants resolves the supplied java:S1192 findings. All four current task-7.4 Java revisions now have completed zero Sonar/JDTLS results. The new full gates pass **1,584 tests and 28 actual packaged JVM cases**, with no failure/skip or new compiler warning. These clear the targeted quality blocker; task 7.4's remaining coordinated database verification is still pending, as recorded in `verification.md`.
+
+### Task 7.4 completed coordinated/reader revisions
+
+The following rows supersede the earlier reader-test row and add the coordinated database class. Unchanged production locks/reader and lock-identity test retain their zero analyses above. All current files have full Java-25/571-rule saved-source **zero issues/Hotspots**, independent **zero JDTLS problems**, responsibility Javadoc and no warning suppression/configuration change. The final full suite passes **1,589 tests** and build passes up-to-date; the latest **28 actual packaged JVM cases** remain passing from the reader production correction. `verification.md` records independent sessions, observed lock-order/contention, forced collisions, namespace isolation, root/child probes, fresh committed state, wrapper reconciliation and separate runtime diagnostics.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationReaderTest.java`; class, nested `Fixture` record | `97599b9e5132de5fc905a5bd568b19df120d0ff8` | 22:54:29.982; S2:2954–2984; zero | 22:54:30.337; J22938–22954; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierLockCoordinationTest.java`; class, nested `Fixture` record | `25d50483d37346e66aa27187357892760bbdb36d` | 23:04:56.295; S2:3047–3077; zero | 23:04:56.217; J22968–22978; zero |
+
+## Task 7.5 final saved revisions
+
+Log rotation note: at 2026-10-04 23:39 all previous S2 ranges up to line 3108 moved unchanged to adjacent `SonarQube for IDE.1.log` (**S2R**). Use S2R for historical tasks 5.1–7.4 and the production row below. **S2** is the active log starting again at line 1 for test analysis; both paths share the documented window2 extension directory. J remains the independent project JDTLS log.
+
+Both final files have full 1/1 Java-25/571-rule **zero issues/Hotspots**, independent **zero source problems**, responsibility Javadoc including Fixture, and no warning suppression/exclusion/configuration change. Nine guarded-writer cases and the full **1,598-test** suite pass. Build succeeds up-to-date after the final test-only additions; the preceding actual 28 packaged JVM cases pass. `verification.md` records compile/behavioral red, initial-shape and immediate-index fixes, protected history, qualified guard/reload, narrow constraints, dates/nulls and demotion rollback.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationPersistence.java`; class | `bf5dbb91ced361120e4494d16a31ba256564a38f` | 23:31:02.494; S2R:3078–3108; zero | 23:30:59.029; J22980–22993; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationPersistenceTest.java`; class, nested `Fixture` record | `2fed1d1c0f7920f702a280efa626f6ff6fb5c9b2` | 23:44:11.484; S2:63–93; zero | 23:44:23.068; J23022–23032; zero |
+
+## Task 7.6 saved revisions: runtime green, serializer finding pending
+
+All entries use active S2 and independent J paths above, with analysis on 2026-10-05. Every S2 range is full 1/1 Java 25/571 rules and every J validation reports **zero source problems**. Six revisions report **zero Sonar issues/Hotspots**; the serializer reports **one issue / zero Hotspots** without a diagnostic message/rule/location in the log. Task 7.6 remains incomplete until actual Problems output is supplied, corrected source is reanalyzed and affected checks are rerun. Responsibility Javadoc includes Kind; no suppression/exclusion/settings change is introduced. Six new tests plus outbox/architecture regression, **1,604 full tests and 28 actual packaged JVM cases** pass; `verification.md` records exact red/green and pending workflow/event-count/native boundaries.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / range / result | JDTLS completion / range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/model/OutboxEventCandidate.java`; sealed interface | `25acc8ebbcd4bc8f206688f367b83e22a34bd25f` | 00:22:12.403; S2:218–248; zero | 00:22:12.336; J23094–23107; zero |
+| `main/java/com/alexastudillo/partyregistry/application/model/PartyIdentifierChangedOutboxCandidate.java`; record, nested `Kind` enum | `da6917341ce55d1a5080af431362509e21bbda00` | 00:05:31.635; S2:94–124; zero | 00:05:31.746; J23034–23047; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyOutboxEventPersistenceMapper.java`; class | `f32cbaf5761fb1027fde54ad36b2812cb6153bba` | 00:12:17.253; S2:156–186; zero | 00:12:17.367; J23064–23077; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierOutboxPersistence.java`; class | `478a67678b626c68f58fcca19ebae3b3ecefd06c` | 00:21:30.889; S2:187–217; zero | 00:21:27.847; J23079–23092; zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/messaging/OutboxMessageSerializer.java`; class | `db644c28a987e8bf469e02afde837c664f65a299` | 00:09:16.427; S2:125–155; **one issue / zero Hotspots**, diagnostic pending | 00:09:16.585; J23049–23062; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierChangedEventCodecTest.java`; class | `fbc029e7f1e7519ecbbee7b7f92dc80b848d49d2` | 00:22:46.705; S2:249–279; zero | 00:22:46.781; J23109–23122; zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/messaging/PartyIdentifierChangedMessageTest.java`; class | `574a1af0762d89f1e1198c01bd5fba01492e8387` | 00:23:30.727; S2:280–310; zero | 00:23:31.077; J23124–23137; zero |
