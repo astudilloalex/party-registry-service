@@ -513,3 +513,14 @@ All eight final revisions below have individual full 1/1 resolved-model Java-25/
 | `test/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPatchRequestSupportTest.java`; class, nested Headers record | `a65236fad03bb0fccc084f80c5820182c1046bb6` | 16:40:11.584 / 762–792 / full 1/1 zero | 16:40:11.090 / 1256–1269 / zero |
 
 `PartyIdentifierCreateJsonReaderInterceptor` is renamed rather than duplicated; its prior creation responsibilities and signature boundary remain and the completed new analysis supersedes its old inventory row. DTO/decoder reflection registration is explicit. Date fixtures, generic FieldUpdate validator type safety, class/nested responsibility Javadoc, non-obvious support contracts and source-set boundaries are inspected. Actual new PATCH workflow/HTTP/native acceptance remains subsequent tasks.
+
+## Task 9.2 current-version correction (focused developer-directed iteration scope)
+
+Both final saved files and nested test types have full individual 1/1 resolved-model Java-25/571-rule **zero Sonar issues/Hotspots** and separate **zero JDTLS source problems**. Exactly **nine changed-class workflow cases** pass; the focused build succeeds with that test selection up-to-date. Global/package/native acceptance is not claimed from these focused checks; the developer's new iteration-only scheduling constraint and exact commands are recorded in `verification.md`.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J2 range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/usecase/PatchPartyIdentifierUseCase.java`; class | `1f267bdb5bb57a2e4aa786ee14b72e60e7acefec` | 2026-10-09 17:20:27.353 / 859–889 / full 1/1 zero | 17:20:26.662 / 1274–1287 / zero |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/PatchPartyIdentifierUseCaseTest.java`; class, nested Harness and CountingClock | `3d33c15bb2aa30a8fb8629dea68a097526309966` | 17:20:38.698 / 890–920 / full 1/1 zero | 17:20:38.454 / 1289–1302 / zero |
+
+Review confirms inward framework-free Application code apart from allowed Mutiny, one callback/clock, neutral typed failure mapping, no replay or catalog/protection/withdrawal capability, explicit safe event/outcome and no production blocking/manual subscription. Javadoc covers every class/nested fixture, dates derive from the established Month-based fixture, and no new compiler warning/suppression or analyzer configuration change is introduced. Actual PATCH delivery and CDI composition are the subsequent HTTP task.

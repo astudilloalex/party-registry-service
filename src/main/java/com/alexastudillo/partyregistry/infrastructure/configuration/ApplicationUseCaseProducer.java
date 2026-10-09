@@ -39,6 +39,7 @@ import com.alexastudillo.partyregistry.application.usecase.GetNationalityUseCase
 import com.alexastudillo.partyregistry.application.usecase.ListNationalitiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
@@ -185,6 +186,11 @@ public class ApplicationUseCaseProducer {
                         protectionPort),
                 UTC_CLOCK,
                 observationPort);
+    }
+
+    @Produces
+    PatchPartyIdentifierUseCase patchPartyIdentifierUseCase(PartyIdentifierMutationPort mutations, OperationObservationPort observation) {
+        return new PatchPartyIdentifierUseCase(mutations, UTC_CLOCK, observation);
     }
 
     @Produces

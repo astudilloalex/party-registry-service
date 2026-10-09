@@ -16,6 +16,8 @@ Every Java-producing task includes English responsibility Javadoc for classes, i
 
 Use `java.time.Month` constants for every new/modified valid date fixture, including fixed-clock timestamps derived from those dates. Raw malformed date strings are reserved for tests of malformed wire tokens. Use bounded reactive assertions and coordinated concurrency, not sleeps or production synchronous waits.
 
+Developer-directed iteration scope: from task 9.2 onward, execute only new/modified test classes with explicit --tests selection, retain valid saved-revision results, and do not rerun unrelated full/packaged suites per increment. Focused builds retain that selection and exclude unchanged packaged test execution. The full JVM/native/architecture acceptance explicitly listed in section 14 remains a final milestone, not an iteration check. Record focused versus full evidence accurately; this changes verification scheduling, not required behavior or final acceptance.
+
 Keep an implementation evidence file, scenario map, and saved-file inventory under this change when implementation begins. Do not mark a task complete while its required tests, current IDE evidence, or stated native verification are unavailable. Use developer-collected diagnostics for the same revision when direct IDE access is unavailable. Planning validation and compilation are not substitutes for runtime or local-analysis evidence.
 
 ## 1. Quality and Environment Preflight
@@ -218,9 +220,10 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Decoder/support tests preserve omission/null, reject non-metadata/duplicate/coerced/trailing input, enforce raw issuer length/calendar dates, distinguish missing/null/empty bodies, and validate header cardinality/canonical decimal/range directly into PartyIdentifierVersion. Shared Party-version parsers remain compatible.
   - Evidence: Compile-red then seven executable failures resolve with strict three-field decoding, supplied-issuer validation and directly typed version parsing. Eight new binding/support cases and existing parser/registration regressions pass; final 1,649 tests and 28 actual packaged JVM cases pass, with all eight saved-source Sonar/JDTLS results zero. Build's regenerated test-index/resource invalidation is recorded in `verification.md`. Actual PATCH orchestration/route remains 9.2–9.3.
 
-- [ ] 9.2 Test first and implement current-version metadata correction orchestration using Domain decisions and the mutation context.
+- [x] 9.2 Test first and implement current-version metadata correction orchestration using Domain decisions and the mutation context.
   - Requirements: M: Metadata correction eligibility and audit; M: Identifier-version preconditions and exhaustion; M: Maintenance has one durable observable outcome.
   - Verification: Workflow tests pin absence→version→state→exhaustion→resulting dates, one clock read, unchanged protected/verification/Party data, one accepted event, and no completion/key behavior for PATCH. Failed/identical/repair cases match the specs.
+  - Evidence: Compile-red followed by nine executable workflow failures; all nine changed-class cases now pass with exact sequence/preservation/effects and neutral precedence. Source review and both saved revisions' Sonar/JDTLS are zero. The developer-requested focused build succeeds in 22s with the selected tests up-to-date; global/package/native acceptance remains its final tasks. See `verification.md` and `java-inventory.md`.
 
 - [ ] 9.3 Test first and expose metadata PATCH with live success/failure and preservation assertions.
   - Requirements: M: Strict partial metadata correction; M: Metadata correction eligibility and audit; Q: Trusted context and process correlation.
