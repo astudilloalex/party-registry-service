@@ -456,3 +456,26 @@ The IDE's retired-file-close error at J2 12–164 and JUnit discovery NullPointe
 | `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/ReactivePartyIdentifierRegistrationAdapterTest.java`; class, `Owner`, controlled anonymous effects checkpoint | `95406f5557c4f14dddf8f69aa85580ed94a69479` | 2026-10-09 14:23:32.586 / 2853–2883 / full 1/1 Java 25/571 rules, **one issue, zero Hotspots; current diagnostic unknown** | 14:23:31.601 / 608–621 / **one problem; details unknown and disagreement with saved-source Gradle result unresolved** |
 
 The supplied java:S5785 pattern is replaced by assertNotEquals with its static import in saved source. That blob compiles and passes the focused and **1,622-case full suite**, followed by successful **8s up-to-date build**, retaining the unchanged previously executed **28 packaged JVM results**. No compiler warning or source-content change follows the saved-blob recheck. Current IDE finding counts prevent acceptance; the earlier zero JDTLS result belongs to the prior blob and is not substituted. The six BATCH-PENDING revisions also require explicit completion. See `verification.md` for the exact commands and current diagnostic request.
+
+### Task 8.2 final reactive-test revision (supersedes the discrepancy row)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / active S3 range / result | JDTLS completion / J2 range / result |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/ReactivePartyIdentifierRegistrationAdapterTest.java`; class, `Owner`, controlled anonymous effects checkpoint | `42f37b2768977bfa317f2f183afe490faefde8bf` | 2026-10-09 14:48:32.170 / 32–62 / full 1/1 Java 25/571 rules, **zero issues/Hotspots** | 14:48:30.984 / 686–696 / **zero problems** |
+
+The supplied unused assertFalse import diagnostic is removed after the assertNotEquals correction, resolving this test's complete local gate. Final **1,622 tests** execute and pass in 9m 58s; build passes in 11s up-to-date, retaining the unchanged actual 28 packaged JVM results. No compiler warnings, suppression or configuration change is introduced. Earlier S3 ranges moved unchanged to `SonarQube for IDE.1.log` (S3R) at 14:46:32; use that rotated file for historical ranges above. Only the six BATCH-PENDING revisions remain without accepted explicit resolved-model Sonar completion; task 8.2 stays incomplete until those are verified.
+
+### Task 8.2 final explicit analyses (supersede BATCH-PENDING)
+
+The developer confirms completion/no findings for the exact six requested individual saved-source analyses. All six blobs are rechecked and unchanged. Four new individual full 1/1 Java-25/571-rule resolved-model Sonar executions are locally corroborated; the two remaining test analyses use developer-provided completion/no-finding evidence without invented local timestamps. Both have separate observed zero JDTLS diagnostics. Final task-8.2 executable results remain **1,622 full cases / 28 actual packaged JVM cases, zero failures/skips** on unchanged source.
+
+| Path relative to src | Saved Git blob | Final Sonar evidence | Independent JDTLS evidence |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/usecase/RegisterPartyIdentifierUseCase.java` | `3b872f8820bc03736304f0831c5ae276c986531d` | 2026-10-09 15:03:08.940 / active S3 138–168 / full 1/1 zero, resolved model | 15:03:07.702 / J2 890–904 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducer.java` | `9fd641bdca98b10af83f8cdb8c9fedb3bf06c500` | 15:03:24.239 / S3 169–199 / full 1/1 zero, resolved model | 15:03:23.149 / J2 905–919 / zero |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierMutationAdapter.java` | `d2b2429f7eb6f06f58f1639188c46f755f3d97bb` | 15:03:32.491 / S3 200–230 / full 1/1 zero, resolved model | 15:03:32.673 / J2 920–933 / zero |
+| `test/java/com/alexastudillo/partyregistry/support/PartyIdentifierMutationDouble.java` | `cfd174cc1353af899210fb61a7eb7005fc3f5161` | 15:01:38.991 / S3 63–93 / full 1/1 zero, resolved model | 15:01:34.190 / J2 875–888 / zero |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducerTest.java` | `f9d9d30907fb809878a690a806391ee1b864c7b9` | Developer confirms requested explicit individual analysis completed without findings; no extra local timestamp/count claimed | 15:00:32.158 / J2 782–792 / zero |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/RegisterPartyIdentifierUseCaseTest.java` | `f03c65c2a10f1694dacaff22c93e4a103274cc55` | Developer confirms requested explicit individual analysis completed without findings; no extra local timestamp/count claimed | 15:00:21.381 / J2 758–768 / zero |
+
+This accepts the resolved current source gate and completes task 8.2. Historic mixed-source warnings remain recorded; no configuration, suppression or source-content change substitutes for analysis completion.
