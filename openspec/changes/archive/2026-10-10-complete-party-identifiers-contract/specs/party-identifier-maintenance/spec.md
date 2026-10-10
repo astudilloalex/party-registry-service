@@ -2,16 +2,24 @@
 
 This capability completes additional identifier registration, partial metadata correction, and primary selection. It protects independently versioned identifiers, deterministic retries, and atomic primary ownership without changing the owning Party.
 
+Each requirement's first scenario states shared normative rules followed by its observable outcome. Those shared rules apply to every scenario of that requirement unless a clause explicitly limits its scope.
+
 ## ADDED Requirements
 
 ### Requirement: Maintenance follows the common identifier boundary
 
 **User Story:** As an API consumer, I want consistent maintenance validation, so that corrections and registration use predictable public outcomes.
 
+THE Party Registry SHALL apply the common identifier boundary and declared syntax, replay, ownership, version, and business-validation precedence to maintenance operations under the shared normative rules below.
+
+#### Scenario: Body validation precedes a missing version
+
+##### Shared normative rules
+
 WHEN registration, metadata PATCH, or set-primary is requested,
 THE Party Registry SHALL apply the context, canonical path selectors, tenant/Party ownership, safe response, confidentiality, and error requirements in `party-identifier-queries`. Context and applicable framework checks SHALL precede operation validation. Body syntax, requiredness, and text limits SHALL precede path and operation-header validation; operation-specific ordering below SHALL govern those remaining syntax checks. Path order SHALL be Party then identifier where applicable. After syntax validation, completed replay or key conflict SHALL precede new business evaluation. New operations SHALL check Party absence, identifier absence where applicable, expected identifier version where required, then business eligibility.
 
-#### Scenario: Body validation precedes a missing version
+##### Observable outcome
 
 - **WHEN** a metadata PATCH has an unknown property, a malformed identifier path, and no If-Match
 - **THEN** the response is `400 bad-request` from the body rather than an existence or version result
@@ -26,6 +34,12 @@ THE Party Registry SHALL apply the context, canonical path selectors, tenant/Par
 
 **User Story:** As a registry operator, I want a precise creation input, so that invalid values cannot be silently coerced into identity evidence.
 
+THE Party Registry SHALL require a strict closed creation object and exact valid creation key, enforce declared field types, limits, issuer/date/default rules, and return ordered stable input failures under the shared normative rules below.
+
+#### Scenario: Optional input and primary default
+
+##### Shared normative rules
+
 WHEN `POST /v1/parties/{partyId}/identifiers` is requested,
 THE Party Registry SHALL require an object body containing nonnull nonblank string `identifierSchemeCode` and `value`; only optional `issuerCode`, `issuedOn`, `expiresOn`, and `isPrimary` SHALL also be accepted. Scheme code and raw value SHALL retain their existing raw-input maximum lengths of 64 and 256 UTF-16 units respectively. Issuer SHALL identify the issuing entity rather than a country and SHALL remain optional. Its submitted string SHALL contain at most 64 Unicode code points. Null or omission SHALL mean no issuer; an empty or Java-blank string within that bound SHALL be written as null. Other issuer strings SHALL consist of ASCII letter groups separated by single underscores, equivalent to `[A-Za-z]+(?:_[A-Za-z]+)*`, and SHALL be written in locale-independent uppercase. Leading/trailing/repeated underscores, digits, non-ASCII letters, controls and whitespace in a nonblank code SHALL be invalid; nonblank codes SHALL NOT be trimmed. Issuer SHALL NOT use Geographic Reference validation. Nullable dates SHALL accept omission or null. Dates SHALL be valid ISO calendar-date strings. Primary SHALL default to false only when omitted and SHALL otherwise be a JSON boolean, not null or a coerced scalar. Duplicate/unknown properties, trailing content, nonobject bodies, incompatible property types, and invalid date syntax SHALL return `400 bad-request`.
 
@@ -34,7 +48,7 @@ THEN THE Party Registry SHALL return `400 request-body-required`. Missing/null/b
 
 THE Party Registry SHALL require exactly one nonblank `Idempotency-Key` of at most 128 Unicode code points. Missing, duplicated, blank, and oversized keys SHALL respectively return `400 idempotency-key-required`, `idempotency-key-duplicated`, `idempotency-key-blank`, or `idempotency-key-too-long`. Body validation SHALL precede creation-key validation, which SHALL precede Party path validation, preserving existing additional-registration syntax precedence. Creation SHALL NOT require If-Match.
 
-#### Scenario: Optional input and primary default
+##### Observable outcome
 
 - **WHEN** valid registration omits issuer, both dates, and isPrimary
 - **THEN** those nullable fields are absent, the primary flag is false, and the request remains eligible for registration
@@ -59,6 +73,12 @@ THE Party Registry SHALL require exactly one nonblank `Idempotency-Key` of at mo
 
 **User Story:** As a data steward, I want additional identifiers to obey the same identity rules as initial identifiers, so that both kinds of evidence remain compatible.
 
+THE Party Registry SHALL admit new evidence only under compatible active schemes and valid value/metadata rules, return independent pending version-zero evidence, and preserve existing owner/history under the shared normative rules below.
+
+#### Scenario: Both Party types receive additional identifiers
+
+##### Shared normative rules
+
 WHEN a valid new additional registration is evaluated for an owned Party,
 THE Party Registry SHALL resolve the exact submitted scheme code, require a known ACTIVE scheme compatible with the Party type or BOTH, and apply its supported normalization, value validation, and normalized length rules. Unknown, inactive, and incompatible schemes SHALL respectively return `422 unknown-identifier-scheme`, `inactive-identifier-scheme`, and `incompatible-identifier-scheme`.
 
@@ -67,7 +87,7 @@ THE Party Registry SHALL validate supplied metadata against one captured UTC eva
 WHEN registration succeeds,
 THE Party Registry SHALL return `201 successful` with a newly generated identifier ID, status PENDING_VERIFICATION, version 0, equal creation/modification timestamps attributable to the accepted user, and the requested primary flag. A true flag on a pending identifier SHALL be provisional; registration SHALL NOT displace a verified primary. The Party, its subtype details, nationalities, independent version/audit, and previous identifiers SHALL remain unchanged.
 
-#### Scenario: Both Party types receive additional identifiers
+##### Observable outcome
 
 - **WHEN** an owned natural person or legal entity registers a different valid identifier under a compatible ACTIVE scheme
 - **THEN** a retrievable PENDING_VERIFICATION identifier at version 0 is returned with HTTP/body status 201
@@ -95,13 +115,19 @@ THE Party Registry SHALL return `201 successful` with a newly generated identifi
 
 **User Story:** As a data steward, I want duplicate live document values rejected, so that one tenant cannot register conflicting identity evidence.
 
+THE Party Registry SHALL reserve normalized values by stored live state within tenant/scheme scope, reject duplicate admission, and release reservations only for terminal stored evidence while retaining history under the shared normative rules below.
+
+#### Scenario: Same-Party and other-Party duplicates conflict
+
+##### Shared normative rules
+
 WHILE an identifier's stored state is PENDING_VERIFICATION or VERIFIED,
 THE Party Registry SHALL reserve its normalized value within its tenant and scheme, including against additional registration for the same Party. Date-based expiration alone SHALL NOT release that reservation. A duplicate new registration SHALL return `409 identifier-uniqueness-conflict` without changing existing evidence. Other tenants and other schemes SHALL have independent uniqueness scopes.
 
 WHEN an identifier becomes REJECTED or REVOKED, or already has stored state EXPIRED,
 THE Party Registry SHALL permit otherwise eligible new registration of the same normalized value with a new identifier ID rather than reactivate or rewrite the historical record.
 
-#### Scenario: Same-Party and other-Party duplicates conflict
+##### Observable outcome
 
 - **GIVEN** a pending or verified identifier reserves a value in one tenant and scheme
 - **WHEN** a new registration for that Party or a different owned Party uses the same normalized value
@@ -128,6 +154,12 @@ THE Party Registry SHALL permit otherwise eligible new registration of the same 
 
 **User Story:** As an API consumer, I want retries to return the original created identifier, so that lost responses do not create duplicate records.
 
+THE Party Registry SHALL durably replay equivalent scoped creation keys using original safe results, reject changed effective input before live evaluation, and accept one complete outcome under concurrent retries under the shared normative rules below.
+
+#### Scenario: Historical retry survives restart and mutation
+
+##### Shared normative rules
+
 WHERE a registration key is supplied as required,
 THE Party Registry SHALL scope completed results by tenant, additional-identifier create action, and exact key, independently of Party registration and all other actions. Effective request identity SHALL consist of Party ID and every accepted creation property. Omitted/null nullable fields SHALL be equivalent, and absent isPrimary SHALL equal false. Other submitted strings SHALL compare exactly before write normalization; JSON property order, User-Id, and Process-Id SHALL NOT affect equivalence. Key values SHALL NOT be trimmed or case-folded.
 
@@ -137,7 +169,7 @@ THE Party Registry SHALL return the original `201 successful` masked result, inc
 IF a completed key is reused with different effective input,
 THEN THE Party Registry SHALL return `409 idempotency-key-conflict` before current existence, uniqueness, or scheme eligibility checks, without disclosing the saved result. Failed attempts SHALL consume no successful key. Equivalent concurrent same-key requests SHALL converge on one created identifier and its original result; changed-input same-key requests SHALL have only one accepted result.
 
-#### Scenario: Historical retry survives restart and mutation
+##### Observable outcome
 
 - **GIVEN** keyed registration succeeded and its identifier was subsequently corrected, verified, or revoked
 - **WHEN** the equivalent original registration is retried after service restart with a different accepted user and process
@@ -160,13 +192,19 @@ THEN THE Party Registry SHALL return `409 idempotency-key-conflict` before curre
 
 **User Story:** As a data steward, I want omission and null to mean different things, so that I can correct or clear metadata deliberately.
 
+THE Party Registry SHALL accept only nonempty strict metadata PATCH objects, distinguish omission from clearing, validate supplied issuer/date input in order, and provide no PATCH replay behavior under the shared normative rules below.
+
+#### Scenario: Omission preserves and null clears
+
+##### Shared normative rules
+
 WHEN `PATCH /v1/parties/{partyId}/identifiers/{identifierId}` is requested,
 THE Party Registry SHALL require an object with at least one of issuerCode, issuedOn, or expiresOn and no other properties. Omitted properties SHALL retain their stored values; null SHALL clear the corresponding nullable property. Supplied issuer strings SHALL follow the issuing-entity format and 64-Unicode-code-point bound defined for additional registration: a bounded empty/Java-blank string SHALL clear the issuer, and a nonblank valid ASCII letter/underscore code SHALL be uppercased without trimming. Omitted historical issuer values SHALL remain unchanged even when they do not follow the new format. Dates SHALL be valid ISO calendar-date strings or null. Identity, value, scheme, status, primary flags, verification evidence, version, and audit properties SHALL NOT be writable through this body. PATCH syntax order SHALL be body validation, Party path, identifier path, then If-Match.
 
 IF the body is missing/null, empty, has an oversized issuer, an invalid issuer structure, or contains malformed/duplicate/unknown/incompatible input,
 THEN THE Party Registry SHALL return respectively `400 request-body-required`, `patch-property-required`, `issuer-code-too-long`, `issuer-code-invalid`, or `bad-request`. PATCH SHALL NOT create replay outcomes or acquire replay behavior from an Idempotency-Key header.
 
-#### Scenario: Omission preserves and null clears
+##### Observable outcome
 
 - **GIVEN** an eligible identifier has issuer, issue date, and expiration metadata
 - **WHEN** PATCH supplies only issuerCode null
@@ -188,6 +226,12 @@ THEN THE Party Registry SHALL return respectively `400 request-body-required`, `
 
 **User Story:** As an operator, I want valid corrections to retain verification evidence, so that descriptive maintenance does not silently change identity lifecycle.
 
+THE Party Registry SHALL permit coherent non-expired metadata correction only on pending/verified evidence, preserve identity and verification, and advance one identifier revision with accepted audit under the shared normative rules below.
+
+#### Scenario: Verified metadata is corrected without reverification
+
+##### Shared normative rules
+
 WHILE an identifier is PENDING_VERIFICATION or VERIFIED, WHEN a current-version metadata PATCH is evaluated,
 THE Party Registry SHALL permit corrections whose resulting expiration is absent or on/after one captured UTC evaluation date and is not before a resulting issue date. It SHALL preserve the stored lifecycle state, protected value, scheme, primary flag, and any verifiedAt/verifiedBy. Inactive scheme lifecycle status SHALL NOT prevent descriptive correction of previously accepted evidence. A resulting past expiration or inverted interval SHALL return `422 identifier-validation-failure`.
 
@@ -197,7 +241,7 @@ THEN THE Party Registry SHALL return `409 invalid-identifier-lifecycle` without 
 WHEN a correction succeeds, including one identical to current metadata,
 THE Party Registry SHALL increment the identifier version exactly once, update modification audit actor/time, preserve creation audit, and return the accepted `200 successful` representation. It SHALL NOT change any owning Party field or version.
 
-#### Scenario: Verified metadata is corrected without reverification
+##### Observable outcome
 
 - **GIVEN** a verified primary identifier with recorded verification evidence and a compatible non-ACTIVE scheme
 - **WHEN** a valid current-version PATCH changes its issuer or dates
@@ -225,6 +269,12 @@ THE Party Registry SHALL increment the identifier version exactly once, update m
 
 **User Story:** As an API consumer, I want independent identifier versions enforced, so that identifier changes cannot overwrite competing corrections or transitions.
 
+THE Party Registry SHALL require canonical independent identifier If-Match preconditions, reject stale or exhausted revisions without partial effects, and preserve historical keyed replay under the shared normative rules below.
+
+#### Scenario: Party version is not the identifier precondition
+
+##### Shared normative rules
+
 WHEN PATCH, set-primary, verify, reject, or revoke is requested,
 THE Party Registry SHALL require exactly one If-Match containing the target identifier version as a bare decimal from 0 through 9223372036854775807, without quotes, signs, whitespace, leading zeros except 0 itself, or wildcard. Missing, duplicated, malformed, and overflowing values SHALL return the respective existing `400 if-match-required`, `if-match-duplicated`, `if-match-invalid`, or `if-match-out-of-range` code, including on possible replay requests.
 
@@ -234,7 +284,7 @@ THEN THE Party Registry SHALL return `412 expected-version-mismatch` without cha
 IF a current-version mutation is permitted in the target's stored state but the target is already at version 9223372036854775807, or an explicit replacement would demote a former primary at that maximum version,
 THEN THE Party Registry SHALL return `409 identifier-version-exhausted` without wrapping versions or partially changing any identifier. Version syntax SHALL allow the maximum value. Target-version exhaustion SHALL follow current version/state checks and precede resulting-date and primary-conflict checks; former-primary exhaustion SHALL be checked additionally when an explicit replacement requires its demotion.
 
-#### Scenario: Party version is not the identifier precondition
+##### Observable outcome
 
 - **GIVEN** the Party version differs from the target identifier's version
 - **WHEN** PATCH or an action submits the Party version instead of the identifier's current version
@@ -256,13 +306,19 @@ THEN THE Party Registry SHALL return `409 identifier-version-exhausted` without 
 
 **User Story:** As an operator, I want primary selection limited to usable verified evidence, so that primary status cannot be mistaken for verification.
 
+THE Party Registry SHALL accept strict optional primary-selection input with a false replacement default and qualify only current-version usable verified evidence under the shared normative rules below.
+
+#### Scenario: Only usable verified identifiers can be selected
+
+##### Shared normative rules
+
 WHEN set-primary is requested,
 THE Party Registry SHALL accept no body or an object containing only optional boolean replaceCurrentPrimary, defaulting to false when the body or property is absent. An empty object SHALL be equivalent to no body. A literal null body, null property, duplicate/unknown property, scalar coercion, or nonobject body SHALL return `400 bad-request`. It SHALL require the target identifier If-Match and validate any optional Idempotency-Key according to the action replay contract in `party-identifier-lifecycle`.
 
 WHEN a new current-version selection is evaluated,
 THE Party Registry SHALL require stored state VERIFIED and no expiration or an expiration on/after the operation's captured UTC evaluation date. Non-VERIFIED states SHALL return `409 invalid-identifier-lifecycle`; an expired-by-date VERIFIED target SHALL return `422 identifier-validation-failure`. Scheme lifecycle status SHALL NOT invalidate previously verified compatible evidence.
 
-#### Scenario: Only usable verified identifiers can be selected
+##### Observable outcome
 
 - **WHEN** current-version set-primary targets pending, rejected, revoked, or stored-expired identifiers
 - **THEN** the response is `409 invalid-identifier-lifecycle`
@@ -283,6 +339,12 @@ THE Party Registry SHALL require stored state VERIFIED and no expiration or an e
 
 **User Story:** As a data steward, I want one verified primary per Party and scheme, so that replacement cannot leave competing authoritative documents.
 
+THE Party Registry SHALL maintain one verified primary per tenant/Party/scheme, require explicit replacement, update affected revisions atomically, and serialize concurrent ownership decisions under the shared normative rules below.
+
+#### Scenario: Different schemes have independent primaries
+
+##### Shared normative rules
+
 WHEN an eligible primary selection succeeds,
 THE Party Registry SHALL maintain at most one VERIFIED identifier with isPrimary true per tenant, Party, and scheme. Primaries in other tenants, Parties, or schemes and provisional pending flags SHALL NOT be displaced. An existing VERIFIED flagged identifier SHALL remain the current primary for conflict/replacement purposes even if its date has passed; time passing alone SHALL NOT remove its stored flag.
 
@@ -292,7 +354,7 @@ THEN THE Party Registry SHALL return `409 primary-identifier-conflict` without a
 WHEN the eligible target is already the verified primary,
 THE Party Registry SHALL return a successful versioned selection, advancing that target once without changing another identifier. No primary action SHALL change Party or scheme versions. Concurrent selections on different targets SHALL have outcomes consistent with a serial order and SHALL never leave multiple verified primaries; explicit replacements MAY both succeed sequentially if their own target versions remain valid.
 
-#### Scenario: Different schemes have independent primaries
+##### Observable outcome
 
 - **GIVEN** a Party has a verified primary in one scheme
 - **WHEN** a verified identifier from another scheme is selected without replacement
@@ -328,13 +390,19 @@ THE Party Registry SHALL return a successful versioned selection, advancing that
 
 **User Story:** As an operator, I want state and integration history to agree, so that failures and retries cannot create partial identifier maintenance.
 
+THE Party Registry SHALL accept maintenance changes, audit, replay, and enabled events as one durable outcome, preserve prior records on preacceptance failure, and recover keyed postacceptance retries under the shared normative rules below.
+
+#### Scenario: Late replacement failure restores both identifiers
+
+##### Shared normative rules
+
 WHEN registration, PATCH, or primary selection succeeds,
 THE Party Registry SHALL make its accepted identifier changes, modification audit, applicable durable replay result, and each enabled logical integration event observable as one complete outcome. Primary replacement SHALL include both affected identifiers in that outcome. Replays SHALL add no event or mutation. Event delivery redelivery SHALL NOT count as a new logical action.
 
 IF any operation fails, times out, or is cancelled before complete acceptance,
 THEN THE Party Registry SHALL preserve the prior identifier and primary state and SHALL make no accepted completion or enabled event from that attempt observable. A transport failure after acceptance SHALL be recoverable through the applicable keyed replay. Stored registration snapshots SHALL remain historical, and Party identity, type, lifecycle, details, versions/audit, nationalities, and unrelated identifiers SHALL remain unchanged.
 
-#### Scenario: Late replacement failure restores both identifiers
+##### Observable outcome
 
 - **GIVEN** primary replacement reaches a failure before complete acceptance after preparing both flag changes
 - **WHEN** its failure is returned

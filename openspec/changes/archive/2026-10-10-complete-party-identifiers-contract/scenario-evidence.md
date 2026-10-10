@@ -1,6 +1,153 @@
 # Party Identifier Scenario Evidence Map
 
-This map originally covered 27 Q/M/L requirements and 87 scenarios. The confirmed issuing-entity refinement adds one R requirement and three scenarios, for 28 requirements and 90 scenarios. Titles are copied from the approved specifications; test boundaries and task references are plans, not passing evidence. Every row starts pending. Update evidence only after the relevant saved source has executable test results and the required IDE diagnostics. Final acceptance also requires packaged/native coverage where applicable.
+This map covers 27 Q/M/L requirements and 87 scenarios plus the confirmed issuing-entity refinement: **28 requirements and 90 scenarios**. The final acceptance table below is authoritative for delivered scenario evidence. The original planning/increment tables retain their historical Pending/partial states for chronology and are superseded by the final table, not represented as current blockers. Source scenario titles and requirement groupings remain in those original tables.
+
+## Final scenario acceptance (task 14.6)
+
+**Workflow status: 60/60, final task complete.** Runtime/quality scenario evidence below is reconciled. After the user-authorized artifact-only reorganization, `openspec validate complete-party-identifiers-contract --strict` passes; its JSON result is `valid: true` with `issues: []`. All 28 requirement titles, 90 scenario titles, original normative clauses, transition tables and observable outcome assertions remain intact. Concise requirement summaries refer to explicit shared normative rules within their first scenario; each specification declares those rules applicable to all scenarios of the requirement. The prior length-warning blocker is resolved without weakening behavior or strict validation.
+
+All 90 scenarios are reconciled to the exact passing tests below. Test aliases link to their source files; `Alias.method` names identify executable cases, not proposed tests. **J** refers to the successful full 1,766-test JVM/reactive/HTTP/architecture milestone in [verification.md](verification.md#task-141-user-authorized-correction-and-successful-final-jvm-suite). **F** refers to the 18 final corrected-test cases/focused build after the two-method primary test split. **P** refers to the 34 packaged JVM tests in task 14.2. **N** refers to the 34 actual native tests in task 14.4. Final saved blobs and separate Sonar/JDTLS acceptance are in [java-inventory.md](java-inventory.md#task-145-final-saved-revision-acceptance).
+
+P/N are executed compatibility/serialization/public-boundary coverage, not a claim that every internal race or extreme-count fixture runs inside a native process. Pure policies, impossible-count guards and coordinated database/fault scenarios use their appropriate J/F boundaries. Packaged suites exercise all eight routes, strict binding, safe pages/snapshots, framework failures, schema equality and actual restart. Each row combines the appropriate boundary evidence rather than replacing it with compilation or a baseline.
+
+### Final test-source aliases
+
+- [Read](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierReadResourceContractTest.java): actual historical GET/ownership/header/page HTTP tests.
+- [Current](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/NaturalPersonResourceContractTest.java): unchanged complete ascending current-identifier detail compatibility.
+- [Page](../../../src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierHistoricalPageTest.java): real snapshot/keyset PostgreSQL tests.
+- [Cursor](../../../src/test/java/com/alexastudillo/partyregistry/infrastructure/security/HmacPartyIdentifierCursorAdapterTest.java): authenticated scope/precision/rotation tests.
+- [Query](../../../src/test/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierQueryParametersTest.java): strict selector/filter/limit tests.
+- [Mapping](../../../src/test/java/com/alexastudillo/partyregistry/api/mapper/PartyIdentifierPaginationMappingTest.java): managed safe DTO/pagination/count checks.
+- [Create](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierCreateResourceContractTest.java): strict POST/admission/replay HTTP tests.
+- [RegistrationDB](../../../src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/ReactivePartyIdentifierRegistrationAdapterTest.java): reservation/history/composition PostgreSQL tests.
+- [Patch](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierPatchResourceContractTest.java): metadata/precondition/preservation HTTP tests.
+- [Primary](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierPrimaryResourceContractTest.java): final split consent/preservation/audit and historical selection HTTP tests.
+- [Lifecycle](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierLifecycleResourceContractTest.java): full transition matrix, validity, exact private audit and preservation HTTP tests.
+- [DomainLifecycle](../../../src/test/java/com/alexastudillo/partyregistry/domain/model/PartyIdentifierLifecycleTest.java): deterministic pure transition/UTC validity tests.
+- [ApplicationLifecycle](../../../src/test/java/com/alexastudillo/partyregistry/application/usecase/ChangePartyIdentifierLifecycleUseCaseTest.java): admitted-evidence orchestration with no catalog readmission/protection dependency.
+- [Replay](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierLifecycleReplayContractTest.java): exact action identity and original-result HTTP tests.
+- [Compatibility](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierCompatibilityContractTest.java): activation/withdrawal/released uniqueness compatibility HTTP tests.
+- [Framework](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierFrameworkContractTest.java): actual safe framework/unexpected/corruption HTTP tests.
+- [Races](../../../src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierHttpConcurrencyTest.java): 37 observed-lock scenarios in eight coordinated HTTP/PostgreSQL cases.
+- [Resilience](../../../src/test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierWorkflowResilienceTest.java): real flushed failure/timeout/cancellation/recovery workflows.
+- [Telemetry](../../../src/test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierTelemetryContractTest.java): real accepted outcomes and concurrent correlation HTTP tests.
+- [Issuer](../../../src/test/java/com/alexastudillo/partyregistry/api/resource/IssuerCodeResourceContractTest.java): initial/additional issuer normalization, validation and raw identity HTTP tests.
+- [Packaged](../../../src/integrationTest/java/com/alexastudillo/partyregistry/PackagedPartyIdentifierContractIT.java): all eight routes, strict/chunked binding, historical recovery, safe pages and served schemas on actual JVM/native artifacts.
+- [Restart](../../../src/integrationTest/java/com/alexastudillo/partyregistry/PartyLifecycleRestartIT.java): `identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses` on both JVM/native.
+
+### Queries and shared boundary: Q01–Q21
+
+| Scenario | Exact passing case(s) | Execution evidence |
+|---|---|---|
+| Q01 | Packaged.allEightOperationsForBothPartyTypesPreserveSafeHistoricalReplayAfterLaterReplacementAndWithdrawal; Packaged.servedIdentifierPathsParametersAndSchemasEqualTheApprovedStaticContract | P/N; J OpenAPI examples/structure |
+| Q02 | Read.headerFailuresRetainAcceptedProcessEchoAndRejectInvalidProcess | J; P/N strict framework/context boundary |
+| Q03 | Read.headerFailuresRetainAcceptedProcessEchoAndRejectInvalidProcess | J; P/N |
+| Q04 | Telemetry.concurrentTenantsActorsAndFreshReplayProcessesRemainAttributedOnlyToTheirOwnRequests | J/F; P/N replay correlation |
+| Q05 | Read.concealsCrossTenantAndWrongPartyTargets | J; P/N ownership errors |
+| Q06 | Read.concealsCrossTenantAndWrongPartyTargets; Lifecycle.ownedAbsenceAndWrongOwnerAreConcealedBeforeVersionOrLifecycle | J; P/N |
+| Q07 | Read.listsCompleteHistoryForBothTypesAndEveryPartyState; Read.retrievesEveryHistoricalStateWithoutReadmissionOrMutation | J; P/N both owner types |
+| Q08 | Read.exactFilterIntersectionReturnsOnlyVerifiedPrimaryEvidence; Read.validUnknownAndMismatchedSchemesProduceEmptyOwnedPages | J; P/N filtered pages |
+| Q09 | Query.acceptsDecimalRangeAndRejectsInvalidSuppliedLimits; Query.absentFiltersRetainTriStateAndDefaultOnlyTheLimit | J; P/N page serialization |
+| Q10 | Read.invalidQueriesNeverReturnData; Read.canonicalParentAndChildSyntaxPrecedeLookups | J; P/N strict errors |
+| Q11 | Read.listingPreservesTheCompleteStoredPartyAndIdentifierRows; Read.retrievesEveryHistoricalStateWithoutReadmissionOrMutation | J; P/N historical reads |
+| Q12 | Current.retrievesInitialAndAdditionalCurrentIdentifiersWithoutDecryptingOrFilteringInactiveSchemes; Current.retrievesMoreThanFiftyIdentifiersInCreationAndIdentifierIdOrder; Current.returnsAnEmptyIdentifierArrayForLegacyPartiesAndPartiesWithoutCurrentIdentifiers | J; P/N existing packaged person detail |
+| Q13 | Read.forwardPagesHaveExactCountsAndUnsignedTieOrdering; Read.backwardCursorRecoversThePreviousPage; Page.navigatesForwardDescendingMicrosecondAndUnsignedUuidTies | J; P/N signed forward/backward pages |
+| Q14 | Cursor.rejectsEveryChangedScopeDimensionAndExactCase; Cursor.rejectsOtherResourceTokensEvenWithSharedKeysAndMatchingTuple; Read.cursorCannotCrossEffectiveLimitScope | J; P/N tampered cursors |
+| Q15 | Page.deletingBoundaryDoesNotInvalidateLiveContinuation; Page.changingBoundaryFilterMembershipPreservesItsContinuationTuple | J PostgreSQL; P/N cursor encoding/navigation |
+| Q16 | Page.emptyAndWrongOwnerScopesReturnBoundedZeroSlices; Mapping.emptyIdentifierPageRetainsAllFiveMetadataKeysAndExplicitNullDirections | J; P/N empty filtered pages |
+| Q17 | Read.forwardPagesHaveExactCountsAndUnsignedTieOrdering; Page.continuedEmptyPagesRetainTotalsAndOnlyRealNeighborDirections | J; P/N exact/null-aware pages |
+| Q18 | Framework.regroupedRoutingKeepsAllEightPublicOperationsAndTheirSafeSuccessContracts; Mapping.optionalNullPropertiesDisappearWithoutAddingStorageReasonOrPaginationFields; Packaged.allEightOperationsForBothPartyTypesPreserveSafeHistoricalReplayAfterLaterReplacementAndWithdrawal | J; P/N; generic resource/architecture assertions |
+| Q19 | Framework.missingRoutesUnsupportedMethodsAndMediaRetainSharedEnvelopesAndAcceptedEcho; Resilience.realStatementAndOperationWaitsReturn503AfterRollbackAndPermitPoolAndKeyReuse | J; P/N framework envelopes |
+| Q20 | Framework.unexpectedActualWorkflowFailureIsSanitizedAndHasNoAcceptedEffects; Framework.corruptCompletionFailsClosedWithoutRemutatingOrDisclosingStoredPrivateContent | J; P/N safe error serialization |
+| Q21 | Mapping.mapsMaximumSupportedCountsExactly; Mapping.rejectsUnsupportedCountsBeforeConstructingSharedMetadata; Framework.unexpectedActualWorkflowFailureIsSanitizedAndHasNoAcceptedEffects | J managed count guard and shared unknown-failure boundary; P/N ordinary page serialization |
+
+### Maintenance: M01–M38
+
+| Scenario | Exact passing case(s) | Execution evidence |
+|---|---|---|
+| M01 | Patch.bodyThenSelectorsThenVersionUseStableCodesBeforeAnyMutation | J; P/N strict binding |
+| M02 | Patch.absentWrongOwnerAndCrossTenantTargetsAreConcealedBeforeBusinessEvaluation; Primary.ownershipAndIdentifierAbsencePrecedeStaleVersion | J/F; P/N |
+| M03 | Create.nullableDefaultsAndPropertyOrderingHaveOneHistoricalRetryIdentity | J; P/N default binding |
+| M04 | Create.rawLimitsAndRequiredRulesUseTheirDeclaredPrecedenceWithoutNormalization | J; P/N required/strict body |
+| M05 | Create.strictShapeTypesDuplicatesAndTrailingTokensFailBeforeKeysAndPaths | J; P/N strict decoders |
+| M06 | Create.creationKeyValidationPrecedesPartyPathAndPreservesCardinalityAndBounds | J; P/N operation header errors |
+| M07 | Create.everyOwnedPartyTypeAndStateReceivesIndependentSafeVersionZeroEvidence | J; P/N both-type creation |
+| M08 | Create.failedKeyIsReusableAndSchemeFailuresRetainTheirExactStableCodes | J; P/N scheme/validation failures |
+| M09 | Create.expirationIsOptionalAndInclusiveUsingOneControlledUtcDate | J; P/N absent/nullable dates |
+| M10 | Create.provisionalCreationDoesNotDisplaceAnExistingVerifiedPrimary | J; P/N safe primary flags |
+| M11 | Create.normalizedDuplicatesConflictWithoutConsumingAnotherKeyOrMutatingHistory; RegistrationDB.pendingVerifiedAndPastDateEvidenceKeepTheirActiveValueReservation | J; P/N ordinary registration compatibility |
+| M12 | RegistrationDB.pendingVerifiedAndPastDateEvidenceKeepTheirActiveValueReservation | J actual PostgreSQL reservation; P/N ordinary lifecycle serialization |
+| M13 | Compatibility.rejectionAndRevocationReleaseUniquenessWhileKeepingCompleteHistoricalRowsAndCreationResults; RegistrationDB.terminalHistoryReleasesUniquenessWithoutDeletingOriginalRecords | J; P/N withdrawal/history |
+| M14 | Races.distinctKeyNormalizedDuplicateCreationRaceLeavesOneIdentifierAndNoLosingCompletion | J coordinated independent requests |
+| M15 | Create.originalCreationReplaysAfterCurrentEvidenceAndPartyChangeWithFreshCorrelation; Restart.identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses | J; P/N actual restart |
+| M16 | Create.issuerCanonicalizationAndExactRawValuesDoNotRewriteFingerprintIdentity | J; P/N historical creation recovery |
+| M17 | Races.equivalentAndChangedCreationKeysHaveExactlyOneAcceptedOriginalForBothTypes; Create.failedKeyIsReusableAndSchemeFailuresRetainTheirExactStableCodes | J; P/N historical recovery |
+| M18 | Patch.suppliedNullClearsAndOmittedMetadataAndVerificationStayIntact | J; P/N patch/null binding |
+| M19 | Patch.expiredByDateEvidenceNeedsRepairAndResultingIntervalsCannotBeInverted | J; P/N patch serialization |
+| M20 | Patch.bodyThenSelectorsThenVersionUseStableCodesBeforeAnyMutation | J; P/N closed decoders |
+| M21 | Patch.bothTypesAndEligibleStatesCorrectOnlyMetadataAuditAndOneIdentifierVersion | J; P/N retained verification |
+| M22 | Patch.terminalAndExhaustedTargetsRejectWithoutAnyStoredOrLogicalEffect | J; P/N lifecycle errors |
+| M23 | Patch.expiredByDateEvidenceNeedsRepairAndResultingIntervalsCannotBeInverted | J; P/N validity metadata |
+| M24 | Patch.identicalCorrectionAdvancesOnceAndEveryReplayHeaderIsIgnored | J; P/N independent versions |
+| M25 | Patch.staleVersionPrecedesStateAndPartyVersionNeverSubstitutesForIdentifierVersion | J; P/N version preconditions |
+| M26 | Patch.bodyThenSelectorsThenVersionUseStableCodesBeforeAnyMutation; Lifecycle.versionStateExhaustionAndExpirationHaveTheirDeclaredPrecedence; Primary.stateVersionExhaustionAndDateFailuresPreserveEveryPriorFieldAndEffect | J/F; P/N canonical If-Match |
+| M27 | Races.independentPatchAndTransitionAtOneVersionHaveOneWinnerAndOnlyMatchingEffects; Races.replacementVersusFormerCorrectionOrWithdrawalMatchesAnAllowedSerialOutcome | J coordinated PostgreSQL/HTTP |
+| M28 | Primary.stateVersionExhaustionAndDateFailuresPreserveEveryPriorFieldAndEffect | J/F; P/N selection eligibility |
+| M29 | Primary.explicitReplacementAdvancesBothVersionsWithOneActorInstantAndCompleteEffectsForBothTypes; Primary.alreadyPrimaryAdvancesOnceAndAbsentEmptyOrFalseBodiesReplayOneResult | J/F; P/N absent expiration selection |
+| M30 | Primary.strictOptionalBodyPrecedesSelectorsVersionAndOptionalKey; Primary.alreadyPrimaryAdvancesOnceAndAbsentEmptyOrFalseBodiesReplayOneResult | J/F; P/N strict false defaults |
+| M31 | Primary.distinctSchemesKeepIndependentPrimariesAndProvisionalFlagsAreNotDisplaced; Races.unrelatedSchemeScopeProgressesWhileAnotherPrimaryRequestIsActuallyWaiting | J/F; P/N scoped replacement |
+| M32 | Primary.replacementWithoutConsentPreservesBothRecordsAndDoesNotConsumeKeyForBothTypes; Primary.explicitReplacementOfPastDatePrimaryPreservesBothRecordsAndParentForBothTypes; Primary.explicitReplacementAdvancesBothVersionsWithOneActorInstantAndCompleteEffectsForBothTypes | J/F; P/N atomic replacement |
+| M33 | Primary.explicitReplacementOfPastDatePrimaryPreservesBothRecordsAndParentForBothTypes | J/F; P/N replacement wire shape |
+| M34 | Races.differentFirstPrimaryCandidatesAndProvisionalVerifiesHaveOneScopedWinner | J coordinated PostgreSQL/HTTP |
+| M35 | Primary.exhaustedFormerPrimaryPreventsBothWritesAndKeyConsumption | J/F; P/N selection binding/result |
+| M36 | Resilience.everyFlushedPrimaryCheckpointRollsBackBothRecordsAndAllowsSameKeyRecovery | J actual flushed fault checkpoints |
+| M37 | Resilience.lostPostCommitDeliveryKeepsAcceptedStateAndRetryRecoversWithoutFalseRollback; Primary.historicalReplayAfterLaterReplacementTouchesNeitherCurrentRecordAndEchoesFreshProcess; Restart.identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses | J/F; P/N actual restart |
+| M38 | Patch.bothTypesAndEligibleStatesCorrectOnlyMetadataAuditAndOneIdentifierVersion; Primary.explicitReplacementOfPastDatePrimaryPreservesBothRecordsAndParentForBothTypes; Compatibility.rejectionAndRevocationReleaseUniquenessWhileKeepingCompleteHistoricalRowsAndCreationResults | J/F; P/N complete historical result/storage |
+
+### Lifecycle and action replay: L01–L28
+
+| Scenario | Exact passing case(s) | Execution evidence |
+|---|---|---|
+| L01 | Lifecycle.strictBodySyntaxPrecedesSelectorsVersionsAndOptionalKeys; Packaged.bodylessVerificationUsesActualChunkedBytesOnPackagedExecution | J; P/N actual chunked transport |
+| L02 | Lifecycle.withdrawalsRetainVerificationAndExactBinaryReasonsWithEventsDisabled; Replay.exactReasonsIncludingControlsAndReorderedPropertiesReplayButChangedReasonsConflict | J; P/N reason binding and restart audit |
+| L03 | Replay.syntaxStillPrecedesCompletedReplayAndFailedKeyRemainsReusable; Primary.strictOptionalBodyPrecedesSelectorsVersionAndOptionalKey | J/F; P/N strict body/header binding |
+| L04 | Lifecycle.ownedAbsenceAndWrongOwnerAreConcealedBeforeVersionOrLifecycle; Lifecycle.versionStateExhaustionAndExpirationHaveTheirDeclaredPrecedence | J; P/N absence/version failures |
+| L05 | Lifecycle.fullMatrixForBothTypesPreservesProtectedHistoryAndParentWithExactEffects | J full 30-entry HTTP matrix; P/N successful transitions |
+| L06 | Lifecycle.fullMatrixForBothTypesPreservesProtectedHistoryAndParentWithExactEffects | J every forbidden state/action with full preservation; P/N lifecycle error serialization |
+| L07 | Lifecycle.verificationUsesAcceptedActorAndOneMicrosecondInstantAndRepeatConflicts | J; P/N conflict/replay boundary |
+| L08 | Lifecycle.verificationUsesAcceptedActorAndOneMicrosecondInstantAndRepeatConflicts | J; P/N original attribution |
+| L09 | DomainLifecycle.verificationValidityUsesInclusiveUtcDateAndAllowsNoExpiration; Lifecycle.versionStateExhaustionAndExpirationHaveTheirDeclaredPrecedence | J controlled UTC policy/HTTP; P/N date serialization |
+| L10 | ApplicationLifecycle.verificationUsesOneUtcInstantAndAcceptedActorWithoutCatalogOrProtection; Restart.identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses | J no catalog readmission in new verification; P/N retired scheme historical recovery |
+| L11 | Lifecycle.provisionalConflictPreservesBothRowsAndNonprimaryVerificationStillWorks | J; P/N verification/flag serialization |
+| L12 | Lifecycle.provisionalConflictPreservesBothRowsAndNonprimaryVerificationStillWorks | J; P/N primary conflict boundary |
+| L13 | Lifecycle.provisionalConflictPreservesBothRowsAndNonprimaryVerificationStillWorks | J; P/N nonprimary verification |
+| L14 | Races.differentFirstPrimaryCandidatesAndProvisionalVerifiesHaveOneScopedWinner | J coordinated PostgreSQL/HTTP |
+| L15 | Lifecycle.fullMatrixForBothTypesPreservesProtectedHistoryAndParentWithExactEffects | J; P/N rejection clears flag |
+| L16 | Lifecycle.withdrawalsRetainVerificationAndExactBinaryReasonsWithEventsDisabled; Restart.identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses | J; P/N actual private binary audit restart |
+| L17 | DomainLifecycle.withdrawalAllowsPastDatesClearsFlagsAndRetainsPriorVerificationEvidence; Lifecycle.fullMatrixForBothTypesPreservesProtectedHistoryAndParentWithExactEffects | J; P/N withdrawal preservation |
+| L18 | Compatibility.nonprimaryVerificationFeedsExistingActivationAndLastEvidenceRevocationNeverChangesParty | J; P/N Party compatibility |
+| L19 | Replay.changedPartyIdentifierAndVersionConflictBeforeCurrentAbsenceOrState; Replay.exactReasonsIncludingControlsAndReorderedPropertiesReplayButChangedReasonsConflict; Primary.alreadyPrimaryAdvancesOnceAndAbsentEmptyOrFalseBodiesReplayOneResult | J/F; P/N action key identity |
+| L20 | Replay.withdrawalDefaultBodiesReplayWithoutReevaluationOrDuplicateAuditAndEvents; Primary.alreadyPrimaryAdvancesOnceAndAbsentEmptyOrFalseBodiesReplayOneResult | J/F; P/N optional defaults |
+| L21 | Replay.sameKeyHasIndependentCreationActionAndTenantScopes; Telemetry.concurrentTenantsActorsAndFreshReplayProcessesRemainAttributedOnlyToTheirOwnRequests | J/F; P/N fresh correlation |
+| L22 | Replay.originalVerificationReplaysAfterCorrectionRevocationAndPartyArchivalWithFreshCorrelation; Restart.identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses | J; P/N actual restart |
+| L23 | Primary.historicalReplayAfterLaterReplacementTouchesNeitherCurrentRecordAndEchoesFreshProcess; Restart.identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses | J/F; P/N actual restart |
+| L24 | Replay.syntaxStillPrecedesCompletedReplayAndFailedKeyRemainsReusable; Framework.corruptCompletionFailsClosedWithoutRemutatingOrDisclosingStoredPrivateContent; Resilience.everyFlushedWithdrawalCheckpointRollsBackAuditCompletionAndEventAndKeyIsReusable | J; P/N immutable snapshots/recovery |
+| L25 | Races.allKeyedActionsConvergeOrConflictOnChangedEffectiveInputsWithoutDuplicateEffects | J coordinated keys/versions/audit/events |
+| L26 | Races.independentPatchAndTransitionAtOneVersionHaveOneWinnerAndOnlyMatchingEffects | J coordinated independent actions |
+| L27 | Resilience.everyFlushedWithdrawalCheckpointRollsBackAuditCompletionAndEventAndKeyIsReusable; Resilience.cancellingActualWithdrawalAfterFlushedAuditClosesSessionBeforePoolAndKeyReuse | J real flushed failure/cancellation/pool reuse |
+| L28 | Compatibility.nonprimaryVerificationFeedsExistingActivationAndLastEvidenceRevocationNeverChangesParty | J; P/N existing activation contract |
+
+### Confirmed issuing-entity refinement: R01–R03
+
+| Scenario | Exact passing case(s) | Execution evidence |
+|---|---|---|
+| R01 | Issuer.bothOwnerTypesAndAdditionalRegistrationReturnCanonicalOrAbsentIssuer | J; P/N initial/additional safe DTO/binding |
+| R02 | Issuer.bothOwnerTypesAndAdditionalRegistrationReturnCanonicalOrAbsentIssuer; Issuer.creationReplayRetainsOriginalParsedIssuerIdentityBeforeWriteCanonicalization | J; P/N retained creation snapshots |
+| R03 | Issuer.newIssuerSyntaxFailuresKeepSpecificSafeEnvelopesBeforeBusinessEvaluation; Issuer.initialIssuerSyntaxFailsBeforeCountryValidationForBothPartyTypes | J; P/N strict creation decoders |
+
+The source titles in the historical tables below account for every row (21 Q + 38 M + 28 L + 3 R = 90). No scenario is deferred or accepted solely from planned coverage. Foundation migration/upgrade/codec/cursor/Domain/Application tests and all-eight generic HTTP signatures remain complementary evidence in the corresponding completed task sections of verification.md. Final review preserves the approved exception for status/code-only validation responses, separate historical/current reads, immutable V1–V7 migrations, additive V8 and documented compatible rollout/rollback.
+
+## Historical planning and increment evidence
 
 ## Section-13 implementation handoff
 

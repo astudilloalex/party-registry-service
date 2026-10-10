@@ -759,3 +759,60 @@ All four corrected test revisions below pass the 18-case selected suite and focu
 | `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierNativeMetadataTest.java`; class | `dbe267392437d50457d861fadaeb032c43048ada` | S1612 RecordComponent::getName | Pending fresh analysis / diagnostics |
 | `test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierTelemetryContractTest.java`; class, Fixture, TelemetryProfile | `4433cf43ee225a66e962c4b77f9f479961cdfeea` | Three S1612 timer/counter references | Pending fresh analysis / diagnostics |
 | `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierPrimaryResourceContractTest.java`; class, Fixture, PrimaryProfile | `c8dda84ea19658bf804e9473e83b44e964290abc` | S5961 split into refusal/preservation/version-audit behaviors; all assertions retained | Pending fresh analysis / diagnostics |
+
+## Task 14.5 final saved-revision acceptance
+
+The user's **“Esta todo bien continua con las tareas”** confirms completion of the requested pending Sonar/JDTLS checks after the screenshot corrections. This is developer-collected same-revision evidence as permitted by the design, not a waiver or a claim of direct harness analysis. Rechecked all 35 final deferred/corrected file blobs below, including all nested types identified in the increment tables. Earlier accepted unchanged revisions retain their recorded analyses. No Java source changes accompany this evidence closure; the clean delivered Git revision is `6d92300`.
+
+For the four last corrections, direct current logs independently corroborate full resolved test-model Sonar analysis with Java 25 and 571 active rules, zero issues/Hotspots, and separate zero-problem JDTLS diagnostics:
+
+| Test | Sonar completion / log lines | JDTLS zero-problem completion / log lines |
+|---|---|---|
+| PartyIdentifierPrimaryResourceContractTest | 2026-10-10 11:00:03.613 / 327–357 | 11:00:04.427 / 3694–3707 |
+| PartyIdentifierTelemetryContractTest | 11:00:11.563 / 358–388 | 11:00:12.227 / 3709–3722 |
+| PartyIdentifierHttpObservabilityTest | 11:00:17.011 / 389–419 | 11:00:17.819 / 3724–3737 |
+| PartyIdentifierNativeMetadataTest | 11:00:25.517 / 420–450 | 11:00:26.177 / 3739–3752 |
+
+Sonar source: `/home/alex/.config/Antigravity IDE/logs/20261010T095302/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log`. JDTLS source: `/home/alex/.config/Antigravity IDE/User/workspaceStorage/fc73fbd3bb7d62718087c857851a4deb/redhat.java/jdt_ws/.metadata/.log`. The fixture correction retains its independently logged clean results above. Other deferred files use the user's completed clean-analysis confirmation; no per-file timestamps are fabricated. The incomplete mixed main/test batch and superseded diagnostic screenshots remain historical, not accepted evidence.
+
+Paths below are relative to `src/`. **Accepted** means completed clean Sonar and separate JDTLS checks, by the direct log references above where available and otherwise by the explicit developer confirmation. These final rows supersede older pending cells and stale blob entries, not their historical chronology.
+
+| Final file | Saved Git blob | Sonar / JDTLS |
+|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierResource.java` | `ab8d18fb14e405b9f87738393d8844726fa1fe76` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPrimaryOperations.java` | `187e501ecbab1a4231f721a50a5480ffbc22fb4a` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducer.java` | `13917d194f4d5f233ec313c0ed67241e3d10d483` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierPrimaryResourceContractTest.java` | `c8dda84ea19658bf804e9473e83b44e964290abc` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/support/FixedPartyIdentifierPrimaryProducer.java` | `641e374d3f40ab3d6cba3c98c0bf3208f0c6d0dd` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyResourceSignatureTest.java` | `26e799337218ae789765560bdd6dce8316985354` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducerTest.java` | `97269fcd5e490cab34286fc171421c88525c0433` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierHttpConcurrencyTest.java` | `34c22748c96221d1b50ddc5969eba74ebe4ceeed` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierFaultPort.java` | `4d88b712f8eda4b128b060c722a48eb64a98d913` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierWorkflowResilienceTest.java` | `3e91ed9c9e70bb25c966961df787c921384e1550` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierFrameworkContractTest.java` | `53fefaf8676d26933e4cac86dd4839326e9e8f76` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/context/RequestMetadataContext.java` | `9241d67a9842b43d6ddaee1c71208c0e05d76996` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/filter/RequestContextFilter.java` | `fe82d27cc6fbcf460f01ea9ec9603d3e40456ab1` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/observability/PartyHttpObservability.java` | `7d9ef9835d2b3083e5ce3ed42f3bc02cfdaa445f` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRegistrationOperations.java` | `46703542d98d51c320c030f82295958be1c56ffd` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPatchOperations.java` | `6176c3284ca4c10b1b44bb9c4c0c0c275156fa0b` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierLifecycleOperations.java` | `02bf7a039b64b5bbef81ebf42f43e67a1707cf9c` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyIdentifierUseCase.java` | `89ce60b5036b661cfd307662aa4ba39a1956cb1b` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/ListPartyIdentifiersUseCase.java` | `ccd3c8419ec50e5299507dc30f6a41628108d5f5` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/observability/PartyPersistenceObservability.java` | `f4a3ecb280958b47ba86e2a6472f029484df233f` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationLocks.java` | `3850670773512778ad156cbfe400dcbdaf38f560` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierQueryAdapter.java` | `8200746e06eff8208171f9f6d7e132d62a3c9414` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierHttpObservabilityTest.java` | `59b7d07c9b795170d0dcb8de9bd14ef9ed3490fd` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/observability/PartyIdentifierPersistenceObservationTest.java` | `23719a089b1ae5fa820d8a5287757c002a5ab80d` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierTelemetryContractTest.java` | `4433cf43ee225a66e962c4b77f9f479961cdfeea` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/PartyIdentifierQueryUseCasesTest.java` | `9f7a4fb2054ed451e2d5a08f4b70ad5c2f2257a5` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierCompatibilityContractTest.java` | `a795840242bd5b0b302d01e862ef0219ada4e146` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/support/FixedIdentifierEvidencePartyProducer.java` | `57bfb396b69908db816b0705d59999430779aedb` | Accepted / Accepted |
+| `contractTest/java/com/alexastudillo/partyregistry/contract/PartyIdentifierContractAssertions.java` | `68b7356113f1c5798440d2b4cdaacca6e3df02d7` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/contract/PartyIdentifierContractAssertionsTest.java` | `201c220f2e26299d3a8ff88f68d9136e1e72fac2` | Accepted / Accepted |
+| `integrationTest/java/com/alexastudillo/partyregistry/PackagedPartyIdentifierContractIT.java` | `e0add6b7e8e52b7d1c472f462da56a07eb0350e0` | Accepted / Accepted |
+| `integrationTest/java/com/alexastudillo/partyregistry/PartyLifecycleRestartIT.java` | `7a78444b9b88092ec6b8613b05debddee0e07316` | Accepted / Accepted |
+| `main/java/com/alexastudillo/partyregistry/api/model/response/PartyIdentifierResponse.java` | `cc93e5eec72e473374e02bab8d466a3696344f73` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierNativeMetadataTest.java` | `dbe267392437d50457d861fadaeb032c43048ada` | Accepted / Accepted |
+| `test/java/com/alexastudillo/partyregistry/testing/PartyIdentifierFixturesTest.java` | `3fd478496841622e6a22650afe354c6b5c028ed8` | Accepted / Accepted |
+
+The telemetry production file's earlier `e30e673...` cell is superseded by its actual committed `7d9ef983...` blob; Git records that production revision in `1daf893`, before the final runtime gates. No new production edit occurred during this closure. The four screenshot corrections affect only unit-test sources excluded from native/package execution; their 18 passing final checks and focused build supplement the full JVM milestone without invalidating the recorded native/package results. No remaining compiler/IDE disagreement, unjustified suppression or rule-setting change is accepted.

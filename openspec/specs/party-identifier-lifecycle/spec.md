@@ -1,12 +1,22 @@
+# party-identifier-lifecycle Specification
+
 ## Purpose
 
 This capability defines operator-confirmed verification, rejection, and revocation of independently versioned identifiers. It specifies terminality, reason audit, and durable action replay shared with primary selection.
 
-## ADDED Requirements
+Each requirement's first scenario states shared normative rules followed by its observable outcome. Those shared rules apply to every scenario of that requirement unless a clause explicitly limits its scope.
+
+## Requirements
 
 ### Requirement: Lifecycle requests follow the common boundary
 
 **User Story:** As an API consumer, I want consistent action inputs and validation order, so that invalid requests cannot disclose or mutate identifier records.
+
+THE Party Registry SHALL enforce the common action boundary, strict body presence/reason rules, independent preconditions, and declared syntax/replay/business failure precedence under the shared normative rules below.
+
+#### Scenario: Bodyless verification is strict
+
+##### Shared normative rules
 
 WHEN verify, reject, revoke, or set-primary is requested,
 THE Party Registry SHALL apply the context, canonical path selectors, ownership, confidentiality, and response requirements in `party-identifier-queries`, and the identifier If-Match requirements in `party-identifier-maintenance`. After trusted context and applicable framework checks, validation order SHALL be body syntax and field constraints, Party path, identifier path, If-Match syntax, and optional Idempotency-Key syntax. After syntax, completed keyed replay or changed-input key conflict SHALL precede new Party/identifier absence, expected-version, lifecycle, target-version exhaustion, validity, and applicable primary-conflict evaluation, in that order. Former-primary exhaustion SHALL additionally be checked when an explicit replacement would demote it. It SHALL return the first applicable public failure without partial effects.
@@ -14,7 +24,7 @@ THE Party Registry SHALL apply the context, canonical path selectors, ownership,
 WHEN verify is requested,
 THE Party Registry SHALL require no request body and SHALL reject any supplied body bytes, including an empty object, null, or whitespace-only content, with `400 bad-request`. Reject and revoke SHALL accept an absent body or an object containing only optional string reasonCode and reasonDetail; an empty object SHALL mean no supplied reason. Reason code SHALL have a maximum of 64 Unicode code points and detail 1000, without trimming, case conversion, or a nonblank requirement. Supplied null properties, a literal null body, nonobject or incompatible types, duplicate/unknown properties, trailing content, and exceeded reason limits SHALL return `400 bad-request`.
 
-#### Scenario: Bodyless verification is strict
+##### Observable outcome
 
 - **WHEN** verify supplies an empty object, literal null, or whitespace body even with otherwise valid inputs
 - **THEN** the response is `400 bad-request` without any verification or completion
@@ -40,6 +50,12 @@ THE Party Registry SHALL require no request body and SHALL reject any supplied b
 
 **User Story:** As a data steward, I want a closed transition matrix, so that historical evidence cannot be silently reactivated.
 
+THE Party Registry SHALL permit only the declared current-state/action transitions, reject forbidden repeats without effects, preserve equivalent historical replay, and introduce no implicit expiration or reactivation under the shared normative rules below.
+
+#### Scenario: All permitted transitions work for both Party types
+
+##### Shared normative rules
+
 WHEN a new current-version lifecycle action is evaluated,
 THE Party Registry SHALL permit only these state transitions:
 
@@ -56,7 +72,7 @@ THEN THE Party Registry SHALL return `409 invalid-identifier-lifecycle` without 
 
 THE Party Registry SHALL NOT introduce a public expire/reactivate action or scheduled state-expiration workflow. Date-based expiration SHALL affect verification and primary eligibility without automatically rewriting stored state. Correcting dates on an eligible pending/verified identifier SHALL follow metadata correction rules rather than reactivate a terminal identifier.
 
-#### Scenario: All permitted transitions work for both Party types
+##### Observable outcome
 
 - **WHEN** eligible current-version verify and reject target pending identifiers, and revoke targets verified identifiers, for either Party type
 - **THEN** they produce respectively VERIFIED, REJECTED, and REVOKED with `200 successful`
@@ -77,6 +93,12 @@ THE Party Registry SHALL NOT introduce a public expire/reactivate action or sche
 
 **User Story:** As a registry operator, I want to record my completed verification, so that the registry records usable evidence and its responsible actor.
 
+THE Party Registry SHALL verify admitted usable pending evidence using the accepted actor and one captured UTC instant, preserve protected/history/owner data, and advance one identifier revision under the shared normative rules below.
+
+#### Scenario: Accepted user and one instant define verification
+
+##### Shared normative rules
+
 WHILE an identifier is PENDING_VERIFICATION, WHEN a new eligible verify succeeds,
 THE Party Registry SHALL record status VERIFIED, verifiedBy equal to the accepted User-Id, and verifiedAt equal to the captured operation instant. Verification SHALL require no external verification provider and SHALL NOT request or disclose the complete identifier value.
 
@@ -85,7 +107,7 @@ THE Party Registry SHALL evaluate expiration once using that instant's UTC calen
 WHEN verification succeeds,
 THE Party Registry SHALL preserve identifier and Party identity, scheme, masked/protected value, issuer and dates, creation audit, and existing primary flag, subject to the primary conflict requirement. It SHALL advance the identifier version once and update modification audit to the accepted actor and same operation instant. The Party's status, version, and audit SHALL remain unchanged.
 
-#### Scenario: Accepted user and one instant define verification
+##### Observable outcome
 
 - **GIVEN** a valid pending identifier and accepted User-Id
 - **WHEN** verify succeeds
@@ -109,13 +131,19 @@ THE Party Registry SHALL preserve identifier and Party identity, scheme, masked/
 
 **User Story:** As a data steward, I want provisional flags checked when evidence becomes verified, so that verification cannot silently replace another authoritative identifier.
 
+THE Party Registry SHALL preserve provisional flags on verification only without a different verified primary in the same scope, reject ownership conflicts without implicit demotion, and arbitrate concurrent candidates under the shared normative rules below.
+
+#### Scenario: First provisional primary becomes verified
+
+##### Shared normative rules
+
 WHILE a pending identifier has isPrimary true, WHEN a new verify is evaluated,
 THE Party Registry SHALL preserve that flag only if no different VERIFIED primary exists in its tenant, Party, and scheme. Another pending flag or a primary in another scope SHALL NOT create a verified-primary conflict. An existing VERIFIED flagged identifier SHALL count even if its expiration date has passed.
 
 IF a different VERIFIED primary exists in the same scope,
 THEN THE Party Registry SHALL return `409 primary-identifier-conflict`, leaving the pending candidate and existing primary unchanged. Verify SHALL NOT implicitly demote either identifier or interpret an unknown replacement property. Explicit replacement SHALL be performed only through set-primary on an eligible verified candidate.
 
-#### Scenario: First provisional primary becomes verified
+##### Observable outcome
 
 - **GIVEN** a pending primary has no other verified primary in its scope
 - **WHEN** verify succeeds
@@ -145,6 +173,12 @@ THEN THE Party Registry SHALL return `409 primary-identifier-conflict`, leaving 
 
 **User Story:** As an operator, I want withdrawn evidence retained with its reason and audit, so that its history stays attributable without remaining authoritative.
 
+THE Party Registry SHALL withdraw permitted evidence with a cleared primary flag, one audited revision, retained verification/history and exact durable private reasons, without automatically changing the Party or deleting history under the shared normative rules below.
+
+#### Scenario: Rejection removes a provisional flag
+
+##### Shared normative rules
+
 WHEN a permitted reject or revoke succeeds,
 THE Party Registry SHALL change the state to REJECTED or REVOKED, set isPrimary false, increment that identifier version once, and update modification actor/time. It SHALL retain identity, scheme, protected/masked value, metadata, creation audit, and any prior verification actor/time. It SHALL NOT automatically select a substitute primary or change Party status/version, even when the withdrawn identifier was the Party's only activation evidence.
 
@@ -153,7 +187,7 @@ THE Party Registry SHALL durably retain its exact reasonCode and reasonDetail wi
 
 THE Party Registry SHALL permit rejection of stored pending evidence and revocation of stored verified evidence even when their expiration is in the past, since those actions withdraw rather than qualify evidence. Historical records SHALL remain retrievable and SHALL NOT be physically deleted. Withdrawal SHALL release active-value reservation under the maintenance uniqueness contract.
 
-#### Scenario: Rejection removes a provisional flag
+##### Observable outcome
 
 - **GIVEN** a pending identifier has isPrimary true
 - **WHEN** current-version reject succeeds without a reason
@@ -182,6 +216,12 @@ THE Party Registry SHALL permit rejection of stored pending evidence and revocat
 
 **User Story:** As an API consumer, I want explicit retry identity, so that action keys cannot be reused to change another identifier or reason.
 
+THE Party Registry SHALL validate optional exact action keys, scope completed outcomes independently by tenant/action, compare every effective input, and reject changed-key reuse before live evaluation under the shared normative rules below.
+
+#### Scenario: All effective action inputs participate in key conflicts
+
+##### Shared normative rules
+
 WHERE Idempotency-Key is supplied for verify, reject, revoke, or set-primary,
 THE Party Registry SHALL require exactly one nonblank value of at most 128 Unicode code points, returning existing duplicated, blank, or too-long 400 key codes on failure. Absence SHALL be allowed and SHALL provide no historical replay behavior. Key values SHALL compare exactly without trimming or case conversion.
 
@@ -190,7 +230,7 @@ THE Party Registry SHALL scope completed action results by accepted tenant, spec
 IF a completed key is reused with a different effective target, version, reason, or replacement choice,
 THEN THE Party Registry SHALL return `409 idempotency-key-conflict` before evaluating current target existence/version/state and without disclosing the saved result. Distinct tenants and distinct actions SHALL have independent key scopes.
 
-#### Scenario: All effective action inputs participate in key conflicts
+##### Observable outcome
 
 - **GIVEN** a keyed action has completed
 - **WHEN** its key is reused for the same action with a different Party, identifier, expected version, supplied reason string, or applicable replacement choice
@@ -211,12 +251,18 @@ THEN THE Party Registry SHALL return `409 idempotency-key-conflict` before evalu
 
 **User Story:** As an API consumer, I want the original successful action result after a lost response, so that retry does not reapply a transition or replacement.
 
+THE Party Registry SHALL replay original safe accepted action results after later changes or restart without new effects, preserve original attribution with fresh retry correlation, and sanitize corrupt completions under the shared normative rules below.
+
+#### Scenario: Verify replay remains verified after revocation
+
+##### Shared normative rules
+
 WHEN a syntactically valid action repeats a completed equivalent tenant/action/key,
 THE Party Registry SHALL return the original `200 successful` safe identifier result with original accepted version, metadata, primary flag, verification evidence, and timestamps. It SHALL do so after later metadata/primary/lifecycle changes, scheme withdrawal, Party archival, or restart, without reevaluating current expiration or state. It SHALL echo the retry's accepted Process-Id without replacing original verification/audit attribution with the retry user.
 
 THE Party Registry SHALL NOT advance any identifier or former-primary version, add reason audit, or produce another logical integration event on replay. Failed, timed-out, or cancelled attempts before acceptance SHALL consume no successful key. Corrupt completed results SHALL produce sanitized `500 server-error` rather than fabricate a new mutation or disclose corrupted content.
 
-#### Scenario: Verify replay remains verified after revocation
+##### Observable outcome
 
 - **GIVEN** keyed verify succeeded and the identifier was later revoked
 - **WHEN** the original equivalent verify is retried after restart with a fresh accepted process
@@ -240,6 +286,12 @@ THE Party Registry SHALL NOT advance any identifier or former-primary version, a
 
 **User Story:** As a registry operator, I want concurrent transitions and replay to agree, so that state, reason audit, and events never contradict one another.
 
+THE Party Registry SHALL commit lifecycle state, audit, replay, and enabled events as one complete outcome, arbitrate concurrent keys/versions, roll back preacceptance failures, and preserve unrelated state under the shared normative rules below.
+
+#### Scenario: Equivalent concurrent actions converge
+
+##### Shared normative rules
+
 WHEN a lifecycle action succeeds,
 THE Party Registry SHALL make its next identifier state/version, primary flag, verification/modification audit, optional durable reason history, optional replay result, and each enabled logical event observable as one complete outcome. Rejection, timeout, or cancellation before complete acceptance SHALL preserve all prior records and produce no accepted reason, completion, or enabled event from that attempt.
 
@@ -249,7 +301,7 @@ THE Party Registry SHALL accept one logical action and return that original resu
 WHEN a completed action response is lost after acceptance,
 THE Party Registry SHALL preserve the complete accepted outcome for applicable keyed recovery rather than roll back acknowledged state based on transport delivery. Event transport redelivery SHALL NOT create a new logical action. No identifier lifecycle action SHALL mutate Party/subtype/nationality/scheme state, unrelated identifiers, or stored Party-creation results.
 
-#### Scenario: Equivalent concurrent actions converge
+##### Observable outcome
 
 - **WHEN** two equivalent keyed verifies or withdrawals are submitted concurrently
 - **THEN** both successful responses describe one accepted identifier version and original result
