@@ -129,7 +129,7 @@ Requirement references below resolve to the named requirements in the [exact spe
   - Requirements: E7, P9, E8, P10.
   - Verification: mapping/serialization tests emit only declared stored summary/masked fields and all metadata; overflow fails instead of wrapping or omitting counts, and existing null-cursor writers preserve explicit unavailable directions.
 
-- [ ] 5.5 Implement both POST methods in IdentifierSearchResource and compose their use cases through a focused Infrastructure CDI producer using existing context/error/response services.
+- [x] 5.5 Implement both POST methods in IdentifierSearchResource and compose their use cases through a focused Infrastructure CDI producer using existing context/error/response services.
   - Requirements: E1, E2, E3, E7, E8, P1, P2, P3, P9, P10.
   - Verification: both methods return `Uni<RestResponse<ApiResponse<List<IdentifierSearchResponse>>>>`, map DTOs before CDI ResponseManager wrapping, delegate behavior to Application, and pass architecture/HTTP smoke checks without overlapping global handlers.
 

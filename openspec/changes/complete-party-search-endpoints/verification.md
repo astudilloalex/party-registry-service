@@ -582,3 +582,20 @@ fails rather than wrapping or dropping metadata.
 Focused mapper tests passed, BUILD SUCCESSFUL in 4m 10s. JDTLS reports zero
 problems for both DTOs, mapper and test after model reconciliation. Native
 registrations are present; actual native execution remains pending.
+
+## Task 5.5: Actual explicit HTTP delivery
+
+Both published POST paths now delegate to composed Application use cases and
+return `Uni<RestResponse<ApiResponse<List<IdentifierSearchResponse>>>>`.
+Resources obtain accepted context, validate body-only inputs, map DTOs before
+CDI ResponseManager pagination wrapping, and use the existing API translator
+and shared global handler. No local global mapper or success filter was added.
+The focused Infrastructure producer owns composition; framework-disabled
+test profiles exclude the DB-dependent resources consistently with existing
+root resources.
+
+Actual HTTP tests validate both empty success envelopes, process echo, null
+body, invalid/unknown fields, unknown scheme and forbidden query inputs.
+The resource/architecture command passed, BUILD SUCCESSFUL in 6m 42s;
+JDTLS reports zero problems for resource, producer and test. Broader HTTP,
+runtime/native, observability and performance acceptance remains in section 6.
