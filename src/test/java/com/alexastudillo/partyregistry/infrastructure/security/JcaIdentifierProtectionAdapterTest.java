@@ -108,6 +108,25 @@ class JcaIdentifierProtectionAdapterTest {
     }
 
     @Test
+    void searchLookupReproducesRegistrationHashAndSeparatesTenantsWithoutDecrypting() {
+        var context = request(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID,
+                COMPLETE_VALUE, NORMALIZED_VALUE, NORMALIZATION_VERSION);
+        String persistedHash = adapter.protect(context).normalizedValueHash();
+        assertEquals(Optional.of(persistedHash), adapter.lookupHash(TENANT_ID, NORMALIZED_VALUE));
+        var otherTenant = tenant("0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab2");
+        assertNotEquals(adapter.lookupHash(TENANT_ID, NORMALIZED_VALUE), adapter.lookupHash(otherTenant, NORMALIZED_VALUE));
+    }
+
+    @Test
+    void unrepresentableSearchSelectorsNeverBecomeReplacementCharacterMatches() {
+        assertTrue(adapter.lookupHash(TENANT_ID, "\uD800").isEmpty());
+        assertTrue(adapter.lookupHash(TENANT_ID, "\uDC00").isEmpty());
+        assertTrue(adapter.lookupHash(TENANT_ID, "\uFFFD").isPresent());
+        assertFalse(JcaIdentifierProtectionAdapter.isLosslessSelector("SCHEME\uD800"));
+        assertTrue(JcaIdentifierProtectionAdapter.isLosslessSelector("SCHEME😀"));
+    }
+
+    @Test
     void decryptsTheExactCompleteValueWithCurrentKey() {
         IdentifierProtectionRequest request = request(
                 TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID, COMPLETE_VALUE, NORMALIZED_VALUE,

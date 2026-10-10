@@ -353,3 +353,30 @@ remains a later delivery task.
 Focused `IdentifierSearchResultsTest` passed in 3m 22s, then again in 3m 19s
 after the user's parallel Sonar-only test refactoring. JDTLS reports zero
 problems for all six new files (log lines 690–816). No full suite was run.
+
+## Task 2.4: Search read and cursor ports
+
+The read port composes scheme resolution and safe exact/prefix slices through
+one operation-scoped context, explicitly owned per subscription by its adapter.
+Contracts expose Domain/Application models and Mutiny only; cursor operations
+use the existing precise boundary type. A test-only read stub compiles for
+subsequent use-case tests. Actual session ownership/cleanup is Infrastructure
+verification, not a claim established by the fixture.
+
+Focused `CleanArchitectureTest` passed, BUILD SUCCESSFUL in 3m 29s. All four
+affected files have zero JDTLS problems (log lines 897–1029). No HTTP, CDI,
+session, entity, cryptographic key/hash/ciphertext leaks through these ports.
+
+## Task 3.1: Compatible lossless lookup derivation
+
+Infrastructure exposes existing tenant-HMAC lookup as an optional hash:
+unrepresentable UTF-16 selectors return absence, not a replacement-character
+hash or dependency failure. A lossless scheme encoding check is also exposed.
+The original HMAC derivation/byte format is unchanged. Mutable encoding/key
+buffers now clean up even when derivation fails; the intermediate UTF-8
+encoding buffer is cleared after copying.
+
+Focused `JcaIdentifierProtectionAdapterTest` passed, BUILD SUCCESSFUL in
+3m 56s, covering new lookup compatibility/tenant/unpaired-surrogate cases
+and existing registration/encryption/AAD/mask/rotation behavior. Both
+modified files have zero JDTLS problems (log lines 1179–1185).

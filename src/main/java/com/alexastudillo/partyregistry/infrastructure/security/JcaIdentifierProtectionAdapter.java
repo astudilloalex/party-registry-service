@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -92,6 +93,24 @@ public class JcaIdentifierProtectionAdapter implements IdentifierProtectionPort 
         } catch (GeneralSecurityException | CharacterCodingException | RuntimeException _) {
             throw protectionUnavailable();
         }
+    }
+
+    /** Reuses the persisted tenant-derived lookup format; unrepresentable selectors cannot match stored UTF-8. */
+    public Optional<String> lookupHash(TenantId tenantId, String normalizedValue) {
+        Objects.requireNonNull(tenantId, "tenantId");
+        Objects.requireNonNull(normalizedValue, "normalizedValue");
+        try {
+            return Optional.of(normalizedValueHash(tenantId, normalizedValue));
+        } catch (CharacterCodingException _) {
+            return Optional.empty();
+        } catch (GeneralSecurityException _) {
+            throw protectionUnavailable();
+        }
+    }
+
+    /** Allows exact scheme selection to reject lossy database encoding without treating it as an outage. */
+    public static boolean isLosslessSelector(String value) {
+        return StandardCharsets.UTF_8.newEncoder().canEncode(value);
     }
 
     String decrypt(ProtectedIdentifierValue protectedValue, IdentifierProtectionRequest context) {
@@ -167,14 +186,17 @@ public class JcaIdentifierProtectionAdapter implements IdentifierProtectionPort 
 
     private String normalizedValueHash(TenantId tenantId, String normalizedValue)
             throws GeneralSecurityException, CharacterCodingException {
-        byte[] tenantKey = deriveTenantIndexKey(tenantId);
         byte[] normalizedBytes = encodeUtf8(normalizedValue);
+        byte[] tenantKey = null;
         try {
+            tenantKey = deriveTenantIndexKey(tenantId);
             Mac mac = Mac.getInstance(HMAC_SHA_256);
             mac.init(new SecretKeySpec(tenantKey, HMAC_SHA_256));
             return LOWERCASE_HEX.formatHex(mac.doFinal(normalizedBytes));
         } finally {
-            Arrays.fill(tenantKey, (byte) 0);
+            if (tenantKey != null) {
+                Arrays.fill(tenantKey, (byte) 0);
+            }
             Arrays.fill(normalizedBytes, (byte) 0);
         }
     }
@@ -219,8 +241,14 @@ public class JcaIdentifierProtectionAdapter implements IdentifierProtectionPort 
                 .onUnmappableCharacter(CodingErrorAction.REPORT)
                 .encode(CharBuffer.wrap(value));
         byte[] result = new byte[encoded.remaining()];
-        encoded.get(result);
-        return result;
+        try {
+            encoded.get(result);
+            return result;
+        } finally {
+            if (encoded.hasArray()) {
+                Arrays.fill(encoded.array(), (byte) 0);
+            }
+        }
     }
 
     private static String decodeUtf8(byte[] value) throws CharacterCodingException {
