@@ -12,6 +12,7 @@ import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationP
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierFingerprintPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ChangePartyIdentifierLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
@@ -86,5 +87,13 @@ class ApplicationUseCaseProducerTest {
         Method producer = ApplicationUseCaseProducer.class.getDeclaredMethod("patchPartyIdentifierUseCase", PartyIdentifierMutationPort.class, OperationObservationPort.class);
         assertProducer(producer, PatchPartyIdentifierUseCase.class);
         assertEquals(1, PatchPartyIdentifierUseCase.class.getDeclaredConstructors().length);
+    }
+
+    @Test
+    void wiresIdentifierLifecycleThroughDurableMutationFingerprintAndObservationPorts() throws ReflectiveOperationException {
+        Method producer = ApplicationUseCaseProducer.class.getDeclaredMethod("changePartyIdentifierLifecycleUseCase",
+                PartyIdentifierMutationPort.class, PartyIdentifierFingerprintPort.class, OperationObservationPort.class);
+        assertProducer(producer, ChangePartyIdentifierLifecycleUseCase.class);
+        assertEquals(1, ChangePartyIdentifierLifecycleUseCase.class.getDeclaredConstructors().length);
     }
 }

@@ -7,6 +7,8 @@ import com.alexastudillo.partyregistry.api.model.response.PartyIdentifierRespons
 import com.alexastudillo.partyregistry.api.support.PartyIdentifierQueryOperations;
 import com.alexastudillo.partyregistry.api.support.PartyIdentifierRegistrationOperations;
 import com.alexastudillo.partyregistry.api.support.PartyIdentifierPatchOperations;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierLifecycleOperations;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierOperation;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.smallrye.mutiny.Uni;
@@ -28,7 +30,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 import java.util.List;
 
 /**
- * Exposes independent official-identifier registration, historical reads and guarded metadata correction.
+ * Exposes independent official-identifier registration, historical reads, metadata correction and lifecycle actions.
  */
 @Path("/v1/parties/{partyId}/identifiers")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -40,15 +42,18 @@ public class PartyIdentifierResource {
     private final PartyIdentifierRegistrationOperations registration;
     private final PartyIdentifierQueryOperations queries;
     private final PartyIdentifierPatchOperations patches;
+    private final PartyIdentifierLifecycleOperations lifecycle;
 
     @Inject
     public PartyIdentifierResource(
             PartyIdentifierRegistrationOperations registration,
             PartyIdentifierQueryOperations queries,
-            PartyIdentifierPatchOperations patches) {
+            PartyIdentifierPatchOperations patches,
+            PartyIdentifierLifecycleOperations lifecycle) {
         this.registration = registration;
         this.queries = queries;
         this.patches = patches;
+        this.lifecycle = lifecycle;
     }
 
     /** Returns an owned historical page with strict selectors, authenticated continuation and safe shared metadata. */
@@ -93,5 +98,35 @@ public class PartyIdentifierResource {
             @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
             PartyIdentifierPatchRequest request, @Context HttpHeaders headers) {
         return patches.patch(partyId, identifierId, request, headers);
+    }
+
+    /** Records operator verification after enforcing a strictly bodyless request and independent expected version. */
+    @POST
+    @Path("/{identifierId}/verify")
+    @WithSpan("party-identifier.verify")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> verifyPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return lifecycle.change(partyId, identifierId, body, headers, PartyIdentifierOperation.VERIFY);
+    }
+
+    /** Rejects pending evidence with optional exact private reasons and durable keyed recovery. */
+    @POST
+    @Path("/{identifierId}/reject")
+    @WithSpan("party-identifier.reject")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> rejectPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return lifecycle.change(partyId, identifierId, body, headers, PartyIdentifierOperation.REJECT);
+    }
+
+    /** Revokes verified evidence while retaining its verification history and optional private reason audit. */
+    @POST
+    @Path("/{identifierId}/revoke")
+    @WithSpan("party-identifier.revoke")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> revokePartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return lifecycle.change(partyId, identifierId, body, headers, PartyIdentifierOperation.REVOKE);
     }
 }

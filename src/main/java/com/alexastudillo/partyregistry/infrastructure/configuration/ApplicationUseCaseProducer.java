@@ -40,6 +40,7 @@ import com.alexastudillo.partyregistry.application.usecase.ListNationalitiesUseC
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyIdentifierUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ChangePartyIdentifierLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
@@ -191,6 +192,13 @@ public class ApplicationUseCaseProducer {
     @Produces
     PatchPartyIdentifierUseCase patchPartyIdentifierUseCase(PartyIdentifierMutationPort mutations, OperationObservationPort observation) {
         return new PatchPartyIdentifierUseCase(mutations, UTC_CLOCK, observation);
+    }
+
+    /** Composes replay-first lifecycle changes with actual same-transaction storage and bounded observations. */
+    @Produces
+    ChangePartyIdentifierLifecycleUseCase changePartyIdentifierLifecycleUseCase(PartyIdentifierMutationPort mutations,
+            PartyIdentifierFingerprintPort fingerprints, OperationObservationPort observation) {
+        return new ChangePartyIdentifierLifecycleUseCase(mutations, fingerprints, UTC_CLOCK, observation);
     }
 
     @Produces

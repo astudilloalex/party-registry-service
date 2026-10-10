@@ -160,6 +160,8 @@ Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [mai
 
 ## L: Lifecycle requests follow the common boundary
 
+Task 10.3 runtime evidence is recorded in [verification.md](verification.md): seven real HTTP cases pass, including the 30-entry matrix, body/header precedence, safe envelopes, ownership, one verification instant, private exact reason audit and preserved parent/protected history. The eight saved-file quality analyses are pending; rows below are not promoted to completed scenario acceptance, and packaged/native/restart/race coverage remains assigned to subsequent tasks. Task 10.2 Application evidence is accepted after developer-confirmed six-file analyses and 21 passing selected workflow checks.
+
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
 | L01 | Bodyless verification is strict | API, HTTP including chunked input, packaged/native | 2.1, 10.1, 10.3, 13.1, 14.4 | Pending |

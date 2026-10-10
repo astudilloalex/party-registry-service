@@ -4,6 +4,9 @@ import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
 import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierPatchRequest;
 import com.alexastudillo.partyregistry.application.command.PatchPartyIdentifierCommand;
+import com.alexastudillo.partyregistry.application.command.ChangePartyIdentifierLifecycleCommand;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierOperation;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierReason;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.query.GetPartyIdentifierQuery;
 import com.alexastudillo.partyregistry.application.query.ListPartyIdentifiersQuery;
@@ -81,5 +84,15 @@ public class PartyIdentifierRequestSupport {
         var partyId = requests.parsePartyId(party);
         var identifierId = identifierId(identifier);
         return new PatchPartyIdentifierCommand(metadata, partyId, identifierId, identifierVersion(headers), body.issuerCode(), body.issuedOn(), body.expiresOn());
+    }
+
+    /** Maps body-validated lifecycle input in parent, child, version and optional-key syntax order. */
+    public ChangePartyIdentifierLifecycleCommand lifecycleCommand(RequestMetadata metadata, String party, String identifier,
+            HttpHeaders headers, PartyIdentifierOperation operation, PartyIdentifierReason reason) {
+        var partyId = requests.parsePartyId(party);
+        var identifierId = identifierId(identifier);
+        var version = identifierVersion(headers);
+        return new ChangePartyIdentifierLifecycleCommand(metadata, partyId, identifierId, version, operation,
+                requests.optionalIdempotencyKey(headers).orElse(null), reason);
     }
 }

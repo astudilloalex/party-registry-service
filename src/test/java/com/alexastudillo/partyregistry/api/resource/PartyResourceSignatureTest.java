@@ -69,6 +69,15 @@ class PartyResourceSignatureTest {
     }
 
     @Test
+    void exposesAllIdentifierLifecycleActionsWithBufferedBodiesAndExplicitSafeEnvelopes() throws ReflectiveOperationException {
+        for (String action : List.of("verify", "reject", "revoke")) {
+            Method method = PartyIdentifierResource.class.getMethod(action + "PartyIdentifier", String.class, String.class, byte[].class, HttpHeaders.class);
+            assertEquals("/{identifierId}/" + action, method.getAnnotation(Path.class).value());
+            assertPostEnvelope(method, PartyIdentifierResponse.class);
+        }
+    }
+
+    @Test
     void exposesActivationWithTheSharedExhaustivePartyDto() throws ReflectiveOperationException {
         assertEquals("/v1/parties", PartyResource.class.getAnnotation(Path.class).value());
         Method method = PartyResource.class.getMethod("activateParty", String.class, HttpHeaders.class);
