@@ -1596,3 +1596,79 @@ DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PO
 ```
 
 Final packaged command **BUILD SUCCESSFUL in 1m 39s**, **six actual selected JVM integration cases (five contract/isolation, one two-process restart), zero failures/errors/skips**, against the updated augmented main artifact. No unrelated suites, compiler warnings, suppression/settings changes or full/native acceptance claims are introduced. Final local analysis remains 14.5, actual native compilation/runtime 14.3–14.4. `git diff --check` passes. Task 13.3 completes at **53/60**; proceed to operations documentation.
+
+## Task 13.4: Complete identifier consumer/operations documentation
+
+Updated README overview, natural-person versus historical query explanation, all eight implemented identifier routes, V8 storage and replay-secret/rollout/rollback requirements. Added English `docs/operations/party-identifier-contract.md` covering trusted context/echo/ownership, exact DTO/envelopes/errors, issuer/raw limits and preservation, strict bodies/null/defaults, closed lifecycle/primary rules, independent If-Match/exhaustion/precedence, effective key identity and historical retry, full authenticated pagination/overflow semantics, independent private binary audit, safe events, existing secret retention/rotation, query cost/production budgets, additive migration/pre-cutover limits and compatible rollback. It also documents bounded telemetry, unchanged log format, packaged/native source isolation, actual two-process evidence and final saved-file Sonar/JDTLS procedure without claiming deferred checks as passed.
+
+Inspected guide links, all public paths, statuses/versions, configured 5s/10s/15s and 5s/15s budgets, exact event kinds and V8 against the approved OpenAPI/current source. `git diff --check` passes. This documentation-only step introduces no Java/configuration/migration change and requires no extra test rerun. Task 13.4 completes at **54/60**.
+
+## Final acceptance scheduling handoff
+
+All tracked implementation/preparation/documentation tasks through section 13 are complete. Section **14.1–14.6 remains unchecked**: full JVM/architecture test, full build/wired packaged suite, actual native build/test, final saved-revision local analysis and complete scenario/public-contract review plus strict OpenSpec validation. The user's explicit scheduling instruction reserves full-suite execution for a later request; no unfiltered or native acceptance command is run as a side effect. Existing selected runtime evidence is retained accurately, and no final quality/native/archive readiness is inferred. Pause at this controlling user decision rather than mark final checks optional or passed.
+
+## Task 14.1: Final full-suite execution blocked by fixture serialization
+
+On 2026-10-10 the user requested completion of the remaining tasks, authorizing the final acceptance sequence. Restored the documented transient `party-registry-test-podman-api` service with `--time=0` at `unix:///tmp/opencode/party-registry-podman.sock`, then executed:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test
+```
+
+The full run completed in **12m 58s**, executing **1,766 tests with one failure**. Output: `/home/alex/.local/share/opencode/tool-output/tool_12655c5bf0012PlL4uxQnfMb9P`. The failing case is `PartyIdentifierFixturesTest.bothIndependentOwnerTypesSupportMaskedHistoricalFixtures`, line 47. Its XML report records `Invalid required identifier text field: createdAt`. The test constructs a standalone `ObjectMapper` with `JavaTimeModule` but retains Jackson's timestamp serialization default; the strengthened shared assertion requires string timestamps, matching the public contract. The candidate correction is to align this standalone test mapper with textual date/time serialization while retaining the strict shared assertions. No Java correction or passing acceptance is claimed in this entry.
+
+Per the apply workflow's error pause rule, task 14.1 remains unchecked and progress stays **54/60** pending user guidance. Tasks 14.2–14.6 have not been executed in this continuation. The test-owned transient Podman API service is stopped on pause.
+
+## Task 14.1: User-authorized correction and successful final JVM suite
+
+The user authorized continuation. Disabled `SerializationFeature.WRITE_DATES_AS_TIMESTAMPS` only in the standalone mapper in `PartyIdentifierFixturesTest`, aligning it with textual public date/time values. The shared strict assertions remain unchanged. The focused command `./gradlew test --tests com.alexastudillo.partyregistry.testing.PartyIdentifierFixturesTest` passes both cases in 16s. With the same documented `DOCKER_HOST` and dynamic test-port environment, `./gradlew test` then passes in **12m 49s**: **1,766 tests, zero failures and zero skips**, confirmed by `build/reports/tests/test/index.html`. Full output: `/home/alex/.local/share/opencode/tool-output/tool_126670c65001yKFBSaFhmQbnmK`.
+
+Inspected all eight `PartyIdentifierResource` signatures: each returns `Uni<RestResponse<ApiResponse<...>>>` with the safe API DTO; the list uses its DTO list. The full suite executes resource-signature, HTTP, inward-dependency and architecture assertions. The correction introduces no date fixture, Domain/Application dependency or production behavior. Existing controlled fault, lock/statement timeout, cancellation rollback-on-close and duplicate gauge runtime diagnostics remain visible; they are not compiler findings or suppressed failures. Compilation emits no new warning. Independent saved-file Sonar/JDTLS evidence remains required in 14.5 and is not inferred from this passing suite. Task 14.1 completes at **55/60**.
+
+## Task 14.2: Final full build and packaged JVM acceptance
+
+`DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build` succeeds in **3m 54s**. The full 1,766-test result remains valid/up-to-date; `quarkusIntTest` actually executes **34 tests with zero failures/skips**, confirmed by `build/reports/tests/quarkusIntTest/index.html`. Packaging/augmentation and check/build complete with no new compiler warnings. No compiler/IDE disagreement is currently reported; final independent IDE coverage remains task 14.5 rather than being inferred from Gradle. Host runtime is Debian OpenJDK **25.0.4.1**, Podman **5.4.2**, linux/amd64. Task 14.2 completes at **56/60**.
+
+## Task 14.3: Actual native executable generation
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew buildNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman -Dquarkus.native.native-image-xmx=6g
+```
+
+The command succeeds in **5m 12s**, actually generating `build/party-registry-service-1.0.0-SNAPSHOT-runner`. Podman uses `quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-25`, image ID `bc6797b7c581d44f92148840ab116b6bb34411bd4a5a98f466ab715ee9910a3a`, Mandrel **25.0.4.1-Final**, Java **25.0.4.1+1-LTS**, GCC **11.5.0**, x86-64-v3. Native-image uses `-Xmx6g`, completes in **4m 6s**, peak RSS **7.05GB**, executable file size **126.20MB**. Native runtime/HTTP/restart behavior is not inferred from compilation and remains 14.4.
+
+Unsuppressed tool/dependency diagnostics: deprecated `buildNative` task; duplicate PanacheEntity augmentation entry; RabbitMQ client's experimental IncludeResources option; deprecated DynamicProxyConfigurationResources options. These do not prevent generation and are separate from Java source compiler/IDE findings. Task 14.3 completes at **57/60**.
+
+## Task 14.4: Actual native integration and retained-data restart acceptance
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew testNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman -Dquarkus.native.native-image-xmx=6g
+```
+
+The command succeeds in **2m 1s**, actually executing **34 native integration tests with zero failures/skips** (`build/reports/tests/testNative/index.html`). This includes five `PackagedPartyIdentifierContractIT` cases and four `PartyLifecycleRestartIT` cases. The exact identifier case `identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses` passes in **6.049s**; it exercises retained creation/lifecycle/primary completions, exact private reason audit and immutable current storage across two actual service processes. The other compatibility restart cases also execute, rather than being disabled.
+
+`build/quarkus-artifact.properties` explicitly records `type=native` and `path=party-registry-service-1.0.0-SNAPSHOT-runner` with Mandrel 25 metadata. Inspected the restart launcher at lines 594–610: it reads this descriptor and launches that native executable directly, using Java only for type=jar. The five identifier contract cases execute all eight HTTP routes, strict binding/body presence, signed cursors/null-aware pagination, historical snapshots, served OpenAPI and packaged classpath isolation. This is actual native runtime evidence against the executable generated in 14.3. Task 14.4 completes at **58/60**; final local-analysis and scenario-review requirements remain pending.
+
+## Task 14.5: Final IDE evidence blocker
+
+Inspected the current Sonar log at `/home/alex/.config/Antigravity IDE/logs/20261010T095302/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log`. Lines 11–47 describe only a mixed `PackagedPartyIdentifierContractIT` / `PartyHttpObservability` analysis with Java 25 and 571 rules, reporting zero findings. Lines 31–33 explicitly report missing `sonar.java.libraries`, unresolved imports/types and preview detection. This incomplete main project model cannot replace the required resolved-model per-file analysis. It contains no analysis of the corrected `PartyIdentifierFixturesTest` saved blob `3fd478496841622e6a22650afe354c6b5c028ed8`.
+
+The project JDTLS `.metadata/.log` has independent zero-problem entries for several earlier untracked tests, but no explicit current `PartyIdentifierFixturesTest` diagnostic result. Historic entries and compilation are not substituted for final saved-revision coverage. The pending tables in `java-inventory.md`, including production/test/shared-contract/integration sources and nested types from sections 11.3–13.3 plus the 14.1 correction, still require completed resolved-model Sonar analysis and separate JDTLS diagnostics. Direct IDE analysis/diagnostics actions are unavailable in this harness; developer-collected same-revision results are required by the design.
+
+Pause at **58/60** until that evidence is supplied. Do not check 14.5 or 14.6, infer zero findings from an empty Problems panel, or waive the quality requirement. Task 14.6's final scenario reconciliation/strict validation remains after 14.5 in dependency order. The test-owned transient Podman API service is stopped on pause; all passing JVM/native reports are retained. Any subsequent source fix must rerun the affected checks and replace invalidated runtime evidence as specified.
+
+## Task 14.5: Supplied Sonar diagnostics corrected; saved-revision reanalysis pending
+
+The user supplied five screenshots identifying seven findings across four unit/HTTP test files: two S5785 equality-negation assertions in `PartyIdentifierHttpObservabilityTest`, one S1612 record-component lambda in `PartyIdentifierNativeMetadataTest`, three S1612 timer/counter lambdas in `PartyIdentifierTelemetryContractTest`, and S5961 (38 assertions, threshold 25) in the primary replacement test.
+
+Replaced the equality negations with `assertNotEquals` and the simple lambdas with `RecordComponent::getName`, `Timer::count` and `Counter::count`. Split the primary replacement case into three meaningful independent behaviors: refusal without consent plus failed-key reuse, retained identifier/parent/scheme fields, and exact flags/versions/common actor/time/effects. Both Party types and every original assertion remain covered. Cached the accepted stored records in the audit/version case to avoid redundant reads. No production code, shared assertions, suppressions, rule exclusions or native metadata changed.
+
+With the documented Podman socket/dynamic HTTP port, the following selected suite actually executes **18 tests, zero failures/skips**, in **1m 6s**:
+
+```bash
+./gradlew test --tests com.alexastudillo.partyregistry.api.observability.PartyIdentifierHttpObservabilityTest --tests com.alexastudillo.partyregistry.api.model.request.PartyIdentifierNativeMetadataTest --tests com.alexastudillo.partyregistry.api.observability.PartyIdentifierTelemetryContractTest --tests com.alexastudillo.partyregistry.api.resource.PartyIdentifierPrimaryResourceContractTest
+```
+
+The same selection followed by `build -x quarkusIntTest` succeeds in **17s**, selected tests correctly up-to-date, without compiler warnings. An initial attempt placed `--tests` after `build`, which Gradle rejects as an unsupported task option; correcting the ordering to `test --tests ... build -x quarkusIntTest` resolves the CLI configuration failure. The unrelated packaged/native suites are not rerun: their production/shared/integration source is unchanged and the four fixes affect only the excluded unit-test source set. The earlier full 1,766-test milestone remains historical full-suite evidence, complemented by these 18 final saved-revision checks; the split introduces two additional test methods.
+
+Current Sonar logs independently confirm the prior fixture mapper correction's full resolved test-model analysis at **2026-10-10 10:54:50.292**, **zero issues/Hotspots**, lines **296–326** in the current `20261010T095302` Sonar log. JDTLS validates that unchanged saved blob at **10:54:51.478**, **zero problems**, `.metadata/.log` **3673–3686**. Its earlier missing evidence is now resolved. The four just-corrected revisions still need explicit fresh Sonar and separate JDTLS acceptance; the older screenshot/10:53–10:54 findings describe superseded source. Task 14.5 remains unchecked at **58/60**, and the test-owned temporary Podman service is stopped on pause.

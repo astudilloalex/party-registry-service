@@ -742,3 +742,20 @@ Two metadata unit checks/focused build and six selected actual packaged JVM chec
 | `main/java/com/alexastudillo/partyregistry/api/model/response/PartyIdentifierResponse.java`; record | `cc93e5eec72e473374e02bab8d466a3696344f73` | Pending |
 | `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierNativeMetadataTest.java`; class | `be4a2a877faa38686759417a9c7dc2f3bd9b21dd` | Pending |
 | `integrationTest/java/com/alexastudillo/partyregistry/PackagedPartyIdentifierContractIT.java`; class, Context | `e0add6b7e8e52b7d1c472f462da56a07eb0350e0` | Pending |
+
+## Task 14.1 fixture mapper correction
+
+`test/java/com/alexastudillo/partyregistry/testing/PartyIdentifierFixturesTest.java` (class; no nested types), final blob `3fd478496841622e6a22650afe354c6b5c028ed8`, disables timestamp serialization in its standalone mapper. Two focused cases and all 1,766 full JVM tests pass, followed by successful full build with 34 packaged JVM cases. Sonar analysis and separate JDTLS diagnostics for this saved revision remain **pending** in task 14.5; earlier analysis of its superseded revision is not current evidence.
+
+## Task 14.5 supplied-diagnostic continuation
+
+The fixture correction above now has actual resolved-model full Sonar analysis, **zero issues/Hotspots**, 2026-10-10 **10:54:50.292**, current `20261010T095302/window1` Sonar log **296–326**; independent JDTLS **zero problems**, **10:54:51.478**, project `.metadata/.log` **3673–3686**. Blob is unchanged; this supersedes its pending entry.
+
+All four corrected test revisions below pass the 18-case selected suite and focused build. Current source supersedes the supplied screenshot findings; fresh same-revision Sonar/JDTLS results remain required before acceptance. No native/package source is modified.
+
+| Path relative to src / types | Final saved Git blob | Correction | Sonar / JDTLS |
+|---|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierHttpObservabilityTest.java`; class | `59b7d07c9b795170d0dcb8de9bd14ef9ed3490fd` | Two S5785 assertions use assertNotEquals | Pending fresh analysis / diagnostics |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierNativeMetadataTest.java`; class | `dbe267392437d50457d861fadaeb032c43048ada` | S1612 RecordComponent::getName | Pending fresh analysis / diagnostics |
+| `test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierTelemetryContractTest.java`; class, Fixture, TelemetryProfile | `4433cf43ee225a66e962c4b77f9f479961cdfeea` | Three S1612 timer/counter references | Pending fresh analysis / diagnostics |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierPrimaryResourceContractTest.java`; class, Fixture, PrimaryProfile | `c8dda84ea19658bf804e9473e83b44e964290abc` | S5961 split into refusal/preservation/version-audit behaviors; all assertions retained | Pending fresh analysis / diagnostics |

@@ -322,35 +322,44 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Accept requests, discard their original HTTP payloads, mutate current records, restart the actual packaged service against retained isolated data, and replay original inputs. Original results/attribution survive with fresh process echoes, current state remains unchanged, and completion/audit/logical-event counts are not duplicated.
   - Evidence: One selected actual two-process JVM restart case passes in 40s. Original response bodies are discarded, identities/results recovered through public reads, then correction/replacement/withdrawal/Party archival/scheme retirement precede restart. Nine historical results replay unchanged with fresh actor/process; complete storage remains identical at three identifiers/nine completions/two audits/eleven events, exact binary reasons survive and private text is absent from completions/events/logs. Native execution remains 14.4.
 
-- [ ] 13.3 Maintain native-safe binding/reflection metadata and prepare the packaged assertion paths for native integration execution.
+- [x] 13.3 Maintain native-safe binding/reflection metadata and prepare the packaged assertion paths for native integration execution.
   - Requirements: Q: Complete published party-identifiers contract; Quality — native compatibility.
   - Verification: Metadata and executable-selection checks pass, new request/deserializer/codec/DTO registration is explicit at outer boundaries, and the prepared suites include strict bodies, cursor/page serialization, snapshots, audit, and restart cases without unit-test fixture leakage. Actual native compilation/execution evidence is required in 14.3–14.4, not claimed by this preparation task.
+  - Evidence: One executable missing-response-registration failure resolves with explicit safe DTO reflection metadata. Both selected metadata tests/build pass; five packaged JVM contract/classpath-isolation cases and the selected two-process restart case pass against the newly augmented artifact in 1m 39s. All four strict request/decoder pairs are explicitly registered; Gradle native source-set isolation and actual artifact-aware launcher are preserved. Native compilation/execution remains 14.3–14.4.
 
-- [ ] 13.4 Update README and identifier operations documentation with implemented routes and retention/rollout guidance.
+- [x] 13.4 Update README and identifier operations documentation with implemented routes and retention/rollout guidance.
   - Requirements: Q: Complete published party-identifiers contract; M: Durable additional registration replay; M: Scoped atomic primary ownership; Quality.
   - Verification: English documentation covers all routes, errors, identifier If-Match, provisional flags, inclusive expiration, exact key/default semantics, primary replacement, historical versus current queries, existing secret retention/rotation prerequisites, timeouts, query cost, additive migration, pre-cutover replay limits, event compatibility, safe rollback, and local Sonar/JDTLS evidence procedure.
+  - Evidence: README lists all eight implemented routes, independent versions/history/replay and additive V8/secret/rollback prerequisites. New English `docs/operations/party-identifier-contract.md` covers every required consumer/operations rule, explicit native/JVM evidence separation and saved-file local analysis. Links/routes/budgets/event kinds are inspected against source/OpenAPI; `git diff --check` passes. Documentation-only step does not rerun Java suites.
 
 ## 14. Final Acceptance on the Delivered Revision
 
-- [ ] 14.1 Run `./gradlew test` and reconcile the full unit/reactive/HTTP/architecture suite on the final saved source.
+- [x] 14.1 Run `./gradlew test` and reconcile the full unit/reactive/HTTP/architecture suite on the final saved source.
   - Requirements: All Q/M/L requirements; Quality.
   - Verification: Record the actual command/environment/results with no unexplained failures or skipped required cases. Review Month-based fixtures, dependency direction, every resource signature, and HTTP assertions; compilation alone is not contract evidence.
+  - Continuation blocked: Final full run executes 1,766 tests in 12m 58s with one failure in PartyIdentifierFixturesTest: the standalone mapper emits timestamp values while strengthened shared assertions require textual createdAt. Candidate test-mapper correction awaits guidance under the apply error pause rule; see verification.md. No final acceptance is claimed.
+  - Resolved continuation: User-authorized textual date serialization correction passes both focused fixture cases, then all 1,766 full JVM/reactive/HTTP/architecture cases with zero failures/skips in 12m 49s. All eight resource signatures remain explicit safe DTO envelopes; no assertion is weakened. Final independent local-analysis acceptance remains 14.5.
 
-- [ ] 14.2 Run `./gradlew build` and resolve packaged JVM or compiler/IDE disagreements.
+- [x] 14.2 Run `./gradlew build` and resolve packaged JVM or compiler/IDE disagreements.
   - Requirements: Q: Complete published party-identifiers contract; Quality.
   - Verification: Build and wired quarkusIntTest checks pass on the delivered revision with recorded runtime overrides and no new compiler warnings. Investigate stale/unresolved JDTLS project-model diagnostics rather than accepting Gradle as a substitute.
+  - Evidence: Full build succeeds in 3m 54s with the documented Podman socket/dynamic HTTP port, preserved full tests up-to-date, and 34 actually executed packaged JVM cases with zero failures/skips. No compiler warning or known compiler/IDE disagreement is reported; independent final IDE evidence remains required in 14.5.
 
-- [ ] 14.3 Run `./gradlew buildNative -Dquarkus.native.container-build=true` and resolve actual native build failures.
+- [x] 14.3 Run `./gradlew buildNative -Dquarkus.native.container-build=true` and resolve actual native build failures.
   - Requirements: Quality — native compilation.
   - Verification: Record selected container/runtime, Java/native toolchain, command overrides, and successful new executable generation. Missing tooling remains an incomplete task, not a successful compilation result.
+  - Evidence: Actual Podman container build succeeds in 5m 12s with Mandrel 25.0.4.1-Final/JDK 25.0.4.1, jdk-25 builder and 6g native-image heap. New executable generation completes in 4m 6s; dependency/native option warnings are recorded without suppression. Native runtime acceptance remains 14.4.
 
-- [ ] 14.4 Run `./gradlew testNative -Dquarkus.native.container-build=true` with required packaged/restart cases enabled.
+- [x] 14.4 Run `./gradlew testNative -Dquarkus.native.container-build=true` with required packaged/restart cases enabled.
   - Requirements: All affected Q/M/L runtime contracts; Quality — native integration.
   - Verification: Native HTTP/binding/cursor/snapshot/audit/restart cases actually execute and pass against the newly built executable. Record failure resolution and runtime prerequisites; no required case is marked complete solely from JVM results.
+  - Evidence: Full testNative succeeds in 2m 1s, actually executing 34 native integration cases with zero failures/skips, including five identifier contract cases and all four retained-data restart cases. Artifact descriptor is type=native and restart launcher selects that new executable. Final local/scenario acceptance remains 14.5–14.6.
 
 - [ ] 14.5 Complete final saved-revision SonarQube for IDE and JDTLS verification for every changed Java file and nested type.
   - Requirements: Quality — zero unresolved applicable local findings and zero new compiler/IDE warnings.
   - Verification: The full inventory, including untracked and all source-set files, links final blobs to actual completed analysis and separate diagnostics. Fix and reanalyze findings, resolve model disagreements, and confirm no unjustified exclusions/suppressions. If fixes change source after 14.1–14.4, rerun affected checks and replace invalidated JVM/native evidence before final acceptance. Historic logs and an empty Problems panel alone are insufficient.
+  - Blocked continuation: Current IDE log has only a mixed main/test zero-finding analysis with missing main classpath and unresolved-type warnings; it cannot establish final quality acceptance. The corrected PartyIdentifierFixturesTest has no current explicit Sonar/JDTLS result. Developer-collected resolved-model analysis/diagnostics for pending inventoried saved revisions are required; runtime gates 14.1–14.4 pass and remain recorded.
+  - Supplied-diagnostic continuation: Seven screenshot findings in four tests are corrected without removing assertions or suppressing rules. All 18 selected cases and focused build pass. Current logs resolve the unchanged fixture correction's zero Sonar/JDTLS evidence; the four newly corrected blobs and remaining pending inventory still require final reanalysis. See verification.md and java-inventory.md; task remains unchecked.
 
 - [ ] 14.6 Complete the scenario evidence map and architectural/public-contract review, then run `openspec validate complete-party-identifiers-contract --strict`.
   - Requirements: All 27 requirements and 87 scenarios; Quality.

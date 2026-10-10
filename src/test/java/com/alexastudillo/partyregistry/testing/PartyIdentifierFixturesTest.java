@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.contract.PartyIdentifierContractAssertion
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +30,8 @@ class PartyIdentifierFixturesTest {
 
     @Test
     void bothIndependentOwnerTypesSupportMaskedHistoricalFixtures() {
-        var json = new ObjectMapper().registerModule(new JavaTimeModule());
+        var json = new ObjectMapper().registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         var mapper = new PartyIdentifierApiMapper();
         assertNotEquals(PartyIdentifierFixtures.owner(PartyType.NATURAL_PERSON).partyId(),
                 PartyIdentifierFixtures.owner(PartyType.LEGAL_ENTITY).partyId());

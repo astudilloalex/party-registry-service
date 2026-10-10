@@ -2,6 +2,22 @@
 
 This map originally covered 27 Q/M/L requirements and 87 scenarios. The confirmed issuing-entity refinement adds one R requirement and three scenarios, for 28 requirements and 90 scenarios. Titles are copied from the approved specifications; test boundaries and task references are plans, not passing evidence. Every row starts pending. Update evidence only after the relevant saved source has executable test results and the required IDE diagnostics. Final acceptance also requires packaged/native coverage where applicable.
 
+## Section-13 implementation handoff
+
+### Final runtime acceptance update (2026-10-10)
+
+Tracking now reaches **58/60**. Tasks 14.1–14.4 pass on the delivered source after the user-authorized standalone fixture mapper correction: 1,766 full JVM tests, 34 packaged JVM tests, successful new Mandrel 25 native executable generation and 34 actual native integration tests, all with zero failures/skips. The native identifier contract suite and retained-data two-process identifier restart case execute successfully; see the final task entries in [verification.md](verification.md) and Gradle test reports. The section-13 notes below remain historical handoff context. Final per-scenario acceptance is still pending because 14.5 requires resolved-model saved-revision Sonar/JDTLS evidence, followed by 14.6 reconciliation and strict validation. Native success is now established by native execution, not inferred from JVM results.
+
+Implementation tracking is **54/60**. Accepted focused evidence through 13.4 is recorded in [verification.md](verification.md) and final saved-file revisions in [java-inventory.md](java-inventory.md). The newer developer instruction defers unavailable/nonblocking local Sonar review to final 14.5; pending diagnostics are not called passing. Native execution and complete per-scenario acceptance remain explicitly pending in 14.4–14.6. Do not interpret an old Pending table cell as absent implementation or promote it to complete native acceptance from a JVM result alone.
+
+- Query/maintenance/lifecycle routes: all eight generic DTO envelopes and actual successful public paths are pinned after the Quarkus routing correction; selected framework/body/ownership/corrupt-completion failures and actual production-budget 503 waits pass.
+- Scope/version/key arbitration: 37 observed-lock HTTP/PostgreSQL scenarios cover both Party types, same-key/default/changed-input outcomes, duplicate values, one-target versions, different-target/provisional primaries, explicit replacements and mixed correction/withdrawal races.
+- Complete acceptance/cleanup: flushed real-workflow checkpoints, statement/lock/work timeouts, cancellation/session closure, pool/key reuse and postcommit delivery recovery pass without weakened budgets.
+- Compatibility: 71 related selected regression cases include existing Party/subtype/current-identifier/nationality/catalog behavior and new last-evidence/released-uniqueness preservation.
+- Packaged JVM/native preparation: five actual packaged contract/classpath cases and one actual two-process retained-data restart case pass, including strict/chunked bodies, source schemas, signed pages, nine original create/action/primary results, exact reasons and nonduplicated events. Explicit request/decoder/response metadata is prepared; actual native build/runtime remains unexecuted.
+
+Final 14.6 must reconcile each existing requirement/scenario row with its exact final saved-file tests, local analysis and required native results. This handoff is evidence context, not a blanket completed scenario claim or an archive authorization.
+
 Sources: **Q** = [queries](specs/party-identifier-queries/spec.md), **M** = [maintenance](specs/party-identifier-maintenance/spec.md), **L** = [lifecycle](specs/party-identifier-lifecycle/spec.md). Each group heading is the exact source requirement title. Boundary abbreviations: **contract** = static OpenAPI/schema checks; **domain** = pure aggregate/policy tests; **application** = workflow/port-double tests; **API** = parser/mapper tests; **DB** = real reactive PostgreSQL tests; **HTTP** = live resource tests; **packaged/native** = actual executable integration tests. Task references use the numeric IDs in `tasks.md`.
 
 ## Q: Complete published party-identifiers contract
