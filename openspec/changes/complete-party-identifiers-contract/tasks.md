@@ -245,14 +245,17 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Runtime blocker resolved: User-authorized temporary Podman API restoration succeeds; 11 lifecycle and 10 changed PATCH tests pass, and the selected build passes. Saved-source Sonar/JDTLS acceptance remains pending for the six inventoried revisions; no full-suite/package/native acceptance is claimed.
   - Accepted continuation: Developer confirms all six requested individual Sonar/JDTLS analyses are clean. Rechecked unchanged saved blobs; the 21 passing selected cases and focused build remain valid. This supersedes the pending IDE gate; see `verification.md` and `java-inventory.md`.
 
-- [ ] 10.3 Test first and expose verify/reject/revoke through thin resources and the shared response boundary.
+- [x] 10.3 Test first and expose verify/reject/revoke through thin resources and the shared response boundary.
   - Requirements: Q: Complete published party-identifiers contract; L: Lifecycle requests follow the common boundary; L: Rejection and revocation retain safe history.
   - Verification: Live HTTP tests execute all allowed and forbidden transitions for both Party types, check exact 200/400/409/412/422 envelopes and process echoes, verify reason audit with events disabled, and prove failed operations leave flags, versions, evidence, reasons, and events unchanged.
   - Runtime green, quality pending: Seven executable missing-route failures resolve with three thin buffered-body routes, API-only syntax mapping and actual lifecycle CDI composition. Seven real HTTP cases plus seven signature/four producer checks pass (18 selected cases); focused build succeeds. Eight saved Java revisions still require actual Sonar/JDTLS acceptance; see `verification.md` and `java-inventory.md`.
+  - Accepted continuation: Developer confirms all eight requested saved-revision Sonar/JDTLS checks are clean. All blobs remain unchanged; the passing 18 selected tests and focused build are retained without rerunning unrelated tests. Proceed to 10.4.
 
-- [ ] 10.4 Add live historical lifecycle replay and cross-scope equivalence/conflict tests.
+- [x] 10.4 Add live historical lifecycle replay and cross-scope equivalence/conflict tests.
   - Requirements: L: Durable action key scope and request equivalence; L: Historical action replay survives changes and restart; Q: Trusted context and process correlation.
   - Verification: HTTP tests replay original verification after revocation and withdrawals after subsequent changes, retain original attribution while echoing the retry process, exercise exact/empty/default reason identities and changed target/version/reasons, and prove key isolation across tenants/actions/other features without duplicate audit/events.
+  - In progress, verification blocked: Six real replay/scope cases added. Five initially pass; one fixed-clock audit-order fixture error is corrected without changing production. The following selected test/build fails writing Gradle binary results (NoSuchFileException); current green evidence and both saved-file IDE analyses are still required. See `verification.md` and `java-inventory.md`.
+  - Accepted continuation: User-authorized selected retry passes all six cases and build in 3m 20s. Developer confirms clean Sonar, and independent current JDTLS reports zero for both unchanged saved blobs. The result-writing blocker is resolved by the passing retry; final restart/native evidence remains in its assigned tasks.
 
 ## 11. Primary Selection Vertical Slice
 

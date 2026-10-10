@@ -3,6 +3,8 @@ package com.alexastudillo.partyregistry.api.support;
 import com.alexastudillo.api.response.application.ApiResponseException;
 import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
 import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierPatchRequest;
+import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierPrimaryRequest;
+import com.alexastudillo.partyregistry.application.command.SetPrimaryPartyIdentifierCommand;
 import com.alexastudillo.partyregistry.application.command.PatchPartyIdentifierCommand;
 import com.alexastudillo.partyregistry.application.command.ChangePartyIdentifierLifecycleCommand;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierOperation;
@@ -94,5 +96,15 @@ public class PartyIdentifierRequestSupport {
         var version = identifierVersion(headers);
         return new ChangePartyIdentifierLifecycleCommand(metadata, partyId, identifierId, version, operation,
                 requests.optionalIdempotencyKey(headers).orElse(null), reason);
+    }
+
+    /** Maps the effective replacement choice after ordered action selector/header validation. */
+    public SetPrimaryPartyIdentifierCommand primaryCommand(RequestMetadata metadata, String party, String identifier,
+            @Nullable PartyIdentifierPrimaryRequest request, HttpHeaders headers) {
+        var partyId = requests.parsePartyId(party);
+        var identifierId = identifierId(identifier);
+        var version = identifierVersion(headers);
+        return new SetPrimaryPartyIdentifierCommand(metadata, partyId, identifierId, version,
+                requests.optionalIdempotencyKey(headers).orElse(null), request != null && request.replaceCurrentPrimary());
     }
 }

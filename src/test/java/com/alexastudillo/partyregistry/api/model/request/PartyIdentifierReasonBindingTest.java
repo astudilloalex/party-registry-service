@@ -69,5 +69,15 @@ class PartyIdentifierReasonBindingTest {
         }
     }
 
+    @Test
+    void sharedBufferedActionDecoderStillRejectsReasonsWithoutRetainingParserCauses() {
+        for (String text : List.of("null", "{} {}", "{\"reasonCode\":null}", "{\"private-unknown\":\"private-reason\"}")) {
+            byte[] body = text.getBytes(StandardCharsets.UTF_8);
+            var failure = assertThrows(ApiResponseException.class, () -> PartyIdentifierActionBodies.reasons(body, json));
+            assertEquals("bad-request", failure.getResponseCode().getCode()); assertNull(failure.getCause());
+            assertFalse(failure.toString().contains("private-reason"));
+        }
+    }
+
     private PartyIdentifierReasonRequest read(String body) throws JsonProcessingException { return json.readValue(body, PartyIdentifierReasonRequest.class); }
 }
