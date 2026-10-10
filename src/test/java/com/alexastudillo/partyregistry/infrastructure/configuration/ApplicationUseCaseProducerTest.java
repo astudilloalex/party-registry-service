@@ -13,6 +13,7 @@ import com.alexastudillo.partyregistry.application.port.PartyIdentifierFingerpri
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyIdentifierLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.SetPrimaryPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
@@ -95,5 +96,13 @@ class ApplicationUseCaseProducerTest {
                 PartyIdentifierMutationPort.class, PartyIdentifierFingerprintPort.class, OperationObservationPort.class);
         assertProducer(producer, ChangePartyIdentifierLifecycleUseCase.class);
         assertEquals(1, ChangePartyIdentifierLifecycleUseCase.class.getDeclaredConstructors().length);
+    }
+
+    @Test
+    void wiresPrimarySelectionThroughOwnedAtomicMutationAndFingerprintPorts() throws ReflectiveOperationException {
+        Method producer = ApplicationUseCaseProducer.class.getDeclaredMethod("setPrimaryPartyIdentifierUseCase",
+                PartyIdentifierMutationPort.class, PartyIdentifierFingerprintPort.class, OperationObservationPort.class);
+        assertProducer(producer, SetPrimaryPartyIdentifierUseCase.class);
+        assertEquals(1, SetPrimaryPartyIdentifierUseCase.class.getDeclaredConstructors().length);
     }
 }

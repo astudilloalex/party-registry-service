@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry.api.model.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -11,6 +12,7 @@ import java.util.UUID;
  * Represents the safe public projection of an official Party identifier.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@RegisterForReflection
 public record PartyIdentifierResponse(
         UUID identifierId,
         UUID partyId,

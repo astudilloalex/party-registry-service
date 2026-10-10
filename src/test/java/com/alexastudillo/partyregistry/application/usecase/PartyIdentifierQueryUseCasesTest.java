@@ -9,6 +9,9 @@ import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierSearchCriteria;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierSearchScope;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
+import com.alexastudillo.partyregistry.application.model.ObservedOperation;
+import com.alexastudillo.partyregistry.application.model.OperationOutcome;
+import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierCursorPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
@@ -149,6 +152,30 @@ class PartyIdentifierQueryUseCasesTest {
             assertSame(problem, failure(list.execute(harness.listQuery(null, 50))));
             assertEquals(List.of("owner", "page"), harness.calls);
         }
+    }
+
+    @Test
+    void queryObserversAreLazyAndRecordRetrievedOrNotFoundWithoutResultData() {
+        var harness = new Harness(PartyType.NATURAL_PERSON, PartyIdentifierStatus.VERIFIED);
+        var observer = new RecordingOperationObserver();
+        var get = new GetPartyIdentifierUseCase(harness.owners(), harness, observer);
+        var work = get.execute(harness.detailQuery()); assertTrue(observer.completedCalls().isEmpty());
+        item(work);
+        assertEquals(List.of(new RecordingOperationObserver.CompletedCall(harness.metadata, ObservedOperation.APPLICATION_PARTY_IDENTIFIER_RETRIEVAL, OperationOutcome.RETRIEVED)), observer.completedCalls());
+        harness.owner = Optional.empty();
+        var listingObserver = new RecordingOperationObserver();
+        failure(new ListPartyIdentifiersUseCase(harness.owners(), harness, harness, listingObserver).execute(harness.listQuery(null, 50)));
+        assertEquals(List.of(new RecordingOperationObserver.CompletedCall(harness.metadata, ObservedOperation.APPLICATION_PARTY_IDENTIFIER_LIST, OperationOutcome.NOT_FOUND)), listingObserver.completedCalls());
+    }
+
+    @Test
+    void queryCancellationHasOneBoundedTerminalObservation() {
+        var harness = new Harness(PartyType.NATURAL_PERSON, PartyIdentifierStatus.VERIFIED);
+        var observer = new RecordingOperationObserver();
+        PartyLookupPort stalled = (_, _) -> Uni.createFrom().nothing();
+        var operation = new ListPartyIdentifiersUseCase(stalled, harness, harness, observer).execute(harness.listQuery(null, 50));
+        var subscriber = operation.subscribe().withSubscriber(UniAssertSubscriber.create()); subscriber.cancel();
+        assertEquals(List.of(new RecordingOperationObserver.CompletedCall(harness.metadata, ObservedOperation.APPLICATION_PARTY_IDENTIFIER_LIST, OperationOutcome.CANCELLED)), observer.completedCalls());
     }
 
     private static <T> T item(Uni<T> work) {
