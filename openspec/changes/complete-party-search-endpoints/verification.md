@@ -295,3 +295,61 @@ Implementation is paused at task 1.5 for the unresolved Sonar test finding
 and the report-finalization failure. Obtain the Sonar Problems rule/message/
 line, and investigate the Gradle reporting failure with focused checks before
 continuing. Progress remains 4/44; no endpoint implementation is complete.
+
+### Task 1.5 accepted after user remediation
+
+The user corrected the Sonar fixture finding by extracting the serialized
+payload before the exception assertion. Its saved blob is now
+`4783579b1d05d46cdd0e5705c829d8270c49726a`. Fresh Sonar analysis completed
+at 15:25:19 with zero issues/hotspots (log lines 3495–3525). The focused
+assertion/OpenAPI command was rerun successfully in 3m 17s on this revision;
+this also verifies that focused Gradle result finalization works.
+
+Task 1.5 behavior and focused verification are complete. The earlier full-run
+report-finalization failure remains recorded for final acceptance; it does
+not invalidate the successful focused run. Future task iteration uses only
+affected tests. Per the user's direction, Sonar findings are recorded for
+parallel remediation rather than pausing implementation; final Sonar
+acceptance still requires the final saved revisions to be verified.
+
+## Task 2.1: Normalizer-only historical selector
+
+`IdentifierRuleCatalog.resolveNormalizer` resolves only the existing supported
+normalizer. The pure selector/policy provides exact and literal-prefix
+comparison, retained punctuation/accents/interior whitespace, root-locale
+normalization expansion, version identity and redacted diagnostics. Unknown
+validator keys, all scheme states, registration bounds and checksum-incomplete
+fragments do not gate search. Registration `evaluate` behavior is unchanged.
+
+Focused selector and both existing rule-catalog suites passed with
+`./gradlew test --tests '*IdentifierSearchSelectorPolicyTest' --tests '*IdentifierRuleCatalogTest' --tests '*IdentifierRuleCatalogConfigurationTest' --console=plain`
+(Podman socket and ephemeral port environment), BUILD SUCCESSFUL in 3m 34s.
+JDTLS reported zero problems for all four affected files (log lines 582–600).
+Final-source full-suite/build/native acceptance remains in section 8.
+
+## Task 2.2: Immutable queries and canonical scope
+
+Exact/prefix query records redact all selector/cursor diagnostics. Effective
+filters copy both enum sets, expand omitted dimensions, retain explicit empty
+sets, and canonicalize duplicates/order. Prefix defaults to 50 only through
+the omitted-limit constructor and validates 1..200 and nonblank bounded
+nonnull cursors. Scope contains tenant, exact scheme identity/code, selected
+normalization semantics, filters and limit; it excludes user/process and keys.
+
+Focused `IdentifierSearchQueriesTest` passed, BUILD SUCCESSFUL in 3m 56s.
+JDTLS reported zero problems for all five affected files (log lines 615–675).
+No full-suite rerun was performed during this task.
+
+## Task 2.3: Safe immutable results and precise keysets
+
+Safe hit/slice/page models retain only stored Party summary/mask fields plus
+internal precise navigation positions. Existing identifier position/boundary
+types are reused. Unsigned UUID comparison matches database tuple order,
+including nanosecond ties. Exact slices require complete counts without a
+200-row cap. Prefix metadata uses long ceiling division without overflowing
+addition, retaining totals on empty continuation; API capacity conversion
+remains a later delivery task.
+
+Focused `IdentifierSearchResultsTest` passed in 3m 22s, then again in 3m 19s
+after the user's parallel Sonar-only test refactoring. JDTLS reports zero
+problems for all six new files (log lines 690–816). No full suite was run.

@@ -45,21 +45,21 @@ Requirement references below resolve to the named requirements in the [exact spe
   - Requirements: E1, E2, E7, E8, P1, P2, P9, P10.
   - Verification: declared successes have status 200, closed safe fields, required nullable cursors and nonnull supported counts; examples cover both operations and applicable stable codes without sensitive fields.
 
-- [ ] 1.5 Add reusable test-only IdentifierSearchContractAssertions under src/contractTest/java and positive/negative schema/example fixtures.
+- [x] 1.5 Add reusable test-only IdentifierSearchContractAssertions under src/contractTest/java and positive/negative schema/example fixtures.
   - Requirements: E1, E3, E7, E8, P1, P3, P7, P9, P10.
   - Verification: focused assertion tests accept valid examples and reject unresolved references, raw-unit violations, wrong tokens/statuses, extra fields, missing metadata, status mismatches, and private material; existing validation helpers are reused where compatible.
 
 ## 2. Domain Policy and Application Contracts
 
-- [ ] 2.1 Add normalizer-only resolution and a pure identifier search selector policy without invoking registration eligibility, complete-value validation, checksum, or expiration admission.
+- [x] 2.1 Add normalizer-only resolution and a pure identifier search selector policy without invoking registration eligibility, complete-value validation, checksum, or expiration admission.
   - Requirements: E4, P4; Design: Domain search policy.
   - Verification: synchronous unit tests cover supported/unsupported normalization, complete equality versus literal prefix, whitespace/case, accents/punctuation/interior whitespace, short fragments, and case expansion; existing registration-policy tests remain valid.
 
-- [ ] 2.2 Implement immutable exact/prefix query, effective filter, and search-scope models with redacted value/cursor diagnostics.
+- [x] 2.2 Implement immutable exact/prefix query, effective filter, and search-scope models with redacted value/cursor diagnostics.
   - Requirements: E3, E5, P3, P5, P7, P8.
   - Verification: unit tests prove omitted/full-set equivalence, empty-set distinction, duplicate/order canonicalization, default limit 50, normalization identity in scope, and no raw/normalized selectors or tokens in diagnostic output.
 
-- [ ] 2.3 Implement safe search-hit, full-precision position/boundary, exact-slice, prefix-slice, and page result models with checked count/page arithmetic.
+- [x] 2.3 Implement safe search-hit, full-precision position/boundary, exact-slice, prefix-slice, and page result models with checked count/page arithmetic.
   - Requirements: E6, E7, P6, P8, P9.
   - Verification: tests prove immutable safe payloads, descending timestamp/unsigned-UUID ordering, nullable navigation, exact 0/1 page metadata, prefix ceiling division, and overflow handling; reuse existing position types only when their contract matches.
 
