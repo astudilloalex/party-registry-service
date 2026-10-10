@@ -10,6 +10,7 @@ import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierId;
 import com.alexastudillo.partyregistry.domain.model.ProtectedIdentifierValue;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
+import com.alexastudillo.partyregistry.domain.policy.IdentifierSearchSelector;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -116,21 +117,39 @@ public class JcaIdentifierProtectionAdapter implements IdentifierProtectionPort 
     String decrypt(ProtectedIdentifierValue protectedValue, IdentifierProtectionRequest context) {
         Objects.requireNonNull(protectedValue, "protectedValue");
         Objects.requireNonNull(context, "context");
-        byte[] plaintext = null;
+        return decrypt(protectedValue.encryptedValue(), new IdentifierProtectionIdentity(context.tenantId(),
+                context.partyId(), context.identifierId(), context.identifierSchemeId(),
+                protectedValue.normalizationVersion(), protectedValue.encryptionKeyVersion()));
+    }
+
+    /** Authenticates retained ciphertext and compares only internally; plaintext never leaves this matching operation. */
+    public boolean matchesPrefix(String encryptedValue, IdentifierProtectionIdentity identity, IdentifierSearchSelector selector) {
+        Objects.requireNonNull(identity, "identity");
+        Objects.requireNonNull(selector, "selector");
         try {
-            byte[][] envelope = decodeEnvelope(protectedValue.encryptedValue());
+            if (!identity.normalizationVersion().equals(selector.normalizationVersion())) {
+                throw new IllegalStateException(PROTECTION_FAILURE);
+            }
+            return selector.matchesPrefix(decrypt(encryptedValue, identity));
+        } catch (RuntimeException _) {
+            throw new IllegalStateException(PROTECTION_FAILURE);
+        }
+    }
+
+    private String decrypt(String encryptedValue, IdentifierProtectionIdentity identity) {
+        byte[] plaintext = null;
+        byte[][] envelope = null;
+        byte[] authenticationData = null;
+        try {
+            envelope = decodeEnvelope(encryptedValue);
             Cipher cipher = Cipher.getInstance(AES_GCM);
             cipher.init(
                     Cipher.DECRYPT_MODE,
-                    keyMaterial.encryptionKey(protectedValue.encryptionKeyVersion()),
+                    keyMaterial.encryptionKey(identity.encryptionKeyVersion()),
                     new GCMParameterSpec(AUTHENTICATION_TAG_LENGTH_BITS, envelope[0]));
-            cipher.updateAAD(aad(
-                    context.tenantId(),
-                    context.partyId(),
-                    context.identifierId(),
-                    context.identifierSchemeId(),
-                    protectedValue.normalizationVersion(),
-                    protectedValue.encryptionKeyVersion()));
+            authenticationData = aad(identity.tenantId(), identity.partyId(), identity.identifierId(), identity.schemeId(),
+                    identity.normalizationVersion(), identity.encryptionKeyVersion());
+            cipher.updateAAD(authenticationData);
             plaintext = cipher.doFinal(envelope[1]);
             return decodeUtf8(plaintext);
         } catch (GeneralSecurityException | CharacterCodingException | RuntimeException _) {
@@ -138,6 +157,14 @@ public class JcaIdentifierProtectionAdapter implements IdentifierProtectionPort 
         } finally {
             if (plaintext != null) {
                 Arrays.fill(plaintext, (byte) 0);
+            }
+            if (authenticationData != null) {
+                Arrays.fill(authenticationData, (byte) 0);
+            }
+            if (envelope != null) {
+                for (byte[] component : envelope) {
+                    Arrays.fill(component, (byte) 0);
+                }
             }
         }
     }

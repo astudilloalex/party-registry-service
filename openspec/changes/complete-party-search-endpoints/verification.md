@@ -380,3 +380,34 @@ Focused `JcaIdentifierProtectionAdapterTest` passed, BUILD SUCCESSFUL in
 3m 56s, covering new lookup compatibility/tenant/unpaired-surrogate cases
 and existing registration/encryption/AAD/mask/rotation behavior. Both
 modified files have zero JDTLS problems (log lines 1179–1185).
+
+## Task 3.2: Authenticated identity-only internal matching
+
+`IdentifierProtectionIdentity` contains actual owner IDs and stored protection
+versions with redacted diagnostics. Internal prefix matching reuses the
+existing AES-GCM implementation/AAD format and retained encryption keys;
+it returns only a boolean and never a plaintext Application result. The
+registration decrypt helper delegates to that same implementation without
+altering persisted bytes. Required unusable versions/keys/AAD/tags fail with
+fixed diagnostics and no sensitive cause. Plaintext byte arrays are cleared
+in finally along with detached envelope/AAD buffers.
+
+Focused cryptographic regression suite passed, BUILD SUCCESSFUL in 3m 42s.
+New tests exercise retained ciphertext, literal matching, every identity/AAD
+dimension, unsupported stored normalization, missing retained key, corruption
+and redaction. JDTLS reports zero problems for all three affected files.
+
+## Task 3.3: Keyed resource-specific search cursors
+
+The search cursor adapter uses distinct token/scope HMAC domains and the
+existing signing ring. Sensitive scope is keyed with the token's verification
+key, including retained old keys; no unkeyed prefix digest or selector text
+is published. Exact UTF-16 scope units stream into the MAC without a retained
+plaintext byte buffer. Bounded canonical parsing validates direction, full
+timestamp/UUID precision, scope and limit with constant-time MAC/digest checks.
+
+Focused `HmacIdentifierSearchCursorAdapterTest` passed, BUILD SUCCESSFUL in
+3m 53s. It covers both directions, equivalent status sets/normalized inputs,
+every scope dimension, resource isolation, malformed/tampered tokens,
+authenticated impossible fields, key rotation and the 64-character key-ID
+token bound. Both files have zero JDTLS problems (log lines 1296–1326).

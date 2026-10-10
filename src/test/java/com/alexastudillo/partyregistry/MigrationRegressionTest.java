@@ -71,6 +71,7 @@ class MigrationRegressionTest {
                 Map.entry("6", "db/migration/V6__add_nationality_listing_order_index.sql"),
                 Map.entry("7", "db/migration/V7__add_identifier_scheme_management.sql"),
                 Map.entry("8", "db/migration/V8__add_party_identifier_contract_support.sql"),
+                Map.entry("9", "db/migration/V9__add_identifier_search_order_index.sql"),
                 Map.entry("1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql"),
                 Map.entry("1004", "db/test-migration/V1004__seed_identifier_scheme_http_boundaries.sql"),
                 Map.entry("1005", "db/test-migration/V1005__seed_scheme_historical_party_evidence.sql")),
