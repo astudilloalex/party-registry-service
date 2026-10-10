@@ -259,9 +259,10 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
 
 ## 11. Primary Selection Vertical Slice
 
-- [ ] 11.1 Test first and implement strict optional replacement-body decoding and effective-default mapping.
+- [x] 11.1 Test first and implement strict optional replacement-body decoding and effective-default mapping.
   - Requirements: M: Strict primary-selection input and eligibility; L: Durable action key scope and request equivalence.
   - Verification: Tests equate absent body/object/property and explicit false, distinguish true, and reject literal/property null, duplicate/unknown properties, coercion, and trailing content. Action syntax follows body→Party→identifier→If-Match→key.
+  - Evidence: Compile-red followed by five executable binding/mapping failures resolves with native-registered strict replacement decoding, actual-zero-byte defaults and ordered command mapping. Six primary and six changed reason-binding checks pass with focused build; all six saved Java revisions have full resolved-model zero Sonar and independent zero JDTLS diagnostics. See `verification.md` and `java-inventory.md`.
 
 - [ ] 11.2 Test first and implement primary-selection orchestration with a validated Domain replacement plan and replay.
   - Requirements: M: Scoped atomic primary ownership; M: Identifier-version preconditions and exhaustion; L: Historical action replay survives changes and restart.

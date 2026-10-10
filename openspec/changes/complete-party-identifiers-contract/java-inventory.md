@@ -614,3 +614,16 @@ No production Java changed. Both files compile; the selected post-fixture-correc
 ### Task 10.4 final accepted evidence
 
 Both blobs remain unchanged. Six actual HTTP cases and focused build pass in 3m 20s after the developer-authorized retry. Developer confirms no Sonar warnings for both requested saved files; no local Sonar timestamp is fabricated. Independent JDTLS reports zero for the replay test at 2026-10-09 20:04:04.565 (current `.metadata/.log:2085–2097`) and producer at 20:04:06.013 (2147–2154). These results supersede the pending cells; task 10.4 is accepted. Plugin test-discovery errors remain separately recorded in `verification.md`.
+
+## Task 11.1 final saved revisions: runtime and local quality accepted
+
+S4 is the active `~/.config/Antigravity IDE/logs/20261009T184627/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log`; J2 is the existing project `.metadata/.log`. Each S4 range is full individual resolved-model Java 25/571-rule analysis with zero issues/Hotspots, and every J2 range reports zero source problems. Twelve selected binding/mapping/regression tests and focused build pass. No blanket suppression, configuration or rule change is introduced.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S4 range | JDTLS completion / J2 range |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierPrimaryRequest.java`; record | `9eb614ec75e9bad213dcc3588d36c40ccb3530fc` | 2026-10-09 20:21:01.402 / 1536–1566 / zero | 20:21:01.412 / 2261–2274 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierPrimaryRequestDeserializer.java`; class | `d220d6942a4ea92e1bada927b0aea4831733575c` | 20:21:00.052 / 1505–1535 / zero | 20:20:59.766 / 2246–2259 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierActionBodies.java`; class | `f78bb5906e029e7cd70997b9443a6322279af520` | 20:20:58.324 / 1474–1504 / zero | 20:20:58.556 / 2231–2244 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRequestSupport.java`; class | `adbc0e7d840b6d687b3a7f1d8306c54bd676ab57` | 20:20:57.093 / 1443–1473 / zero | 20:20:57.357 / 2216–2229 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierPrimaryBindingTest.java`; class, Headers | `5882641af2df76d2e8e4371c00503b8a229deaec` | 20:20:55.902 / 1412–1442 / zero | 20:20:56.261 / 2201–2214 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierReasonBindingTest.java`; class | `91991881e3785b0d184baf3b17c42e22cbe40592` | 20:20:54.329 / 1381–1411 / zero | 20:20:54.838 / 2186–2199 / zero |
