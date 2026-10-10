@@ -488,3 +488,83 @@ The runtime/type blockers are resolved autonomously. Task 4.2 remains
 unchecked because its complete read-port adapter and remaining lifecycle/
 snapshot verification are still implementation work, not because of these
 fixed failures. Progress remains 13/44.
+
+## Reactive read implementation: tasks 4.2–4.7
+
+The read-port adapter now uses the guarded operation owner for both exact and
+prefix queries. Scheme lookup and scalar queries share one read-only repeatable
+read session; per-subscription, closed-context, concurrent-query, cancellation,
+pool-exhaustion/late-allocation reuse and statement/operation deadline tests
+pass. A coordinated writer changes a scheme during a callback; the callback
+retains its original view and the next request sees the changed value.
+
+Qualified bound joins include both identifier and Party tenant ownership,
+scheme and effective states. Exact count precedes complete safe projections,
+with checked count capacity and no decryption/deduplication/page cap. A real
+201-hit fixture shares one Party and intentionally corrupts ciphertext after
+protection, proving exact results do not require decryption. Timestamp ties
+retain stored microsecond precision and unsigned UUID order.
+
+Prefix projections contain at most 256 detached candidates and advance strict
+timestamp/UUID keysets using the last candidate, not the last match. A 520-row
+protected fixture includes an initial nonmatching batch; totals/navigation
+remain complete. A tied-timestamp multi-batch fixture verifies precision and
+UUID keysets. Status filtering excludes corrupted candidates before decrypt;
+required corrupted candidates fail with sanitized internal diagnostics, and
+a subsequent read reuses the session successfully.
+
+CPU dispatch owns positive fixed workers and a bounded rejecting queue, never
+caller-thread fallback. Tests verify actual worker thread identity, emission
+on the identical originating context, typed saturation, queued cancellation,
+discarded late result and subsequent admission. Application/session/request
+objects are not accessed by the detached matching worker. Defaults are two
+workers and 32 queued batches.
+
+The pure accumulator counts with checked long increments, retaining only
+the requested page plus extrema. Its 10,000-hit fixture, forward/backward
+nearest-page cases and disappeared/empty-boundary cases pass. Prefix traversal
+repeats terminated batch operations and collects only the last Boolean step,
+avoiding recursively retained previous candidate pipelines.
+
+Focused combined read/session/CPU/accumulator command: BUILD SUCCESSFUL in
+4m 20s. Follow-up adapter/CPU tests after precision, corruption and filtering
+cases: BUILD SUCCESSFUL in 3m 51s. JDTLS reports zero problems for all new
+SQL, adapter, accumulator, dispatcher and corresponding test files. The first
+CPU saturation fixture incorrectly resumed its barrier on the worker; that
+test-only context handoff was corrected before the successful runs. No full
+suite was executed during this work; HTTP/native/observability/performance
+acceptance remains in the later tracked tasks.
+
+## Application search orchestration: tasks 5.1–5.2
+
+Exact and prefix use cases resolve the exact scheme and supported normalizer
+inside the composed read before selecting historical matches. Exact results
+remain complete with null directions and 0/1 page metadata. Prefix authenticates
+scope after normalization, including empty filters, and signs only available
+navigation after the read has closed. No registration/admission, HTTP, CDI,
+persistence or cryptographic implementation dependencies enter Application.
+
+Focused use-case tests passed, BUILD SUCCESSFUL in 3m 26s, covering 201 exact
+hits, empty results, unknown/unsupported scheme precedence, canonical scope,
+changed empty filters, invalid cursors and exact page metadata. An initial
+test failure exposed that the registration-specific failure translator does
+not classify unsupported search normalization as the declared 422 failure;
+translation is now limited to selector evaluation, preserving unexpected
+stored-data failures. JDTLS reports zero problems for both use cases and the
+test file. No full-suite iteration was performed.
+
+## Task 5.3: Strict search wire binding
+
+Separate exact/prefix records and token-aware deserializers accept only declared
+properties, reject duplicates/trailing content/coercion/null state arrays and
+invalid enum tokens, and enforce raw UTF-16 bounds. Only integer JSON tokens
+in 1..200 are accepted for supplied limits; overflow is compared before
+narrowing. Missing limit defaults to 50; null cursor is an initial page while
+blank cursor fails. Request diagnostics are redacted. Actual DTO/deserializer
+classes carry native registrations.
+
+The search-specific reader interceptor discards parser diagnostics/causes and
+delegates envelope creation to the published global module; it does not overlap
+global mapping or success wrapping. Focused binding tests passed, BUILD
+SUCCESSFUL in 3m 38s; all seven affected Java files have zero JDTLS problems.
+Real HTTP missing/null body mapping and native execution remain separate tasks.

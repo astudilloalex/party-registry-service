@@ -7,6 +7,9 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.vertx.RunOnVertxContext;
 import io.quarkus.test.vertx.UniAsserter;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import io.vertx.core.Vertx;
 import jakarta.inject.Inject;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -77,6 +81,40 @@ class IdentifierSearchReadSessionTest {
     private IdentifierSearchReadSession shortReads() {
         return new IdentifierSearchReadSession(sessions, schemes,
                 new TestDeadlines(Duration.ofMillis(200), Duration.ofMillis(300)));
+    }
+
+    @Test
+    @RunOnVertxContext
+    void cancellationReleasesTheOwnedSessionAndRejectsEscapedWork(UniAsserter asserter) {
+        var entered = new CompletableFuture<Void>();
+        var escaped = new AtomicReference<IdentifierSearchReadSession.ReadView>();
+        var subscriber = new AtomicReference<UniAssertSubscriber<Void>>();
+        var origin = Vertx.currentContext();
+        asserter.execute(() -> subscriber.set(reads.read(view -> {
+            escaped.set(view);
+            return view.query(session -> {
+                entered.complete(null);
+                return Uni.createFrom().<Void>nothing();
+            });
+        }).subscribe().withSubscriber(UniAssertSubscriber.create())));
+        asserter.execute(() -> Uni.createFrom().completionStage(entered)
+                .emitOn(command -> origin.runOnContext(ignored -> command.run())));
+        asserter.execute(() -> subscriber.get().cancel());
+        asserter.assertEquals(() -> reads.read(view -> view.findSchemeByCode("EC_NATIONAL_ID").map(java.util.Optional::isPresent))
+                .ifNoItem().after(Duration.ofSeconds(3)).fail(), true);
+        asserter.assertFailedWith(() -> escaped.get().findSchemeByCode("EC_NATIONAL_ID"), IllegalStateException.class);
+    }
+
+    @Test
+    @RunOnVertxContext
+    void rejectsConcurrentQueriesAndCreatesFreshStateOnEachSubscription(UniAsserter asserter) {
+        asserter.assertFailedWith(() -> reads.read(view -> Uni.combine().all().unis(
+                view.query(session -> Uni.createFrom().<String>nothing()), view.findSchemeByCode("EC_NATIONAL_ID")).asTuple()),
+                IllegalStateException.class);
+        var visits = new AtomicInteger();
+        Uni<Integer> repeated = reads.read(view -> view.findSchemeByCode("EC_NATIONAL_ID").map(scheme -> visits.incrementAndGet()));
+        asserter.assertEquals(() -> repeated, 1);
+        asserter.assertEquals(() -> repeated, 2);
     }
 
     /** Applies short finite budgets only to cases that deliberately provoke unavailability. */

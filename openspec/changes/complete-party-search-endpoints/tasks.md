@@ -87,41 +87,41 @@ Requirement references below resolve to the named requirements in the [exact spe
   - Requirements: P6, P8, P9; Design: Prefix candidates and ordering index.
   - Verification: Flyway applies the additive index to an isolated database, migration/catalog assertions pass, and previously applied migrations and stored protected values remain intact.
 
-- [ ] 4.2 Implement the read-port adapter and guarded per-subscription context with exact scheme resolution in one read-only repeatable-read session and a finite subscription-to-completion budget.
+- [x] 4.2 Implement the read-port adapter and guarded per-subscription context with exact scheme resolution in one read-only repeatable-read session and a finite subscription-to-completion budget.
   - Requirements: E4, E6, E8, P3, P4, P9, P10.
   - Verification: reactive tests prove same-view scheme access, finite acquisition plus remaining transaction deadlines, sequential session ownership, rejection of context use after completion, and cleanup on success/failure/cancellation.
 
-- [ ] 4.3 Implement tenant/Party-qualified exact count and full safe-hit projections using the existing lookup index and effective status sets.
+- [x] 4.3 Implement tenant/Party-qualified exact count and full safe-hit projections using the existing lookup index and effective status sets.
   - Requirements: E4, E5, E6, E7, E8.
   - Verification: real database tests return all eligible historical hits, preserve timestamp/UUID order and same-view counts, exclude foreign records, short-circuit empty sets after preceding validation, and avoid decryption, first-result selection, Party deduplication, or page caps.
 
-- [ ] 4.4 Implement lifecycle-owned bounded CPU dispatch for detached batches, rejecting admission, cancellation handling, and return to the captured originating Vert.x context.
+- [x] 4.4 Implement lifecycle-owned bounded CPU dispatch for detached batches, rejecting admission, cancellation handling, and return to the captured originating Vert.x context.
   - Requirements: P4, P9, P10; Design: Prefix search and CPU/session boundary, Resilience.
   - Verification: dispatcher tests prove finite configured worker/queue capacity, one outstanding batch per request, typed rejection, discarded late completion, resource cleanup, and no session/request-scoped bean access or caller-thread fallback on workers.
 
-- [ ] 4.5 Implement bound, joined prefix candidate projections and strict descending keyset traversal in batches of at most 256, filtering tenant/scheme/states before decryption.
+- [x] 4.5 Implement bound, joined prefix candidate projections and strict descending keyset traversal in batches of at most 256, filtering tenant/scheme/states before decryption.
   - Requirements: P4, P5, P6, P7, P9.
   - Verification: database tests prove qualified joins, full stored precision, unsigned UUID ties, bounded projections, candidate-boundary advancement across nonmatching batches, and exclusion of unrelated ciphertext without per-hit enrichment queries.
 
-- [ ] 4.6 Implement the pure bounded prefix-page accumulator with complete long totals, nearest previous-page selection, and real neighbor availability.
+- [x] 4.6 Implement the pure bounded prefix-page accumulator with complete long totals, nearest previous-page selection, and real neighbor availability.
   - Requirements: P6, P7, P8, P9.
   - Verification: large-fixture tests prove page retention never exceeds the effective limit, complete counting, first/next/previous order, disappeared boundaries, empty continuation, and zero-global-match metadata without retaining all matching hits.
 
-- [ ] 4.7 Compose qualified candidate fetching, detached authenticated matching, original-context resumption, and accumulation into the prefix read operation with typed failure translation.
+- [x] 4.7 Compose qualified candidate fetching, detached authenticated matching, original-context resumption, and accumulation into the prefix read operation with typed failure translation.
   - Requirements: P4, P5, P6, P8, P9, P10.
   - Verification: reactive adapter tests produce correct complete totals and bounded pages over several batches; all database calls stay sequential on the originating context, required corrupt candidates fail safely, and no partial success or indefinite retry occurs.
 
 ## 5. Use Cases and Explicit HTTP Delivery
 
-- [ ] 5.1 Implement SearchPartiesByIdentifierUseCase with same-view scheme lookup, supported normalization, complete historical matching, neutral failures, and exact-result metadata.
+- [x] 5.1 Implement SearchPartiesByIdentifierUseCase with same-view scheme lookup, supported normalization, complete historical matching, neutral failures, and exact-result metadata.
   - Requirements: E4, E5, E6, E7, E8.
   - Verification: port-double tests cover scheme/normalization precedence, empty filters, no matches, more than 200 hits, exact counts/null cursors, and absence of registration or mutation behavior.
 
-- [ ] 5.2 Implement SearchPartiesByIdentifierPrefixUseCase with canonical scope, cursor validation after scheme/normalization, safe page assembly, and available cursor encoding.
+- [x] 5.2 Implement SearchPartiesByIdentifierPrefixUseCase with canonical scope, cursor validation after scheme/normalization, safe page assembly, and available cursor encoding.
   - Requirements: P3, P4, P5, P7, P8, P9, P10.
   - Verification: tests prove unknown scheme precedes altered-token failure, equivalent scopes continue, empty filters still validate supplied tokens, changed scope rejects, and totals/navigation follow the safe slice with checked arithmetic.
 
-- [ ] 5.3 Implement separate strict exact/prefix request models and token-aware decoders with a search-specific binding translator and native registrations.
+- [x] 5.3 Implement separate strict exact/prefix request models and token-aware decoders with a search-specific binding translator and native registrations.
   - Requirements: E3, P3, P5, P7.
   - Verification: decoder tests reject malformed/trailing/duplicate/unknown/wrong-type input, null or invalid state arrays/items, oversized raw text, and invalid integer limits; body/cursor absence versus null follows the declared contract and diagnostics redact submitted values.
 
