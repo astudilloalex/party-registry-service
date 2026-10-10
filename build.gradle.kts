@@ -16,9 +16,9 @@ repositories {
     }
 }
 
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
+val quarkusPlatformGroupId = providers.gradleProperty("quarkusPlatformGroupId").get()
+val quarkusPlatformArtifactId = providers.gradleProperty("quarkusPlatformArtifactId").get()
+val quarkusPlatformVersion = providers.gradleProperty("quarkusPlatformVersion").get()
 val archUnitVersion = "1.5.0"
 val swaggerParserVersion = "2.1.47"
 

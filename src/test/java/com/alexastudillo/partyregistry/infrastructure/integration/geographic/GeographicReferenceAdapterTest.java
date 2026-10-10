@@ -78,7 +78,8 @@ class GeographicReferenceAdapterTest {
         assertEquals(metricCount + 1, callCount(meterRegistry, "recognized"));
         String traceparent = GeographicReferenceStubResource.traceparent("EC");
         assertNotNull(traceparent);
-        assertTrue(traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]"));
+        // W3C Trace Context Level 2 permits the random-trace-id flag alongside the sampled flag.
+        assertTrue(traceparent.matches("00-[0-9a-f]{32}-[0-9a-f]{16}-0[0-3]"), traceparent);
     }
 
     @Test

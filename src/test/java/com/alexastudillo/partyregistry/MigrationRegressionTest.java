@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
@@ -531,9 +533,8 @@ class MigrationRegressionTest {
     @Test
     void keepsHibernateSchemaGenerationDisabled() throws IOException {
         Properties properties = new Properties();
-        try (InputStream configuration = MigrationRegressionTest.class.getResourceAsStream(
-                "/application.properties")) {
-            assertNotNull(configuration);
+        // Keep schema-policy assertions independent of profile resources exposed by the test classloader.
+        try (InputStream configuration = Files.newInputStream(Path.of("src/main/resources/application.properties"))) {
             properties.load(configuration);
         }
 
