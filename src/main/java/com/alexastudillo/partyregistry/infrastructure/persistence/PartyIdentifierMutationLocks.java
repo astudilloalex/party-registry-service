@@ -1,7 +1,9 @@
 package com.alexastudillo.partyregistry.infrastructure.persistence;
 
 import io.smallrye.mutiny.Uni;
+import com.alexastudillo.partyregistry.infrastructure.observability.PartyPersistenceObservability;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.hibernate.reactive.mutiny.Mutiny;
 
 import java.io.ByteArrayOutputStream;
@@ -22,23 +24,38 @@ public class PartyIdentifierMutationLocks {
     static final int SCOPE_NAMESPACE = 0x50495343;
     private final ToIntFunction<PartyIdentifierIdempotencyRecordId> replayIdentity;
     private final ToIntFunction<Scope> scopeIdentity;
+    private final PartyPersistenceObservability observation;
 
     /** Uses bounded lock hashes only for serialization; full persisted identities still determine ownership and replay. */
     public PartyIdentifierMutationLocks() {
-        this(PartyIdentifierMutationLocks::replayLockId, PartyIdentifierMutationLocks::scopeLockId);
+        this(PartyIdentifierMutationLocks::replayLockId, PartyIdentifierMutationLocks::scopeLockId, null);
+    }
+
+    /** Composes managed bounded wait measurement without exposing lock identities to telemetry. */
+    @Inject
+    public PartyIdentifierMutationLocks(PartyPersistenceObservability observation) {
+        this(PartyIdentifierMutationLocks::replayLockId, PartyIdentifierMutationLocks::scopeLockId, Objects.requireNonNull(observation, "observation"));
     }
 
     PartyIdentifierMutationLocks(ToIntFunction<PartyIdentifierIdempotencyRecordId> replayIdentity, ToIntFunction<Scope> scopeIdentity) {
+        this(replayIdentity, scopeIdentity, null);
+    }
+
+    private PartyIdentifierMutationLocks(ToIntFunction<PartyIdentifierIdempotencyRecordId> replayIdentity,
+            ToIntFunction<Scope> scopeIdentity, PartyPersistenceObservability observation) {
         this.replayIdentity = Objects.requireNonNull(replayIdentity, "replayIdentity");
         this.scopeIdentity = Objects.requireNonNull(scopeIdentity, "scopeIdentity");
+        this.observation = observation;
     }
 
     Uni<Void> serializeReplayKey(Mutiny.Session session, PartyIdentifierIdempotencyRecordId identity) {
-        return lock(session, REPLAY_NAMESPACE, replayIdentity.applyAsInt(identity));
+        return observation == null ? lock(session, REPLAY_NAMESPACE, replayIdentity.applyAsInt(identity))
+                : observation.observeIdentifierWait(true, () -> lock(session, REPLAY_NAMESPACE, replayIdentity.applyAsInt(identity)));
     }
 
     Uni<Void> serializeScope(Mutiny.Session session, Scope scope) {
-        return lock(session, SCOPE_NAMESPACE, scopeIdentity.applyAsInt(scope));
+        return observation == null ? lock(session, SCOPE_NAMESPACE, scopeIdentity.applyAsInt(scope))
+                : observation.observeIdentifierWait(false, () -> lock(session, SCOPE_NAMESPACE, scopeIdentity.applyAsInt(scope)));
     }
 
     private static Uni<Void> lock(Mutiny.Session session, int namespace, int identity) {

@@ -627,3 +627,108 @@ S4 is the active `~/.config/Antigravity IDE/logs/20261009T184627/window1/exthost
 | `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRequestSupport.java`; class | `adbc0e7d840b6d687b3a7f1d8306c54bd676ab57` | 20:20:57.093 / 1443–1473 / zero | 20:20:57.357 / 2216–2229 / zero |
 | `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierPrimaryBindingTest.java`; class, Headers | `5882641af2df76d2e8e4371c00503b8a229deaec` | 20:20:55.902 / 1412–1442 / zero | 20:20:56.261 / 2201–2214 / zero |
 | `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierReasonBindingTest.java`; class | `91991881e3785b0d184baf3b17c42e22cbe40592` | 20:20:54.329 / 1381–1411 / zero | 20:20:54.838 / 2186–2199 / zero |
+
+## Task 11.2 saved revisions: eight workflow checks/build green, local analyses pending
+
+Both files compile and the eight selected Application tests plus focused build pass. No actual analysis of these new types appears in current S4/J2 logs; complete saved-revision Sonar and separate JDTLS acceptance remains pending. Javadoc includes Harness/CountingClock, and Month-derived fixtures retain one operation instant. No suppression/rule/settings change or HTTP/persistence framework coupling is introduced.
+
+| Path relative to src / types | Saved Git blob | Sonar / JDTLS acceptance |
+|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/usecase/SetPrimaryPartyIdentifierUseCase.java`; class | `cfb189c0dfcb7004e1c62f7d8430c6e7f5a7621d` | Pending / Pending |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/SetPrimaryPartyIdentifierUseCaseTest.java`; class, Harness, CountingClock | `96854ecdcbc18aeea08e46af36542ce51cc88115` | Pending / Pending |
+
+### Task 11.2 final developer-confirmed saved-file checks
+
+**"Si todo bien"** confirms completed clean Sonar/JDTLS checks on both requested saved revisions. Both blobs above remain unchanged; these checks supersede their pending cells without inventing local log timestamps. The passing eight selected cases and focused build remain valid. Task 11.2 is accepted.
+
+## Task 11.3 saved revisions: runtime green, final quality review scheduled
+
+The developer explicitly defers unavailable/nonblocking Sonar findings until final task 14.5; no pending analysis is represented as passing. All seven revisions compile; 21 selected HTTP/signature/composition checks and focused build pass. Javadoc covers Fixture/PrimaryProfile and every class, and dates derive from Month-based fixtures. Review current diagnostics when available and retain missing per-file evidence for final acceptance.
+
+| Path relative to src / types | Saved Git blob | Final Sonar/JDTLS review |
+|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierResource.java`; class | `73180bf88da1eac0da5886673c632ebb9a7a0823` | Pending |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPrimaryOperations.java`; class | `449d449d0f1f67b5401cd78d579f6d228fa268a5` | Pending |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducer.java`; class | `e26dbca54c5b64144e896a9d134908eec37078ac` | Pending |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierPrimaryResourceContractTest.java`; class, Fixture, PrimaryProfile | `eae3b95139ed575ff239894284200cbfc3873ba7` | Pending |
+| `test/java/com/alexastudillo/partyregistry/support/FixedPartyIdentifierPrimaryProducer.java`; class | `641e374d3f40ab3d6cba3c98c0bf3208f0c6d0dd` | Pending |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyResourceSignatureTest.java`; class | `dab7e2bb1731c04f5221e4f35392f55f3d6e5138` | Pending |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducerTest.java`; class | `97269fcd5e490cab34286fc171421c88525c0433` | Pending |
+
+## Task 12.1 coordinated race revision
+
+`test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierHttpConcurrencyTest.java` (class, Owner, Gate, ConcurrencyProfile), blob `399419a0ad3637c66bb9e27090155a8a160e4990`: four selected cases covering 26 observed-lock HTTP/PostgreSQL scenarios and focused build pass. No compiler warnings or production changes. Final saved-revision Sonar/JDTLS review remains pending under the developer's task-14.5 schedule; this is not a zero-analysis claim.
+
+### Task 12.2 final coordinated class revision
+
+Blob `34c22748c96221d1b50ddc5969eba74ebe4ceeed` supersedes the task-12.1 class blob above. Eight selected methods / 37 real coordinated scenarios and focused build pass in 4m 8s; no production changes or new compiler warnings. Owner/Gate/ConcurrencyProfile retain responsibility Javadoc. Final local analysis remains pending for 14.5 under the developer scheduling decision.
+
+## Task 12.3 actual workflow resilience revisions
+
+Six selected actual-workflow cases and focused build pass in 4m 45s. No production source changed; configured budgets, assertions and log visibility remain intact. Current saved-revision Sonar/JDTLS review is retained for final 14.5, not called passing.
+
+| Path relative to src / types | Saved Git blob | Final local review |
+|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierFaultPort.java`; class, Phase, Mode, Probe, FaultWrites, FaultEffects | `4d88b712f8eda4b128b060c722a48eb64a98d913` | Pending |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierWorkflowResilienceTest.java`; class, Owner, ResilienceProfile | `3e91ed9c9e70bb25c966961df787c921384e1550` | Pending |
+
+## Task 12.4 framework test revision: runtime contract blocker
+
+`test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierFrameworkContractTest.java` (class, Fixture, FrameworkProfile), saved blob `ebe0a654aaf1f83a5c4b9402aeea7db8747eed70`: compilation succeeds; four of five selected actual HTTP cases pass, but unsupported collection PUT returns 404 instead of the required 405. Task/build acceptance is incomplete for this runtime-contract reason. Final Sonar/JDTLS evidence remains pending under the developer's nonblocking analysis schedule; no quality success is invented. Javadoc covers all types and fixture times derive from the Month-based fixed clock.
+
+### Task 12.4 accepted routing correction revisions
+
+These supersede the prior resource/signature/framework blobs. Fifteen selected HTTP/signature checks and focused build pass in 4m 22s; exact public URLs/envelopes and framework 405/415 are preserved. Final saved-file local analysis remains scheduled for 14.5, without a fabricated success claim.
+
+| Path relative to src / types | Saved Git blob | Final local review |
+|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierResource.java`; class | `ab8d18fb14e405b9f87738393d8844726fa1fe76` | Pending |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyResourceSignatureTest.java`; class | `26e799337218ae789765560bdd6dce8316985354` | Pending |
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierFrameworkContractTest.java`; class, Fixture, FrameworkProfile | `53fefaf8676d26933e4cac86dd4839326e9e8f76` | Pending |
+
+## Task 12.5 final telemetry revisions
+
+Nineteen selected observation/query/HTTP cases and focused build pass in 5m. All source boundaries remain inward; the original filter/format owns logging and successful responses remain typed. Final Sonar/JDTLS checks are scheduled in 14.5, without treating pending analysis as passing.
+
+| Path relative to src / types | Saved Git blob | Final local review |
+|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/context/RequestMetadataContext.java`; class | `9241d67a9842b43d6ddaee1c71208c0e05d76996` | Pending |
+| `main/java/com/alexastudillo/partyregistry/api/filter/RequestContextFilter.java`; class | `fe82d27cc6fbcf460f01ea9ec9603d3e40456ab1` | Pending |
+| `main/java/com/alexastudillo/partyregistry/api/observability/PartyHttpObservability.java`; class | `e30e6731800871c011bc019aea9b4191a4001df6` | Pending |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierRegistrationOperations.java`; class | `46703542d98d51c320c030f82295958be1c56ffd` | Pending |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPatchOperations.java`; class | `6176c3284ca4c10b1b44bb9c4c0c0c275156fa0b` | Pending |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierLifecycleOperations.java`; class | `02bf7a039b64b5bbef81ebf42f43e67a1707cf9c` | Pending |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierPrimaryOperations.java`; class | `187e501ecbab1a4231f721a50a5480ffbc22fb4a` | Pending |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/GetPartyIdentifierUseCase.java`; class | `89ce60b5036b661cfd307662aa4ba39a1956cb1b` | Pending |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/ListPartyIdentifiersUseCase.java`; class | `ccd3c8419ec50e5299507dc30f6a41628108d5f5` | Pending |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducer.java`; class | `13917d194f4d5f233ec313c0ed67241e3d10d483` | Pending |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/observability/PartyPersistenceObservability.java`; class, ScanStatistics | `f4a3ecb280958b47ba86e2a6472f029484df233f` | Pending |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/PartyIdentifierMutationLocks.java`; class, Scope | `3850670773512778ad156cbfe400dcbdaf38f560` | Pending |
+| `main/java/com/alexastudillo/partyregistry/infrastructure/persistence/HibernateReactivePartyIdentifierQueryAdapter.java`; class | `8200746e06eff8208171f9f6d7e132d62a3c9414` | Pending |
+| `test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierHttpObservabilityTest.java`; class | `3ef380fc65a6e1036e194a9520e6efe0aaf3116a` | Pending |
+| `test/java/com/alexastudillo/partyregistry/infrastructure/observability/PartyIdentifierPersistenceObservationTest.java`; class | `23719a089b1ae5fa820d8a5287757c002a5ab80d` | Pending |
+| `test/java/com/alexastudillo/partyregistry/api/observability/PartyIdentifierTelemetryContractTest.java`; class, Fixture, TelemetryProfile | `8e17f480f766e6a8d8fb29f8085efff4fa995c42` | Pending |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/PartyIdentifierQueryUseCasesTest.java`; class, Harness | `9f7a4fb2054ed451e2d5a08f4b70ad5c2f2257a5` | Pending |
+
+## Task 12.6 new compatibility revisions
+
+Seventy-one related selected compatibility cases and focused build pass in 7m 31s, without production policy/schema changes. Existing unchanged regression files retain their source identities; these two added test revisions require final local analysis under the 14.5 schedule.
+
+| Path relative to src / types | Saved Git blob | Final local review |
+|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierCompatibilityContractTest.java`; class, Fixture, CompatibilityProfile | `a795840242bd5b0b302d01e862ef0219ada4e146` | Pending |
+| `test/java/com/alexastudillo/partyregistry/support/FixedIdentifierEvidencePartyProducer.java`; class | `57bfb396b69908db816b0705d59999430779aedb` | Pending |
+
+## Task 13.1 shared/package revisions
+
+Four selected assertion tests/build and four actual packaged JVM tests pass. Unit CDI sources remain excluded from packaged/native runtime classpaths. Final local analysis is scheduled in 14.5; no native success is inferred.
+
+| Path relative to src / types | Saved Git blob | Final local review |
+|---|---|---|
+| `contractTest/java/com/alexastudillo/partyregistry/contract/PartyIdentifierContractAssertions.java`; class | `68b7356113f1c5798440d2b4cdaacca6e3df02d7` | Pending |
+| `test/java/com/alexastudillo/partyregistry/contract/PartyIdentifierContractAssertionsTest.java`; class | `201c220f2e26299d3a8ff88f68d9136e1e72fac2` | Pending |
+| `integrationTest/java/com/alexastudillo/partyregistry/PackagedPartyIdentifierContractIT.java`; class, Context | `55a8f51a399da2b01fb9232cc3c80b34748edcf4` | Pending |
+
+## Task 13.2 retained-data restart revision
+
+`integrationTest/java/com/alexastudillo/partyregistry/PartyLifecycleRestartIT.java` (class, existing SavedResult/RunningApplication and added IdentifierRestartContext/IdentifierIntent/IdentifierRestartState), blob `7a78444b9b88092ec6b8613b05debddee0e07316`: one selected actual two-process JVM restart case passes in 40s. Native artifact selection is maintained but no native execution is claimed. Final local analysis remains scheduled in 14.5; private intent diagnostics are redacted and all added types have responsibility Javadoc.

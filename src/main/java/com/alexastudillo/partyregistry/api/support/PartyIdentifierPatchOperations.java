@@ -39,7 +39,7 @@ public class PartyIdentifierPatchOperations {
     /** Applies only validated current-version metadata correction, ignoring all replay headers. */
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> patch(String party, String identifier, PartyIdentifierPatchRequest request, HttpHeaders headers) {
         return Uni.createFrom().item(() -> inputs.patchCommand(context.metadata(), party, identifier, request, headers))
-                .flatMap(patch::execute).map(outcome -> mapper.toResponse(outcome.identifier())).map(responses::successHttp)
+                .flatMap(patch::execute).invoke(context::recordIdentifierDisposition).map(outcome -> mapper.toResponse(outcome.identifier())).map(responses::successHttp)
                 .onFailure().transform(failures::translate);
     }
 }

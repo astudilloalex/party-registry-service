@@ -126,6 +126,8 @@ public class RequestContextFilter implements ContainerRequestFilter, ContainerRe
                 metadataContext.nationalityDisposition(), metadataContext.nationalityKeyed());
         observability.recordIdentifierSchemeCompletion(operation, responseContext.getStatus(), code,
                 metadataContext.identifierSchemeDisposition());
+        observability.recordIdentifierCompletion(operation, responseContext.getStatus(), code,
+                metadataContext.identifierDisposition(), metadataContext.identifierKeyed());
         LOGGER.log(
                 System.Logger.Level.INFO,
                 "Request completed operation={0} status={1} code={2} durationMs={3}",

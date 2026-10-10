@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Shares exact identifier envelope and safe-field checks across unit, packaged JVM, and native tests. */
@@ -39,6 +41,20 @@ public final class PartyIdentifierContractAssertions {
         assertTrue(actual.containsAll(REQUIRED_ITEM), "Missing required identifier fields");
         assertTrue(permitted.containsAll(actual), "Undeclared identifier fields");
         REQUIRED_ITEM.forEach(field -> assertTrue(!item.path(field).isNull(), "Null required identifier field: " + field));
+        for (String field : Set.of("identifierId", "partyId", "identifierSchemeId")) {
+            JsonNode value = item.path(field); assertTrue(value.isTextual(), "Identifier selectors must be strings");
+            UUID parsed = assertDoesNotThrow(() -> UUID.fromString(value.textValue())); assertEquals(parsed.toString(), value.textValue());
+        }
+        for (String field : Set.of("maskedValue", "schemeCode", "status", "createdAt", "updatedAt")) {
+            assertTrue(item.path(field).isTextual() && !item.path(field).textValue().isBlank(), "Invalid required identifier text field: " + field);
+        }
+        assertTrue(Set.of("PENDING_VERIFICATION", "VERIFIED", "REJECTED", "EXPIRED", "REVOKED").contains(item.path("status").textValue()));
+        assertTrue(item.path("isPrimary").isBoolean());
+        JsonNode version = item.path("version"); assertTrue(version.isIntegralNumber() && version.canConvertToLong() && version.longValue() >= 0);
+        OPTIONAL_ITEM.forEach(field -> {
+            JsonNode value = item.path(field);
+            assertTrue(value.isMissingNode() || value.isNull() || value.isTextual(), "Invalid optional identifier text field: " + field);
+        });
     }
 
     /** Requires all five page fields; unavailable cursors may be explicit nulls, never omitted. */
@@ -70,6 +86,7 @@ public final class PartyIdentifierContractAssertions {
 
     private static void assertCount(JsonNode value) {
         assertTrue(value.isIntegralNumber());
+        assertTrue(value.canConvertToInt());
         assertTrue(value.longValue() >= 0 && value.longValue() <= Integer.MAX_VALUE);
     }
 

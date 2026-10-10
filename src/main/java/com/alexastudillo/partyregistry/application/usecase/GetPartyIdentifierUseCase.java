@@ -3,6 +3,10 @@ package com.alexastudillo.partyregistry.application.usecase;
 import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
+import com.alexastudillo.partyregistry.application.model.ObservedOperation;
+import com.alexastudillo.partyregistry.application.model.OperationOutcome;
+import com.alexastudillo.partyregistry.application.observability.OperationObservation;
+import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.query.GetPartyIdentifierQuery;
@@ -15,15 +19,27 @@ public final class GetPartyIdentifierUseCase {
 
     private final PartyLookupPort owners;
     private final PartyIdentifierQueryPort identifiers;
+    private final OperationObservationPort observation;
 
     public GetPartyIdentifierUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers) {
+        this(owners, identifiers, OperationObservation.noop());
+    }
+
+    /** Composes historical detail reads with bounded terminal observation independent of delivery/persistence technology. */
+    public GetPartyIdentifierUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers, OperationObservationPort observation) {
         this.owners = Objects.requireNonNull(owners, "owners");
         this.identifiers = Objects.requireNonNull(identifiers, "identifiers");
+        this.observation = Objects.requireNonNull(observation, "observation");
     }
 
     /** Returns safe stored evidence in any state; ownership and absence failures remain transport-neutral. */
     public Uni<PartyIdentifierResult> execute(GetPartyIdentifierQuery query) {
         Objects.requireNonNull(query, "query");
+        return OperationObservation.observe(query.requestMetadata(), ObservedOperation.APPLICATION_PARTY_IDENTIFIER_RETRIEVAL,
+                observation, () -> read(query), _ -> OperationOutcome.RETRIEVED);
+    }
+
+    private Uni<PartyIdentifierResult> read(GetPartyIdentifierQuery query) {
         return Uni.createFrom().deferred(() -> owners.findType(query.requestMetadata().tenantId(), query.partyId())
                 .flatMap(owner -> {
                     if (owner.isEmpty()) {

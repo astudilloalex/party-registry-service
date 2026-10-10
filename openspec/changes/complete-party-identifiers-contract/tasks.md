@@ -18,6 +18,8 @@ Use `java.time.Month` constants for every new/modified valid date fixture, inclu
 
 Developer-directed iteration scope: from task 9.2 onward, execute only new/modified test classes with explicit --tests selection, retain valid saved-revision results, and do not rerun unrelated full/packaged suites per increment. Focused builds retain that selection and exclude unchanged packaged test execution. The full JVM/native/architecture acceptance explicitly listed in section 14 remains a final milestone, not an iteration check. Record focused versus full evidence accurately; this changes verification scheduling, not required behavior or final acceptance.
 
+Updated developer-directed quality scheduling during task 11.3: unavailable Sonar analysis or nonblocking Sonar warnings must not pause implementation; retain their pending evidence for final task 14.5. Complete behavior and focused runtime checks before checking off an increment, resolve compilation/runtime failures, inspect available JDTLS diagnostics, and continue without treating missing Sonar evidence as passing. This explicit scheduling override supersedes the earlier per-increment Sonar stop rule only; final quality acceptance remains required.
+
 Keep an implementation evidence file, scenario map, and saved-file inventory under this change when implementation begins. Do not mark a task complete while its required tests, current IDE evidence, or stated native verification are unavailable. Use developer-collected diagnostics for the same revision when direct IDE access is unavailable. Planning validation and compilation are not substitutes for runtime or local-analysis evidence.
 
 ## 1. Quality and Environment Preflight
@@ -264,49 +266,61 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
   - Verification: Tests equate absent body/object/property and explicit false, distinguish true, and reject literal/property null, duplicate/unknown properties, coercion, and trailing content. Action syntax follows body→Party→identifier→If-Match→key.
   - Evidence: Compile-red followed by five executable binding/mapping failures resolves with native-registered strict replacement decoding, actual-zero-byte defaults and ordered command mapping. Six primary and six changed reason-binding checks pass with focused build; all six saved Java revisions have full resolved-model zero Sonar and independent zero JDTLS diagnostics. See `verification.md` and `java-inventory.md`.
 
-- [ ] 11.2 Test first and implement primary-selection orchestration with a validated Domain replacement plan and replay.
+- [x] 11.2 Test first and implement primary-selection orchestration with a validated Domain replacement plan and replay.
   - Requirements: M: Scoped atomic primary ownership; M: Identifier-version preconditions and exhaustion; L: Historical action replay survives changes and restart.
   - Verification: Workflow tests cover eligibility/date boundaries, exact scope, conflict without replacement, demotion before promotion, common actor/instant, already-primary increment, former exhaustion, and historical replay without touching current primaries. No Party/scheme version changes or implicit provisional-flag overrides occur.
+  - Runtime green, quality pending: Compile-red and eight executable workflow failures resolve with replay-first Application orchestration, one instant, whole-plan validation and sequential guarded demotion/promotion/completion/events. All eight selected tests and focused build pass; the two new saved revisions still require actual Sonar/JDTLS evidence. No route/CDI cutover is claimed before 11.3.
+  - Accepted continuation: Developer confirms both requested saved-file Sonar/JDTLS checks are clean. Blobs remain unchanged and the eight passing selected tests/focused build remain valid; see `verification.md` and `java-inventory.md`.
 
-- [ ] 11.3 Test first and expose set-primary with real two-record preservation and replay assertions.
+- [x] 11.3 Test first and expose set-primary with real two-record preservation and replay assertions.
   - Requirements: M: Strict primary-selection input and eligibility; M: Scoped atomic primary ownership; M: Maintenance has one durable observable outcome.
   - Verification: HTTP tests show independent scheme primaries, explicit replacement of past-date former primaries, exact target/former increments, unchanged unrelated scopes/verification/value, safe candidate-only response, and historical replay after a later replacement with unchanged current state and event counts.
+  - Evidence: Eight executable missing-route cases resolve with thin buffered-body delivery, API-only syntax mapping and actual workflow composition. Eight real HTTP/effect/preservation cases plus eight signature/five composition cases pass (21 selected checks); focused build succeeds in 4m 17s. Local analysis remains recorded for final 14.5 under the developer's updated nonblocking Sonar schedule; no full/package/native execution is claimed.
 
 ## 12. Concurrency, Resilience, and Compatibility Hardening
 
-- [ ] 12.1 Add coordinated database and HTTP races for creation/action key equivalence, changed inputs, and same-target versions.
+- [x] 12.1 Add coordinated database and HTTP races for creation/action key equivalence, changed inputs, and same-target versions.
   - Requirements: M: Active-value uniqueness and release; M: Durable additional registration replay; M: Identifier-version preconditions and exhaustion; L: Atomic lifecycle concurrency and complete outcomes.
   - Verification: Barrier-started independent sessions prove one created/action result for equivalent keys, 409 key conflict for changed-input losers, 409 active-value conflict for distinct creation keys, and 412 for independent same-version PATCH/transition losers. Assert exact accepted completion/audit/event counts for both Party types.
+  - Evidence: Four actual HTTP/PostgreSQL race cases (26 coordinated scenarios across both Party types) pass with focused build in 4m 5s. Test-only JDBC holds the exact production replay/scope lock and observes two independent request transactions waiting before release; keyed creation/all four actions converge/conflict, distinct duplicate keys yield 409, PATCH/transition losers yield 412, and exact row/version/completion/audit/event counts match. Final local quality review remains scheduled in 14.5.
 
-- [ ] 12.2 Add coordinated different-target primary races and primary-versus-correction/withdrawal races.
+- [x] 12.2 Add coordinated different-target primary races and primary-versus-correction/withdrawal races.
   - Requirements: M: Scoped atomic primary ownership; L: Verification respects provisional primary ownership; M: Identifier-version preconditions and exhaustion.
   - Verification: Tests prove one first selection or provisional verification winner, proper 409 conflicts, no deadlock/opposite lock order, serially valid explicit replacements, and 412 when a competing demotion already changed the target. Final flags/versions/audit match an allowed serial outcome and unrelated scopes remain independent.
+  - Evidence: Four added observed-lock race cases pass alongside the four modified-class earlier cases (37 coordinated scenarios total), with focused build in 4m 8s. Both Party types retain one scoped primary, explicit replacements serialize with valid historical replay, correction/withdrawal outcomes match valid serial order and stale demotion losers receive 412; another scheme completes while the first actually waits. Final local analysis remains scheduled in 14.5.
 
-- [ ] 12.3 Add late-failure, timeout, cancellation, and pool-reuse tests for actual mutation workflows.
+- [x] 12.3 Add late-failure, timeout, cancellation, and pool-reuse tests for actual mutation workflows.
   - Requirements: M: Maintenance has one durable observable outcome; L: Atomic lifecycle concurrency and complete outcomes; Q: Safe shared envelopes and failure behavior.
   - Verification: Test-only fault checkpoints after demotion/promotion/audit/completion/event preparation prove total rollback and key reuse. Actual lock/statement/operation waits and cancellation release context/session and permit fresh work. Classified failures return 503; ambiguous post-commit delivery is recovered by keyed retry without false rollback claims.
+  - Evidence: Six actual workflow resilience cases pass with focused build in 4m 45s, covering flushed primary/withdrawal checkpoints, unchanged complete records/effects on rollback, key reuse, real production-budget lock/statement/work 503 failures and pool reuse, Vert.x cancellation/session closure, and keyed recovery after simulated postcommit delivery failure. No production fault hooks or weakened budgets are introduced; final local analysis remains scheduled in 14.5.
 
-- [ ] 12.4 Complete framework and unexpected-error HTTP coverage through the existing published global handler.
+- [x] 12.4 Complete framework and unexpected-error HTTP coverage through the existing published global handler.
   - Requirements: Q: Safe shared envelopes and failure behavior; L: Lifecycle requests follow the common boundary; M: Maintenance follows the common identifier boundary.
   - Verification: Malformed JSON, Bean Validation, paths/queries, missing routes, unsupported methods/media, injected dependency failures, corrupt completions, and unexpected internal exceptions produce exact status/code-only 400/404/405/415/500/503 responses with accepted echoes and no messages/causes. Conditional authentication preserves the existing 401 contract.
+  - Contract blocker: Five actual-route framework cases added; four pass, but unsupported PUT on the known identifier collection path returns 404 instead of the required 405. The expectation is retained and no overlapping local global mapper/filter is introduced. Resolve the routing/shared-boundary discrepancy before acceptance; see `verification.md`. Sonar availability is not the blocker.
+  - Accepted correction: Quarkus 3.33.3.1 dispatch fallback is confirmed from exact-version source. Grouped identifier methods under the existing /v1/parties root, following NationalityResource, while preserving every public URL/signature. Six actual HTTP framework/all-eight-success cases and nine generic signature cases pass with focused build in 4m 22s. Shared handlers/configuration and conditional authentication remain unchanged; no local global mapper/filter is added. See final evidence in `verification.md`.
 
-- [ ] 12.5 Extend bounded operation telemetry and committed identifier disposition in the existing request context.
+- [x] 12.5 Extend bounded operation telemetry and committed identifier disposition in the existing request context.
   - Requirements: Q: Trusted context and process correlation; L: Atomic lifecycle concurrency and complete outcomes; Quality — fixed logging format.
   - Verification: Observation tests cover eight route labels/spans, applied/replayed/conflict/failure/cancellation, key/scope wait and page cost, and concurrent context isolation. No raw keys, IDs, reasons, values, or cursor payloads appear in dimensions. Completion remains owned by the existing filter and the exact configured logging format is unchanged.
+  - Evidence: Executable missing-label red resolves with bounded eight-route classification, postcommit disposition/key-presence state, HTTP/core query observations and managed lock/page-cost measurements. Nineteen selected HTTP/unit/query/observation cases pass with focused build in 5m; concurrent actor/tenant/process isolation and private-dimension exclusion are checked. Existing request filter still owns completion/MDC and logging format remains unchanged; final local source review is scheduled for 14.5.
 
-- [ ] 12.6 Run and complete focused compatibility regression coverage for existing Party, current-identifier, nationality, and scheme features.
+- [x] 12.6 Run and complete focused compatibility regression coverage for existing Party, current-identifier, nationality, and scheme features.
   - Requirements: Q: Complete historical listing and masked detail; M: Maintenance has one durable observable outcome; L: Rejection and revocation retain safe history.
   - Verification: Existing creation snapshots/replays, natural-person current ordering/eligibility, legal/root updates, activation evidence, nationality, and catalog suites pass. New tests prove withdrawals release uniqueness without deleting history, last-evidence revocation leaves ACTIVE Party state/version unchanged, and schemes/Party details remain intact.
+  - Evidence: Seventy-one explicitly selected compatibility cases pass with focused build in 7m 31s, including inherited related reader/published-scheme cases. Two new actual HTTP tests cover both Party types, verification feeding existing activation without primary, last-evidence revocation preserving complete Party/subtype/scheme rows, unchanged historical creation replay and released uniqueness with retained identifier history. No unrelated full/package/native suite is executed.
 
 ## 13. Packaged Coverage and Operational Documentation
 
-- [ ] 13.1 Extend shared contract assertions and packaged JVM HTTP/OpenAPI coverage for all eight operations.
+- [x] 13.1 Extend shared contract assertions and packaged JVM HTTP/OpenAPI coverage for all eight operations.
   - Requirements: Q: Complete published party-identifiers contract; Q: Safe shared envelopes and failure behavior; Quality — packaged verification.
   - Verification: Packaged tests use real ports/resources, both Party types, strict optional/missing bodies, safe schemas/null-aware pages, and business/framework errors. Served paths and referenced schemas equal the approved source, and unit-test CDI fixtures are absent from the packaged classpath.
+  - Evidence: Two executable shared-assertion failures resolve with canonical selector/status/scalar/version validation while preserving historical issuer text. Four selected assertion tests/build pass; four actual packaged JVM tests pass in 55s covering both types/all eight routes, historical creation/action/primary replay, signed/null-aware pages, strict and chunked bodies, framework/ownership failures and full schema/parameter equality (normalizing only commutative allOf order). No unrelated packaged suite or native execution is claimed.
 
-- [ ] 13.2 Add a two-process retained-data restart test for creation, lifecycle, primary replay, and durable reason audit.
+- [x] 13.2 Add a two-process retained-data restart test for creation, lifecycle, primary replay, and durable reason audit.
   - Requirements: M: Durable additional registration replay; L: Historical action replay survives changes and restart; L: Rejection and revocation retain safe history.
   - Verification: Accept requests, discard their original HTTP payloads, mutate current records, restart the actual packaged service against retained isolated data, and replay original inputs. Original results/attribution survive with fresh process echoes, current state remains unchanged, and completion/audit/logical-event counts are not duplicated.
+  - Evidence: One selected actual two-process JVM restart case passes in 40s. Original response bodies are discarded, identities/results recovered through public reads, then correction/replacement/withdrawal/Party archival/scheme retirement precede restart. Nine historical results replay unchanged with fresh actor/process; complete storage remains identical at three identifiers/nine completions/two audits/eleven events, exact binary reasons survive and private text is absent from completions/events/logs. Native execution remains 14.4.
 
 - [ ] 13.3 Maintain native-safe binding/reflection metadata and prepare the packaged assertion paths for native integration execution.
   - Requirements: Q: Complete published party-identifiers contract; Quality — native compatibility.

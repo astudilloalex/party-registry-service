@@ -57,8 +57,10 @@ public class PartyIdentifierLifecycleOperations {
                 var request = PartyIdentifierActionBodies.reasons(body, json);
                 reason = new PartyIdentifierReason(request.reasonCode(), request.reasonDetail());
             }
-            return inputs.lifecycleCommand(context.metadata(), party, identifier, headers, operation, reason);
-        }).flatMap(lifecycle::execute)
+            var command = inputs.lifecycleCommand(context.metadata(), party, identifier, headers, operation, reason);
+            if (command.idempotencyKey() != null) { context.markIdentifierKeyed(); }
+            return command;
+        }).flatMap(lifecycle::execute).invoke(context::recordIdentifierDisposition)
                 .map(outcome -> mapper.toResponse(outcome.identifier())).map(responses::successHttp)
                 .onFailure().transform(failures::translate);
     }

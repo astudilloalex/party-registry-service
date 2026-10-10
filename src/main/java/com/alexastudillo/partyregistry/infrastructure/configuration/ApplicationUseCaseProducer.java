@@ -41,6 +41,7 @@ import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyIdentifierLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.SetPrimaryPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
@@ -201,15 +202,22 @@ public class ApplicationUseCaseProducer {
         return new ChangePartyIdentifierLifecycleUseCase(mutations, fingerprints, UTC_CLOCK, observation);
     }
 
+    /** Composes atomic primary replacement and historical replay without coupling Application to persistence mechanics. */
     @Produces
-    GetPartyIdentifierUseCase getPartyIdentifierUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers) {
-        return new GetPartyIdentifierUseCase(owners, identifiers);
+    SetPrimaryPartyIdentifierUseCase setPrimaryPartyIdentifierUseCase(PartyIdentifierMutationPort mutations,
+            PartyIdentifierFingerprintPort fingerprints, OperationObservationPort observation) {
+        return new SetPrimaryPartyIdentifierUseCase(mutations, fingerprints, UTC_CLOCK, observation);
+    }
+
+    @Produces
+    GetPartyIdentifierUseCase getPartyIdentifierUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers, OperationObservationPort observation) {
+        return new GetPartyIdentifierUseCase(owners, identifiers, observation);
     }
 
     @Produces
     ListPartyIdentifiersUseCase listPartyIdentifiersUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers,
-            PartyIdentifierCursorPort cursors) {
-        return new ListPartyIdentifiersUseCase(owners, identifiers, cursors);
+            PartyIdentifierCursorPort cursors, OperationObservationPort observation) {
+        return new ListPartyIdentifiersUseCase(owners, identifiers, cursors, observation);
     }
 
     @Produces

@@ -9,6 +9,7 @@ import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierQueryPort;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierId;
+import com.alexastudillo.partyregistry.infrastructure.observability.PartyPersistenceObservability;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -29,13 +30,21 @@ public class HibernateReactivePartyIdentifierQueryAdapter implements PartyIdenti
     private final Mutiny.SessionFactory sessions;
     private final PartyIdentifierDetailReader detailReader;
     private final PartyQueryTimeouts timeouts;
+    private final PartyPersistenceObservability observation;
 
-    @Inject
     public HibernateReactivePartyIdentifierQueryAdapter(Mutiny.SessionFactory sessions,
             PartyIdentifierDetailReader detailReader, PartyQueryTimeouts timeouts) {
+        this(sessions, detailReader, timeouts, null);
+    }
+
+    /** Composes consistent page reads and managed bounded page-cost observation. */
+    @Inject
+    public HibernateReactivePartyIdentifierQueryAdapter(Mutiny.SessionFactory sessions,
+            PartyIdentifierDetailReader detailReader, PartyQueryTimeouts timeouts, PartyPersistenceObservability observation) {
         this.sessions = Objects.requireNonNull(sessions, "sessions");
         this.detailReader = Objects.requireNonNull(detailReader, "detailReader");
         this.timeouts = Objects.requireNonNull(timeouts, "timeouts");
+        this.observation = observation;
     }
 
     @Override
@@ -52,6 +61,10 @@ public class HibernateReactivePartyIdentifierQueryAdapter implements PartyIdenti
         if (!metadata.tenantId().equals(scope.tenantId())) {
             throw new IllegalArgumentException("Identifier page scope does not match accepted tenant");
         }
+        return observation == null ? read(scope, boundary) : observation.observeIdentifierPage(() -> read(scope, boundary));
+    }
+
+    private Uni<PartyIdentifierPageSlice> read(PartyIdentifierSearchScope scope, @Nullable PartyIdentifierPageBoundary boundary) {
         return sessions.withTransaction((session, transaction) -> {
             session.setDefaultReadOnly(true);
             return timeouts.limit(session.createNativeQuery(SNAPSHOT_TRANSACTION).executeUpdate()

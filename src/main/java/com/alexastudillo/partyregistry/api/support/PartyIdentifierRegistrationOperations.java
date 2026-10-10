@@ -40,13 +40,16 @@ public class PartyIdentifierRegistrationOperations {
 
     /** Preserves body→key→Party input order and maps Application output before CDI-managed 201 wrapping. */
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> register(String party, PartyIdentifierCreateRequest request, HttpHeaders headers) {
-        return Uni.createFrom().item(() -> command(party, request, headers)).flatMap(registration::execute)
-                .map(mapper::toResponse).map(dto -> responses.customHttp(PartyResponseCode.CREATED, dto))
+        return Uni.createFrom().item(() -> command(party, request, headers)).flatMap(registration::executeOutcome)
+                .invoke(context::recordIdentifierDisposition).map(outcome -> mapper.toResponse(outcome.identifier())).map(dto -> responses.customHttp(PartyResponseCode.CREATED, dto))
                 .onFailure().transform(failures::translate);
     }
 
     private RegisterPartyIdentifierCommand command(String party, PartyIdentifierCreateRequest request, HttpHeaders headers) {
         var body = inputs.validateBody(request);
-        return new RegisterPartyIdentifierCommand(context.metadata(), inputs.requireIdempotencyKey(headers), inputs.parsePartyId(party), mapper.toInput(body));
+        var key = inputs.requireIdempotencyKey(headers);
+        var command = new RegisterPartyIdentifierCommand(context.metadata(), key, inputs.parsePartyId(party), mapper.toInput(body));
+        context.markIdentifierKeyed();
+        return command;
     }
 }

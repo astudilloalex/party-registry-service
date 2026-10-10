@@ -205,6 +205,8 @@ Task 10.3 runtime evidence is recorded in [verification.md](verification.md): se
 
 ## L: Durable action key scope and request equivalence
 
+Accepted task 10.4 [runtime/quality evidence](verification.md) adds six real HTTP replay cases: historical verification after correction/revocation/archival for both Party types, original attribution plus retry process echoes, exact/default reason equivalence, changed-input conflicts and independent tenant/create/verify/revoke key scopes with no duplicate audit/events. This establishes live lifecycle coverage for L19–L21 and the nonrestart portion of L23/L25; packaged restart/native and primary-action coverage remain their assigned later tasks. Accepted 11.1 binding/mapping evidence proves strict primary defaults; 11.2 workflow runtime is green but its local quality gate remains pending, so it is not claimed as accepted primary implementation evidence.
+
 | ID | Source scenario title | Planned boundaries | Tasks | Evidence |
 |---|---|---|---|---|
 | L19 | All effective action inputs participate in key conflicts | fingerprint, application, HTTP, packaged/native | 4.1, 7.1, 10.4, 11.3, 13.1, 14.4 | Pending |

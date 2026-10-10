@@ -8,6 +8,7 @@ import com.alexastudillo.partyregistry.api.support.PartyIdentifierQueryOperation
 import com.alexastudillo.partyregistry.api.support.PartyIdentifierRegistrationOperations;
 import com.alexastudillo.partyregistry.api.support.PartyIdentifierPatchOperations;
 import com.alexastudillo.partyregistry.api.support.PartyIdentifierLifecycleOperations;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierPrimaryOperations;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierOperation;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.quarkus.arc.properties.IfBuildProperty;
@@ -30,9 +31,9 @@ import org.jboss.resteasy.reactive.RestResponse;
 import java.util.List;
 
 /**
- * Exposes independent official-identifier registration, historical reads, metadata correction and lifecycle actions.
+ * Exposes all eight official-identifier operations through safe typed reactive HTTP envelopes.
  */
-@Path("/v1/parties/{partyId}/identifiers")
+@Path("/v1/parties")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @ApplicationScoped
@@ -43,21 +44,25 @@ public class PartyIdentifierResource {
     private final PartyIdentifierQueryOperations queries;
     private final PartyIdentifierPatchOperations patches;
     private final PartyIdentifierLifecycleOperations lifecycle;
+    private final PartyIdentifierPrimaryOperations primary;
 
     @Inject
     public PartyIdentifierResource(
             PartyIdentifierRegistrationOperations registration,
             PartyIdentifierQueryOperations queries,
             PartyIdentifierPatchOperations patches,
-            PartyIdentifierLifecycleOperations lifecycle) {
+            PartyIdentifierLifecycleOperations lifecycle,
+            PartyIdentifierPrimaryOperations primary) {
         this.registration = registration;
         this.queries = queries;
         this.patches = patches;
         this.lifecycle = lifecycle;
+        this.primary = primary;
     }
 
     /** Returns an owned historical page with strict selectors, authenticated continuation and safe shared metadata. */
     @GET
+    @Path("/{partyId}/identifiers")
     @WithSpan("party-identifier.list")
     public Uni<RestResponse<ApiResponse<List<PartyIdentifierResponse>>>> listPartyIdentifiers(
             @PathParam("partyId") String partyId, @Context UriInfo uri) {
@@ -66,7 +71,7 @@ public class PartyIdentifierResource {
 
     /** Retrieves the safe stored representation in every identifier state without changing lifecycle or audit. */
     @GET
-    @Path("/{identifierId}")
+    @Path("/{partyId}/identifiers/{identifierId}")
     @WithSpan("party-identifier.retrieve")
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> getPartyIdentifier(
             @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId) {
@@ -82,6 +87,7 @@ public class PartyIdentifierResource {
      * @return reactive {@code 201 successful} envelope containing only the safe identifier projection
      */
     @POST
+    @Path("/{partyId}/identifiers")
     @WithSpan("party-identifier.create")
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> createPartyIdentifier(
             @PathParam("partyId") String partyId,
@@ -92,7 +98,7 @@ public class PartyIdentifierResource {
 
     /** Corrects only presence-aware metadata using the identifier's own expected version and shared safe response. */
     @PATCH
-    @Path("/{identifierId}")
+    @Path("/{partyId}/identifiers/{identifierId}")
     @WithSpan("party-identifier.patch")
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> patchPartyIdentifier(
             @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
@@ -102,7 +108,7 @@ public class PartyIdentifierResource {
 
     /** Records operator verification after enforcing a strictly bodyless request and independent expected version. */
     @POST
-    @Path("/{identifierId}/verify")
+    @Path("/{partyId}/identifiers/{identifierId}/verify")
     @WithSpan("party-identifier.verify")
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> verifyPartyIdentifier(
             @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
@@ -112,7 +118,7 @@ public class PartyIdentifierResource {
 
     /** Rejects pending evidence with optional exact private reasons and durable keyed recovery. */
     @POST
-    @Path("/{identifierId}/reject")
+    @Path("/{partyId}/identifiers/{identifierId}/reject")
     @WithSpan("party-identifier.reject")
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> rejectPartyIdentifier(
             @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
@@ -122,11 +128,21 @@ public class PartyIdentifierResource {
 
     /** Revokes verified evidence while retaining its verification history and optional private reason audit. */
     @POST
-    @Path("/{identifierId}/revoke")
+    @Path("/{partyId}/identifiers/{identifierId}/revoke")
     @WithSpan("party-identifier.revoke")
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> revokePartyIdentifier(
             @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
             byte[] body, @Context HttpHeaders headers) {
         return lifecycle.change(partyId, identifierId, body, headers, PartyIdentifierOperation.REVOKE);
+    }
+
+    /** Selects usable verified evidence, replacing another scoped primary only with explicit consent. */
+    @POST
+    @Path("/{partyId}/identifiers/{identifierId}/set-primary")
+    @WithSpan("party-identifier.set-primary")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> setPrimaryPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return primary.select(partyId, identifierId, body, headers);
     }
 }
