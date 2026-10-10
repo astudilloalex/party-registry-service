@@ -2,9 +2,11 @@ package com.alexastudillo.partyregistry.domain.model;
 
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.error.DomainViolation;
+import com.alexastudillo.partyregistry.domain.normalization.IssuerCodeNormalization;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 /**
  * Represents one independently versioned official identifier without plaintext values.
@@ -38,8 +40,9 @@ public final class PartyIdentifier {
                 "Identifier scheme ID is required");
         this.protectedValue = require(builder.protectedValue, DomainViolation.PROTECTED_IDENTIFIER_VALUE_REQUIRED,
                 "Protected identifier value is required");
-        validateRegistrationMetadata(builder.issuerCode, builder.issuedOn, builder.expiresOn);
-        this.issuerCode = builder.issuerCode;
+        validateIssuerCode(builder.issuerCode);
+        validateValidityDates(builder.issuedOn, builder.expiresOn);
+        this.issuerCode = builder.newWrite ? IssuerCodeNormalization.forWrite(builder.issuerCode) : builder.issuerCode;
         this.issuedOn = builder.issuedOn;
         this.expiresOn = builder.expiresOn;
         this.primary = builder.primary;
@@ -79,7 +82,7 @@ public final class PartyIdentifier {
             String issuerCode,
             LocalDate issuedOn,
             LocalDate expiresOn) {
-        validateIssuerCode(issuerCode);
+        IssuerCodeNormalization.validateSubmitted(issuerCode);
         validateValidityDates(issuedOn, expiresOn);
     }
 
@@ -90,6 +93,163 @@ public final class PartyIdentifier {
                     "Evaluation date is required");
         }
         return expiresOn != null && expiresOn.isBefore(evaluatedOn);
+    }
+
+    /**
+     * Corrects eligible identifier metadata while preserving identity, protected value and verification.
+     *
+     * @param issuer optional issuer update; absent retains and present null clears
+     * @param issueDate optional issue-date update
+     * @param expiration optional expiration update
+     * @param occurredAt the one operation instant, also defining the UTC evaluation date
+     * @param updatedBy accepted modifying actor
+     * @return a corrected immutable identifier at exactly the next independent version
+     * @throws DomainValidationException when input, state, version, resulting dates or audit are invalid
+     */
+    public PartyIdentifier correctMetadata(FieldUpdate<String> issuer, FieldUpdate<LocalDate> issueDate,
+            FieldUpdate<LocalDate> expiration, Instant occurredAt, String updatedBy) {
+        validateMetadataPatch(issuer, issueDate, expiration);
+        if (status != PartyIdentifierStatus.PENDING_VERIFICATION && status != PartyIdentifierStatus.VERIFIED) {
+            throw new DomainValidationException(DomainViolation.PARTY_IDENTIFIER_INVALID_LIFECYCLE,
+                    "Identifier metadata cannot be corrected in its current state");
+        }
+        var nextVersion = version.next();
+        String nextIssuer = issuer.isPresent() ? IssuerCodeNormalization.forWrite(issuer.value()) : issuerCode;
+        LocalDate nextIssue = issueDate.isPresent() ? issueDate.value() : issuedOn;
+        LocalDate nextExpiration = expiration.isPresent() ? expiration.value() : expiresOn;
+        validateValidityDates(nextIssue, nextExpiration);
+        Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
+                "Identifier modification timestamp is required");
+        validateQualification(nextExpiration, operationInstant);
+        return copyBuilder()
+                .issuerCode(nextIssuer).issuedOn(nextIssue).expiresOn(nextExpiration)
+                .version(nextVersion).auditInfo(auditInfo.updated(operationInstant, updatedBy)).build();
+    }
+
+    /**
+     * Records operator confirmation of pending evidence, retaining its value, metadata and provisional flag.
+     *
+     * @param occurredAt one operation instant defining verification, modification audit and UTC validity
+     * @param verifiedBy accepted operator identity
+     * @return verified evidence at exactly the next identifier version
+     * @throws DomainValidationException when state, version, validity or audit prevents verification
+     */
+    public PartyIdentifier verify(Instant occurredAt, String verifiedBy) {
+        requireState(PartyIdentifierStatus.PENDING_VERIFICATION);
+        var nextVersion = version.next();
+        Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
+                "Identifier verification timestamp is required");
+        validateValidityDates(issuedOn, expiresOn);
+        validateQualification(expiresOn, operationInstant);
+        return copyBuilder().status(PartyIdentifierStatus.VERIFIED).verifiedAt(operationInstant).verifiedBy(verifiedBy)
+                .version(nextVersion).auditInfo(auditInfo.updated(operationInstant, verifiedBy)).build();
+    }
+
+    /**
+     * Rejects pending evidence and clears its provisional primary flag without deleting history.
+     *
+     * @param occurredAt modification instant; past expiration does not prevent withdrawal
+     * @param updatedBy accepted operator identity
+     * @return rejected evidence at exactly the next identifier version
+     * @throws DomainValidationException when the state, version or audit prevents rejection
+     */
+    public PartyIdentifier reject(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.PENDING_VERIFICATION);
+        return withdraw(PartyIdentifierStatus.REJECTED, occurredAt, updatedBy);
+    }
+
+    /**
+     * Revokes verified evidence, retaining verification history while clearing its primary flag.
+     *
+     * @param occurredAt modification instant; past expiration does not prevent withdrawal
+     * @param updatedBy accepted operator identity
+     * @return revoked evidence at exactly the next identifier version
+     * @throws DomainValidationException when the state, version or audit prevents revocation
+     */
+    public PartyIdentifier revoke(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.VERIFIED);
+        return withdraw(PartyIdentifierStatus.REVOKED, occurredAt, updatedBy);
+    }
+
+    /**
+     * Selects usable verified evidence, including an already-primary target, at exactly its next version.
+     * Cross-identifier ownership is coordinated by the primary policy before persistence.
+     *
+     * @param occurredAt one modification instant defining UTC qualification
+     * @param updatedBy accepted operator identity
+     * @return immutable selected evidence with all verification and protected history retained
+     * @throws DomainValidationException when state, version, validity or audit prevents selection
+     */
+    public PartyIdentifier selectPrimary(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.VERIFIED);
+        var nextVersion = version.next();
+        Instant operationInstant = require(occurredAt, DomainViolation.AUDIT_TIMESTAMP_REQUIRED,
+                "Identifier selection timestamp is required");
+        validateValidityDates(issuedOn, expiresOn);
+        validateQualification(expiresOn, operationInstant);
+        return copyBuilder().primary(true).version(nextVersion)
+                .auditInfo(auditInfo.updated(operationInstant, updatedBy)).build();
+    }
+
+    /**
+     * Demotes a verified primary as part of an explicit replacement, even when its expiration is past.
+     *
+     * @param occurredAt the same modification instant used for the selected candidate
+     * @param updatedBy the same accepted operator used for the selected candidate
+     * @return immutable nonprimary evidence at exactly its next independent version
+     * @throws DomainValidationException when the record is not a verified primary or version/audit is invalid
+     */
+    public PartyIdentifier demotePrimary(Instant occurredAt, String updatedBy) {
+        requireState(PartyIdentifierStatus.VERIFIED);
+        if (!primary) {
+            throw new DomainValidationException(DomainViolation.PARTY_IDENTIFIER_INVALID_LIFECYCLE,
+                    "Only a verified primary can be demoted for replacement");
+        }
+        return copyBuilder().primary(false).version(version.next())
+                .auditInfo(auditInfo.updated(occurredAt, updatedBy)).build();
+    }
+
+    /** Returns whether another identifier has the same immutable tenant, Party and scheme ownership. */
+    public boolean sharesPrimaryScope(PartyIdentifier other) {
+        return other != null && tenantId.equals(other.tenantId) && partyId.equals(other.partyId)
+                && identifierSchemeId.equals(other.identifierSchemeId);
+    }
+
+    private void requireState(PartyIdentifierStatus requiredState) {
+        if (status != requiredState) {
+            throw new DomainValidationException(DomainViolation.PARTY_IDENTIFIER_INVALID_LIFECYCLE,
+                    "Identifier action is forbidden in its current state");
+        }
+    }
+
+    private static void validateQualification(LocalDate expiration, Instant operationInstant) {
+        LocalDate evaluatedOn = operationInstant.atZone(ZoneOffset.UTC).toLocalDate();
+        if (expiration != null && expiration.isBefore(evaluatedOn)) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_EXPIRED,
+                    "Identifier expiration precedes the operation date");
+        }
+    }
+
+    private PartyIdentifier withdraw(PartyIdentifierStatus resultingState, Instant occurredAt, String updatedBy) {
+        return copyBuilder().status(resultingState).primary(false).version(version.next())
+                .auditInfo(auditInfo.updated(occurredAt, updatedBy)).build();
+    }
+
+    private static void validateMetadataPatch(FieldUpdate<String> issuer, FieldUpdate<LocalDate> issueDate,
+            FieldUpdate<LocalDate> expiration) {
+        require(issuer, DomainViolation.PATCH_REQUIRED, "Issuer update is required");
+        require(issueDate, DomainViolation.PATCH_REQUIRED, "Issue-date update is required");
+        require(expiration, DomainViolation.PATCH_REQUIRED, "Expiration update is required");
+        if (!issuer.isPresent() && !issueDate.isPresent() && !expiration.isPresent()) {
+            throw new DomainValidationException(DomainViolation.EMPTY_PATCH, "Identifier metadata correction requires a field");
+        }
+    }
+
+    private Builder copyBuilder() {
+        return builder().identifierId(identifierId).tenantId(tenantId).partyId(partyId)
+                .identifierSchemeId(identifierSchemeId).protectedValue(protectedValue)
+                .issuerCode(issuerCode).issuedOn(issuedOn).expiresOn(expiresOn).primary(primary)
+                .status(status).verifiedAt(verifiedAt).verifiedBy(verifiedBy).version(version).auditInfo(auditInfo);
     }
 
     public PartyIdentifierId identifierId() {
@@ -211,6 +371,7 @@ public final class PartyIdentifier {
         private String verifiedBy;
         private PartyIdentifierVersion version;
         private AuditInfo auditInfo;
+        private boolean newWrite;
 
         private Builder() {
         }
@@ -293,6 +454,7 @@ public final class PartyIdentifier {
          * @return this builder
          */
         public Builder created(Instant occurredAt, String createdBy) {
+            this.newWrite = true;
             this.status = PartyIdentifierStatus.PENDING_VERIFICATION;
             this.version = PartyIdentifierVersion.initial();
             this.auditInfo = AuditInfo.initial(occurredAt, createdBy);

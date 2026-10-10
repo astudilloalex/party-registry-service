@@ -8,13 +8,16 @@ import com.alexastudillo.partyregistry.application.port.OperationObservationPort
 import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
 import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyCursorPort;
-import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
-import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierFingerprintPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ChangePartyIdentifierLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.SetPrimaryPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
@@ -61,9 +64,8 @@ class ApplicationUseCaseProducerTest {
         assertEquals(1, CreateLegalEntityUseCase.class.getDeclaredConstructors().length);
         assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod(
                 "registerPartyIdentifierUseCase",
-                PartyLookupPort.class,
-                PartyIdentifierRegistrationPort.class,
-                IdentifierSchemeRepository.class,
+                PartyIdentifierMutationPort.class,
+                PartyIdentifierFingerprintPort.class,
                 IdentifierProtectionPort.class,
                 OperationObservationPort.class), RegisterPartyIdentifierUseCase.class);
         assertProducer(ApplicationUseCaseProducer.class.getDeclaredMethod(
@@ -79,5 +81,28 @@ class ApplicationUseCaseProducerTest {
         assertTrue(method.isAnnotationPresent(Produces.class));
         assertEquals(returnType, method.getReturnType());
         assertEquals(List.of(), Arrays.stream(method.getExceptionTypes()).toList());
+    }
+
+    @Test
+    void wiresIndependentMetadataCorrectionOnlyThroughOwnedMutationAndObservationPorts() throws ReflectiveOperationException {
+        Method producer = ApplicationUseCaseProducer.class.getDeclaredMethod("patchPartyIdentifierUseCase", PartyIdentifierMutationPort.class, OperationObservationPort.class);
+        assertProducer(producer, PatchPartyIdentifierUseCase.class);
+        assertEquals(1, PatchPartyIdentifierUseCase.class.getDeclaredConstructors().length);
+    }
+
+    @Test
+    void wiresIdentifierLifecycleThroughDurableMutationFingerprintAndObservationPorts() throws ReflectiveOperationException {
+        Method producer = ApplicationUseCaseProducer.class.getDeclaredMethod("changePartyIdentifierLifecycleUseCase",
+                PartyIdentifierMutationPort.class, PartyIdentifierFingerprintPort.class, OperationObservationPort.class);
+        assertProducer(producer, ChangePartyIdentifierLifecycleUseCase.class);
+        assertEquals(1, ChangePartyIdentifierLifecycleUseCase.class.getDeclaredConstructors().length);
+    }
+
+    @Test
+    void wiresPrimarySelectionThroughOwnedAtomicMutationAndFingerprintPorts() throws ReflectiveOperationException {
+        Method producer = ApplicationUseCaseProducer.class.getDeclaredMethod("setPrimaryPartyIdentifierUseCase",
+                PartyIdentifierMutationPort.class, PartyIdentifierFingerprintPort.class, OperationObservationPort.class);
+        assertProducer(producer, SetPrimaryPartyIdentifierUseCase.class);
+        assertEquals(1, SetPrimaryPartyIdentifierUseCase.class.getDeclaredConstructors().length);
     }
 }

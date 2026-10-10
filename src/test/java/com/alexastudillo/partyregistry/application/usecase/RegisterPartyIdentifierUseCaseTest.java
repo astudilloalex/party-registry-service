@@ -19,6 +19,7 @@ import com.alexastudillo.partyregistry.domain.model.PartyVersion;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSchemePolicy;
 import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
+import com.alexastudillo.partyregistry.support.PartyIdentifierMutationDouble;
 import io.smallrye.mutiny.Uni;
 import org.junit.jupiter.api.Test;
 
@@ -425,18 +426,17 @@ class RegisterPartyIdentifierUseCaseTest {
         final List<String> order = new ArrayList<>();
         final RegistrationUseCaseTestSupport.PartyLookupDouble partyLookup =
                 new RegistrationUseCaseTestSupport.PartyLookupDouble(order);
-        final RegistrationUseCaseTestSupport.IdentifierRegistrationPortDouble registrationPort =
-                new RegistrationUseCaseTestSupport.IdentifierRegistrationPortDouble(order);
         final RegistrationUseCaseTestSupport.SchemeDouble schemeRepository =
                 new RegistrationUseCaseTestSupport.SchemeDouble(order);
+        final PartyIdentifierMutationDouble registrationPort =
+                new PartyIdentifierMutationDouble(order, partyLookup::findType, schemeRepository);
         final RegistrationUseCaseTestSupport.ProtectionDouble protectionPort =
                 new RegistrationUseCaseTestSupport.ProtectionDouble(order);
         final RecordingOperationObserver observationPort = new RecordingOperationObserver();
         final RegisterPartyIdentifierUseCase useCase = new RegisterPartyIdentifierUseCase(
-                partyLookup,
+                registrationPort,
                 registrationPort,
                 new PartyIdentifierPreparation(
-                        schemeRepository,
                         new IdentifierRuleCatalog(),
                         new IdentifierSchemePolicy(),
                         protectionPort),

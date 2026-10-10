@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcom
 import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.NationalityMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.IdentifierSchemeMutationOutcome;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierMutationOutcome;
 import jakarta.enterprise.context.RequestScoped;
 
 import java.util.Objects;
@@ -29,6 +30,8 @@ public class RequestMetadataContext {
     private NationalityMutationOutcome.Disposition nationalityDisposition;
     private boolean nationalityKeyed;
     private IdentifierSchemeMutationOutcome.Disposition identifierSchemeDisposition;
+    private PartyIdentifierMutationOutcome.Disposition identifierDisposition;
+    private boolean identifierKeyed;
 
     /**
      * Starts completion tracking before request validation occurs.
@@ -146,4 +149,15 @@ public class RequestMetadataContext {
     public IdentifierSchemeMutationOutcome.Disposition identifierSchemeDisposition() {
         return identifierSchemeDisposition;
     }
+
+    /** Marks validated key presence only; raw replay keys never enter request telemetry state. */
+    public void markIdentifierKeyed() { identifierKeyed = true; }
+
+    /** Retains only the disposition emitted after the actual identifier transaction commits. */
+    public void recordIdentifierDisposition(PartyIdentifierMutationOutcome outcome) {
+        identifierDisposition = Objects.requireNonNull(outcome, OUTCOME).disposition();
+    }
+
+    public PartyIdentifierMutationOutcome.Disposition identifierDisposition() { return identifierDisposition; }
+    public boolean identifierKeyed() { return identifierKeyed; }
 }

@@ -16,8 +16,11 @@ import com.alexastudillo.partyregistry.application.port.OperationObservationPort
 import com.alexastudillo.partyregistry.application.port.PartyMutationPort;
 import com.alexastudillo.partyregistry.application.port.PartyQueryPort;
 import com.alexastudillo.partyregistry.application.port.PartyCursorPort;
-import com.alexastudillo.partyregistry.application.port.PartyIdentifierRegistrationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierFingerprintPort;
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierReadPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierQueryPort;
+import com.alexastudillo.partyregistry.application.port.PartyIdentifierCursorPort;
 import com.alexastudillo.partyregistry.application.port.PartyLookupPort;
 import com.alexastudillo.partyregistry.application.port.RegistrationFingerprintPort;
 import com.alexastudillo.partyregistry.application.usecase.ChangePartyLifecycleUseCase;
@@ -27,6 +30,8 @@ import com.alexastudillo.partyregistry.application.usecase.ListIdentifierSchemes
 import com.alexastudillo.partyregistry.application.usecase.PatchIdentifierSchemeUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ChangeIdentifierSchemeLifecycleUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.GetPartyIdentifierUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ListPartyIdentifiersUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNationalityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchNationalityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.SetPrimaryNationalityUseCase;
@@ -34,6 +39,9 @@ import com.alexastudillo.partyregistry.application.usecase.GetNationalityUseCase
 import com.alexastudillo.partyregistry.application.usecase.ListNationalitiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.ListPartiesUseCase;
 import com.alexastudillo.partyregistry.application.usecase.PatchPartyUseCase;
+import com.alexastudillo.partyregistry.application.usecase.PatchPartyIdentifierUseCase;
+import com.alexastudillo.partyregistry.application.usecase.ChangePartyIdentifierLifecycleUseCase;
+import com.alexastudillo.partyregistry.application.usecase.SetPrimaryPartyIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateLegalEntityUseCase;
 import com.alexastudillo.partyregistry.application.usecase.CreateNaturalPersonUseCase;
 import com.alexastudillo.partyregistry.application.usecase.GetNaturalPersonUseCase;
@@ -167,21 +175,49 @@ public class ApplicationUseCaseProducer {
 
     @Produces
     RegisterPartyIdentifierUseCase registerPartyIdentifierUseCase(
-            PartyLookupPort partyLookupPort,
-            PartyIdentifierRegistrationPort registrationPort,
-            IdentifierSchemeRepository schemeRepository,
+            PartyIdentifierMutationPort mutations,
+            PartyIdentifierFingerprintPort fingerprints,
             IdentifierProtectionPort protectionPort,
             OperationObservationPort observationPort) {
         return new RegisterPartyIdentifierUseCase(
-                partyLookupPort,
-                registrationPort,
+                mutations,
+                fingerprints,
                 new PartyIdentifierPreparation(
-                        schemeRepository,
                         new IdentifierRuleCatalog(),
                         new IdentifierSchemePolicy(),
                         protectionPort),
                 UTC_CLOCK,
                 observationPort);
+    }
+
+    @Produces
+    PatchPartyIdentifierUseCase patchPartyIdentifierUseCase(PartyIdentifierMutationPort mutations, OperationObservationPort observation) {
+        return new PatchPartyIdentifierUseCase(mutations, UTC_CLOCK, observation);
+    }
+
+    /** Composes replay-first lifecycle changes with actual same-transaction storage and bounded observations. */
+    @Produces
+    ChangePartyIdentifierLifecycleUseCase changePartyIdentifierLifecycleUseCase(PartyIdentifierMutationPort mutations,
+            PartyIdentifierFingerprintPort fingerprints, OperationObservationPort observation) {
+        return new ChangePartyIdentifierLifecycleUseCase(mutations, fingerprints, UTC_CLOCK, observation);
+    }
+
+    /** Composes atomic primary replacement and historical replay without coupling Application to persistence mechanics. */
+    @Produces
+    SetPrimaryPartyIdentifierUseCase setPrimaryPartyIdentifierUseCase(PartyIdentifierMutationPort mutations,
+            PartyIdentifierFingerprintPort fingerprints, OperationObservationPort observation) {
+        return new SetPrimaryPartyIdentifierUseCase(mutations, fingerprints, UTC_CLOCK, observation);
+    }
+
+    @Produces
+    GetPartyIdentifierUseCase getPartyIdentifierUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers, OperationObservationPort observation) {
+        return new GetPartyIdentifierUseCase(owners, identifiers, observation);
+    }
+
+    @Produces
+    ListPartyIdentifiersUseCase listPartyIdentifiersUseCase(PartyLookupPort owners, PartyIdentifierQueryPort identifiers,
+            PartyIdentifierCursorPort cursors, OperationObservationPort observation) {
+        return new ListPartyIdentifiersUseCase(owners, identifiers, cursors, observation);
     }
 
     @Produces

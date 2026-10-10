@@ -5,6 +5,7 @@ import com.alexastudillo.partyregistry.application.model.PartyActivatedOutboxCan
 import com.alexastudillo.partyregistry.application.model.PartyChangedOutboxCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyCreatedOutboxCandidate;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierCreatedOutboxCandidate;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierChangedOutboxCandidate;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifierStatus;
@@ -30,6 +31,7 @@ public class PartyOutboxEventPersistenceMapper {
     private static final String PAYLOAD_KEY_STATUS = "status";
     private static final String PAYLOAD_KEY_PARTY_ID = "partyId";
     private static final String PAYLOAD_KEY_SCHEME_CODE = "schemeCode";
+    private static final String PAYLOAD_KEY_PRIMARY = "isPrimary";
 
     OutboxEventCandidate toCandidate(PartyOutboxEventEntity entity) {
         Objects.requireNonNull(entity, "entity");
@@ -37,6 +39,9 @@ public class PartyOutboxEventPersistenceMapper {
         return switch (entity.eventType()) {
             case PartyCreatedOutboxCandidate.EVENT_TYPE -> toPartyCreatedCandidate(entity);
             case PartyIdentifierCreatedOutboxCandidate.EVENT_TYPE -> toIdentifierCreatedCandidate(entity);
+            case PartyIdentifierChangedOutboxCandidate.UPDATED_EVENT_TYPE, PartyIdentifierChangedOutboxCandidate.VERIFIED_EVENT_TYPE,
+                 PartyIdentifierChangedOutboxCandidate.REJECTED_EVENT_TYPE, PartyIdentifierChangedOutboxCandidate.REVOKED_EVENT_TYPE,
+                 PartyIdentifierChangedOutboxCandidate.PRIMARY_CHANGED_EVENT_TYPE -> toIdentifierChangedCandidate(entity);
             case PartyActivatedOutboxCandidate.EVENT_TYPE -> toPartyActivatedCandidate(entity);
             case PartyChangedOutboxCandidate.UPDATED_EVENT_TYPE, PartyChangedOutboxCandidate.DEACTIVATED_EVENT_TYPE,
                  PartyChangedOutboxCandidate.ARCHIVED_EVENT_TYPE -> toPartyChangedCandidate(entity);
@@ -50,6 +55,9 @@ public class PartyOutboxEventPersistenceMapper {
         return switch (candidate) {
             case PartyCreatedOutboxCandidate event -> partyCreatedEntity(event);
             case PartyIdentifierCreatedOutboxCandidate event -> identifierCreatedEntity(event);
+            case PartyIdentifierChangedOutboxCandidate event -> pendingEntity(event, PartyOutboxAggregateType.PARTY_IDENTIFIER,
+                    event.identifierId().value(), event.identifierVersion().value(), Map.of(PAYLOAD_KEY_PARTY_ID, event.partyId().value().toString(),
+                            PAYLOAD_KEY_SCHEME_CODE, event.schemeCode(), PAYLOAD_KEY_STATUS, event.status().name(), PAYLOAD_KEY_PRIMARY, Boolean.toString(event.isPrimary())));
             case PartyActivatedOutboxCandidate event -> partyActivatedEntity(event);
             case PartyChangedOutboxCandidate event -> pendingEntity(event, PartyOutboxAggregateType.PARTY,
                     event.partyId().value(), event.partyVersion().value(),
@@ -199,6 +207,24 @@ public class PartyOutboxEventPersistenceMapper {
                 new PartyVersion(entity.aggregateVersion()), PartyType.valueOf(payload.get(PAYLOAD_KEY_PARTY_TYPE)),
                 PartyRecordStatus.valueOf(payload.get(PAYLOAD_KEY_STATUS)), PartyChangedOutboxCandidate.Kind.fromEventType(entity.eventType()),
                 entity.occurredAt(), correlationId(entity), entity.createdBy());
+    }
+
+    private static PartyIdentifierChangedOutboxCandidate toIdentifierChangedCandidate(PartyOutboxEventEntity entity) {
+        try {
+            requireAggregate(entity, PartyOutboxAggregateType.PARTY_IDENTIFIER, null);
+            Map<String, String> payload = requirePayload(entity.payload(), Set.of(PAYLOAD_KEY_PARTY_ID, PAYLOAD_KEY_SCHEME_CODE, PAYLOAD_KEY_STATUS, PAYLOAD_KEY_PRIMARY));
+            String primary = payload.get(PAYLOAD_KEY_PRIMARY);
+            if (!"true".equals(primary) && !"false".equals(primary)) { throw new IllegalStateException("Invalid primary flag"); }
+            String party = payload.get(PAYLOAD_KEY_PARTY_ID);
+            UUID partyId = UUID.fromString(party);
+            if (!partyId.toString().equals(party)) { throw new IllegalStateException("Invalid event owner"); }
+            return new PartyIdentifierChangedOutboxCandidate(entity.id(), new TenantId(entity.tenantId()), new PartyIdentifierId(entity.aggregateId()),
+                    new PartyIdentifierVersion(entity.aggregateVersion()), new PartyId(partyId), payload.get(PAYLOAD_KEY_SCHEME_CODE),
+                    PartyIdentifierStatus.valueOf(payload.get(PAYLOAD_KEY_STATUS)), Boolean.parseBoolean(primary),
+                    PartyIdentifierChangedOutboxCandidate.Kind.fromEventType(entity.eventType()), entity.occurredAt(), correlationId(entity), entity.createdBy());
+        } catch (RuntimeException _) {
+            throw new IllegalStateException("Stored identifier event is invalid");
+        }
     }
 
     private static void requireSchemaVersion(short schemaVersion) {

@@ -19,6 +19,7 @@ import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleResult;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSchemePolicy;
 import io.smallrye.mutiny.Uni;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,7 +30,7 @@ import java.util.Objects;
  */
 public final class PartyIdentifierPreparation {
 
-    private final IdentifierSchemeRepository schemeRepository;
+    private final @Nullable IdentifierSchemeRepository schemeRepository;
     private final IdentifierRuleCatalog ruleCatalog;
     private final IdentifierSchemePolicy schemePolicy;
     private final IdentifierProtectionPort protectionPort;
@@ -45,8 +46,18 @@ public final class PartyIdentifierPreparation {
         this.protectionPort = Objects.requireNonNull(protectionPort, "protectionPort");
     }
 
+    /** Prepares identifiers from a caller-owned locked scheme without a repository-opening capability. */
+    public PartyIdentifierPreparation(IdentifierRuleCatalog ruleCatalog, IdentifierSchemePolicy schemePolicy,
+            IdentifierProtectionPort protectionPort) {
+        schemeRepository = null;
+        this.ruleCatalog = Objects.requireNonNull(ruleCatalog, "ruleCatalog");
+        this.schemePolicy = Objects.requireNonNull(schemePolicy, "schemePolicy");
+        this.protectionPort = Objects.requireNonNull(protectionPort, "protectionPort");
+    }
+
     Uni<IdentifierScheme> findEligibleScheme(String schemeCode, PartyType partyType) {
-        return schemeRepository.findByCode(schemeCode)
+        var repository = Objects.requireNonNull(schemeRepository, "Scheme lookup requires repository-enabled preparation");
+        return repository.findByCode(schemeCode)
                 .map(resolved -> resolved.orElseThrow(() -> new ApplicationException(
                         new ApplicationFailure.UnknownIdentifierScheme(schemeCode))))
                 .map(scheme -> requireEligible(scheme, partyType));
@@ -95,7 +106,8 @@ public final class PartyIdentifierPreparation {
         }
     }
 
-    private IdentifierScheme requireEligible(IdentifierScheme scheme, PartyType partyType) {
+    /** Applies admission to a caller-supplied locked scheme without another repository/session lookup. */
+    IdentifierScheme requireEligible(IdentifierScheme scheme, PartyType partyType) {
         try {
             schemePolicy.requireRegistrationEligibility(scheme, partyType);
             return scheme;

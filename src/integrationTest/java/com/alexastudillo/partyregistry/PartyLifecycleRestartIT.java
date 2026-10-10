@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry;
 
 import com.alexastudillo.partyregistry.contract.IdentifierSchemeContractValidator;
+import com.alexastudillo.partyregistry.contract.PartyIdentifierContractAssertions;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
@@ -35,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executors;
@@ -57,6 +60,137 @@ class PartyLifecycleRestartIT {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
     @TempDir(cleanup = CleanupMode.ON_SUCCESS)
     Path temporary;
+
+    @Test
+    void identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses() throws Exception {
+        UUID tenant = UUID.randomUUID(); String privateReason = "private-reason-marker \u0000\n😀 ";
+        IdentifierRestartContext context;
+        IdentifierRestartState saved;
+        try (var database = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"));
+                var client = HttpClient.newBuilder().connectTimeout(REQUEST_TIMEOUT).build()) {
+            database.withStartupTimeout(Duration.ofSeconds(60)); database.start();
+            try (var first = launch(database, client, "identifier-first")) {
+                context = new IdentifierRestartContext(tenant, seed(database, tenant, "NATURAL_PERSON"), UUID.randomUUID().toString());
+                saved = prepareIdentifierHistory(client, first, database, context, privateReason);
+                assertEquals(3, saved.storage().path("identifiers").size()); assertEquals(9, saved.storage().path("completions").size());
+                assertEquals(2, saved.storage().path("audit").size()); assertEquals(11, saved.storage().path("events").size());
+                assertRetainedIdentifierReasons(saved.storage(), privateReason);
+            }
+            try (var second = launch(database, client, "identifier-restarted")) {
+                assertNotEquals(saved.pid(), second.process().pid());
+                assertEquals(saved.storage(), identifierStorage(database, context));
+                var retryContext = new IdentifierRestartContext(context.tenant(), context.party(), UUID.randomUUID().toString());
+                for (int index = 0; index < saved.intents().size(); index++) {
+                    IdentifierIntent intent = saved.intents().get(index);
+                    var builder = request(second, retryContext.tenant(), retryContext.process(), "identifier-retry-actor", intent.path())
+                            .header("Idempotency-Key", intent.key()).header("Content-Type", "application/json");
+                    if (intent.version() != null) { builder.header("If-Match", intent.version()); }
+                    var response = client.send(builder.POST(HttpRequest.BodyPublishers.ofString(intent.body())).build(), HttpResponse.BodyHandlers.ofString());
+                    assertEquals(intent.status(), response.statusCode(), response.body());
+                    assertEquals(retryContext.process(), response.headers().firstValue("Process-Id").orElseThrow());
+                    JsonNode result = JSON.readTree(response.body()); PartyIdentifierContractAssertions.assertItemResponse(intent.status(), result);
+                    assertEquals(saved.originals().get(index), result.path("data"));
+                    assertEquals(saved.storage(), identifierStorage(database, context));
+                }
+                assertRetainedIdentifierReasons(identifierStorage(database, context), privateReason);
+            }
+        }
+        for (String log : List.of("identifier-first.log", "identifier-restarted.log")) {
+            assertFalse(Files.readString(temporary.resolve(log)).contains("private-reason-marker"));
+        }
+    }
+
+    private static IdentifierRestartState prepareIdentifierHistory(HttpClient client, RunningApplication app, PostgreSQLContainer database,
+            IdentifierRestartContext context, String privateReason) throws Exception {
+        String root = "/v1/parties/" + context.party() + "/identifiers";
+        var intents = new ArrayList<IdentifierIntent>(); var originals = new ArrayList<JsonNode>();
+        JsonNode first = retainLostIdentifier(client, app, context, new IdentifierIntent(root, null, "identifier-create-a", identifierInput(), 201), intents, originals);
+        String target = root + "/" + first.path("identifierId").textValue();
+        var patch = client.send(request(app, context.tenant(), context.process(), "identifier-original-actor", target)
+                .header("If-Match", "0").header("Content-Type", "application/json")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString("{\"issuerCode\":\"CHANGED_AUTHORITY\"}")).build(), HttpResponse.BodyHandlers.discarding());
+        assertEquals(200, patch.statusCode());
+        JsonNode verified = retainLostIdentifier(client, app, context, new IdentifierIntent(target + "/verify", "1", "identifier-verify-a", "", 200), intents, originals);
+        assertEquals("identifier-original-actor", verified.path("verifiedBy").textValue());
+        retainLostIdentifier(client, app, context, new IdentifierIntent(target + "/set-primary", "2", "identifier-primary-a", "", 200), intents, originals);
+        JsonNode second = retainLostIdentifier(client, app, context, new IdentifierIntent(root, null, "identifier-create-b", identifierInput(), 201), intents, originals);
+        String alternative = root + "/" + second.path("identifierId").textValue();
+        retainLostIdentifier(client, app, context, new IdentifierIntent(alternative + "/verify", "0", "identifier-verify-b", "", 200), intents, originals);
+        retainLostIdentifier(client, app, context, new IdentifierIntent(alternative + "/set-primary", "1", "identifier-primary-b", "{\"replaceCurrentPrimary\":true}", 200), intents, originals);
+        String reason = JSON.writeValueAsString(Map.of("reasonCode", "", "reasonDetail", privateReason));
+        retainLostIdentifier(client, app, context, new IdentifierIntent(target + "/revoke", "4", "identifier-revoke-a", reason, 200), intents, originals);
+        JsonNode third = retainLostIdentifier(client, app, context, new IdentifierIntent(root, null, "identifier-create-c", identifierInput(), 201), intents, originals);
+        retainLostIdentifier(client, app, context, new IdentifierIntent(root + "/" + third.path("identifierId").textValue() + "/reject", "0", "identifier-reject-c", "{}", 200), intents, originals);
+        sql(database, "UPDATE parties SET record_status = 'ARCHIVED' WHERE id = '%s'".formatted(context.party()));
+        sql(database, "UPDATE identifier_schemes SET status = 'RETIRED' WHERE code = 'EC_PASSPORT'");
+        return new IdentifierRestartState(List.copyOf(intents), List.copyOf(originals), identifierStorage(database, context), app.process().pid());
+    }
+
+    private static JsonNode retainLostIdentifier(HttpClient client, RunningApplication app, IdentifierRestartContext context,
+            IdentifierIntent intent, List<IdentifierIntent> intents, List<JsonNode> originals) throws Exception {
+        var before = new HashSet<String>();
+        if (intent.version() == null) {
+            get(client, app, context.tenant(), context.process(), intent.path() + "?limit=200").path("data")
+                    .forEach(item -> before.add(item.path("identifierId").textValue()));
+        }
+        var builder = request(app, context.tenant(), context.process(), "identifier-original-actor", intent.path())
+                .header("Idempotency-Key", intent.key()).header("Content-Type", "application/json");
+        if (intent.version() != null) { builder.header("If-Match", intent.version()); }
+        var lost = client.send(builder.POST(HttpRequest.BodyPublishers.ofString(intent.body())).build(), HttpResponse.BodyHandlers.discarding());
+        assertEquals(intent.status(), lost.statusCode()); assertEquals(context.process(), lost.headers().firstValue("Process-Id").orElseThrow());
+        JsonNode recovered;
+        if (intent.version() == null) {
+            var added = new ArrayList<JsonNode>();
+            get(client, app, context.tenant(), context.process(), intent.path() + "?limit=200").path("data")
+                    .forEach(item -> { if (!before.contains(item.path("identifierId").textValue())) { added.add(item); } });
+            assertEquals(1, added.size()); recovered = added.getFirst();
+        } else {
+            String target = intent.path().substring(0, intent.path().lastIndexOf('/'));
+            recovered = get(client, app, context.tenant(), context.process(), target).path("data");
+        }
+        PartyIdentifierContractAssertions.assertItem(recovered); intents.add(intent); originals.add(recovered); return recovered;
+    }
+
+    private static String identifierInput() throws Exception {
+        return JSON.writeValueAsString(Map.of("identifierSchemeCode", "EC_PASSPORT", "value", "AB" + UUID.randomUUID().toString().replace("-", "").substring(0, 10),
+                "issuerCode", "ORIGINAL_AUTHORITY"));
+    }
+
+    private static JsonNode identifierStorage(PostgreSQLContainer database, IdentifierRestartContext context) throws Exception {
+        return JSON.readTree(sql(database, """
+                SELECT jsonb_build_object(
+                    'party', (SELECT to_jsonb(p) FROM parties p WHERE id = '%1$s'),
+                    'identifiers', (SELECT jsonb_agg(to_jsonb(i) ORDER BY id) FROM party_identifiers i WHERE party_id = '%1$s'),
+                    'completions', (SELECT jsonb_agg(to_jsonb(c) ORDER BY operation, idempotency_key) FROM party_identifier_idempotency_records c WHERE party_id = '%1$s'),
+                    'audit', (SELECT jsonb_agg(to_jsonb(a) ORDER BY action, identifier_id) FROM party_identifier_action_audit a WHERE party_id = '%1$s'),
+                    'events', (SELECT jsonb_agg(to_jsonb(e) ORDER BY id) FROM party_outbox_events e WHERE tenant_id = '%2$s'))::text
+                """.formatted(context.party(), context.tenant())));
+    }
+
+    private static void assertRetainedIdentifierReasons(JsonNode storage, String privateReason) {
+        for (JsonNode history : storage.path("audit")) {
+            assertEquals("identifier-original-actor", history.path("actor").textValue());
+            if (history.path("action").textValue().equals("REVOKE")) {
+                assertEquals("\\x", history.path("reason_code").textValue());
+                byte[] units = HexFormat.of().parseHex(history.path("reason_detail").textValue().substring(2));
+                var decoded = new StringBuilder(units.length / 2);
+                for (int index = 0; index < units.length; index += 2) { decoded.append((char) (((units[index] & 255) << 8) | (units[index + 1] & 255))); }
+                assertEquals(privateReason, decoded.toString());
+            } else { assertTrue(history.path("reason_code").isNull()); assertTrue(history.path("reason_detail").isNull()); }
+        }
+        storage.path("completions").forEach(completion -> assertEquals("identifier-original-actor", completion.path("created_by").textValue()));
+        assertFalse(storage.path("completions").toString().contains("private-reason-marker"));
+        assertFalse(storage.path("events").toString().contains("private-reason-marker"));
+    }
+
+    /** Retains one accepted isolated owner/correlation scope across actual process restarts. */
+    private record IdentifierRestartContext(UUID tenant, UUID party, String process) { }
+    /** Retains exact original effective HTTP intent, with diagnostic output redacted. */
+    private record IdentifierIntent(String path, String version, String key, String body, int status) {
+        @Override public String toString() { return "IdentifierIntent[input=<redacted>]"; }
+    }
+    /** Retains recovered safe original results and complete storage evidence for unchanged replay assertions. */
+    private record IdentifierRestartState(List<IdentifierIntent> intents, List<JsonNode> originals, JsonNode storage, long pid) { }
 
     @Test
     void lostSchemeCreateAndAllLifecycleResponsesReplayOriginalAuditAfterRetirementAndRestart() throws Exception {

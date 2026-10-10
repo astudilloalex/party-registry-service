@@ -1,65 +1,81 @@
 package com.alexastudillo.partyregistry.api.resource;
 
 import com.alexastudillo.api.response.contract.ApiResponse;
-import com.alexastudillo.api.response.contract.CommonResponseCode;
-import com.alexastudillo.api.response.infrastructure.quarkus.ResponseManager;
-import com.alexastudillo.partyregistry.api.context.RequestMetadataContext;
-import com.alexastudillo.partyregistry.api.error.PartyApiErrorTranslator;
-import com.alexastudillo.partyregistry.api.error.PartyResponseCode;
-import com.alexastudillo.partyregistry.api.mapper.PartyIdentifierApiMapper;
 import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierCreateRequest;
+import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierPatchRequest;
 import com.alexastudillo.partyregistry.api.model.response.PartyIdentifierResponse;
-import com.alexastudillo.partyregistry.api.support.ApiRequestSupport;
-import com.alexastudillo.partyregistry.application.command.RegisterPartyIdentifierCommand;
-import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierQueryOperations;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierRegistrationOperations;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierPatchOperations;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierLifecycleOperations;
+import com.alexastudillo.partyregistry.api.support.PartyIdentifierPrimaryOperations;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierOperation;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.UriInfo;
 import org.jboss.resteasy.reactive.RestResponse;
-import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
+
+import java.util.List;
 
 /**
- * Exposes independent official-identifier registration for existing Parties.
+ * Exposes all eight official-identifier operations through safe typed reactive HTTP envelopes.
  */
-@Path("/v1/parties/{partyId}/identifiers")
+@Path("/v1/parties")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @ApplicationScoped
 @IfBuildProperty(name = "quarkus.hibernate-orm.enabled", stringValue = "true", enableIfMissing = true)
 public class PartyIdentifierResource {
 
-    private final RegisterPartyIdentifierUseCase registerUseCase;
-    private final RequestMetadataContext metadataContext;
-    private final PartyIdentifierApiMapper mapper;
-    private final PartyApiErrorTranslator errorTranslator;
-    private final ResponseManager responseManager;
-    private final ApiRequestSupport requestSupport;
+    private final PartyIdentifierRegistrationOperations registration;
+    private final PartyIdentifierQueryOperations queries;
+    private final PartyIdentifierPatchOperations patches;
+    private final PartyIdentifierLifecycleOperations lifecycle;
+    private final PartyIdentifierPrimaryOperations primary;
 
     @Inject
     public PartyIdentifierResource(
-            RegisterPartyIdentifierUseCase registerUseCase,
-            RequestMetadataContext metadataContext,
-            PartyIdentifierApiMapper mapper,
-            PartyApiErrorTranslator errorTranslator,
-            ResponseManager responseManager,
-            ApiRequestSupport requestSupport) {
-        this.registerUseCase = registerUseCase;
-        this.metadataContext = metadataContext;
-        this.mapper = mapper;
-        this.errorTranslator = errorTranslator;
-        this.responseManager = responseManager;
-        this.requestSupport = requestSupport;
+            PartyIdentifierRegistrationOperations registration,
+            PartyIdentifierQueryOperations queries,
+            PartyIdentifierPatchOperations patches,
+            PartyIdentifierLifecycleOperations lifecycle,
+            PartyIdentifierPrimaryOperations primary) {
+        this.registration = registration;
+        this.queries = queries;
+        this.patches = patches;
+        this.lifecycle = lifecycle;
+        this.primary = primary;
+    }
+
+    /** Returns an owned historical page with strict selectors, authenticated continuation and safe shared metadata. */
+    @GET
+    @Path("/{partyId}/identifiers")
+    @WithSpan("party-identifier.list")
+    public Uni<RestResponse<ApiResponse<List<PartyIdentifierResponse>>>> listPartyIdentifiers(
+            @PathParam("partyId") String partyId, @Context UriInfo uri) {
+        return queries.list(partyId, uri.getQueryParameters());
+    }
+
+    /** Retrieves the safe stored representation in every identifier state without changing lifecycle or audit. */
+    @GET
+    @Path("/{partyId}/identifiers/{identifierId}")
+    @WithSpan("party-identifier.retrieve")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> getPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId) {
+        return queries.detail(partyId, identifierId);
     }
 
     /**
@@ -71,38 +87,62 @@ public class PartyIdentifierResource {
      * @return reactive {@code 201 successful} envelope containing only the safe identifier projection
      */
     @POST
+    @Path("/{partyId}/identifiers")
     @WithSpan("party-identifier.create")
     public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> createPartyIdentifier(
             @PathParam("partyId") String partyId,
             PartyIdentifierCreateRequest request,
             @Context HttpHeaders headers) {
-        return Uni.createFrom().item(() -> command(partyId, request, headers))
-                .flatMap(registerUseCase::execute)
-                .map(mapper::toResponse)
-                .map(response -> responseManager.customHttp(PartyResponseCode.CREATED, response))
-                .onFailure().transform(errorTranslator::translate);
+        return registration.register(partyId, request, headers);
     }
 
-    /**
-     * Routes strict JSON binding failures through the shared bad-request envelope.
-     *
-     * @param ignoredFailure Jackson request binding failure
-     * @return standard {@code 400 bad-request} response
-     */
-    @ServerExceptionMapper
-    public RestResponse<ApiResponse<Void>> mapInvalidJson(MismatchedInputException ignoredFailure) {
-        return responseManager.errorHttp(CommonResponseCode.BAD_REQUEST);
+    /** Corrects only presence-aware metadata using the identifier's own expected version and shared safe response. */
+    @PATCH
+    @Path("/{partyId}/identifiers/{identifierId}")
+    @WithSpan("party-identifier.patch")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> patchPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            PartyIdentifierPatchRequest request, @Context HttpHeaders headers) {
+        return patches.patch(partyId, identifierId, request, headers);
     }
 
-    private RegisterPartyIdentifierCommand command(
-            String partyId,
-            PartyIdentifierCreateRequest request,
-            HttpHeaders headers) {
-        PartyIdentifierCreateRequest validRequest = requestSupport.validateBody(request);
-        return new RegisterPartyIdentifierCommand(
-                metadataContext.metadata(),
-                requestSupport.requireIdempotencyKey(headers),
-                requestSupport.parsePartyId(partyId),
-                mapper.toInput(validRequest));
+    /** Records operator verification after enforcing a strictly bodyless request and independent expected version. */
+    @POST
+    @Path("/{partyId}/identifiers/{identifierId}/verify")
+    @WithSpan("party-identifier.verify")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> verifyPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return lifecycle.change(partyId, identifierId, body, headers, PartyIdentifierOperation.VERIFY);
+    }
+
+    /** Rejects pending evidence with optional exact private reasons and durable keyed recovery. */
+    @POST
+    @Path("/{partyId}/identifiers/{identifierId}/reject")
+    @WithSpan("party-identifier.reject")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> rejectPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return lifecycle.change(partyId, identifierId, body, headers, PartyIdentifierOperation.REJECT);
+    }
+
+    /** Revokes verified evidence while retaining its verification history and optional private reason audit. */
+    @POST
+    @Path("/{partyId}/identifiers/{identifierId}/revoke")
+    @WithSpan("party-identifier.revoke")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> revokePartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return lifecycle.change(partyId, identifierId, body, headers, PartyIdentifierOperation.REVOKE);
+    }
+
+    /** Selects usable verified evidence, replacing another scoped primary only with explicit consent. */
+    @POST
+    @Path("/{partyId}/identifiers/{identifierId}/set-primary")
+    @WithSpan("party-identifier.set-primary")
+    public Uni<RestResponse<ApiResponse<PartyIdentifierResponse>>> setPrimaryPartyIdentifier(
+            @PathParam("partyId") String partyId, @PathParam("identifierId") String identifierId,
+            byte[] body, @Context HttpHeaders headers) {
+        return primary.select(partyId, identifierId, body, headers);
     }
 }

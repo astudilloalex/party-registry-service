@@ -42,6 +42,12 @@ jobs:
         with:
           cache-provider: basic
 
+      - name: Verify deployment rendering and recovery
+        shell: bash
+        run: |
+          python3 -m unittest discover -s deploy/tests -v
+          bash -n deploy/vps/deploy.sh
+
       - name: Build the Linux native executable
         run: >-
           ./gradlew --no-daemon clean build
@@ -97,7 +103,35 @@ jobs:
       - name: Check out deployment files
         uses: actions/checkout@v6
 
-      - name: Install the Quadlet on the VPS
+      - name: Render the production environment
+        shell: bash
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          FLYWAY_DB_PASSWORD: ${{ secrets.FLYWAY_DB_PASSWORD }}
+          RABBITMQ_USERNAME: ${{ secrets.RABBITMQ_USERNAME }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
+          PARTY_IDENTIFIER_ENCRYPTION_KEY_V1: ${{ secrets.PARTY_IDENTIFIER_ENCRYPTION_KEY_V1 }}
+          PARTY_IDENTIFIER_INDEX_HMAC_KEY: ${{ secrets.PARTY_IDENTIFIER_INDEX_HMAC_KEY }}
+          PARTY_REGISTRATION_IDEMPOTENCY_HMAC_KEY: ${{ secrets.PARTY_REGISTRATION_IDEMPOTENCY_HMAC_KEY }}
+          PARTY_CURSOR_SIGNING_KEY_V1: ${{ secrets.PARTY_CURSOR_SIGNING_KEY_V1 }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME || vars.DB_USERNAME }}
+          FLYWAY_DB_USERNAME: ${{ secrets.FLYWAY_DB_USERNAME || vars.FLYWAY_DB_USERNAME }}
+          DB_REACTIVE_URL: ${{ secrets.DB_REACTIVE_URL || vars.DB_REACTIVE_URL }}
+          DB_JDBC_URL: ${{ secrets.DB_JDBC_URL || vars.DB_JDBC_URL }}
+          GEOGRAPHIC_REFERENCE_BASE_URL: ${{ secrets.GEOGRAPHIC_REFERENCE_BASE_URL || vars.GEOGRAPHIC_REFERENCE_BASE_URL }}
+          RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST || vars.RABBITMQ_HOST }}
+          RABBITMQ_PORT: ${{ secrets.RABBITMQ_PORT || vars.RABBITMQ_PORT }}
+          RABBITMQ_VIRTUAL_HOST: ${{ secrets.RABBITMQ_VIRTUAL_HOST || vars.RABBITMQ_VIRTUAL_HOST }}
+          PARTY_OUTBOX_MODE: ${{ secrets.PARTY_OUTBOX_MODE || vars.PARTY_OUTBOX_MODE }}
+          PARTY_OUTBOX_EXCHANGE: ${{ secrets.PARTY_OUTBOX_EXCHANGE || vars.PARTY_OUTBOX_EXCHANGE }}
+          PARTY_OUTBOX_ROUTING_KEY: ${{ secrets.PARTY_OUTBOX_ROUTING_KEY || vars.PARTY_OUTBOX_ROUTING_KEY }}
+        run: |
+          set -Eeuo pipefail
+          python3 deploy/vps/render-env.py \
+            deploy/quadlet/party-registry-service.env.example \
+            "${RUNNER_TEMP}/party-registry-service.env"
+
+      - name: Install the environment and Quadlet on the VPS
         shell: bash
         env:
           IMAGE_REFERENCE: ${{ needs.build_publish.outputs.image }}
@@ -118,7 +152,7 @@ jobs:
           ssh_key_file="${RUNNER_TEMP}/vps-deploy-key"
           known_hosts_file="${RUNNER_TEMP}/vps-known-hosts"
           remote="${VPS_USER}@${VPS_HOST}"
-          remote_stage=".local/share/geographic-reference-service"
+          remote_stage=".local/share/party-registry-service/deploy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
 
           (
             umask 077
@@ -143,13 +177,29 @@ jobs:
             -o "UserKnownHostsFile=${known_hosts_file}"
           )
 
+          cleanup_remote_stage() {
+            ssh "${ssh_options[@]}" "${remote}" \
+              "rm -f '${remote_stage}/party-registry-service.env' '${remote_stage}/party-registry-service.container.template' '${remote_stage}/deploy.sh'; rmdir '${remote_stage}'" || true
+          }
+          trap cleanup_remote_stage EXIT
+
           ssh "${ssh_options[@]}" "${remote}" \
             "install -d -m 700 '${remote_stage}'"
 
           scp "${scp_options[@]}" \
-            deploy/quadlet/geographic-reference-service.container.template \
+            deploy/quadlet/party-registry-service.container.template \
             deploy/vps/deploy.sh \
+            "${RUNNER_TEMP}/party-registry-service.env" \
             "${remote}:${remote_stage}/"
 
           ssh "${ssh_options[@]}" "${remote}" \
-            "chmod 700 '${remote_stage}/deploy.sh' && '${remote_stage}/deploy.sh' '${IMAGE_REFERENCE}'"
+            "chmod 700 '${remote_stage}/deploy.sh' && chmod 600 '${remote_stage}/party-registry-service.env' && '${remote_stage}/deploy.sh' '${IMAGE_REFERENCE}' '${remote_stage}' '${remote_stage}/party-registry-service.env'"
+
+      - name: Remove temporary deployment credentials
+        if: always()
+        shell: bash
+        run: |
+          rm -f -- \
+            "${RUNNER_TEMP}/party-registry-service.env" \
+            "${RUNNER_TEMP}/vps-deploy-key" \
+            "${RUNNER_TEMP}/vps-known-hosts"

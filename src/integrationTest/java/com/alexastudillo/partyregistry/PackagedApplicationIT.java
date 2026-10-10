@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies packaged JVM and native artifacts and their cross-cutting HTTP
@@ -213,9 +214,12 @@ class PackagedApplicationIT {
         assertEquals(Set.of("partyId", "type", "displayName", "recordStatus", "version", "createdAt",
                 "updatedAt", "createdBy", "updatedBy", "naturalPersonDetails", "identifiers"),
                 detail.jsonPath().getMap("data").keySet());
-        assertEquals(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode", "maskedValue",
+        var identifierFields = detail.jsonPath().getMap("data.identifiers[0]").keySet();
+        assertTrue(identifierFields.containsAll(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode",
+                "maskedValue", "status", "isPrimary", "version", "createdAt", "updatedAt")));
+        assertTrue(Set.of("identifierId", "partyId", "identifierSchemeId", "schemeCode", "maskedValue",
                 "status", "isPrimary", "issuerCode", "issuedOn", "expiresOn", "verifiedAt", "verifiedBy",
-                "version", "createdAt", "updatedAt"), detail.jsonPath().getMap("data.identifiers[0]").keySet());
+                "version", "createdAt", "updatedAt").containsAll(identifierFields));
         for (String forbidden : List.of("value", "normalizedValue", "encryptedValue", "normalizedValueHash",
                 "encryptionKeyVersion", "normalizationVersion", "plaintext", "ciphertext", "fingerprint", "keys")) {
             detail.then().body(not(containsString("\"" + forbidden + "\"")));
@@ -665,7 +669,7 @@ class PackagedApplicationIT {
 
         String additionalValue = identifierValue("PA");
         String additionalKey = "packaged-additional-" + UUID.randomUUID();
-        validRequest()
+        Response additional = validRequest()
                 .header("Idempotency-Key", additionalKey)
                 .contentType(JSON)
                 .body(identifierBody(additionalValue))
@@ -678,10 +682,24 @@ class PackagedApplicationIT {
                 .body("data.partyId", equalTo(partyId))
                 .body("data.status", equalTo("PENDING_VERIFICATION"))
                 .body("data", not(hasKey("value")))
-                .body(not(containsString(additionalValue)));
+                .body(not(containsString(additionalValue)))
+                .extract().response();
+        Response additionalReplay = validRequest()
+                .header("Idempotency-Key", additionalKey)
+                .contentType(JSON)
+                .body(identifierBody(additionalValue))
+                .when().post("/v1/parties/{partyId}/identifiers", partyId)
+                .then()
+                .statusCode(201)
+                .header("Process-Id", equalTo(PROCESS_ID))
+                .body("status", equalTo(201))
+                .body("code", equalTo("successful"))
+                .body(not(containsString(additionalValue)))
+                .extract().response();
+        assertEquals(additional.jsonPath().getMap("data"), additionalReplay.jsonPath().getMap("data"));
         assertError(
                 validRequest()
-                        .header("Idempotency-Key", additionalKey)
+                        .header("Idempotency-Key", "packaged-additional-duplicate-" + UUID.randomUUID())
                         .contentType(JSON)
                         .body(identifierBody(additionalValue))
                         .when().post("/v1/parties/{partyId}/identifiers", partyId),

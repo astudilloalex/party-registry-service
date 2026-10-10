@@ -5,8 +5,6 @@ import com.alexastudillo.partyregistry.application.command.RegisterPartyIdentifi
 import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
 import com.alexastudillo.partyregistry.application.model.IdentifierProtectionRequest;
-import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
-import com.alexastudillo.partyregistry.application.model.PartyIdentifierResult;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
 import com.alexastudillo.partyregistry.application.usecase.PartyIdentifierPreparation;
 import com.alexastudillo.partyregistry.application.usecase.RegisterPartyIdentifierUseCase;
@@ -26,6 +24,7 @@ import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSchemePolicy;
 import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
+import com.alexastudillo.partyregistry.support.PartyIdentifierMutationDouble;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import org.junit.jupiter.api.Test;
@@ -34,6 +33,8 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.Month;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -130,7 +131,7 @@ class JcaIdentifierProtectionAdapterTest {
 
     @Test
     void encryptsSchemeNormalizedPlaintextThroughSharedRegistrationPreparation() {
-        Instant now = Instant.parse("2026-09-04T00:30:00Z");
+        Instant now = LocalDate.of(2026, Month.SEPTEMBER, 4).atTime(0, 30).toInstant(ZoneOffset.UTC);
         IdentifierScheme identifierScheme = new IdentifierScheme(
                 SCHEME_ID,
                 "TEST-SCHEME",
@@ -147,16 +148,13 @@ class JcaIdentifierProtectionAdapterTest {
                 IdentifierSchemeStatus.ACTIVE,
                 new IdentifierSchemeVersion(1),
                 AuditInfo.initial(now, "catalog"));
-        List<PartyIdentifierRegistrationCandidate> candidates = new ArrayList<>();
-        RegisterPartyIdentifierUseCase useCase = new RegisterPartyIdentifierUseCase(
+        var ports = new PartyIdentifierMutationDouble(new ArrayList<>(),
                 (tenantId, partyId) -> Uni.createFrom().item(Optional.of(PartyType.NATURAL_PERSON)),
-                candidate -> {
-                    candidates.add(candidate);
-                    return Uni.createFrom().item(PartyIdentifierResult.fromAggregate(
-                            candidate.identifier(), candidate.identifierScheme()));
-                },
+                code -> Uni.createFrom().item(Optional.of(identifierScheme)));
+        RegisterPartyIdentifierUseCase useCase = new RegisterPartyIdentifierUseCase(
+                ports,
+                ports,
                 new PartyIdentifierPreparation(
-                        code -> Uni.createFrom().item(Optional.of(identifierScheme)),
                         new IdentifierRuleCatalog(),
                         new IdentifierSchemePolicy(),
                         adapter),
@@ -176,8 +174,8 @@ class JcaIdentifierProtectionAdapterTest {
                 .assertCompleted();
 
         assertEquals(submittedValue, command.identifier().value());
-        assertEquals(1, candidates.size());
-        var identifier = candidates.getFirst().identifier();
+        assertEquals(1, ports.candidates.size());
+        var identifier = ports.candidates.getFirst().identifier();
         ProtectedIdentifierValue protectedValue = identifier.protectedValue();
         IdentifierProtectionRequest context = request(
                 TENANT_ID, PARTY_ID, identifier.identifierId(), SCHEME_ID, submittedValue, NORMALIZED_VALUE,

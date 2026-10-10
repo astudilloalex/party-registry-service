@@ -70,6 +70,13 @@ public class MicrometerOpenTelemetryOperationObserver implements OperationObserv
                 "application.legal-entity-registration";
             case APPLICATION_ADDITIONAL_IDENTIFIER_REGISTRATION ->
                 "application.additional-identifier-registration";
+            case APPLICATION_PARTY_IDENTIFIER_LIST -> "application.party-identifier-list";
+            case APPLICATION_PARTY_IDENTIFIER_RETRIEVAL -> "application.party-identifier-retrieval";
+            case APPLICATION_PARTY_IDENTIFIER_PATCH -> "application.party-identifier-patch";
+            case APPLICATION_PARTY_IDENTIFIER_VERIFY -> "application.party-identifier-verify";
+            case APPLICATION_PARTY_IDENTIFIER_REJECT -> "application.party-identifier-reject";
+            case APPLICATION_PARTY_IDENTIFIER_REVOKE -> "application.party-identifier-revoke";
+            case APPLICATION_PARTY_IDENTIFIER_SET_PRIMARY -> "application.party-identifier-set-primary";
             case APPLICATION_PARTY_LIST -> "application.party-list";
             case APPLICATION_PARTY_RETRIEVAL -> "application.party-retrieval";
             case APPLICATION_PARTY_PATCH -> "application.party-patch";
@@ -89,6 +96,7 @@ public class MicrometerOpenTelemetryOperationObserver implements OperationObserv
                 "transaction.legal-entity-registration";
             case TRANSACTION_ADDITIONAL_IDENTIFIER_REGISTRATION ->
                 "transaction.additional-identifier-registration";
+            case TRANSACTION_PARTY_IDENTIFIER_MUTATION -> "transaction.party-identifier-mutation";
             case TRANSACTION_PARTY_ACTIVATION -> "transaction.party-activation";
             case TRANSACTION_PARTY_MUTATION -> "transaction.party-mutation";
         };

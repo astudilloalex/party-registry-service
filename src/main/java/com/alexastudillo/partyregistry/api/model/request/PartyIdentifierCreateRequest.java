@@ -1,6 +1,8 @@
 package com.alexastudillo.partyregistry.api.model.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.jspecify.annotations.Nullable;
@@ -10,6 +12,8 @@ import java.time.LocalDate;
 /**
  * Represents one strict additional official identifier registration request.
  */
+@JsonDeserialize(using = PartyIdentifierCreateRequestDeserializer.class)
+@RegisterForReflection
 public record PartyIdentifierCreateRequest(
         @NotBlank(message = "identifier-scheme-code-required")
         @Size(max = 64, message = "identifier-scheme-code-too-long")
@@ -18,7 +22,7 @@ public record PartyIdentifierCreateRequest(
         @NotBlank(message = "identifier-value-required")
         @Size(max = 256, message = "identifier-value-too-long")
         String value,
-        @Nullable @Size(max = 64, message = "issuer-code-too-long") String issuerCode,
+        @Nullable @ValidIssuerCode String issuerCode,
         @Nullable LocalDate issuedOn,
         @Nullable LocalDate expiresOn,
         boolean isPrimary) {

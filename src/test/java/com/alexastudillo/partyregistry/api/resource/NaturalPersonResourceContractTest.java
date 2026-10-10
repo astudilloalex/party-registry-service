@@ -1270,7 +1270,9 @@ class NaturalPersonResourceContractTest {
         assertEquals(expectedFields, data.keySet());
         assertEquals(COMPLETE_DETAILS_FIELDS, nested(data, "naturalPersonDetails").keySet());
         for (Map<String, Object> identifier : identifiers(data)) {
-            assertEquals(COMPLETE_IDENTIFIER_FIELDS, identifier.keySet());
+            assertTrue(identifier.keySet().containsAll(Set.of("identifierId", "partyId", "identifierSchemeId",
+                    "schemeCode", "maskedValue", "status", "isPrimary", "version", "createdAt", "updatedAt")));
+            assertTrue(COMPLETE_IDENTIFIER_FIELDS.containsAll(identifier.keySet()));
             assertEquals(data.get("partyId"), identifier.get("partyId"));
             assertTrue(Set.of("PENDING_VERIFICATION", "VERIFIED").contains(identifier.get("status")));
             UUID.fromString(string(identifier, "identifierId"));

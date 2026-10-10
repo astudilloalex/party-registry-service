@@ -60,17 +60,18 @@ class MigrationRegressionTest {
             appliedMigrations.put(migration.getVersion().getVersion(), migration.getScript());
         }
 
-        assertEquals(Map.of(
-                "1", "db/migration/V1__create_party_registry_schema.sql",
-                "2", "db/migration/V2__create_api_idempotency_records.sql",
-                "3", "db/migration/V3__seed_ecuador_identifier_schemes.sql",
-                "4", "db/migration/V4__make_identifier_expiration_optional.sql",
-                "5", "db/migration/V5__add_party_listing_order_index.sql",
-                "6", "db/migration/V6__add_nationality_listing_order_index.sql",
-                "7", "db/migration/V7__add_identifier_scheme_management.sql",
-                "1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql",
-                "1004", "db/test-migration/V1004__seed_identifier_scheme_http_boundaries.sql",
-                "1005", "db/test-migration/V1005__seed_scheme_historical_party_evidence.sql"),
+        assertEquals(Map.ofEntries(
+                Map.entry("1", "db/migration/V1__create_party_registry_schema.sql"),
+                Map.entry("2", "db/migration/V2__create_api_idempotency_records.sql"),
+                Map.entry("3", "db/migration/V3__seed_ecuador_identifier_schemes.sql"),
+                Map.entry("4", "db/migration/V4__make_identifier_expiration_optional.sql"),
+                Map.entry("5", "db/migration/V5__add_party_listing_order_index.sql"),
+                Map.entry("6", "db/migration/V6__add_nationality_listing_order_index.sql"),
+                Map.entry("7", "db/migration/V7__add_identifier_scheme_management.sql"),
+                Map.entry("8", "db/migration/V8__add_party_identifier_contract_support.sql"),
+                Map.entry("1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql"),
+                Map.entry("1004", "db/test-migration/V1004__seed_identifier_scheme_http_boundaries.sql"),
+                Map.entry("1005", "db/test-migration/V1005__seed_scheme_historical_party_evidence.sql")),
                 appliedMigrations);
         assertDoesNotThrow(flyway::validate);
 

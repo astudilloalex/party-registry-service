@@ -1,0 +1,48 @@
+[Unit]
+Description=Party Registry Service
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=@@IMAGE@@
+ContainerName=party-registry-service
+Environment=QUARKUS_PROFILE=prod
+Environment=QUARKUS_HTTP_HOST=0.0.0.0
+Environment=QUARKUS_HTTP_PORT=8080
+# Provision database/Flyway credentials, service connections, and protection keys here.
+EnvironmentFile=@@ENVIRONMENT_FILE@@
+Network=internal-services.network
+Network=party-db.network
+NetworkAlias=party-registry-service
+PublishPort=127.0.0.1:8082:8080/tcp
+Pull=never
+User=1001
+NoNewPrivileges=true
+DropCapability=all
+ReadOnly=true
+ReadOnlyTmpfs=true
+PidsLimit=256
+LogDriver=journald
+
+# Wait for application readiness before systemd reports a successful startup.
+Notify=healthy
+HealthCmd=/usr/bin/curl --fail --silent --show-error --max-time 3 --output /dev/null http://127.0.0.1:8080/q/health/ready
+HealthInterval=30s
+HealthTimeout=5s
+HealthStartPeriod=60s
+HealthRetries=3
+# Let systemd restart the service after repeated health check failures.
+HealthOnFailure=kill
+
+[Service]
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=300
+TimeoutStopSec=30
+MemoryAccounting=true
+MemoryMax=512M
+CPUQuota=100%
+TasksMax=256
+
+[Install]
+WantedBy=default.target

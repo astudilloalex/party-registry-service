@@ -1,6 +1,8 @@
 package com.alexastudillo.partyregistry.infrastructure.messaging;
 
 import com.alexastudillo.partyregistry.application.model.PartyChangedOutboxCandidate;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierChangedOutboxCandidate;
+import com.alexastudillo.partyregistry.domain.model.PartyIdentifierStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +32,7 @@ public class OutboxMessageSerializer {
     private static final String PAYLOAD_KEY_STATUS = "status";
     private static final String PAYLOAD_KEY_PARTY_ID = "partyId";
     private static final String PAYLOAD_KEY_SCHEME_CODE = "schemeCode";
+    private static final String PAYLOAD_KEY_PRIMARY = "isPrimary";
 
     private final ObjectMapper objectMapper;
 
@@ -52,7 +55,7 @@ public class OutboxMessageSerializer {
         envelope.put("aggregateVersion", message.aggregateVersion());
         envelope.put("eventType", message.eventType());
         envelope.put("eventSchemaVersion", message.eventSchemaVersion());
-        envelope.put("payload", new TreeMap<>(message.payload()));
+        envelope.put("payload", brokerPayload(message));
         envelope.put("occurredAt", message.occurredAt());
         envelope.put("correlationId", message.correlationId());
         envelope.put("causationId", message.causationId());
@@ -73,6 +76,9 @@ public class OutboxMessageSerializer {
         switch (message.eventType()) {
             case PARTY_CREATED -> requirePartyCreated(message);
             case IDENTIFIER_CREATED -> requireIdentifierCreated(message);
+            case PartyIdentifierChangedOutboxCandidate.UPDATED_EVENT_TYPE, PartyIdentifierChangedOutboxCandidate.VERIFIED_EVENT_TYPE,
+                 PartyIdentifierChangedOutboxCandidate.REJECTED_EVENT_TYPE, PartyIdentifierChangedOutboxCandidate.REVOKED_EVENT_TYPE,
+                 PartyIdentifierChangedOutboxCandidate.PRIMARY_CHANGED_EVENT_TYPE -> requireIdentifierChanged(message);
             case PARTY_ACTIVATED -> requirePartyActivated(message);
             case PartyChangedOutboxCandidate.UPDATED_EVENT_TYPE, PartyChangedOutboxCandidate.DEACTIVATED_EVENT_TYPE,
                  PartyChangedOutboxCandidate.ARCHIVED_EVENT_TYPE -> requirePartyChanged(message);
@@ -116,6 +122,30 @@ public class OutboxMessageSerializer {
                 || !kind.accepts(PartyRecordStatus.valueOf(payload.get(PAYLOAD_KEY_STATUS)))) {
             throw new IllegalArgumentException("Root event payload is inconsistent");
         }
+    }
+
+    private static void requireIdentifierChanged(OutboxMessage message) {
+        requireAggregate(message, "PARTY_IDENTIFIER", 0, false);
+        Map<String, String> payload = requirePayload(message, Set.of(PAYLOAD_KEY_PARTY_ID, PAYLOAD_KEY_SCHEME_CODE, PAYLOAD_KEY_STATUS, PAYLOAD_KEY_PRIMARY));
+        try {
+            String primary = payload.get(PAYLOAD_KEY_PRIMARY);
+            var kind = PartyIdentifierChangedOutboxCandidate.Kind.fromEventType(message.eventType());
+            if ((!"true".equals(primary) && !"false".equals(primary))
+                    || !kind.accepts(PartyIdentifierStatus.valueOf(payload.get(PAYLOAD_KEY_STATUS)), Boolean.parseBoolean(primary))
+                    || payload.get(PAYLOAD_KEY_SCHEME_CODE).codePointCount(0, payload.get(PAYLOAD_KEY_SCHEME_CODE).length()) > 64
+                    || !UUID.fromString(payload.get(PAYLOAD_KEY_PARTY_ID)).toString().equals(payload.get(PAYLOAD_KEY_PARTY_ID))) {
+                throw new IllegalArgumentException("Identifier event payload is inconsistent");
+            }
+        } catch (RuntimeException _) {
+            throw new IllegalArgumentException("Identifier event payload is inconsistent");
+        }
+    }
+
+    private static Map<String, Object> brokerPayload(OutboxMessage message) {
+        Map<String, Object> payload = new TreeMap<>(message.payload());
+        payload.computeIfPresent(PAYLOAD_KEY_PRIMARY,
+                (_, _) -> Boolean.parseBoolean(message.payload().get(PAYLOAD_KEY_PRIMARY)));
+        return payload;
     }
 
     private static void requireAggregate(

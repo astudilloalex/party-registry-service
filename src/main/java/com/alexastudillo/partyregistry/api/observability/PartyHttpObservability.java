@@ -4,6 +4,7 @@ import com.alexastudillo.partyregistry.application.model.PartyRegistrationOutcom
 import com.alexastudillo.partyregistry.application.model.PartyMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.NationalityMutationOutcome;
 import com.alexastudillo.partyregistry.application.model.IdentifierSchemeMutationOutcome;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierMutationOutcome;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,12 +40,14 @@ public class PartyHttpObservability {
     private static final String LEGAL_ENTITY_ITEM_PREFIX = LEGAL_ENTITY_PATH + "/";
     private static final String PARTY_PATH = "/v1/parties";
     private static final String PARTY_ITEM_PREFIX = PARTY_PATH + "/";
-    private static final String IDENTIFIERS_SUFFIX = "/identifiers";
     private static final String ACTIVATE_SUFFIX = "/activate";
     private static final String NATIONALITIES_SEGMENT = "nationalities";
     private static final Set<String> ROOT_MUTATIONS = Set.of("patch-party", "activate", "deactivate", "archive");
     private static final Set<String> SCHEME_MUTATIONS = Set.of("create-identifier-scheme", "patch-identifier-scheme",
             "activate-identifier-scheme", "deprecate-identifier-scheme", "retire-identifier-scheme");
+    private static final String REGISTER_IDENTIFIER_OPERATION = "register-identifier";
+    private static final Set<String> IDENTIFIER_MUTATIONS = Set.of(REGISTER_IDENTIFIER_OPERATION, "patch-identifier", "verify-identifier",
+            "reject-identifier", "revoke-identifier", "set-primary-identifier");
 
     private final MeterRegistry meterRegistry;
 
@@ -61,6 +64,8 @@ public class PartyHttpObservability {
      * @return stable operation label, {@code unsupported} for a recognized route's other methods, or {@code unmatched}
      */
     public String operationName(String method, String path) {
+        String identifierOperation = identifierOperationName(method, path);
+        if (!UNMATCHED_OPERATION.equals(identifierOperation)) { return identifierOperation; }
         String schemeOperation = identifierSchemeOperationName(method, path);
         if (!UNMATCHED_OPERATION.equals(schemeOperation)) {
             return schemeOperation;
@@ -88,9 +93,6 @@ public class PartyHttpObservability {
                 case PATCH_METHOD -> "patch-legal-entity";
                 default -> UNSUPPORTED_OPERATION;
             };
-        }
-        if ("POST".equals(method) && isPartyOperationPath(path, IDENTIFIERS_SUFFIX)) {
-            return "register-identifier";
         }
         if (path.startsWith(NATURAL_PERSON_ITEM_PREFIX)
                 && path.indexOf('/', NATURAL_PERSON_ITEM_PREFIX.length()) < 0) {
@@ -147,7 +149,7 @@ public class PartyHttpObservability {
             }
         }
         if (("replace".equals(operation) || "patch".equals(operation) || ROOT_MUTATIONS.contains(operation)
-                || "replace-legal-entity".equals(operation) || "patch-legal-entity".equals(operation))
+                 || "replace-legal-entity".equals(operation) || "patch-legal-entity".equals(operation) || IDENTIFIER_MUTATIONS.contains(operation))
                 && status == 412) {
             meterRegistry.counter(OPTIMISTIC_CONFLICT_METRIC, OPERATION_TAG, operation)
                     .increment();
@@ -212,6 +214,42 @@ public class PartyHttpObservability {
         meterRegistry.counter("party.registry.http.identifier.scheme.mutation", OPERATION_TAG, operation,
                 OUTCOME_TAG, outcome, CODE_TAG, code).increment();
         Span.current().setAttribute("party.identifier.scheme.mutation.outcome", outcome);
+    }
+
+    /** Records only committed identifier dispositions or bounded rejected outcomes, never result data or keys. */
+    public void recordIdentifierCompletion(String operation, int status, String code,
+            PartyIdentifierMutationOutcome.Disposition disposition, boolean keyed) {
+        if (!IDENTIFIER_MUTATIONS.contains(operation)) { return; }
+        String outcome;
+        if (status < 400 && disposition != null) {
+            outcome = disposition == PartyIdentifierMutationOutcome.Disposition.APPLIED && REGISTER_IDENTIFIER_OPERATION.equals(operation)
+                    ? "created" : disposition.name().toLowerCase(Locale.ROOT);
+        } else if (status == 409 || status == 412) { outcome = CONFLICT_OUTCOME; }
+        else if (status >= 400) { outcome = "failure"; }
+        else { return; }
+        meterRegistry.counter("party.registry.http.identifier.mutation", OPERATION_TAG, operation,
+                OUTCOME_TAG, outcome, CODE_TAG, code, "keyed", Boolean.toString(keyed)).increment();
+        Span.current().setAttribute("party.identifier.mutation.outcome", outcome).setAttribute("party.identifier.keyed", keyed);
+    }
+
+    private static String identifierOperationName(String method, String path) {
+        String[] parts = path.split("/", -1);
+        if (parts.length < 5 || !parts[0].isEmpty() || !"v1".equals(parts[1]) || !"parties".equals(parts[2])
+                || parts[3].isEmpty() || !"identifiers".equals(parts[4])) { return UNMATCHED_OPERATION; }
+        if (parts.length == 5) {
+            return switch (method) { case "POST" -> REGISTER_IDENTIFIER_OPERATION; case "GET" -> "list-identifiers"; default -> UNSUPPORTED_OPERATION; };
+        }
+        if (parts[5].isEmpty()) { return UNMATCHED_OPERATION; }
+        if (parts.length == 6) {
+            return switch (method) { case "GET" -> "retrieve-identifier"; case PATCH_METHOD -> "patch-identifier"; default -> UNSUPPORTED_OPERATION; };
+        }
+        if (parts.length == 7) {
+            return switch (parts[6]) {
+                case "verify", "reject", "revoke", "set-primary" -> "POST".equals(method) ? parts[6] + "-identifier" : UNSUPPORTED_OPERATION;
+                default -> UNMATCHED_OPERATION;
+            };
+        }
+        return UNMATCHED_OPERATION;
     }
 
     private static String identifierSchemeOperationName(String method, String path) {

@@ -4,6 +4,7 @@ import com.alexastudillo.partyregistry.domain.error.DomainViolation;
 import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
 import com.alexastudillo.partyregistry.domain.model.NationalityId;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
+import com.alexastudillo.partyregistry.domain.model.PartyIdentifierVersion;
 import com.alexastudillo.partyregistry.domain.model.PartyRecordStatus;
 import com.alexastudillo.partyregistry.domain.model.PartyType;
 import com.alexastudillo.partyregistry.domain.model.PartyVersion;
@@ -15,6 +16,30 @@ import java.util.Objects;
  * Describes the transport-neutral failures emitted by application operations.
  */
 public sealed interface ApplicationFailure {
+
+    /** Conceals absent, wrong-owner and cross-tenant identifier evidence equally. */
+    record IdentifierNotFound() implements ApplicationFailure { }
+
+    /** Reports a stale independent identifier version or a losing guarded identifier write. */
+    record IdentifierVersionMismatch(PartyIdentifierVersion expectedVersion,
+            PartyIdentifierVersion currentVersion) implements ApplicationFailure {
+        public IdentifierVersionMismatch {
+            Objects.requireNonNull(expectedVersion, "expectedIdentifierVersion");
+            Objects.requireNonNull(currentVersion, "currentIdentifierVersion");
+        }
+    }
+
+    /** Rejects a new correction, lifecycle action or selection outside its admitted stored states. */
+    record InvalidIdentifierLifecycle() implements ApplicationFailure { }
+
+    /** Reports a different stored verified primary owning the same tenant/Party/scheme scope. */
+    record PrimaryIdentifierConflict() implements ApplicationFailure { }
+
+    /** Reports exhaustion of the target or a former primary that must actually be demoted. */
+    record IdentifierVersionExhausted() implements ApplicationFailure { }
+
+    /** Rejects identifier navigation without retaining any client token or decoded payload. */
+    record InvalidIdentifierCursor() implements ApplicationFailure { }
 
     /** Reports absence in the global catalog independently of identifier admission. */
     record IdentifierSchemeNotFound() implements ApplicationFailure { }

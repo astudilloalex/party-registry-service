@@ -3,6 +3,7 @@ package com.alexastudillo.partyregistry.api.resource;
 import com.alexastudillo.api.response.contract.ApiResponse;
 import com.alexastudillo.partyregistry.api.model.request.LegalEntityCreateRequest;
 import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierCreateRequest;
+import com.alexastudillo.partyregistry.api.model.request.PartyIdentifierPatchRequest;
 import com.alexastudillo.partyregistry.api.model.request.PartyUpdateRequest;
 import com.alexastudillo.partyregistry.api.model.response.LegalEntityCreateResponse;
 import com.alexastudillo.partyregistry.api.model.response.PartyDetailResponse;
@@ -48,7 +49,7 @@ class PartyResourceSignatureTest {
     @Test
     void exposesAdditionalIdentifierRegistrationWithOnlyTheSafeDto() throws ReflectiveOperationException {
         assertEquals(
-                "/v1/parties/{partyId}/identifiers",
+                "/v1/parties",
                 PartyIdentifierResource.class.getAnnotation(Path.class).value());
         Method method = PartyIdentifierResource.class.getMethod(
                 "createPartyIdentifier",
@@ -56,7 +57,45 @@ class PartyResourceSignatureTest {
                 PartyIdentifierCreateRequest.class,
                 HttpHeaders.class);
 
+        assertEquals("/{partyId}/identifiers", method.getAnnotation(Path.class).value());
         assertPostEnvelope(method, PartyIdentifierResponse.class);
+    }
+
+    @Test
+    void exposesIndependentIdentifierMetadataPatchWithOnlyTheSafeDto() throws ReflectiveOperationException {
+        Method method = PartyIdentifierResource.class.getMethod("patchPartyIdentifier", String.class, String.class,
+                PartyIdentifierPatchRequest.class, HttpHeaders.class);
+        assertTrue(method.isAnnotationPresent(PATCH.class)); assertEquals("/{partyId}/identifiers/{identifierId}", method.getAnnotation(Path.class).value());
+        assertEquals(PartyIdentifierResponse.class, payloadType(method));
+    }
+
+    @Test
+    void exposesAllIdentifierLifecycleActionsWithBufferedBodiesAndExplicitSafeEnvelopes() throws ReflectiveOperationException {
+        for (String action : List.of("verify", "reject", "revoke")) {
+            Method method = PartyIdentifierResource.class.getMethod(action + "PartyIdentifier", String.class, String.class, byte[].class, HttpHeaders.class);
+            assertEquals("/{partyId}/identifiers/{identifierId}/" + action, method.getAnnotation(Path.class).value());
+            assertPostEnvelope(method, PartyIdentifierResponse.class);
+        }
+    }
+
+    @Test
+    void exposesExplicitPrimarySelectionWithOnlyItsCandidateDtoEnvelope() throws ReflectiveOperationException {
+        Method method = PartyIdentifierResource.class.getMethod("setPrimaryPartyIdentifier", String.class, String.class, byte[].class, HttpHeaders.class);
+        assertEquals("/{partyId}/identifiers/{identifierId}/set-primary", method.getAnnotation(Path.class).value());
+        assertPostEnvelope(method, PartyIdentifierResponse.class);
+    }
+
+    @Test
+    void identifierReadsShareTheParentRoutingGroupWithoutChangingTheirPublicPathsOrEnvelopes() throws ReflectiveOperationException {
+        assertEquals("/v1/parties", PartyIdentifierResource.class.getAnnotation(Path.class).value());
+        Method detail = PartyIdentifierResource.class.getMethod("getPartyIdentifier", String.class, String.class);
+        assertTrue(detail.isAnnotationPresent(GET.class));
+        assertEquals("/{partyId}/identifiers/{identifierId}", detail.getAnnotation(Path.class).value());
+        assertEquals(PartyIdentifierResponse.class, payloadType(detail));
+        Method list = PartyIdentifierResource.class.getMethod("listPartyIdentifiers", String.class, UriInfo.class);
+        assertTrue(list.isAnnotationPresent(GET.class)); assertEquals("/{partyId}/identifiers", list.getAnnotation(Path.class).value());
+        ParameterizedType listType = (ParameterizedType) payloadType(list);
+        assertEquals(List.class, listType.getRawType()); assertEquals(PartyIdentifierResponse.class, listType.getActualTypeArguments()[0]);
     }
 
     @Test

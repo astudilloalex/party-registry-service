@@ -1,6 +1,6 @@
 # Party Registry Service
 
-Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. It registers natural persons and legal entities with one required initial official identifier, supports independently managed additional identifiers, and provides root Party listing, retrieval, display-name correction, activation, deactivation, and archival with durable lifecycle replay. Its global identifier-scheme catalog supports creation, listing, exact lookup, controlled maintenance, activation, deprecation, and direct retirement.
+Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and legal identity. It registers natural persons and legal entities with one required initial official identifier, provides historical identifier queries, metadata correction, verification, withdrawal, atomic primary replacement and durable keyed replay, and supports root Party listing, retrieval, display-name correction, activation, deactivation, and archival. Its global identifier-scheme catalog supports creation, listing, exact lookup, controlled maintenance, activation, deprecation, and direct retirement.
 
 ## Technology baseline
 
@@ -37,6 +37,16 @@ For new identifiers, Application supplies the validated, stripped uppercase plai
 
 `GET /v1/natural-person/{partyId}` includes a GET-only `identifiers` array of current masked projections. Current means `PENDING_VERIFICATION` or `VERIFIED`, with no expiration or an expiration on/after the request's UTC evaluation date. Results are complete, ordered by creation timestamp and identifier ID, and empty when none qualify. The query never loads ciphertext, lookup hashes, or key versions, and does not decrypt or change identifier state. Creation/replay, PUT, and PATCH response shapes remain unchanged.
 
+### Independent identifier operations
+
+The eight `/v1/parties/{partyId}/identifiers` operations support both Party types and every owning Party state. Historical list/detail include all five stored identifier states without changing expiration. Lists use authenticated scoped cursors, descending creation/UUID ordering and all five pagination fields, including explicit null unavailable cursors.
+
+Registration requires `Idempotency-Key` and returns the original safe `201` pending/version-zero result on an equivalent retry. PATCH and verify/reject/revoke/set-primary require the **identifier's** bare-decimal `If-Match`, not the Party version. PATCH distinguishes omitted metadata from explicit null and does not store replay. The four actions accept optional tenant/action-scoped keys and return historical `200` snapshots on equivalent retries, including after later changes and restart.
+
+Verification records the accepted operator rather than call an external provider. Only verified, non-expired evidence can become primary; an explicit replacement atomically demotes the former primary in the same tenant/Party/scheme and advances both identifier versions once. Reject/revoke retain history and private exact reason audit, clear the flag, release active-value uniqueness, and never automatically change Party state/version. Initial/additional/newly corrected issuers are optional ASCII letter-group codes, uppercased with `Locale.ROOT`; bounded blank input becomes null and no country lookup occurs. Stored historical text remains unchanged.
+
+See [Party identifier consumer and operations guide](docs/operations/party-identifier-contract.md) for body/header precedence, transitions, version limits, safe errors, key retention, timeouts, observability, V8 rollout and rollback, packaged/native checks, and final local analysis procedure.
+
 ### Legal-entity details
 
 `GET /v1/legal-entity/{partyId}` returns the current Party identity, status, version, audit information, and `legalEntityDetails`. Its detail response does not include creation-only `initialIdentifier` or an identifier collection. Reads preserve stored historical text and require no geographic lookup.
@@ -65,7 +75,7 @@ Use GET's latest version for subsequent edits. Replaying the original creation r
 
 ## Database
 
-Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, V4 makes expiration optional, V5 adds the tenant/creation-time/ID listing index, V6 adds nationality management, and V7 adds dedicated identifier-scheme replay storage and the ascending global catalog index. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.
+Flyway is the only schema authority. Production migrations live under `src/main/resources/db/migration`: V1 creates the schema, V2 adds idempotency storage, V3 seeds the Ecuadorian identifier catalog, V4 makes expiration optional, V5 adds the tenant/creation-time/ID listing index, V6 adds nationality management, V7 adds dedicated identifier-scheme replay storage and the ascending global catalog index, and V8 adds independent identifier completions, private binary reason audit, qualified owner references and descending historical listing support. Applied migrations are immutable. The initial schema is derived from `docs/database/v1-scheme.dbml`.
 
 The application configures the same PostgreSQL database through two access paths:
 
@@ -141,6 +151,8 @@ Registration writes version-two idempotency snapshots and persists Party and Par
 
 Identifier-scheme application rollback retains the additive V7 schema, accepted global rows/states/versions, dedicated completed replay snapshots, and all historical identifier references. Do not drop replay storage, reset lifecycle/version data, or reseed a fresh catalog. Restore a contract-compatible binary before offering these operations again.
 
+Identifier operation rollout requires additive V8 and a compatible snapshot/event decoder before traffic is enabled. Keep the registration HMAC secret stable while identifier completions are retained; replacing it alone invalidates effective-request verification. No completion/audit expiration policy or pre-cutover replay backfill is introduced. Rollback retains accepted identifier revisions, primaries, reasons, completions and events, and uses a contract-compatible binary or pauses affected traffic. Older non-idempotent registration must not share the new replay guarantee during mixed-version rollout.
+
 ## Running and verification
 
 Start development mode:
@@ -211,6 +223,13 @@ The implemented business operations are:
 - `PUT /v1/natural-person/{partyId}`
 - `PATCH /v1/natural-person/{partyId}`
 - `POST /v1/parties/{partyId}/identifiers`
+- `GET /v1/parties/{partyId}/identifiers`
+- `GET /v1/parties/{partyId}/identifiers/{identifierId}`
+- `PATCH /v1/parties/{partyId}/identifiers/{identifierId}`
+- `POST /v1/parties/{partyId}/identifiers/{identifierId}/verify`
+- `POST /v1/parties/{partyId}/identifiers/{identifierId}/reject`
+- `POST /v1/parties/{partyId}/identifiers/{identifierId}/revoke`
+- `POST /v1/parties/{partyId}/identifiers/{identifierId}/set-primary`
 - `GET /v1/parties`
 - `GET /v1/parties/{partyId}`
 - `PATCH /v1/parties/{partyId}`

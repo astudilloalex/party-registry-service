@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry.infrastructure.observability;
 
 import com.alexastudillo.partyregistry.application.model.PartyLifecycleAction;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierPageSlice;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -73,6 +74,41 @@ public class PartyPersistenceObservability {
                             .record(Math.max(0, System.nanoTime() - started), TimeUnit.NANOSECONDS);
                 } catch (RuntimeException _) {
                     // Observability must not alter the lock's terminal signal.
+                }
+            });
+        });
+    }
+
+    /** Measures only bounded replay-key versus primary-scope wait categories; identities never enter dimensions. */
+    public Uni<Void> observeIdentifierWait(boolean replay, Supplier<Uni<Void>> work) {
+        return Uni.createFrom().deferred(() -> {
+            long started = System.nanoTime();
+            return Uni.createFrom().deferred(work::get).onTermination().invoke((item, failure, cancelled) -> {
+                try {
+                    registry.timer("party.registry.identifier.lock.wait", "kind", replay ? "replay-key" : "primary-scope",
+                            OUTCOME_TAG, outcome(failure, cancelled)).record(Math.max(0, System.nanoTime() - started), TimeUnit.NANOSECONDS);
+                } catch (RuntimeException _) {
+                    // Measurement must not replace the lock's terminal signal.
+                }
+            });
+        });
+    }
+
+    /** Measures bounded page duration and numeric result cost without retaining scope, rows or cursor contents. */
+    public Uni<PartyIdentifierPageSlice> observeIdentifierPage(Supplier<Uni<PartyIdentifierPageSlice>> work) {
+        return Uni.createFrom().deferred(() -> {
+            long started = System.nanoTime();
+            return Uni.createFrom().deferred(work::get).onTermination().invoke((page, failure, cancelled) -> {
+                try {
+                    String outcome = outcome(failure, cancelled);
+                    registry.timer("party.registry.identifier.page", OUTCOME_TAG, outcome)
+                            .record(Math.max(0, System.nanoTime() - started), TimeUnit.NANOSECONDS);
+                    if (page != null) {
+                        registry.summary("party.registry.identifier.page.rows", OUTCOME_TAG, outcome).record(page.items().size());
+                        registry.summary("party.registry.identifier.page.matches", OUTCOME_TAG, outcome).record(page.totalElements());
+                    }
+                } catch (RuntimeException _) {
+                    // Counts are operational evidence rather than a precondition for returning a page.
                 }
             });
         });

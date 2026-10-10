@@ -34,6 +34,12 @@ public final class PartyApiErrorTranslator {
 
     private static ApiResponseCode responseCode(ApplicationFailure failure) {
         return switch (failure) {
+            case ApplicationFailure.IdentifierNotFound _ -> PartyResponseCode.IDENTIFIER_NOT_FOUND;
+            case ApplicationFailure.IdentifierVersionMismatch _ -> PartyResponseCode.EXPECTED_VERSION_MISMATCH;
+            case ApplicationFailure.InvalidIdentifierLifecycle _ -> PartyResponseCode.INVALID_IDENTIFIER_LIFECYCLE;
+            case ApplicationFailure.PrimaryIdentifierConflict _ -> PartyResponseCode.PRIMARY_IDENTIFIER_CONFLICT;
+            case ApplicationFailure.IdentifierVersionExhausted _ -> PartyResponseCode.IDENTIFIER_VERSION_EXHAUSTED;
+            case ApplicationFailure.InvalidIdentifierCursor _ -> PartyResponseCode.BAD_REQUEST;
             case ApplicationFailure.IdentifierSchemeNotFound _ -> PartyResponseCode.IDENTIFIER_SCHEME_NOT_FOUND;
             case ApplicationFailure.IdentifierSchemeCodeConflict _ -> PartyResponseCode.IDENTIFIER_SCHEME_CODE_CONFLICT;
             case ApplicationFailure.IdentifierSchemeVersionMismatch _ -> PartyResponseCode.EXPECTED_VERSION_MISMATCH;
@@ -88,6 +94,12 @@ public final class PartyApiErrorTranslator {
             case NATIONALITY_VALIDITY_CONFLICT -> PartyResponseCode.NATIONALITY_VALIDITY_CONFLICT;
             case PRIMARY_NATIONALITY_CONFLICT -> PartyResponseCode.PRIMARY_NATIONALITY_CONFLICT;
             case NATIONALITY_NOT_EFFECTIVE -> PartyResponseCode.NATIONALITY_NOT_EFFECTIVE;
+            case PARTY_IDENTIFIER_INVALID_LIFECYCLE -> PartyResponseCode.INVALID_IDENTIFIER_LIFECYCLE;
+            case PARTY_IDENTIFIER_VERSION_OVERFLOW -> PartyResponseCode.IDENTIFIER_VERSION_EXHAUSTED;
+            case PRIMARY_IDENTIFIER_CONFLICT -> PartyResponseCode.PRIMARY_IDENTIFIER_CONFLICT;
+            case IDENTIFIER_EXPIRED, IDENTIFIER_VALIDITY_DATE_ORDER -> PartyResponseCode.IDENTIFIER_VALIDATION_FAILURE;
+            case IDENTIFIER_ISSUER_CODE_INVALID -> PartyResponseCode.ISSUER_CODE_INVALID;
+            case IDENTIFIER_ISSUER_CODE_TOO_LONG -> PartyResponseCode.ISSUER_CODE_TOO_LONG;
             // Unclassified invariants can indicate corrupted state or programming errors, not client input.
             default -> null;
         };

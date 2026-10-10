@@ -1,6 +1,7 @@
 package com.alexastudillo.partyregistry.application.command;
 
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
+import com.alexastudillo.partyregistry.application.model.PartyIdentifierCreationRequest;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 
@@ -34,5 +35,16 @@ public record RegisterPartyIdentifierCommand(
 
     public TenantId tenantId() {
         return requestMetadata.tenantId();
+    }
+
+    /** Returns original parsed creation identity without retry key or accepted attribution. */
+    public PartyIdentifierCreationRequest effectiveRequest() {
+        return new PartyIdentifierCreationRequest(partyId, identifier.identifierSchemeCode(), identifier.value(),
+                identifier.issuerCode(), identifier.issuedOn(), identifier.expiresOn(), identifier.isPrimary());
+    }
+
+    @Override
+    public String toString() {
+        return "RegisterPartyIdentifierCommand[input=<redacted>]";
     }
 }

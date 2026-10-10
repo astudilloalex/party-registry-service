@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Hosts controlled Geographic Reference responses for reactive adapter tests.
+ * Hosts controlled Geographic Reference responses without overriding normal client timeout policy.
  */
 public final class GeographicReferenceStubResource implements QuarkusTestResourceLifecycleManager {
 
@@ -27,7 +27,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
     static final String PROCESS_ID = "0198ce2b-d6a3-7d6e-80ba-d97b21d793e5";
 
     private static final String BASE_PATH = "/api/v1/countries/by-alpha2/";
-    private static final long DELAYED_RESPONSE_MILLIS = 500;
+    private static final long DELAYED_RESPONSE_MILLIS = TimeUnit.SECONDS.toMillis(10);
     private static final Map<String, AtomicInteger> REQUEST_COUNTS = new ConcurrentHashMap<>();
     private static final Map<String, String> TRACEPARENTS = new ConcurrentHashMap<>();
     private static final Map<String, TrustedHeaders> EXTRA_CONTEXTS = new ConcurrentHashMap<>();
@@ -77,9 +77,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
             server.start();
             return Map.of(
                     "quarkus.rest-client.geographic-reference.url",
-                    "http://127.0.0.1:" + server.getAddress().getPort(),
-                    "quarkus.rest-client.geographic-reference.connect-timeout", "100",
-                    "quarkus.rest-client.geographic-reference.read-timeout", "100");
+                    "http://127.0.0.1:" + server.getAddress().getPort());
         } catch (IOException exception) {
             throw new IllegalStateException("Cannot start Geographic Reference test server", exception);
         }
@@ -194,11 +192,16 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
                     true);
             case "CF" -> exchange.close();
             case "TO" -> delayedSuccess(exchange, alpha2Code);
+            case "SD" -> delayedSuccess(exchange, alpha2Code, 300);
             default -> send(exchange, 404, "{\"status\":404,\"code\":\"country-not-found\"}", true);
         }
     }
 
     private void delayedSuccess(HttpExchange exchange, String alpha2Code) {
+        delayedSuccess(exchange, alpha2Code, DELAYED_RESPONSE_MILLIS);
+    }
+
+    private void delayedSuccess(HttpExchange exchange, String alpha2Code, long delayMillis) {
         scheduler.schedule(() -> {
             try {
                 send(exchange, 200, SUCCESS_RESPONSE.formatted(alpha2Code), true);
@@ -207,7 +210,7 @@ public final class GeographicReferenceStubResource implements QuarkusTestResourc
                 // response.
                 exchange.close();
             }
-        }, DELAYED_RESPONSE_MILLIS, TimeUnit.MILLISECONDS);
+        }, delayMillis, TimeUnit.MILLISECONDS);
     }
 
     private boolean hasTrustedHeaders(HttpExchange exchange) {

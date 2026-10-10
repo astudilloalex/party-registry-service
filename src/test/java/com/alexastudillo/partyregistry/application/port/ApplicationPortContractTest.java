@@ -5,7 +5,6 @@ import com.alexastudillo.partyregistry.application.model.IdentifierProtectionReq
 import com.alexastudillo.partyregistry.application.model.LegalEntityRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.NaturalPersonRegistrationCandidate;
 import com.alexastudillo.partyregistry.application.model.RequestMetadata;
-import com.alexastudillo.partyregistry.application.model.PartyIdentifierRegistrationCandidate;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.domain.model.LegalEntity;
 import com.alexastudillo.partyregistry.domain.model.PartyId;
@@ -32,7 +31,9 @@ class ApplicationPortContractTest {
             IdentifierProtectionPort.class,
             IdempotentPartyRegistrationPort.class,
             PartyLookupPort.class,
-            PartyIdentifierRegistrationPort.class,
+            PartyIdentifierMutationPort.class,
+            PartyIdentifierMutationContext.class,
+            PartyIdentifierFingerprintPort.class,
             PartyMutationPort.class,
             PartyMutationContext.class,
             PartyQueryPort.class,
@@ -83,8 +84,8 @@ class ApplicationPortContractTest {
                         .getMethod("registerLegalEntity", LegalEntityRegistrationCandidate.class)
                         .getReturnType());
         assertEquals(Uni.class,
-                PartyIdentifierRegistrationPort.class
-                        .getMethod("register", PartyIdentifierRegistrationCandidate.class)
+                PartyIdentifierMutationPort.class
+                        .getMethod("execute", RequestMetadata.class, Function.class)
                         .getReturnType());
         assertEquals(Uni.class,
                 PartyMutationPort.class

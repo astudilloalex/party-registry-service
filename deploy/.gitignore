@@ -1,0 +1,3 @@
+# Generated environments and Python bytecode must stay out of source control.
+*.env
+__pycache__/
