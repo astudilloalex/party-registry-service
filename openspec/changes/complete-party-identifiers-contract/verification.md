@@ -1583,3 +1583,16 @@ DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PO
 ```
 
 **BUILD SUCCESSFUL in 40s**, one actual selected two-process case with zero failures/errors/skips. Existing unrelated restart cases and full/native suites are not rerun or claimed. Main artifact remains current/up-to-date; only integration test source is compiled. All new records have responsibility Javadoc and redacted intent diagnostics; no production DDL, policy, budget, logging or suppression change occurs. `git diff --check` passes. Final local analysis stays in 14.5; actual native restart is required in 14.4. Task 13.2 completes at **52/60**.
+
+## Task 13.3: Explicit native boundary metadata and isolated packaged/native assertion paths
+
+Two metadata tests precede the DTO change. All four strict request/decoder pairs already have explicit RegisterForReflection and exact JsonDeserialize selection; the safe response record relies on inferred generic endpoint registration and lacks explicit outer metadata. The selected run has **one expected metadata failure in 4m**. Added RegisterForReflection to PartyIdentifierResponse only, avoiding framework/native annotations in Domain/Application. Both metadata tests and focused build pass in **4m 24s**; no response shape or runtime behavior changes.
+
+Added an actual packaged harness classpath test that requires ClassNotFoundException for the unit-only fault port and fixed-clock alternatives. This verifies executable test source-set isolation rather than just inspect Gradle text. Existing integrationTest extra-native selection and exclusion of unit output remain intact. The restart launcher actually inspects artifact type/path and validates JVM/native executable selection; the accepted JVM run does not claim native execution. Prepared cases cover strict request/byte binding, authenticated pages/cursors, safe snapshots, binary reason audit and retained-data process restart.
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew --init-script /tmp/opencode/focused-tests.gradle test --tests '*PartyIdentifierNativeMetadataTest' build -x quarkusIntTest --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew quarkusIntTest --tests '*PackagedPartyIdentifierContractIT' --tests '*PartyLifecycleRestartIT.identifierCreationLifecyclePrimaryAndExactReasonAuditSurviveTwoActualProcesses' --console=plain
+```
+
+Final packaged command **BUILD SUCCESSFUL in 1m 39s**, **six actual selected JVM integration cases (five contract/isolation, one two-process restart), zero failures/errors/skips**, against the updated augmented main artifact. No unrelated suites, compiler warnings, suppression/settings changes or full/native acceptance claims are introduced. Final local analysis remains 14.5, actual native compilation/runtime 14.3–14.4. `git diff --check` passes. Task 13.3 completes at **53/60**; proceed to operations documentation.

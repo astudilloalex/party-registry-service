@@ -732,3 +732,13 @@ Four selected assertion tests/build and four actual packaged JVM tests pass. Uni
 ## Task 13.2 retained-data restart revision
 
 `integrationTest/java/com/alexastudillo/partyregistry/PartyLifecycleRestartIT.java` (class, existing SavedResult/RunningApplication and added IdentifierRestartContext/IdentifierIntent/IdentifierRestartState), blob `7a78444b9b88092ec6b8613b05debddee0e07316`: one selected actual two-process JVM restart case passes in 40s. Native artifact selection is maintained but no native execution is claimed. Final local analysis remains scheduled in 14.5; private intent diagnostics are redacted and all added types have responsibility Javadoc.
+
+## Task 13.3 final native preparation revisions
+
+Two metadata unit checks/focused build and six selected actual packaged JVM checks pass against the newly augmented artifact. Explicit reflection remains at the API boundary; Domain/Application are untouched. The contract IT blob supersedes its 13.1 revision and now verifies unit-fixture classpath exclusion. Native compilation/execution and final local analysis remain their explicit 14.3–14.5 tasks.
+
+| Path relative to src / types | Saved Git blob | Final local review |
+|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/model/response/PartyIdentifierResponse.java`; record | `cc93e5eec72e473374e02bab8d466a3696344f73` | Pending |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierNativeMetadataTest.java`; class | `be4a2a877faa38686759417a9c7dc2f3bd9b21dd` | Pending |
+| `integrationTest/java/com/alexastudillo/partyregistry/PackagedPartyIdentifierContractIT.java`; class, Context | `e0add6b7e8e52b7d1c472f462da56a07eb0350e0` | Pending |
