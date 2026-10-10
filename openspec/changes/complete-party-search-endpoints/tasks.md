@@ -29,19 +29,19 @@ Requirement references below resolve to the named requirements in the [exact spe
 
 ## 1. Foundation and Published Contract
 
-- [ ] 1.1 Confirm the current Java 25, Quarkus, Gradle, Hibernate Reactive, and native-builder baseline and the APIs needed for scoped reads, cancellation, and originating-context dispatch.
+- [x] 1.1 Confirm the current Java 25, Quarkus, Gradle, Hibernate Reactive, and native-builder baseline and the APIs needed for scoped reads, cancellation, and originating-context dispatch.
   - Requirements: E8, P10; Design: Context, Architecture, Resilience.
   - Verification: record actual resolved versions, existing worktree changes, and available JVM/native test prerequisites; confirm the proposed session/context APIs against the resolved BOM rather than an assumed artifact version.
 
-- [ ] 1.2 Initialize change-local verification evidence and a Java-file inventory for production, unit, shared-contract, and integration changes.
+- [x] 1.2 Initialize change-local verification evidence and a Java-file inventory for production, unit, shared-contract, and integration changes.
   - Requirements: proposal quality constraints; Design: Java, SonarQube, and verification evidence.
   - Verification: evidence files identify command/environment results, file paths, saved Git blobs, separate JDTLS/Sonar analysis fields, and unresolved acceptance items without claiming checks that have not run.
 
-- [ ] 1.3 Complete the two OpenAPI request schemas and operation descriptions with strict properties/types, raw UTF-16 limits, normalization, historical filter defaults, read-only behavior, and prefix limit/cursor semantics.
+- [x] 1.3 Complete the two OpenAPI request schemas and operation descriptions with strict properties/types, raw UTF-16 limits, normalization, historical filter defaults, read-only behavior, and prefix limit/cursor semantics.
   - Requirements: E1, E3, E4, E5, P1, P3, P4, P5, P7, P8.
   - Verification: source contract defines closed requests, write-only value/prefix, the length-unit extension, omitted versus null/empty behavior, and no exact-search pagination inputs; affected references resolve.
 
-- [ ] 1.4 Complete the OpenAPI safe response schemas, process-echo headers, operation-specific error documentation, and representative success/empty/continuation/failure examples.
+- [x] 1.4 Complete the OpenAPI safe response schemas, process-echo headers, operation-specific error documentation, and representative success/empty/continuation/failure examples.
   - Requirements: E1, E2, E7, E8, P1, P2, P9, P10.
   - Verification: declared successes have status 200, closed safe fields, required nullable cursors and nonnull supported counts; examples cover both operations and applicable stable codes without sensitive fields.
 
