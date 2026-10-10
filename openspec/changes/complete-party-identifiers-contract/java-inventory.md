@@ -597,3 +597,20 @@ All eight files compile and the selected build succeeds, with seven actual Postg
 | `test/java/com/alexastudillo/partyregistry/support/FixedPartyIdentifierLifecycleProducer.java`; class | `9831396023884951e960ae8f4140999cd9cdfc43` | Pending / Pending |
 | `test/java/com/alexastudillo/partyregistry/api/resource/PartyResourceSignatureTest.java`; class | `eaf8ce2ed597bf98ca48ab8b36307fc2369a94ea` | Pending / Pending |
 | `test/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducerTest.java`; class | `5f1d7b834b37f2caddfdba3c04f8b4cf385ba807` | Pending / Pending |
+
+### Task 10.3 final developer-confirmed analysis
+
+**"Todo esta bien"** confirms completed clean Sonar/JDTLS checks for all eight requested saved files above. All blobs remain unchanged on recheck. This supersedes their pending acceptance cells; no new local timestamp is invented. The 18 selected test results and focused build remain valid, and task 10.3 is accepted.
+
+## Task 10.4 saved test revisions: result-writing and IDE gates pending
+
+No production Java changed. Both files compile; the selected post-fixture-correction run fails writing Gradle binary results, so no green test/build result is claimed for these blobs. Sonar/JDTLS acceptance also remains pending. Responsibility Javadoc covers the test, Fixture, ReplayProfile and the test-only producer. Clocks derive from the existing Month-based lifecycle instant; no invariant, budget, suppression or analyzer setting is changed.
+
+| Path relative to src / types | Saved Git blob | Runtime / Sonar / JDTLS acceptance |
+|---|---|---|
+| `test/java/com/alexastudillo/partyregistry/api/resource/PartyIdentifierLifecycleReplayContractTest.java`; class, Fixture, ReplayProfile | `393c0e0c22d31c82cebed3dda55b04016bbf78fa` | Pending / Pending / Pending |
+| `test/java/com/alexastudillo/partyregistry/support/FixedPartyIdentifierReplayPatchProducer.java`; class | `f316ced631f5b32aa58842b914abed1f1f9ce32c` | Pending / Pending / Pending |
+
+### Task 10.4 final accepted evidence
+
+Both blobs remain unchanged. Six actual HTTP cases and focused build pass in 3m 20s after the developer-authorized retry. Developer confirms no Sonar warnings for both requested saved files; no local Sonar timestamp is fabricated. Independent JDTLS reports zero for the replay test at 2026-10-09 20:04:04.565 (current `.metadata/.log:2085–2097`) and producer at 20:04:06.013 (2147–2154). These results supersede the pending cells; task 10.4 is accepted. Plugin test-discovery errors remain separately recorded in `verification.md`.
