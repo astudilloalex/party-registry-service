@@ -67,8 +67,9 @@ public class IdentifierSearchResource {
             var accepted = metadata.metadata();
             var body = requests.validateBody(request);
             requireNoQuery(uri);
-            return mapper.toQuery(accepted.tenantId(), body);
-        }).flatMap(exact::execute).map(this::response).onFailure().transform(errors::translate);
+            var query = mapper.toQuery(accepted.tenantId(), body);
+            return exact.execute(query, accepted);
+        }).flatMap(operation -> operation).map(this::response).onFailure().transform(errors::translate);
     }
 
     /** Returns a safe bounded literal-prefix page with complete live counts and authenticated neighbor directions. */
@@ -80,8 +81,9 @@ public class IdentifierSearchResource {
             var accepted = metadata.metadata();
             var body = requests.validateBody(request);
             requireNoQuery(uri);
-            return mapper.toQuery(accepted.tenantId(), body);
-        }).flatMap(prefix::execute).map(this::response).onFailure().transform(errors::translate);
+            var query = mapper.toQuery(accepted.tenantId(), body);
+            return prefix.execute(query, accepted);
+        }).flatMap(operation -> operation).map(this::response).onFailure().transform(errors::translate);
     }
 
     private RestResponse<ApiResponse<List<IdentifierSearchResponse>>> response(IdentifierSearchPage page) {

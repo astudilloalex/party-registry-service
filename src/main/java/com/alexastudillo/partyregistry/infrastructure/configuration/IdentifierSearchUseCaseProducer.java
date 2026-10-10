@@ -2,6 +2,7 @@ package com.alexastudillo.partyregistry.infrastructure.configuration;
 
 import com.alexastudillo.partyregistry.application.port.IdentifierSearchCursorPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierSearchReadPort;
+import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
 import com.alexastudillo.partyregistry.application.usecase.SearchPartiesByIdentifierUseCase;
 import com.alexastudillo.partyregistry.application.usecase.SearchPartiesByIdentifierPrefixUseCase;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
@@ -19,13 +20,14 @@ public class IdentifierSearchUseCaseProducer {
 
     @Produces
     @Singleton
-    public SearchPartiesByIdentifierUseCase exactSearch(IdentifierSearchReadPort reads) {
-        return new SearchPartiesByIdentifierUseCase(reads, selectors);
+    public SearchPartiesByIdentifierUseCase exactSearch(IdentifierSearchReadPort reads, OperationObservationPort observations) {
+        return new SearchPartiesByIdentifierUseCase(reads, selectors, observations);
     }
 
     @Produces
     @Singleton
-    public SearchPartiesByIdentifierPrefixUseCase prefixSearch(IdentifierSearchReadPort reads, IdentifierSearchCursorPort cursors) {
-        return new SearchPartiesByIdentifierPrefixUseCase(reads, cursors, selectors);
+    public SearchPartiesByIdentifierPrefixUseCase prefixSearch(IdentifierSearchReadPort reads, IdentifierSearchCursorPort cursors,
+            OperationObservationPort observations) {
+        return new SearchPartiesByIdentifierPrefixUseCase(reads, cursors, selectors, observations);
     }
 }

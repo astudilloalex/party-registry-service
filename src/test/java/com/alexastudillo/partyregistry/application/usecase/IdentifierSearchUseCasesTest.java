@@ -4,6 +4,7 @@ import com.alexastudillo.partyregistry.application.error.ApplicationException;
 import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
 import com.alexastudillo.partyregistry.application.model.*;
 import com.alexastudillo.partyregistry.application.port.IdentifierSearchCursorPort;
+import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
 import com.alexastudillo.partyregistry.application.support.IdentifierSearchReadStub;
 import com.alexastudillo.partyregistry.domain.model.*;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
@@ -24,6 +25,32 @@ import static org.junit.jupiter.api.Assertions.*;
 class IdentifierSearchUseCasesTest {
     private static final TenantId TENANT = new TenantId(new UUID(1, 1));
     private final IdentifierSearchSelectorPolicy policy = new IdentifierSearchSelectorPolicy(new IdentifierRuleCatalog());
+
+    @Test
+    void observesEachSubscriptionWithBoundedOperationAndTerminalOutcome() {
+        var operations = new ArrayList<ObservedOperation>();
+        var outcomes = new ArrayList<OperationOutcome>();
+        var metadata = new RequestMetadata(TENANT, "accepted-user", UUID.randomUUID());
+        OperationObservationPort observations = (accepted, operation) -> {
+            assertEquals(metadata, accepted);
+            operations.add(operation);
+            return outcomes::add;
+        };
+        var reads = stub(Optional.of(scheme("TRIM_UPPERCASE_V1")), emptyExact(), emptyPrefix());
+        var exact = new SearchPartiesByIdentifierUseCase(reads, policy, observations);
+        var prefix = new SearchPartiesByIdentifierPrefixUseCase(reads, new CursorFixture(), policy, observations);
+        var exactOperation = exact.execute(new ExactIdentifierSearchQuery(TENANT, "SEARCH", "secret", IdentifierSearchFilters.of(null, null)), metadata);
+        assertTrue(operations.isEmpty());
+        item(exactOperation);
+        item(exactOperation);
+        item(prefix.execute(new PrefixIdentifierSearchQuery(TENANT, "SEARCH", "secret", IdentifierSearchFilters.of(null, null), 2, null), metadata));
+        var absent = new SearchPartiesByIdentifierUseCase(stub(Optional.empty(), emptyExact(), emptyPrefix()), policy, observations);
+        failure(absent.execute(new ExactIdentifierSearchQuery(TENANT, "UNKNOWN", "secret", IdentifierSearchFilters.of(null, null)), metadata));
+        assertEquals(List.of(ObservedOperation.APPLICATION_IDENTIFIER_EXACT_SEARCH, ObservedOperation.APPLICATION_IDENTIFIER_EXACT_SEARCH,
+                ObservedOperation.APPLICATION_IDENTIFIER_PREFIX_SEARCH, ObservedOperation.APPLICATION_IDENTIFIER_EXACT_SEARCH), operations);
+        assertEquals(List.of(OperationOutcome.RETRIEVED, OperationOutcome.RETRIEVED, OperationOutcome.RETRIEVED,
+                OperationOutcome.VALIDATION_FAILED), outcomes);
+    }
 
     @Test
     void exactReturnsAll201HistoricalHitsAndExplicitNullDirections() {

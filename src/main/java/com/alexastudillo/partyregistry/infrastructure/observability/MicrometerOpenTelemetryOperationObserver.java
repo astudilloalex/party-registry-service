@@ -78,6 +78,8 @@ public class MicrometerOpenTelemetryOperationObserver implements OperationObserv
             case APPLICATION_PARTY_IDENTIFIER_REVOKE -> "application.party-identifier-revoke";
             case APPLICATION_PARTY_IDENTIFIER_SET_PRIMARY -> "application.party-identifier-set-primary";
             case APPLICATION_PARTY_LIST -> "application.party-list";
+            case APPLICATION_IDENTIFIER_EXACT_SEARCH -> "party.search-by-identifier";
+            case APPLICATION_IDENTIFIER_PREFIX_SEARCH -> "party.search-by-identifier-prefix";
             case APPLICATION_PARTY_RETRIEVAL -> "application.party-retrieval";
             case APPLICATION_PARTY_PATCH -> "application.party-patch";
             case APPLICATION_PARTY_ACTIVATION -> "application.party-activation";

@@ -5,6 +5,8 @@ import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
 import com.alexastudillo.partyregistry.application.model.*;
 import com.alexastudillo.partyregistry.application.port.IdentifierSearchCursorPort;
 import com.alexastudillo.partyregistry.application.port.IdentifierSearchReadPort;
+import com.alexastudillo.partyregistry.application.port.OperationObservationPort;
+import com.alexastudillo.partyregistry.application.observability.OperationObservation;
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSearchSelectorPolicy;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSearchSelector;
@@ -19,12 +21,26 @@ public final class SearchPartiesByIdentifierPrefixUseCase {
     private final IdentifierSearchReadPort reads;
     private final IdentifierSearchCursorPort cursors;
     private final IdentifierSearchSelectorPolicy selectors;
+    private final OperationObservationPort observations;
 
     public SearchPartiesByIdentifierPrefixUseCase(IdentifierSearchReadPort reads, IdentifierSearchCursorPort cursors,
             IdentifierSearchSelectorPolicy selectors) {
+        this(reads, cursors, selectors, OperationObservation.noop());
+    }
+
+    public SearchPartiesByIdentifierPrefixUseCase(IdentifierSearchReadPort reads, IdentifierSearchCursorPort cursors,
+            IdentifierSearchSelectorPolicy selectors, OperationObservationPort observations) {
         this.reads = Objects.requireNonNull(reads, "reads");
         this.cursors = Objects.requireNonNull(cursors, "cursors");
         this.selectors = Objects.requireNonNull(selectors, "selectors");
+        this.observations = Objects.requireNonNull(observations, "observations");
+    }
+
+    /** Observes each subscription using accepted attribution; selectors and cursors never enter observation contracts. */
+    public Uni<IdentifierSearchPage> execute(PrefixIdentifierSearchQuery query, RequestMetadata metadata) {
+        if (!query.tenantId().equals(metadata.tenantId())) throw new IllegalArgumentException("Search attribution owner is inconsistent");
+        return OperationObservation.observe(metadata, ObservedOperation.APPLICATION_IDENTIFIER_PREFIX_SEARCH,
+                observations, () -> execute(query), ignored -> OperationOutcome.RETRIEVED);
     }
 
     /** Validates scheme/normalization before cursor, including empty filters; signs navigation after the read has closed. */

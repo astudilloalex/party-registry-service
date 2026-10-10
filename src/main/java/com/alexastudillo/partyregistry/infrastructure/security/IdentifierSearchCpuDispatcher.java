@@ -6,6 +6,9 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.subscription.UniEmitter;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,11 +33,13 @@ import java.util.function.Function;
 @Singleton
 public class IdentifierSearchCpuDispatcher {
     private final ThreadPoolExecutor executor;
+    private final Counter rejections;
 
     @Inject
     public IdentifierSearchCpuDispatcher(
             @ConfigProperty(name = "party-registry.search.cpu-workers", defaultValue = "2") int workers,
-            @ConfigProperty(name = "party-registry.search.cpu-queue-capacity", defaultValue = "32") int capacity) {
+            @ConfigProperty(name = "party-registry.search.cpu-queue-capacity", defaultValue = "32") int capacity,
+            MeterRegistry registry) {
         if (workers < 1 || capacity < 1)
             throw new IllegalArgumentException("Identifier search CPU capacity must be positive");
         var sequence = new AtomicInteger();
@@ -44,6 +49,16 @@ public class IdentifierSearchCpuDispatcher {
                     thread.setDaemon(true);
                     return thread;
                 }, new ThreadPoolExecutor.AbortPolicy());
+        rejections = registry.counter("party.registry.identifier.search.cpu.rejections");
+        Gauge.builder("party.registry.identifier.search.cpu.queued", executor, pool -> pool.getQueue().size()).register(registry);
+        Gauge.builder("party.registry.identifier.search.cpu.active", executor, ThreadPoolExecutor::getActiveCount).register(registry);
+        Gauge.builder("party.registry.identifier.search.cpu.workers", executor, ThreadPoolExecutor::getMaximumPoolSize).register(registry);
+        Gauge.builder("party.registry.identifier.search.cpu.capacity", executor, pool -> pool.getQueue().size() + pool.getQueue().remainingCapacity()).register(registry);
+    }
+
+    /** Creates an independently owned dispatcher for isolated runtime tests. */
+    public IdentifierSearchCpuDispatcher(int workers, int capacity) {
+        this(workers, capacity, new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     }
 
     /**
@@ -65,6 +80,7 @@ public class IdentifierSearchCpuDispatcher {
         try {
             executor.execute(future);
         } catch (RejectedExecutionException _) {
+            rejections.increment();
             emitter.fail(new ApplicationException(
                     new ApplicationFailure.DependencyUnavailable("identifier-search-cpu")));
         }

@@ -8,6 +8,8 @@ import com.alexastudillo.partyregistry.domain.model.*;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSearchSelector;
 import com.alexastudillo.partyregistry.infrastructure.security.IdentifierProtectionIdentity;
 import com.alexastudillo.partyregistry.infrastructure.security.JcaIdentifierProtectionAdapter;
+import com.alexastudillo.partyregistry.infrastructure.observability.IdentifierSearchWorkObserver;
+import static com.alexastudillo.partyregistry.infrastructure.observability.IdentifierSearchWorkObserver.Measurement.*;
 import io.smallrye.mutiny.Uni;
 import org.hibernate.reactive.mutiny.Mutiny;
 
@@ -37,18 +39,23 @@ final class IdentifierSearchSql {
     }
 
     Uni<ExactIdentifierSearchSlice> exact(Mutiny.Session session, TenantId tenant, IdentifierSchemeId scheme,
-            IdentifierSearchSelector selector, IdentifierSearchFilters filters) {
+            IdentifierSearchSelector selector, IdentifierSearchFilters filters, IdentifierSearchWorkObserver.Sample sample) {
         if (filters.matchesNothing()) return Uni.createFrom().item(new ExactIdentifierSearchSlice(List.of(), 0));
         var hash = protection.lookupHash(tenant, selector.normalizedValue());
         if (hash.isEmpty()) return Uni.createFrom().item(new ExactIdentifierSearchSlice(List.of(), 0));
         String predicate = " and i.normalizedValueHash = :hash";
+        sample.add(SQL_STATEMENTS, 1);
         return bind(session.createSelectionQuery("select count(i.id) " + QUALIFIED + predicate, Long.class), tenant, scheme, filters)
                 .setParameter("hash", hash.get()).getSingleResult().flatMap(count -> {
                     Math.toIntExact(count);
                     if (count == 0) return Uni.createFrom().item(new ExactIdentifierSearchSlice(List.of(), 0));
+                    sample.add(SQL_STATEMENTS, 1);
                     return bind(session.createSelectionQuery("select " + SAFE_FIELDS + " " + QUALIFIED + predicate + ORDER, Object[].class),
                             tenant, scheme, filters).setParameter("hash", hash.get()).getResultList()
-                            .map(rows -> new ExactIdentifierSearchSlice(rows.stream().map(IdentifierSearchSql::hit).toList(), count));
+                            .map(rows -> {
+                                sample.add(MATCHES, rows.size());
+                                return new ExactIdentifierSearchSlice(rows.stream().map(IdentifierSearchSql::hit).toList(), count);
+                            });
                 });
     }
 
