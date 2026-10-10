@@ -411,3 +411,80 @@ Focused `HmacIdentifierSearchCursorAdapterTest` passed, BUILD SUCCESSFUL in
 every scope dimension, resource isolation, malformed/tampered tokens,
 authenticated impossible fields, key rotation and the 64-character key-ID
 token bound. Both files have zero JDTLS problems (log lines 1296–1326).
+
+## Task 4.1: Additive Flyway ordering index
+
+V9 was unused and now creates only the tenant/scheme/created-at/identifier
+ordering index. Clean-install and V8-upgrade tests use real PostgreSQL and
+Flyway, retaining earlier migration checksums and actually AES-protected
+historical Party/identifier/detail rows byte-for-byte. The existing migration
+catalog regression expectation now includes V9; V1–V8 were not edited.
+
+Focused search migration verification passed in 4m 3s; search migration plus
+existing `MigrationRegressionTest` passed in 4m 29s after updating its catalog
+expectation. JDTLS reports zero problems for the new migration test. The
+existing regression file diagnostics are checked separately after its edit.
+
+## Task 4.2: In-progress read owner; focused verification failure
+
+The resolved Hibernate Reactive implementation was inspected, confirming
+`openSession` obtains a pooled connection before session construction. The
+new `IdentifierSearchReadSession` attempts per-subscription acquisition
+ownership, late-allocation closure, remaining transaction deadlines,
+read-only repeatable-read configuration, origin-context emission, guarded
+sequential reads, and exact scheme resolution. The public read-port adapter
+and remaining runtime cases are not complete; task 4.2 is unchecked.
+
+Focused command:
+
+```shell
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*IdentifierSearchReadSessionTest' --console=plain
+```
+
+Result: **BUILD FAILED in 4m 12s**. Of its two database cases, exhausted
+single-connection acquisition, timeout, late allocation closure and subsequent
+reuse passed. The normal snapshot/escaped-context case failed with a translated
+Mutiny timeout. The test-only profile configures a 300ms traversal and 200ms
+statement deadline for both cases; the normal-read test took 1.314 seconds
+including failure/cleanup. The current evidence proves timeout, not a specific
+startup/SQL/pool phase as its cause. Investigate before changing budgets or
+claiming normal snapshot acceptance.
+
+Report: `build/test-results/test/TEST-com.alexastudillo.partyregistry.infrastructure.persistence.IdentifierSearchReadSessionTest.xml`.
+JDTLS reports zero problems for the test and **one problem** for the read
+owner (log lines 1548–1554); the log exposes only the count. This is JDTLS,
+not Sonar. Gradle compilation succeeded, so the discrepancy needs its actual
+diagnostic before acceptance. Sonar findings continue to be handled in
+parallel per user instruction, without weakening final acceptance.
+
+Implementation is paused for guidance on this focused runtime failure and
+the JDTLS diagnostic. Progress is 13/44; this is not endpoint completion.
+
+### Read-owner corrections: runtime and JDTLS blockers resolved
+
+The screenshot identifies a real JDTLS type-inference discrepancy:
+the failed-acquisition branch inferred `Uni<Object>` inside the conditional
+flatMap expression, while javac accepted the assignment. Explicit
+`Uni.createFrom().<Mutiny.Session>failure(cancelled())` now gives both
+branches the same session type without casts or warning suppression.
+The constructor's nanos conversion is retained as a used, validated
+`budgetNanos` field rather than an ignored pure return value.
+
+Normal snapshot tests now use the existing finite configured budgets.
+Only deliberate pool/statement failure cases construct a read owner with
+200ms statement and 300ms operation budgets. Production defaults were not
+changed. An additional real PostgreSQL test verifies a statement/traversal
+failure is followed by connection reuse after transaction cleanup.
+
+The same focused command passed: **BUILD SUCCESSFUL in 4m 1s**, with all
+three scoped-read tests passing and no skipped cases. Snapshot read was
+45ms, deliberate acquisition timeout/reuse was 322ms, and statement failure
+plus reuse was 1.686s in that run. The SQL timeout warning is expected from
+the deliberately slow statement, not a failing test.
+
+JDTLS now reports **zero problems for both final saved files**, including
+the previously rejected acquisition expression (log lines 1590–1629).
+The runtime/type blockers are resolved autonomously. Task 4.2 remains
+unchecked because its complete read-port adapter and remaining lifecycle/
+snapshot verification are still implementation work, not because of these
+fixed failures. Progress remains 13/44.

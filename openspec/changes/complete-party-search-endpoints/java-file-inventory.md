@@ -15,14 +15,56 @@ IDE results do not establish a remote server Quality Gate.
 
 ## Affected files
 
-Two test-only Java files are affected at the current foundation checkpoint.
-They contain no nested types. Source findings remain independent of passing
-Gradle tests.
+The foundation, Domain/Application contracts, cryptographic adapters, Flyway
+tests and the in-progress reactive read owner are now affected. Source findings
+remain independent of passing Gradle tests. User-applied parallel refactoring
+requires final-revision test/analysis reconciliation before section 8 acceptance.
 
 | Source set | File / nested types | Saved Git blob | Relevant tests and result | JDTLS model / diagnostics | Sonar analyzer / rules / completion | Findings / hotspots / fixes / reanalysis |
 | --- | --- | --- | --- | --- | --- | --- |
 | Shared-contract | `src/contractTest/java/com/alexastudillo/partyregistry/contract/IdentifierSearchContractAssertions.java` | `91438a120588a40a17c0f20f89a64e98690746c5` | Four assertion tests pass; focused OpenAPI and architecture checks pass | Java 25 / Quarkus 3.40.1; 0 problems at 15:04:12 | SonarQube for IDE 5.7.0; 571 active Java rules, current resolved model, full analysis complete at 15:04:10 | 0 issues, 0 hotspots; raw Swagger model inference compilation errors corrected before this revision |
-| Unit | `src/test/java/com/alexastudillo/partyregistry/contract/IdentifierSearchContractAssertionsTest.java` | `00a2f7dea3b39cc52a46b1262320382c5dfc06ee` | Four assertion tests pass; full-suite rerun pending | Java 25 / Quarkus 3.40.1; 0 problems at 15:08:43 | SonarQube for IDE 5.7.0; 571 active Java rules, current resolved model, full analysis complete at 15:08:43 | **1 issue**, 0 hotspots. Agent-accessible log exposes no rule/message/location; obtain the Problems entry before remediation/reanalysis. |
+| Unit | `src/test/java/com/alexastudillo/partyregistry/contract/IdentifierSearchContractAssertionsTest.java` | `4783579b1d05d46cdd0e5705c829d8270c49726a` | Focused assertion/OpenAPI rerun passed in 3m 17s | Java 25 / Quarkus 3.40.1; baseline zero problems, final reconciliation pending | SonarQube for IDE 5.7.0; 571 Java rules; reanalysis complete 15:25:19 | User fixed original finding; 0 issues/hotspots on reanalysis |
+
+### Implementation revision ledger
+
+Paths below are relative to `src/main/java/com/alexastudillo/partyregistry/`
+for production or `src/test/java/com/alexastudillo/partyregistry/` for unit
+tests. All rows have independently observed zero-problem JDTLS diagnostics
+unless explicitly marked otherwise. Relevant focused test commands/results
+are recorded by task in verification.md. Sonar is tracked for parallel user
+remediation; final per-file rule/parameter/finding reconciliation is pending,
+not presumed clean.
+
+| Source set / relative file | Saved Git blob | Focused verification / diagnostics |
+| --- | --- | --- |
+| Production `domain/policy/IdentifierRuleCatalog.java` | `5e11fea02ebf7ff08df67358310f7259d25ab136` | Task 2.1 passed; JDTLS 0 |
+| Production `domain/policy/IdentifierSearchSelector.java` | `7a802c27d84b0593ec950d234a677da9ad0d242f` | Task 2.1 passed; JDTLS 0 |
+| Production `domain/policy/IdentifierSearchSelectorPolicy.java` | `bc36e2bbcb25b3bf66747956fb3eae870f4d5fbd` | Task 2.1 passed; JDTLS 0 |
+| Unit `domain/policy/IdentifierSearchSelectorPolicyTest.java` | `1abf1fc6373dc5066a71b507791f9144e7e633b3` | Task 2.1 passed; JDTLS 0 |
+| Production `application/model/IdentifierSearchFilters.java` | `cd9b8dcabbcabc6c6bed8b8e8138f4cba4eaeaa2` | Task 2.2 passed; JDTLS 0 |
+| Production `application/model/ExactIdentifierSearchQuery.java` | `f0ba0a6606e1c446a0ef9f07f02e8304ebbf3286` | Task 2.2 passed; JDTLS 0 |
+| Production `application/model/PrefixIdentifierSearchQuery.java` | `3135d9dd329caff23f1b2ecfe446389fb72ddf9b` | Task 2.2 passed; JDTLS 0 |
+| Production `application/model/IdentifierSearchScope.java` | `ba1b6f8583797ce7815f1ca727f6468a182a69c3` | Task 2.2 passed; JDTLS 0 |
+| Unit `application/model/IdentifierSearchQueriesTest.java` | `dab01d0f756dcb6d308eb7c5c24fd61b0efb0eda` | Task 2.2 passed on earlier saved revision; user refactor requires final rerun |
+| Production `application/model/IdentifierSearchHit.java` | `c1894775c75c71ac534eee03f83ea4b79d147af1` | Task 2.3 passed; JDTLS 0 |
+| Production `application/model/IdentifierSearchPositions.java` | `4459948b7e5f7db69be3f6f9be55792a582260a5` | Task 2.3 passed; JDTLS 0 |
+| Production `application/model/ExactIdentifierSearchSlice.java` | `96a3b1406ee9b6ac1e5ff77c909a65321c1013ba` | Task 2.3 passed; JDTLS 0 |
+| Production `application/model/PrefixIdentifierSearchSlice.java` | `c131c0d1ea2de02692418613ef463cddf96d0ba9` | Task 2.3 passed; JDTLS 0 |
+| Production `application/model/IdentifierSearchPage.java` | `ef64ac7d1bf6c5dc44c71c518aa15fc5763e1a57` | Task 2.3 passed; JDTLS 0 |
+| Unit `application/model/IdentifierSearchResultsTest.java` | `d02b7beeada77752e22cf95714a2b56265834e32` | Task 2.3 rerun passed; JDTLS 0 |
+| Production `application/port/IdentifierSearchReadPort.java` | `a5f27c46c3f20af942cebc8bd57a820df13a81ae` | Task 2.4 architecture passed; JDTLS 0 |
+| Production `application/port/IdentifierSearchReadContext.java` | `acf880ff832b304463f59cfad76f8eb0fde8ad46` | Task 2.4 architecture passed; JDTLS 0 |
+| Production `application/port/IdentifierSearchCursorPort.java` | `abf9cde05a42f9c6f2b80583524c23b6fa86ff5b` | Task 2.4 architecture passed; JDTLS 0 |
+| Unit `application/support/IdentifierSearchReadStub.java` including `ReadContext` | `87cca6cbea91bbb9f9357e8ef198ddb2676ea756` | Task 2.4 compiled; JDTLS 0 |
+| Production `infrastructure/security/JcaIdentifierProtectionAdapter.java` | `9ca47aa62d833160853e4e4cf3b5c9fa70bbb49a` | Tasks 3.1/3.2 passed; JDTLS 0 |
+| Production `infrastructure/security/IdentifierProtectionIdentity.java` | `1854822a3f1f5c33e4e92342eebcf82a98924496` | Task 3.2 passed; JDTLS 0 |
+| Unit `infrastructure/security/JcaIdentifierProtectionAdapterTest.java` including existing anonymous test fixture | `45d3f20a7a3cd01493c42c49ebdfdd36a8e3b714` | Task 3.2 passed on earlier revision; user refactor requires final rerun |
+| Production `infrastructure/security/HmacIdentifierSearchCursorAdapter.java` | `77972a3adfbbbc6a1b677f88e6fe6665d0e5fa7a` | Task 3.3 passed; JDTLS 0 |
+| Unit `infrastructure/security/HmacIdentifierSearchCursorAdapterTest.java` including `KeyConfiguration`, `ChangedNormalizer` | `330576c0c868b65fec67d78ec1d94964c0346301` | Task 3.3 passed on earlier revision; user refactor requires final rerun |
+| Unit `infrastructure/security/IdentifierSearchMigrationTest.java` | `7a4370611c549f18c7af6945d23d54ebe266f3e3` | Task 4.1 passed; JDTLS 0 |
+| Unit `MigrationRegressionTest.java` | `56ae8648ee08625ae3457385e0d8596522e0645c` | Task 4.1 passed; JDTLS 0 |
+| Production `infrastructure/persistence/IdentifierSearchReadSession.java` including `ReadView` | `43b2f4f06b8933bde448b52dfcec37dc63004377` | Explicit acquisition failure type resolves JDTLS/javac inference discrepancy; three scoped-read tests pass; JDTLS 0 |
+| Unit `infrastructure/persistence/IdentifierSearchReadSessionTest.java` including `SingleConnectionProfile`, `TestDeadlines` | `fac5be7fc0309baf0b353f9c38f02140453fced5` | Normal snapshot, exhausted/late acquisition reuse and statement/traversal cleanup tests pass; JDTLS 0 |
 
 ## Pending acceptance
 

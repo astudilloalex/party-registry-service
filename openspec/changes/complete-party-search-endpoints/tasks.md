@@ -83,7 +83,7 @@ Requirement references below resolve to the named requirements in the [exact spe
 
 ## 4. Reactive Persistence and Bounded Prefix Processing
 
-- [ ] 4.1 Add the next unused immutable Flyway migration, expected V9__add_identifier_search_order_index.sql, for the tenant/scheme/created-at/identifier ordering index.
+- [x] 4.1 Add the next unused immutable Flyway migration, expected V9__add_identifier_search_order_index.sql, for the tenant/scheme/created-at/identifier ordering index.
   - Requirements: P6, P8, P9; Design: Prefix candidates and ordering index.
   - Verification: Flyway applies the additive index to an isolated database, migration/catalog assertions pass, and previously applied migrations and stored protected values remain intact.
 
