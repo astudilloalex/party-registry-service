@@ -1321,3 +1321,63 @@ DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PO
 ```
 
 **BUILD SUCCESSFUL in 4m 3s**, **exactly 17 changed-class cases, zero failures/skips**, **14 tasks: six executed/eight up-to-date**, with real Quarkus JAR augmentation. Unrelated full/package/native tests are not rerun or claimed; final acceptance remains section 14. All eight saved revisions have full individual resolved-model Java-25/571-rule **zero Sonar issues/Hotspots** and separate **zero JDTLS problems**, including Fixture/PatchProfile. English responsibility Javadoc, Month-derived time, producer/generic response signatures and inward/session boundaries are inspected. No compiler warning, suppression, rule/configuration/budget change, manual production subscription or blocking I/O is introduced; existing controlled validation/meter warnings remain visible. See `java-inventory.md` for final blobs and diagnostic ranges. Task 9.3 is complete at **37/60**; proceed to 10.1.
+
+## Task 10.1: Strict optional reasons and BOM-owned buffered body guard, runtime green / one source finding pending
+
+Before selecting the presence adapter, inspected the official [Quarkus REST body/execution reference](https://quarkus.io/guides/rest) and exact **3.33.3.1** source [ByteArrayMessageBodyHandler](https://raw.githubusercontent.com/quarkusio/quarkus/3.33.3.1/independent-projects/resteasy-reactive/common/runtime/src/main/java/org/jboss/resteasy/reactive/common/providers/serialisers/ByteArrayMessageBodyHandler.java), plus the project's existing actual buffered-byte lifecycle test endpoint. byte[] is framework-owned whole-body input; InputStream is explicitly a blocking representation. Chose buffered bytes plus memory-only syntax checks, without a transport-stream reader, Content-Length guard, stream subscription, second context filter or global mapper.
+
+Wrote five `PartyIdentifierReasonBindingTest` and four actual `PartyIdentifierActionBindingContractTest` cases, plus a test-only safe presence/count/event-loop receipt and verification resource. Initial compile-red fails in **14s** for missing body/model types. Minimal structure then executes **nine changed-class cases, seven expected behavior failures, in 3m 25s** for permissive null/duplicates/coercion/trailing input, missing code-point bounds and missing fixed/chunked nonzero-body rejection; positive defaults/exact strings characterize existing simple behavior.
+
+The strict native-registered reason decoder accepts only reasonCode/reasonDetail strings, preserves exact whitespace/case/empty/control/U+0000/supplementary content, rejects every explicitly null property/root, unknown/escaped duplicate/coerced/root trailing token, and keeps omission distinct from supplied empty strings. Reasons are write-only and diagnostic toString is redacted. `PartyIdentifierActionBodies` enforces 64/1000 logical code-point limits as generic bad-request and checks zero/nonzero buffered verification bytes before target selectors.
+
+An actual BOM edge appears after initial implementation: `NoContentException` from the typed reader treats a whitespace-only optional body as absent; the additional real whitespace case fails (**nine cases / one failure, 3m 23s**) with party-id-invalid instead of the required body rejection. This is a concrete binding-adapter issue, not permission to redefine absence. Switched optional reason decoding to actual buffered bytes using the CDI-managed ObjectMapper and the same strict per-model decoder: only null/zero byte input becomes no reasons; whitespace/literal null/nonobject bytes are decoded and rejected. Known client parser failures discard causes into stable bad-request; unexpected reader-definition IOException becomes a constant technical failure without payload-bearing cause. Creation/PATCH reader is restored exactly to saved blob **3a4ffc2e838d3d4ee61d3b9f1742afad94a84865**, so this increment introduces no broader reader/filter.
+
+All nine changed-class cases now pass in **3m 20s**. Real HTTP receipts prove event-loop execution after buffering, exact safe shared response/echo, code-point counts for 64/1000 supplementary strings, controls and empty supplied reasons, rejection before malformed selectors, and buffered verify bodies including object/null/whitespace. Bounded HTTP/1.1 unknown-length publishers explicitly report -1 length and exercise actual chunked object/whitespace/zero-byte requests; nonzero content rejects and actual zero-byte content succeeds on the event loop. The probe returns only presence/count evidence, never reason text, and exists only in test source sets.
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew --init-script /tmp/opencode/focused-tests.gradle test --tests '*PartyIdentifierReasonBindingTest' --tests '*PartyIdentifierActionBindingContractTest' --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew --init-script /tmp/opencode/focused-tests.gradle test --tests '*PartyIdentifierReasonBindingTest' --tests '*PartyIdentifierActionBindingContractTest' build -x quarkusIntTest --console=plain
+```
+
+Focused build succeeds in **21s**, **14 tasks: four executed/ten up-to-date**, with selected nine-case test up-to-date and new JAR augmentation. No global/package/native execution is claimed. Seven independently saved Java revisions have **zero JDTLS problems**, and six full resolved-model Sonar runs report **zero issues/Hotspots**. The remaining decoder blob **457de0bde26671a835e3cdad22d02d983adc2042** has one Sonar issue / zero Hotspots at **2026-10-09 18:14:28.444**, S3 **3087–3117**. The log contains no rule/message/location; the actual current Problems diagnostic is needed before choosing a correction. Do not infer a rule from its count.
+
+Class/record responsibility Javadoc, explicit native metadata, test-only bounded blocking client, primitive byte guard, pure API syntax boundaries and response generic signatures are inspected; no production blocking/subscription/DDL, compiler warning, rule/suppression/configuration change or budget relaxation is introduced. Existing generated-report/retired-file warnings from an unrelated YAML scan are not Java source findings and are not substituted for actual Java completion. Task **10.1 stays unchecked**, progress **37/60**. Pause before 10.2 for the actual decoder diagnostic; exact saved identities and separate analysis results are recorded in `java-inventory.md`.
+
+### Task 10.1 final separate-declaration diagnostic resolved
+
+The developer supplies the current message **"Declare detail on a separate line"**, line 25; no rule ID is supplied or inferred. Split the two local declarations onto separate lines without changing syntax/behavior. Final decoder blob **2336819be86988b796e18360ddf597b2e2bef8de** has full individual Java-25/571-rule resolved-model **zero Sonar issues/Hotspots** at **2026-10-09 18:23:01.728**, S3 **3273–3303**, and independent **zero JDTLS problems** at **18:23:01.873**, J2 **1544–1554**.
+
+Reexecuted only its five affected unit cases, retaining the four actual HTTP/chunked results on unchanged behavior and the other six source analyses:
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew --init-script /tmp/opencode/focused-tests.gradle test --tests '*PartyIdentifierReasonBindingTest' build -x quarkusIntTest --console=plain
+```
+
+**BUILD SUCCESSFUL in 3m 11s**, **exactly five selected cases, zero failures/skips**, **14 tasks: six executed/eight up-to-date**, with updated JAR augmentation. No unrelated suite/package/native execution or relaxed criterion is claimed. All seven final saved revisions now satisfy the local source gate, and all nine actual body/binding cases have passing appropriate evidence. Task 10.1 is complete at **38/60**. Proceed to the real lifecycle transaction/replay/audit orchestration in 10.2.
+
+## Task 10.2 continuation: verification blocked
+
+Inspected the existing lifecycle use case/test and shared scope/failure helpers with their changed PATCH consumers. No Java source was changed during this continuation. The previous temporary focused-test script and Podman socket were absent. Recreated only the Jupiter-engine selection script outside the repository and executed:
+
+```bash
+./gradlew --init-script /tmp/opencode/focused-tests.gradle test --tests '*ChangePartyIdentifierLifecycleUseCaseTest' --tests '*PatchPartyIdentifierUseCaseTest' --console=plain
+```
+
+**BUILD FAILED in 3m 22s**. `compileTestJava` completes, but Quarkus/JUnit discovery attempts initialization of other Quarkus classes despite the explicit filters. Container discovery fails at `unix:///var/run/docker.sock` with `java.net.BindException: Permission denied` and no valid Docker environment. This is an environmental/bootstrap failure, not behavioral TDD red or an intentional full-suite invocation. No passing focused result is claimed. Output: `/home/alex/.local/share/opencode/tool-output/tool_1231bb425001VDHlxDy2eTSkr7`. No retry, build, full or native suite follows this blocker.
+
+Current Sonar log: `/home/alex/.config/Antigravity IDE/logs/20261009T184627/window1/exthost/SonarSource.sonarlint-vscode/SonarQube for IDE.log`. The 19-file batch reports zero issues at 18:47:36.248, but lines 103–106 warn of missing binaries/libraries and unresolved types; the lifecycle use case/test are absent from its input list. This is not accepted resolved-model evidence. Current per-file Sonar and separate JDTLS diagnostics remain pending.
+
+Resume after restoring an accessible container API and obtaining saved-revision IDE evidence for ChangePartyIdentifierLifecycleUseCase, its test, PartyIdentifierMutationScope, PartyIdentifierFailures, PatchPartyIdentifierUseCase and its changed test. Task 10.2 stays unchecked at **38/60**. The user's instruction reserves full-suite execution for a later explicit request; final section-14 acceptance remains pending.
+
+### Task 10.2 container access restored; selected runtime checks pass
+
+The user authorizes restoring the temporary Podman socket and retrying focused verification. Started `podman system service --time=0 unix:///tmp/opencode/party-registry-podman.sock` with output in `/tmp/opencode/party-registry-podman.log`. The API `_ping` returns `OK`; no deployment or application configuration was changed.
+
+```bash
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew --init-script /tmp/opencode/focused-tests.gradle test --tests '*ChangePartyIdentifierLifecycleUseCaseTest' --tests '*PatchPartyIdentifierUseCaseTest' --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew --init-script /tmp/opencode/focused-tests.gradle test --tests '*ChangePartyIdentifierLifecycleUseCaseTest' --tests '*PatchPartyIdentifierUseCaseTest' build -x quarkusIntTest --console=plain
+```
+
+Selected tests pass in **2m 45s**. Focused build passes in **2m 55s**, with selected tests executed again and Quarkus JAR augmentation successful. XML reports confirm **11 lifecycle + 10 PATCH cases, zero failures/errors/skips**. No full-suite, packaged integration or native acceptance is claimed. The six existing Java blobs are unchanged; no Java edits were made. This resolves the container/bootstrap blocker, not the remaining IDE acceptance gate.
+
+The active Sonar log still ends at line 117, with no superseding resolved-model analysis. Separate JDTLS historical validations report zero for PartyIdentifierFailures (18:44:12.886), PartyIdentifierMutationScope (18:44:25.987), PatchPartyIdentifierUseCase (18:44:48.047) and its test (18:43:33.412), but current complete evidence for all six saved revisions remains unestablished. Request explicit **Analyze Current File with SonarQube** on the six inventoried revisions and separate JDTLS/Problems results for the saved files. Task 10.2 remains unchecked at **38/60** until this required evidence is supplied.

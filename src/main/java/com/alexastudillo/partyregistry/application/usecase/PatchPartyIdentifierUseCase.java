@@ -1,8 +1,7 @@
 package com.alexastudillo.partyregistry.application.usecase;
 
 import com.alexastudillo.partyregistry.application.command.PatchPartyIdentifierCommand;
-import com.alexastudillo.partyregistry.application.error.ApplicationException;
-import com.alexastudillo.partyregistry.application.error.ApplicationFailure;
+import com.alexastudillo.partyregistry.application.error.PartyIdentifierFailures;
 import com.alexastudillo.partyregistry.application.model.ObservedOperation;
 import com.alexastudillo.partyregistry.application.model.OperationOutcome;
 import com.alexastudillo.partyregistry.application.model.PartyIdentifierChangedOutboxCandidate;
@@ -14,7 +13,6 @@ import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationC
 import com.alexastudillo.partyregistry.application.port.PartyIdentifierMutationPort;
 import com.alexastudillo.partyregistry.application.support.UuidV7;
 import com.alexastudillo.partyregistry.domain.error.DomainValidationException;
-import com.alexastudillo.partyregistry.domain.model.IdentifierSchemeId;
 import com.alexastudillo.partyregistry.domain.model.PartyIdentifier;
 import io.smallrye.mutiny.Uni;
 
@@ -42,44 +40,17 @@ public final class PatchPartyIdentifierUseCase {
     }
 
     private Uni<PartyIdentifierMutationOutcome> correct(PartyIdentifierMutationContext context, PatchPartyIdentifierCommand command) {
-        return context.findOwnedParty(command.partyId()).map(found -> found.orElseThrow(() ->
-                new ApplicationException(new ApplicationFailure.PartyNotFound(command.partyId(), command.requestMetadata().tenantId()))))
-                .chain(_ -> context.findIdentifierSchemeId(command.partyId(), command.identifierId()))
-                .map(found -> found.orElseThrow(() -> new ApplicationException(new ApplicationFailure.IdentifierNotFound())))
-                .chain(scheme -> context.serializeScope(command.partyId(), scheme)
-                        .chain(() -> context.findForUpdate(command.partyId(), command.identifierId()))
-                        .map(found -> requireCurrent(found.orElseThrow(() -> new ApplicationException(new ApplicationFailure.IdentifierNotFound())), scheme, command)))
+        return PartyIdentifierMutationScope.locked(context, command.requestMetadata(), command.partyId(), command.identifierId(), command.expectedVersion())
                 .chain(current -> prepare(current, command))
                 .chain(candidate -> context.updateIdentifier(candidate, command.expectedVersion()))
                 .call(result -> context.appendEnabledEvent(event(command, result)))
                 .map(result -> new PartyIdentifierMutationOutcome(result, PartyIdentifierMutationOutcome.Disposition.APPLIED));
     }
 
-    private static PartyIdentifier requireCurrent(PartyIdentifier current, IdentifierSchemeId scheme, PatchPartyIdentifierCommand command) {
-        if (!current.tenantId().equals(command.requestMetadata().tenantId()) || !current.partyId().equals(command.partyId())
-                || !current.identifierId().equals(command.identifierId()) || !current.identifierSchemeId().equals(scheme)) {
-            throw new IllegalStateException("Locked identifier does not match its resolved owned scope");
-        }
-        if (!current.version().equals(command.expectedVersion())) {
-            throw new ApplicationException(new ApplicationFailure.IdentifierVersionMismatch(command.expectedVersion(), current.version()));
-        }
-        return current;
-    }
-
     private Uni<PartyIdentifier> prepare(PartyIdentifier current, PatchPartyIdentifierCommand command) {
         return Uni.createFrom().item(() -> current.correctMetadata(command.issuerCode(), command.issuedOn(), command.expiresOn(),
                         clock.instant().truncatedTo(ChronoUnit.MICROS), command.requestMetadata().userId()))
-                .onFailure(DomainValidationException.class).transform(PatchPartyIdentifierUseCase::translateDomain);
-    }
-
-    private static RuntimeException translateDomain(DomainValidationException failure) {
-        return switch (failure.violation()) {
-            case PARTY_IDENTIFIER_INVALID_LIFECYCLE -> new ApplicationException(new ApplicationFailure.InvalidIdentifierLifecycle(), failure);
-            case PARTY_IDENTIFIER_VERSION_OVERFLOW -> new ApplicationException(new ApplicationFailure.IdentifierVersionExhausted(), failure);
-            case IDENTIFIER_EXPIRED, IDENTIFIER_VALIDITY_DATE_ORDER, IDENTIFIER_ISSUER_CODE_INVALID, IDENTIFIER_ISSUER_CODE_TOO_LONG ->
-                    new ApplicationException(new ApplicationFailure.IdentifierValidationFailure(failure.violation()), failure);
-            default -> new IllegalStateException("Identifier metadata invariant failed", failure);
-        };
+                .onFailure(DomainValidationException.class).transform(PartyIdentifierFailures::translate);
     }
 
     private static PartyIdentifierChangedOutboxCandidate event(PatchPartyIdentifierCommand command, PartyIdentifierResult result) {

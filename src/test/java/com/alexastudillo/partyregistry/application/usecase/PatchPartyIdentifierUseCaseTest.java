@@ -152,6 +152,16 @@ class PatchPartyIdentifierUseCaseTest {
     }
 
     @Test
+    void eventFailureIsAwaitedAndCannotBecomeAnAcceptedSafeOutcome() {
+        var fixture = new Harness(PartyType.NATURAL_PERSON, PartyIdentifierStatus.PENDING_VERIFICATION, 3, TODAY);
+        fixture.eventFailure = new IllegalStateException("Controlled update intent failure");
+        var command = fixture.clear(3);
+        var failure = fixture.useCase().execute(command).subscribe().withSubscriber(UniAssertSubscriber.create()).awaitFailure(Duration.ofSeconds(2)).getFailure();
+        assertSame(fixture.eventFailure, failure); assertTrue(fixture.events.isEmpty());
+        assertEquals(List.of("transaction", "owner", "schemeIdentity", "scope", "lockedTarget", "update", "event"), fixture.order);
+    }
+
+    @Test
     void correctionIsSubscriptionLazyAndOneClockReadCannotCrossUtcMidnight() {
         var fixture = new Harness(PartyType.NATURAL_PERSON, PartyIdentifierStatus.PENDING_VERIFICATION, 3, TODAY);
         var operation = fixture.useCase().execute(fixture.command(FieldUpdate.present("CIVIL_REGISTRY"), FieldUpdate.absent(), FieldUpdate.absent(), 3));
@@ -180,6 +190,7 @@ class PatchPartyIdentifierUseCaseTest {
         final CountingClock clock = new CountingClock();
         PartyIdentifier candidate;
         Throwable writeFailure;
+        Throwable eventFailure;
         boolean missingOwner;
         boolean missingIdentity;
         boolean missingTarget;
@@ -205,7 +216,11 @@ class PatchPartyIdentifierUseCaseTest {
             if (writeFailure != null) { return Uni.createFrom().failure(writeFailure); }
             candidate = accepted; return Uni.createFrom().item(PartyIdentifierFixtures.result(accepted));
         }
-        @Override public Uni<Void> appendEnabledEvent(OutboxEventCandidate event) { order.add("event"); events.add(event); return Uni.createFrom().voidItem(); }
+        @Override public Uni<Void> appendEnabledEvent(OutboxEventCandidate event) {
+            order.add("event");
+            if (eventFailure != null) { return Uni.createFrom().failure(eventFailure); }
+            events.add(event); return Uni.createFrom().voidItem();
+        }
         @Override public Uni<Void> serializeReplayKey(PartyIdentifierOperation operation, String key) { throw unexpected(); }
         @Override public Uni<Optional<CompletedPartyIdentifierMutation>> findCompleted(PartyIdentifierOperation operation, String key) { throw unexpected(); }
         @Override public Uni<Optional<IdentifierSchemeId>> findSchemeIdByCode(String code) { throw unexpected(); }

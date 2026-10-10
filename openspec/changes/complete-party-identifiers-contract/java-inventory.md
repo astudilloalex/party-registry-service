@@ -541,3 +541,40 @@ All eight final saved revisions below have full individual 1/1 resolved-model Ja
 | `test/java/com/alexastudillo/partyregistry/infrastructure/configuration/ApplicationUseCaseProducerTest.java`; class | `a9ef762b14c95471ce492be51355a0f983aaeb8c` | 17:46:31.445 / 1182–1212 / full 1/1 zero | 17:46:30.969 / 1409–1422 / zero |
 
 Explicit response generics, DTO-before-envelope/CDI ResponseManager, pure API transport adaptation, default/selected test composition, safe event/completion counts, unchanged stored protection/verification/parent/subtype/history and no production blocking are reviewed. The redundant resource-specific Jackson method has no Java consumers and the scoped model reader/published global handler remains authoritative. Class/nested responsibility Javadoc and new Month-based dates are retained. No rule, null-analysis setting or suppression is changed; original code-only failure expectations are not weakened. See `verification.md` for actual red/green commands and scoped build.
+
+## Task 10.1 optional action bodies (runtime green, decoder quality gate pending)
+
+Exactly nine changed-class cases pass and focused build reuses that result in 21s. Seven saved files have zero independent JDTLS problems. All have complete full 1/1 resolved-model Java-25/571-rule Sonar execution; six are zero and the decoder has **one unresolved issue / zero Hotspots**, with no actual rule/message in the count-only log. No final gate is inferred from compilation/runtime success.
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | JDTLS completion / J2 range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierReasonRequest.java`; record | `a44aab9f1c9760c8e12feba443f1f68b99a23b6b` | 2026-10-09 18:14:15.678 / 3056–3086 / full 1/1 zero | 18:14:15.816 / 1427–1440 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierReasonRequestDeserializer.java`; class | `457de0bde26671a835e3cdad22d02d983adc2042` | 18:14:28.444 / 3087–3117 / full 1/1 **one issue, zero Hotspots; actual diagnostic pending** | 18:14:28.217 / 1442–1455 / zero |
+| `main/java/com/alexastudillo/partyregistry/api/support/PartyIdentifierActionBodies.java`; class | `c6977960bd173bc90667eac8b762334f11cf4944` | 18:14:39.084 / 3118–3148 / full 1/1 zero | 18:14:39.204 / 1457–1470 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierReasonBindingTest.java`; class | `054441bd8dd42f2ae735c6eb7250176b93600342` | 18:14:51.928 / 3149–3179 / full 1/1 zero | 18:14:51.839 / 1472–1485 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/model/response/IdentifierActionBoundaryReceipt.java`; record | `2caf6e8f202c07c125a1419f678743249f429816` | 18:15:03.337 / 3180–3210 / full 1/1 zero | 18:15:03.244 / 1487–1500 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/error/PartyIdentifierActionBindingVerificationResource.java`; class | `decf64104fa1f2d5c14da030c044e2da1b69f5e3` | 18:15:14.754 / 3211–3241 / full 1/1 zero | 18:15:14.766 / 1502–1515 / zero |
+| `test/java/com/alexastudillo/partyregistry/api/error/PartyIdentifierActionBindingContractTest.java`; class | `7edaa2f74a249dc4506c1d76052c3702a332af04` | 18:15:27.610 / 3242–3272 / full 1/1 zero | 18:15:27.658 / 1517–1530 / zero |
+
+The attempted optional-reader extension is reverted exactly to its previously accepted 3a4ffc2e838d3d4ee61d3b9f1742afad94a84865 blob; final reasoning/verification uses BOM-buffered bytes and the strict native DTO/decoder with the managed ObjectMapper. No new global filter/mapper, context ownership or transport InputStream is introduced. Test receipt exposes only presence/counts/event-loop evidence; reason data is write-only/redacted and never returned. Detailed TDD/whitespace/chunked proof and exact focused commands are in `verification.md`. Task 10.1 remains incomplete until the actual source diagnostic is corrected/reanalyzed.
+
+### Task 10.1 final decoder revision (supersedes pending row)
+
+| Path relative to src / types | Saved Git blob | Sonar completion / S3 range / result | Independent JDTLS completion / J2 range / result |
+|---|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/api/model/request/PartyIdentifierReasonRequestDeserializer.java`; class | `2336819be86988b796e18360ddf597b2e2bef8de` | 2026-10-09 18:23:01.728 / 3273–3303 / full 1/1 resolved Java 25/571 rules, zero issues/Hotspots | 18:23:01.873 / 1544–1554 / zero |
+
+The supplied line-25 separate-declaration message is resolved without changing behavior or guessing a rule ID. Exactly five affected unit cases and focused build pass in 3m 11s; unchanged four actual HTTP/chunked cases and other six source analyses remain valid. All seven final task-10.1 saved revisions now have completed zero local source diagnostics. Full global/package/native acceptance remains its final tasks, not inferred from these focused results.
+
+## Task 10.2 existing saved revisions: focused runtime green, IDE acceptance pending
+
+No Java source changed in the container-restoration continuation. Exactly 11 lifecycle and 10 changed PATCH tests pass; the selected build also succeeds. Explicit resolved-model Sonar completion and separate saved-revision JDTLS acceptance remain required for these six files, including the test nested types. See `verification.md` for actual commands and the incomplete-model batch, which is not substituted for acceptance.
+
+| Path relative to src / types | Saved Git blob | IDE acceptance |
+|---|---|---|
+| `main/java/com/alexastudillo/partyregistry/application/usecase/ChangePartyIdentifierLifecycleUseCase.java`; class | `dc6f1ba4087babce2dfd0bc68e51a40533c41789` | Pending |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/PartyIdentifierMutationScope.java`; class | `a803453116edb6710284d93df49e6245c6bfdf8c` | Pending |
+| `main/java/com/alexastudillo/partyregistry/application/error/PartyIdentifierFailures.java`; class | `0e189d7eb8313201443e69ee6be505ca95cdce5d` | Pending |
+| `main/java/com/alexastudillo/partyregistry/application/usecase/PatchPartyIdentifierUseCase.java`; class | `cf2fd1435fa62f33d66aed980797a338b3553b88` | Pending |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/ChangePartyIdentifierLifecycleUseCaseTest.java`; class, Harness and CountingClock | `739713b56926d06d9b940c3873c5e698b2f71369` | Pending |
+| `test/java/com/alexastudillo/partyregistry/application/usecase/PatchPartyIdentifierUseCaseTest.java`; class, Harness and CountingClock | `df5cacdf8677a9434d9a8a19b4da81951e0a522c` | Pending |

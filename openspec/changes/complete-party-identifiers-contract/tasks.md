@@ -232,13 +232,17 @@ Keep an implementation evidence file, scenario map, and saved-file inventory und
 
 ## 10. Verification and Withdrawal Vertical Slice
 
-- [ ] 10.1 Test first and implement strict optional reason decoding and a nonblocking verify body-presence guard supported by the project BOM.
+- [x] 10.1 Test first and implement strict optional reason decoding and a nonblocking verify body-presence guard supported by the project BOM.
   - Requirements: L: Lifecycle requests follow the common boundary; L: Rejection and revocation retain safe history.
   - Verification: Tests distinguish absent/empty objects from literal null, enforce exact 64/1000-code-point strings and known properties, and reject verify bodies including whitespace/chunked content. Guard does not depend only on Content-Length, synchronously read a transport stream, duplicate the context filter, or become a global error handler.
+  - Pending quality gate: Seven executable behavior failures and the BOM whitespace/absence edge resolve; all nine changed-class cases and focused build pass. All seven JDTLS revisions are zero, but one current Sonar finding in PartyIdentifierReasonRequestDeserializer requires its actual rule/message before correction. See `verification.md`/`java-inventory.md`; task remains unchecked.
+  - Accepted continuation: Supplied line-25 separate-declaration diagnostic is corrected. Final decoder has full zero Sonar/JDTLS; its five affected unit cases and focused build pass. The unchanged four real buffered/chunked HTTP results and other six analyses remain valid. See final saved revision in `verification.md`/`java-inventory.md`.
 
 - [ ] 10.2 Test first and implement shared VERIFY/REJECT/REVOKE Application orchestration with durable action replay and independent audit.
   - Requirements: L: Explicit identifier transition matrix; L: Operator-confirmed verification and validity; L: Verification respects provisional primary ownership; L: Durable action key scope and request equivalence; L: Atomic lifecycle concurrency and complete outcomes.
   - Verification: Port-double tests cover every matrix entry, syntax-independent business precedence, one operation instant, original verification actor/time, provisional-primary conflict, permitted past-date withdrawal, retained verification, exact optional reasons, replay-before-live-state, failed-key reuse, and no automatic Party action.
+  - Continuation blocked: Existing implementation inspected; explicitly filtered tests fail during container-dependent Quarkus discovery/bootstrap. The previous temporary Podman socket is absent; current saved-revision IDE evidence is also pending. See `verification.md`; no acceptance is claimed.
+  - Runtime blocker resolved: User-authorized temporary Podman API restoration succeeds; 11 lifecycle and 10 changed PATCH tests pass, and the selected build passes. Saved-source Sonar/JDTLS acceptance remains pending for the six inventoried revisions; no full-suite/package/native acceptance is claimed.
 
 - [ ] 10.3 Test first and expose verify/reject/revoke through thin resources and the shared response boundary.
   - Requirements: Q: Complete published party-identifiers contract; L: Lifecycle requests follow the common boundary; L: Rejection and revocation retain safe history.
