@@ -568,3 +568,17 @@ delegates envelope creation to the published global module; it does not overlap
 global mapping or success wrapping. Focused binding tests passed, BUILD
 SUCCESSFUL in 3m 38s; all seven affected Java files have zero JDTLS problems.
 Real HTTP missing/null body mapping and native execution remain separate tasks.
+
+## Task 5.4: Safe DTOs and checked shared metadata
+
+The response records expose exactly the five Party summary and five nested
+identifier fields. The API mapper preserves stored labels/masks and maps IDs
+and enum text without exposing positions or Application records. Shared
+pagination counts use checked conversions. A CDI ResponseManager serialization
+test validates both real shared envelopes against the approved schemas,
+including explicit null directions and supported integer counts; overflow
+fails rather than wrapping or dropping metadata.
+
+Focused mapper tests passed, BUILD SUCCESSFUL in 4m 10s. JDTLS reports zero
+problems for both DTOs, mapper and test after model reconciliation. Native
+registrations are present; actual native execution remains pending.

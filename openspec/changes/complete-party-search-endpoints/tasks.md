@@ -125,7 +125,7 @@ Requirement references below resolve to the named requirements in the [exact spe
   - Requirements: E3, P3, P5, P7.
   - Verification: decoder tests reject malformed/trailing/duplicate/unknown/wrong-type input, null or invalid state arrays/items, oversized raw text, and invalid integer limits; body/cursor absence versus null follows the declared contract and diagnostics redact submitted values.
 
-- [ ] 5.4 Implement the two safe response DTOs and IdentifierSearchApiMapper with checked shared PaginationMetadata conversion.
+- [x] 5.4 Implement the two safe response DTOs and IdentifierSearchApiMapper with checked shared PaginationMetadata conversion.
   - Requirements: E7, P9, E8, P10.
   - Verification: mapping/serialization tests emit only declared stored summary/masked fields and all metadata; overflow fails instead of wrapping or omitting counts, and existing null-cursor writers preserve explicit unavailable directions.
 
