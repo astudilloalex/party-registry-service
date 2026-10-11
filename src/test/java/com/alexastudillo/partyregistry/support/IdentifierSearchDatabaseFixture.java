@@ -97,4 +97,22 @@ public final class IdentifierSearchDatabaseFixture {
         }
         return id;
     }
+
+    /** Fingerprints every persisted business column without printing protected fixture rows in failed test diagnostics. */
+    public String fingerprint() throws SQLException, java.security.NoSuchAlgorithmException {
+        var digest = java.security.MessageDigest.getInstance("SHA-256");
+        for (String table : java.util.List.of("parties", "natural_person_details", "legal_entity_details", "party_nationalities",
+                "identifier_schemes", "party_identifiers", "party_outbox_events", "api_idempotency_records",
+                "identifier_scheme_idempotency_records", "party_identifier_idempotency_records", "party_identifier_action_audit")) {
+            digest.update(table.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            try (var statement = connection.prepareStatement("select to_jsonb(t)::text from " + table + " t order by to_jsonb(t)::text");
+                    var rows = statement.executeQuery()) {
+                while (rows.next()) {
+                    digest.update(rows.getString(1).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    digest.update((byte) 0);
+                }
+            }
+        }
+        return java.util.HexFormat.of().formatHex(digest.digest());
+    }
 }

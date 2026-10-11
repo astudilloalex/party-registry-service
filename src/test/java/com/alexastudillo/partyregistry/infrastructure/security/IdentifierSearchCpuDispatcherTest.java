@@ -29,6 +29,39 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestProfile(PersistenceTestProfile.class)
 class IdentifierSearchCpuDispatcherTest {
     @Test
+    @RunOnVertxContext
+    void runningCancellationDiscardsLateCompletionAndAllowsSubsequentAdmission(UniAsserter asserter) {
+        var dispatcher = new IdentifierSearchCpuDispatcher(1, 1);
+        Context origin = Vertx.currentContext();
+        var entered = new CompletableFuture<Void>();
+        var release = new CountDownLatch(1);
+        var sawCancellation = new AtomicBoolean();
+        var subscriber = new AtomicReference<UniAssertSubscriber<String>>();
+        asserter.execute(() -> subscriber.set(dispatcher.dispatch(cancelled -> {
+            entered.complete(null);
+            try {
+                if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Test CPU barrier timed out");
+            } catch (InterruptedException _) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Test CPU barrier interrupted");
+            }
+            sawCancellation.set(cancelled.getAsBoolean());
+            return "late-result";
+        }).subscribe().withSubscriber(UniAssertSubscriber.create())));
+        asserter.execute(() -> Uni.createFrom().completionStage(entered).emitOn(command -> origin.runOnContext(ignored -> command.run())));
+        asserter.execute(() -> {
+            subscriber.get().cancel();
+            release.countDown();
+        });
+        asserter.assertEquals(() -> dispatcher.dispatch(cancelled -> "healthy").invoke(ignored -> assertSame(origin, Vertx.currentContext())), "healthy");
+        asserter.execute(() -> {
+            assertTrue(sawCancellation.get());
+            assertNull(subscriber.get().getItem());
+            dispatcher.close();
+        });
+    }
+
+    @Test
     void rejectsUnboundedOrDisabledCapacity() {
         assertThrows(IllegalArgumentException.class, () -> new IdentifierSearchCpuDispatcher(0, 1));
         assertThrows(IllegalArgumentException.class, () -> new IdentifierSearchCpuDispatcher(1, 0));

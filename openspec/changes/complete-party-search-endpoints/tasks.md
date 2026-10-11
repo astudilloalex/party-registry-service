@@ -151,23 +151,23 @@ Requirement references below resolve to the named requirements in the [exact spe
   - Requirements: P4, P5, P6, P7, P8, P9.
   - Verification: short official-ID fragments, punctuation, case expansion, all filters/states, duplicate/shared-Party hits, limit boundaries, equivalent/changed scopes, deleted boundaries, empty continuations, and exact counts satisfy the EARS scenarios.
 
-- [ ] 6.5 Add controlled known/framework/dependency/unexpected failure cases for both routes, checking public envelopes and safe internal diagnostics.
+- [x] 6.5 Add controlled known/framework/dependency/unexpected failure cases for both routes, checking public envelopes and safe internal diagnostics.
   - Requirements: E8, P10, E4, P4, P8.
   - Verification: 422 scheme/normalization, 400 cursor, 404/405/415 framework, 503 classified unavailability, and injected/corrupt/count-overflow 500 cases return only matching status/code and accepted process echo; exercise 401 only under a real enabled authentication profile and document its conditional applicability.
 
-- [ ] 6.6 Prove same-response snapshot consistency, live subsequent requests, and complete read-only behavior with deterministically coordinated concurrent writes.
+- [x] 6.6 Prove same-response snapshot consistency, live subsequent requests, and complete read-only behavior with deterministically coordinated concurrent writes.
   - Requirements: E6, E7, P6, P8, P9.
   - Verification: an intervening writer cannot split one response's scheme/data/count/navigation view; later requests observe current data, and search attempts themselves change no versions, audits, states, primary flags, replay records, or logical events.
 
-- [ ] 6.7 Add runtime thread/context, CPU saturation, exhausted-pool acquisition, timeout, cancellation, late-completion, and subsequent resource-reuse tests.
+- [x] 6.7 Add runtime thread/context, CPU saturation, exhausted-pool acquisition, timeout, cancellation, late-completion, and subsequent resource-reuse tests.
   - Requirements: E8, P10; Design: Resilience, Prefix search and CPU/session boundary.
   - Verification: work terminates within configured finite budgets, sessions and CPU admission recover, subsequent requests succeed with fresh attribution, and no blocked-thread warning is disabled or session is used concurrently/off-context.
 
-- [ ] 6.8 Add PackagedIdentifierSearchContractIT for the existing packaged/native source set, reusing shared assertions and excluding unit-test CDI alternatives.
+- [x] 6.8 Add PackagedIdentifierSearchContractIT for the existing packaged/native source set, reusing shared assertions and excluding unit-test CDI alternatives.
   - Requirements: E1, E2, E3, E4, E7, E8, P1, P2, P3, P4, P8, P9, P10.
   - Verification: packaged JVM execution exercises actual HTTP, codecs, JCA, pre-existing protected data, cursor rotation, and null-navigation serialization; approved/packaged/served OpenAPI agree and negative fixtures catch private-field/schema drift.
 
-- [ ] 6.9 Measure exact/prefix query plans and representative protected-data search costs, including dense/sparse/no-match prefix traversal and retained memory bounds.
+- [x] 6.9 Measure exact/prefix query plans and representative protected-data search costs, including dense/sparse/no-match prefix traversal and retained memory bounds.
   - Requirements: E6, E8, P6, P7, P9, P10; Design: Risks / Trade-offs.
   - Verification: record actual volumes, candidate/decrypt/batch counts, timings, CPU/pool pressure, index usage, maximum retained page/batch state, and deadline outcomes; explain linear exact-count work without inventing an SLA or silently capping results.
 

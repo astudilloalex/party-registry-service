@@ -69,7 +69,7 @@ public class IdentifierSearchResource {
             requireNoQuery(uri);
             var query = mapper.toQuery(accepted.tenantId(), body);
             return exact.execute(query, accepted);
-        }).flatMap(operation -> operation).map(this::response).onFailure().transform(errors::translate);
+        }).flatMap(operation -> operation).map(this::response).onFailure().transform(this::translateFailure);
     }
 
     /** Returns a safe bounded literal-prefix page with complete live counts and authenticated neighbor directions. */
@@ -83,13 +83,22 @@ public class IdentifierSearchResource {
             requireNoQuery(uri);
             var query = mapper.toQuery(accepted.tenantId(), body);
             return prefix.execute(query, accepted);
-        }).flatMap(operation -> operation).map(this::response).onFailure().transform(errors::translate);
+        }).flatMap(operation -> operation).map(this::response).onFailure().transform(this::translateFailure);
     }
 
     private RestResponse<ApiResponse<List<IdentifierSearchResponse>>> response(IdentifierSearchPage page) {
         var data = mapper.toResponses(page);
         var pagination = mapper.toPagination(page);
         return responses.paginatedHttp(data, pagination);
+    }
+
+    private Throwable translateFailure(Throwable failure) {
+        Throwable translated = errors.translate(failure);
+        if (translated instanceof ApiResponseException) return translated;
+        // The shared unexpected-error logger prints throwable chains. Retain safe locations, never selector-bearing diagnostics.
+        var sanitized = new IllegalStateException("Identifier search failed");
+        sanitized.setStackTrace(failure.getStackTrace());
+        return sanitized;
     }
 
     private static void requireNoQuery(UriInfo uri) {

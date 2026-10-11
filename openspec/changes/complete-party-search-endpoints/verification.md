@@ -700,3 +700,149 @@ Focused `IdentifierSearchHistoricalContractTest` passed in 3m 38s. The fixture's
 initial JDBC short assignment compilation failure was corrected with setInt;
 no narrowing cast or suppression was used. Fresh JDTLS reports zero problems
 for fixture and test at 19:24:00 and 19:24:23 (workspace log lines 3609–3631).
+
+## Task 6.5: Failure envelopes and safe internal diagnostics
+
+Real selector/framework tests cover both routes' unknown and unsupported
+normalizer 422 codes, scheme-before-cursor precedence, invalid cursor 400,
+404/405/415, accepted process echo, required corrupt protected prefix failure,
+pre-decrypt status exclusion and subsequent healthy reuse. Exact lookup remains
+available when ciphertext is corrupt because ciphertext is not an exact-query
+input. A profile-selected test-only read alternative injects classified 503,
+asynchronous/synchronous unexpected failures, corruption and count overflow.
+Prefix overflow traverses the actual shared metadata conversion; exact overflow
+is injected as the count-capacity failure without allocating billions of rows.
+
+The first fault test demonstrated a real confidentiality defect: the public
+500 envelope was safe, but the shared unexpected-error logger printed original
+selector-bearing messages/causes. Search-specific API translation now preserves
+known response exceptions and sends a fixed unexpected diagnostic with safe
+original stack locations, no sensitive message/cause/suppressed chain. Global
+envelope construction remains in the published shared module.
+
+Focused fault and real failure tests passed together in 3m 54s after the fix;
+captured attributed logger output proves no injected sensitive diagnostic remains.
+Fresh JDTLS is zero for resource, alternative, both test files and nested types
+(current log lines 3720–3847). Authentication 401 scenarios are conditional:
+this service/test profile has no enabled authentication mechanism, and context
+headers are not converted into credentials. No authentication profile was added.
+Runtime deadline/pool/cancellation acceptance remains task 6.7.
+
+## Task 6.6: Coordinated snapshots and complete read-only evidence
+
+Test-only delegating Hibernate proxies insert a completed real writer transaction
+after the actual exact count and before full projection, or after the first
+256-candidate prefix query and before matching/next batches. They do not fake
+query results, change isolation or use timing sleeps. Writers change all target
+identifier states/versions, Party states/labels/versions and scheme name/version.
+The current read retains original scheme/data/count/navigation (201 exact,
+520 prefix) and the following read sees the changed scheme and empty effective
+filtered collection. Every Hibernate call remains sequential on its owning
+context through the actual guarded read adapter.
+
+A third test fingerprints every column in all 11 business tables, including
+protected values, subtypes, nationalities, primary/verification/audit/version
+fields and replay/outbox/action records. Successful exact/prefix HTTP, invalid
+HTTP, a cancelled operation after real protected evaluation, subsequent healthy
+HTTP and corrupt-ciphertext failure leave their respective stored baseline
+unchanged. Corruption is an explicit fixture write before its failure baseline.
+Fingerprints avoid dumping protected rows into assertion diagnostics.
+
+Focused snapshot tests passed in 3m 8s, then in 3m 14s with complete read-only
+checks. Fresh JDTLS reports zero problems for fixture and final test, including
+proxy/nested types (19:46:22 / 19:54:39, log lines 3852–3874). No request-path
+blocking API or test-only hook was added to production code.
+
+## Task 6.7: Finite runtime resource ownership
+
+Actual HTTP tests hold the only reactive pool connection while both routes
+exceed their two-second test operation budget, assert status-consistent 503
+envelopes and accepted process echo, release ownership, and verify that late
+allocations close and fresh exact/prefix requests succeed. Another HTTP test
+occupies the only CPU worker and queue slot; prefix rejects with 503, exact
+remains available, cancellation removes owned queued/running work, late results
+are discarded, and a fresh prefix request succeeds. Production budgets/capacity
+are unchanged and blocked-thread diagnostics remain enabled.
+
+The dispatcher suite adds explicit running-work cancellation/late completion
+and healthy admission on the identical originating context. Existing actual
+single-pool scoped-read tests additionally verify statement timeout cleanup,
+closed-context rejection, sequential ownership, acquisition cancellation and
+repeated subscription independence. The focused combined runtime/CPU/read-owner
+command passed in 3m 42s. Its SQLState 57014 warning is deliberate statement
+deadline verification, not a failed assertion or disabled diagnostic.
+
+Fresh JDTLS reports zero problems for runtime test and updated dispatcher test
+(20:01:03 / 20:02:35, workspace log lines 3882–3904). Full final-source JVM/native
+and IDE/Sonar acceptance remains pending.
+
+## Task 6.8: Actual packaged JVM search contract
+
+PackagedIdentifierSearchContractIT runs against the built executable process,
+sharing only contract assertions rather than unit alternatives. Its resource
+uses the existing isolated PostgreSQL/Flyway/geographic harness and actual
+production JCA to seed version-one history before service launch; the service
+uses version-two encryption/signing settings with retained version-one keys.
+Tests prove exact historical discovery, both Party types, 2/2/1 bidirectional
+prefix pages, old-key cursor acceptance/new-key cursor issuance, native-capable
+current-key registration/search, strict codecs, safe empty/known/corrupt failure
+responses, null cursor writers, source/packaged/served schema equivalence, private
+field negative assertions and absence of unit-only fixtures on the classpath.
+
+The first run showed that this existing harness actually launches profile prod,
+despite the integration resources' test-profile setting. Historical data was
+protected with synthetic test keys but runtime inherited externally supplied
+production-profile material. The isolated new test resource now explicitly
+supplies its full synthetic retained key ring/index key; no production key
+defaults, environment values or service configuration were changed.
+
+`./gradlew quarkusIntTest --tests '*PackagedIdentifierSearchContractIT' --console=plain`
+(documented Podman/ephemeral-port environment) passed in 38s: four methods,
+zero failed/skipped, actual packaged process/HTTP. The existing Dev Services
+build-time/runtime configuration notice is recorded independently. JDTLS reports
+zero problems for both new integration files (20:08:33 / 20:08:55, log lines
+3912–3934). This is packaged JVM evidence; actual native execution remains 8.6.
+
+## Task 6.9: Real protected workload and plan measurements
+
+IdentifierSearchPerformanceTest creates 512 and 4,096 qualified protected rows
+and measures actual HTTP, per-subscription SQL/decrypt/batch/match counts, maximum
+batch/page retention, CPU workers/capacity/activity/queue and reactive-pool queue.
+Sanitized EXPLAIN ANALYZE/BUFFERS evidence retains only operator/index choices,
+actual rows, block counts and timings: no predicates, tenant IDs, selectors,
+lookup hashes or ciphertext. The generated report is
+`build/reports/identifier-search/performance.json`.
+
+Final focused checkpoint: 12 available processors, 2 GiB test heap, PostgreSQL
+18.4, Java 25 / Quarkus 3.40.1; two CPU workers, 32 queue slots. All eight
+requests returned 200 within the finite production budget; post-request CPU
+activity/queue and database queue were zero.
+
+| Qualified rows | Workload | Matches | Decrypt attempts | Candidate queries | SQL statements | HTTP ms | Max batch / retained page |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 512 | Exact | 201 | 0 | 0 | 3 | 4252.47 | 0 / complete 201-item result |
+| 512 | Dense prefix | 512 | 512 | 3 | 4 | 436.42 | 256 / 50 |
+| 512 | Sparse prefix | 1 | 512 | 3 | 4 | 167.47 | 256 / 1 |
+| 512 | No-match prefix | 0 | 512 | 3 | 4 | 124.78 | 256 / 0 |
+| 4096 | Exact | 201 | 0 | 0 | 3 | 118.10 | 0 / complete 201-item result |
+| 4096 | Dense prefix | 4096 | 4096 | 17 | 18 | 376.59 | 256 / 50 |
+| 4096 | Sparse prefix | 15 | 4096 | 17 | 18 | 549.47 | 256 / 15 |
+| 4096 | No-match prefix | 0 | 4096 | 17 | 18 | 323.85 | 256 / 0 |
+
+The extra candidate query is the empty terminal batch for a full 256-row
+multiple. Exact count/full projection bind the existing tenant HMAC predicate;
+this single-Party history fixture's optimizer chose
+`ix_party_identifiers_party_scheme_status`, not the available hash index.
+Prefix initial/keyset plans selected `ix_party_identifiers_scheme_created_id`.
+No planner option or index hint was forced. Deployment statistics and actual
+distributions determine planner choices.
+
+Measurements are individual local client-inclusive samples, with first-request
+startup/JIT cost and noise; they are not latency percentiles, a throughput
+capacity claim or an SLA. Prefix exact totals decrypt all qualified candidates
+on every page, even sparse/no-match queries; retained state stays bounded by
+batch and limit. Exact response memory scales with all matches. Saturated CPU
+and single-slot pool deadline 503/recovery were independently evidenced in 6.7.
+
+Focused performance verification passed in 3m 7s, then 5m 10s after adding real
+pool-queue measurement. Final JDTLS is zero (20:20:29, log lines 4053–4060).

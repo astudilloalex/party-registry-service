@@ -85,6 +85,39 @@ Task 6.4: Unit `api/resource/IdentifierSearchPrefixContractTest.java`, saved blo
 `d88b77e114b95c7614bdb76d1235ba7fe8dffa44`; three focused methods pass,
 JDTLS 0 (19:33:12). Final Sonar reconciliation is pending.
 
+Task 6.5 revisions (focused tests passed; fresh JDTLS 0; final Sonar pending):
+
+Task 6.6: Unit `infrastructure/persistence/IdentifierSearchSnapshotContractTest.java`
+including `Phase` and `ReadInterceptor`, blob
+`80ab30f55a5b447b6c920e43a82f679597d9028c`; updated
+`support/IdentifierSearchDatabaseFixture.java` blob
+`b9a885255b9682d036ba38e94a56fb0d9906c413`. Focused tests pass, JDTLS 0;
+final Sonar reconciliation pending.
+
+Task 6.7: Unit `api/resource/IdentifierSearchRuntimeContractTest.java`, including
+`RuntimeProfile`, blob `5958a6c06917c878d585b541393aff86638eaf6a`; updated
+`infrastructure/security/IdentifierSearchCpuDispatcherTest.java` blob
+`b40ecf55989a336bfaf8176a1d33970e9641c4b6`. Focused runtime/CPU/read-owner
+tests pass, JDTLS 0; final Sonar reconciliation pending.
+
+Task 6.8 integration revisions: `src/integrationTest/java/com/alexastudillo/partyregistry/PackagedIdentifierSearchResource.java`
+including `HistoricalKeys`, blob `d16f9b475c57cebba865a869d9b7ce84ee98911f`;
+`PackagedIdentifierSearchContractIT.java` including `RetainedSigningKey`, blob
+`4ef524b5c2f90a8763e9a4e49e6357fd1a634230`. Four actual packaged JVM methods
+pass, JDTLS 0; final Sonar/native reconciliation pending.
+
+Task 6.9: Unit `api/resource/IdentifierSearchPerformanceTest.java` including
+`WorkSample`, `QueryPlan`, `PlanNode`, blob
+`d2b030b6c418168b5ab93974c3fe00672afc704a`. Focused measurements pass, JDTLS 0;
+final Sonar reconciliation pending. Numeric/report evidence is in verification.md.
+
+| Source set / relative file | Saved Git blob |
+| --- | --- |
+| Production `api/resource/IdentifierSearchResource.java` | `819cb54a63d458065c6c133f92afac0cea689117` |
+| Unit `api/resource/IdentifierSearchFaultReadPort.java`, including `Kind`, `OverflowContext` | `6d26fb643a980f843b9cd6e6a9bbd5444b7120a3` |
+| Unit `api/resource/IdentifierSearchFaultContractTest.java`, including `FaultProfile`, `FailureCapture` | `d86ffd7156b8531a6cc9c00253504d20d4aa8d09` |
+| Unit `api/resource/IdentifierSearchFailureContractTest.java` | `d67cd75e7747d2e44d0232ca2880663b559579ec` |
+
 Paths use the relative roots defined above. All files have fresh zero-problem
 Standard JDTLS diagnostics (18:56–19:06); focused verification is recorded in
 verification.md. Final Sonar model/rules/revision reconciliation remains pending.
