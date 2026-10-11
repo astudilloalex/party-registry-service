@@ -846,3 +846,104 @@ and single-slot pool deadline 503/recovery were independently evidenced in 6.7.
 
 Focused performance verification passed in 3m 7s, then 5m 10s after adding real
 pool-queue measurement. Final JDTLS is zero (20:20:29, log lines 4053–4060).
+
+## Task 7.1: Consumer guide
+
+`docs/operations/identifier-search-contract.md` documents both operations,
+trusted context, strict raw UTF-16 limits and integer tokens, historical
+normalizer-only eligibility, omitted/null/empty filters, complete exact results,
+literal prefix/live forward/backward scopes, safe fields and stable failures.
+Synthetic request/response examples were cross-checked against the approved
+closed request/item/envelope schemas and passing historical/prefix/packaged
+contracts; opaque continuation is copied from actual server results rather than
+published as a fabricated valid token. Documentation introduces no SLA, mutation
+behavior, sensitive real data or new response fields.
+
+## Task 7.2: Operational rollout and capacity guide
+
+`docs/operations/identifier-search-operations.md` identifies actual V9, immutable
+migration/locking review, protection/index/signing retention and rotation,
+finite 5s/15s budgets, two-worker/32-queue CPU defaults and existing 20-slot pool,
+rejecting admission/cancellation cleanup, safe numeric observations, measured
+work/plan/timing trade-offs, documented JVM/native/IDE prerequisites and rollback
+preserving applied migrations and protected history. Property names/defaults,
+native image and migration were cross-checked against saved configuration/code;
+measurement tables preserve the actual task 6.9 checkpoint without claiming SLA
+or production throughput. Native and final quality results remain separately
+tracked rather than assumed from packaged JVM evidence.
+
+## Task 7.3: Central architecture handoff
+
+LikeC4 MCP search/read selected project default and confirmed the service FQN,
+stack/confidentiality boundary and existing geographic/database/optional messaging
+relationships at `catalog/system/microservices.c4:9`. Reading
+findPartyByIdentifierSequence confirmed active-only scheme/identifier/no-result
+labels and its source location `architectures/party-registry/party-registry-sequences.c4:177`.
+`docs/operations/identifier-search-architecture-handoff.md` records the precise
+historical/filter/cardinality/empty-result refinement, retained HMAC/protection
+and relationships, safe envelope, consistent finite read and prefix CPU/cursor
+flow. It links authoritative editor locations/specs and explicitly identifies
+the architecture-repository maintainer's separate follow-up within service-local
+scope. No central repository model was edited.
+
+## Task 8.1: Final full JVM suite
+
+The first final full command executed 1,839 tests in 12m 41s with two failures:
+IdentifierSchemeTestFixtureTest still excluded additive V9 from its migration
+catalog and PartyIdentifierContractMigrationTest still expected eight installed
+migrations. Only those expectations were updated for V9; existing checksum,
+fixture isolation, schema integrity and constraint assertions were preserved.
+Their focused verification passed in 2m 48s.
+
+The final unfiltered command then passed:
+
+```shell
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --console=plain
+```
+
+Result: BUILD SUCCESSFUL in 12m 43s. The generated aggregate report
+`build/reports/tests/test/index.html` records **1,846 tests, zero failures and
+zero skipped**, including all search, architecture, migration and real reactive
+database/HTTP cases. This is a fresh execution, not an UP-TO-DATE test task.
+Captured output: `/home/alex/.local/share/opencode/tool-output/tool_128a96ef1001m9AbJTEK5hPZzS`.
+The earlier failing output is retained separately at
+`/home/alex/.local/share/opencode/tool-output/tool_128990810001hbHtzEoVsFeiM1`.
+
+Existing deliberate timeout suites emit runtime diagnostics. HR000090 dropped
+transaction notices were traced in XML output to unchanged
+HibernateReactivePartyMutationAdapterTest, NationalityTimeoutTest and
+PartyQuerySnapshotTest, not the new search read tests. No warning/diagnostic
+was suppressed and no compiler warning was introduced. Packaged/native and
+final current-model IDE analysis remain subsequent acceptance tasks.
+
+## Task 8.2: Build paused on Podman/Testcontainers transport failure
+
+```shell
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+Result: BUILD FAILED in 3m 32s during actual unfiltered packaged integration
+execution. Compilation, packaging and the already successful full unit task
+were UP-TO-DATE. The integration aggregate reports 38 tests, three failed and
+nine skipped due to resource initialization failures. PackagedIdentifierSchemeContractIT,
+PackagedNationalityContractIT and PackagedRootContractIT could not create their
+PostgreSQL containers: Docker Java's Unix-socket POST failed with
+`java.io.IOException: Broken pipe` through PackagedGeographicReferenceResource.
+Those suites did not reach the affected HTTP assertions.
+
+PackagedIdentifierSearchContractIT independently executed all four methods
+successfully in this same build (zero failures/skips), confirming its real
+packaged search contracts. That does not make the full build successful.
+Reports: `build/reports/tests/quarkusIntTest/index.html` and corresponding XML.
+
+Read-only environment inspection found the rootless Podman socket listening
+at `/run/user/1000/podman/podman.sock`; Podman 5.4.2 is local. The socket-activated
+API service had exited successfully after inactivity, with a recorded shutdown
+at 21:07:02. Socket activation/inactive service by itself does not establish the
+cause of the broken connections; further transport/lifecycle diagnosis is needed.
+No service configuration, container cleanup policy or system service was changed.
+
+Task 8.2 remains unchecked and apply is paused for guidance on diagnosing/fixing
+this transport blocker and rerunning full build. Final per-file JDTLS/Sonar,
+native build/test, requirement audit and strict OpenSpec acceptance remain
+uncompleted; no native or overall implementation completion is claimed.

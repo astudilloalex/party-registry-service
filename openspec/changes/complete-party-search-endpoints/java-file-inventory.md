@@ -111,6 +111,14 @@ Task 6.9: Unit `api/resource/IdentifierSearchPerformanceTest.java` including
 `d2b030b6c418168b5ab93974c3fe00672afc704a`. Focused measurements pass, JDTLS 0;
 final Sonar reconciliation pending. Numeric/report evidence is in verification.md.
 
+Task 8.1 migration expectation corrections: Unit `IdentifierSchemeTestFixtureTest.java`
+blob `725a99b7cd44425d9ee60a7d2b88d732053a52a1` and
+`PartyIdentifierContractMigrationTest.java` blob
+`7392daf921d80ef74ca29b87b6b98f96914488af`. Focused and final full tests pass.
+Both tests have fresh JDTLS 0 at 21:08:02 and 21:08:06 (workspace log lines
+4152–4171). Full per-file acceptance
+and Sonar reconciliation remain task 8.3/8.4 rather than presumed complete.
+
 | Source set / relative file | Saved Git blob |
 | --- | --- |
 | Production `api/resource/IdentifierSearchResource.java` | `819cb54a63d458065c6c133f92afac0cea689117` |

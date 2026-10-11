@@ -173,21 +173,21 @@ Requirement references below resolve to the named requirements in the [exact spe
 
 ## 7. Consumer and Operational Handoff
 
-- [ ] 7.1 Add an English search consumer guide with synthetic request examples, historical/normalization/filter semantics, complete exact results, prefix navigation, safe fields, and stable failures.
+- [x] 7.1 Add an English search consumer guide with synthetic request examples, historical/normalization/filter semantics, complete exact results, prefix navigation, safe fields, and stable failures.
   - Requirements: E1, E3, E4, E5, E7, E8, P1, P3, P4, P5, P7, P8, P9, P10.
   - Verification: examples agree with the completed OpenAPI and actual contract tests; the guide explains UTF-16 units, omitted/null/empty differences, partial-prefix eligibility, and live cursor scope without publishing protected data.
 
-- [ ] 7.2 Document Flyway rollout, retained encryption/signing keys, finite query/CPU settings, measured capacity, native verification prerequisites, and safe rollback.
+- [x] 7.2 Document Flyway rollout, retained encryption/signing keys, finite query/CPU settings, measured capacity, native verification prerequisites, and safe rollback.
   - Requirements: E8, P8, P10; Design: Migration / Rollout / Rollback.
   - Verification: operations documentation identifies the actual additive migration, key/version compatibility, configured limits and rejection behavior, current build baseline, measured trade-offs, and rollback that preserves protected history and applied migrations.
 
-- [ ] 7.3 Record the service-local central-architecture handoff for historical search eligibility and the corresponding existing sequence location.
+- [x] 7.3 Record the service-local central-architecture handoff for historical search eligibility and the corresponding existing sequence location.
   - Requirements: E1, P1; Design: Central architecture alignment.
   - Verification: handoff evidence identifies the active-only sequence assumption and its required historical refinement while retaining the existing system relationships; the architecture-repository follow-up is explicitly identified within this service's documentation.
 
 ## 8. Final Quality and Completion Evidence
 
-- [ ] 8.1 Run ./gradlew test after the final Java changes and resolve all affected unit, architecture, contract, migration, and reactive integration failures.
+- [x] 8.1 Run ./gradlew test after the final Java changes and resolve all affected unit, architecture, contract, migration, and reactive integration failures.
   - Requirements: all E/P requirements; Design: Testing Strategy.
   - Verification: record a successful full `./gradlew test` result for the final saved source revisions, including new search cases and existing behavior regressions; no relevant failing test is skipped to obtain success.
 
