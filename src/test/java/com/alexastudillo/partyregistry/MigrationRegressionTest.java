@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
@@ -69,6 +71,7 @@ class MigrationRegressionTest {
                 Map.entry("6", "db/migration/V6__add_nationality_listing_order_index.sql"),
                 Map.entry("7", "db/migration/V7__add_identifier_scheme_management.sql"),
                 Map.entry("8", "db/migration/V8__add_party_identifier_contract_support.sql"),
+                Map.entry("9", "db/migration/V9__add_identifier_search_order_index.sql"),
                 Map.entry("1000", "db/test-migration/V1000__seed_identifier_scheme_test_fixtures.sql"),
                 Map.entry("1004", "db/test-migration/V1004__seed_identifier_scheme_http_boundaries.sql"),
                 Map.entry("1005", "db/test-migration/V1005__seed_scheme_historical_party_evidence.sql")),
@@ -531,9 +534,8 @@ class MigrationRegressionTest {
     @Test
     void keepsHibernateSchemaGenerationDisabled() throws IOException {
         Properties properties = new Properties();
-        try (InputStream configuration = MigrationRegressionTest.class.getResourceAsStream(
-                "/application.properties")) {
-            assertNotNull(configuration);
+        // Keep schema-policy assertions independent of profile resources exposed by the test classloader.
+        try (InputStream configuration = Files.newInputStream(Path.of("src/main/resources/application.properties"))) {
             properties.load(configuration);
         }
 

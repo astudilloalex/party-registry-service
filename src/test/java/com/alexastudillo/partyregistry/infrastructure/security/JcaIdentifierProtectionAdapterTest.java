@@ -23,6 +23,8 @@ import com.alexastudillo.partyregistry.domain.model.ProtectedIdentifierValue;
 import com.alexastudillo.partyregistry.domain.model.TenantId;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierRuleCatalog;
 import com.alexastudillo.partyregistry.domain.policy.IdentifierSchemePolicy;
+import com.alexastudillo.partyregistry.domain.policy.IdentifierSearchSelector;
+import com.alexastudillo.partyregistry.domain.policy.StandardIdentifierNormalizer;
 import com.alexastudillo.partyregistry.support.RecordingOperationObserver;
 import com.alexastudillo.partyregistry.support.PartyIdentifierMutationDouble;
 import io.smallrye.mutiny.Uni;
@@ -105,6 +107,25 @@ class JcaIdentifierProtectionAdapterTest {
         String firstHash = adapter.protect(first).normalizedValueHash();
         assertEquals(firstHash, adapter.protect(formattedEquivalent).normalizedValueHash());
         assertNotEquals(firstHash, adapter.protect(otherTenant).normalizedValueHash());
+    }
+
+    @Test
+    void searchLookupReproducesRegistrationHashAndSeparatesTenantsWithoutDecrypting() {
+        var context = request(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID,
+                COMPLETE_VALUE, NORMALIZED_VALUE, NORMALIZATION_VERSION);
+        String persistedHash = adapter.protect(context).normalizedValueHash();
+        assertEquals(Optional.of(persistedHash), adapter.lookupHash(TENANT_ID, NORMALIZED_VALUE));
+        var otherTenant = tenant("0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab2");
+        assertNotEquals(adapter.lookupHash(TENANT_ID, NORMALIZED_VALUE), adapter.lookupHash(otherTenant, NORMALIZED_VALUE));
+    }
+
+    @Test
+    void unrepresentableSearchSelectorsNeverBecomeReplacementCharacterMatches() {
+        assertTrue(adapter.lookupHash(TENANT_ID, "\uD800").isEmpty());
+        assertTrue(adapter.lookupHash(TENANT_ID, "\uDC00").isEmpty());
+        assertTrue(adapter.lookupHash(TENANT_ID, "\uFFFD").isPresent());
+        assertFalse(JcaIdentifierProtectionAdapter.isLosslessSelector("SCHEME\uD800"));
+        assertTrue(JcaIdentifierProtectionAdapter.isLosslessSelector("SCHEME😀"));
     }
 
     @Test
@@ -272,6 +293,52 @@ class JcaIdentifierProtectionAdapterTest {
         assertEquals(2, current.encryptionKeyVersion());
         assertEquals(COMPLETE_VALUE, adapter.decrypt(retained, request));
         assertEquals(COMPLETE_VALUE, adapter.decrypt(current, request));
+    }
+
+    @Test
+    void authenticatesHistoricalPrefixMatchingWithIdentityOnlyContextAndRetainedKeys() {
+        var original = new JcaIdentifierProtectionAdapter(SecurityTestKeys.keyMaterial(1, 1));
+        var context = request(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID, " é%_ ab-123 ", "É%_ AB-123", NORMALIZATION_VERSION);
+        var retained = original.protect(context);
+        var identity = new IdentifierProtectionIdentity(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID, NORMALIZATION_VERSION, 1);
+        var selector = new IdentifierSearchSelector(StandardIdentifierNormalizer.TRIM_UPPERCASE_V1, "É%_ A");
+        assertTrue(adapter.matchesPrefix(retained.encryptedValue(), identity, selector));
+        var substring = new IdentifierSearchSelector(StandardIdentifierNormalizer.TRIM_UPPERCASE_V1, "AB");
+        assertFalse(adapter.matchesPrefix(retained.encryptedValue(), identity, substring));
+        var complete = new IdentifierSearchSelector(StandardIdentifierNormalizer.TRIM_UPPERCASE_V1, "É%_ AB-123");
+        assertTrue(adapter.matchesPrefix(retained.encryptedValue(), identity, complete));
+        assertEquals("IdentifierProtectionIdentity[redacted]", identity.toString());
+        var discardedKeys = new JcaIdentifierProtectionAdapter(SecurityTestKeys.keyMaterial(2, 2));
+        var encryptedValue = retained.encryptedValue();
+        assertThrows(IllegalStateException.class, () -> discardedKeys.matchesPrefix(encryptedValue, identity, selector));
+    }
+
+    @Test
+    void refusesCorruptPrefixCandidatesWithoutSensitiveExceptionCauses() {
+        var context = request(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID, COMPLETE_VALUE, NORMALIZED_VALUE, NORMALIZATION_VERSION);
+        var stored = adapter.protect(context);
+        var identity = new IdentifierProtectionIdentity(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID, NORMALIZATION_VERSION, 2);
+        var selector = new IdentifierSearchSelector(StandardIdentifierNormalizer.TRIM_UPPERCASE_V1, "AB");
+        var changedIdentities = List.of(
+                new IdentifierProtectionIdentity(tenant("0198ce2a-7b7d-7ab4-a5cf-4d4d7db89ab2"), PARTY_ID, IDENTIFIER_ID, SCHEME_ID, NORMALIZATION_VERSION, 2),
+                new IdentifierProtectionIdentity(TENANT_ID, party("0198ce2b-d6a3-7d6e-80ba-d97b21d793e6"), IDENTIFIER_ID, SCHEME_ID, NORMALIZATION_VERSION, 2),
+                new IdentifierProtectionIdentity(TENANT_ID, PARTY_ID, identifier("0198ce2c-609c-7c04-a977-425e7d60c58e"), SCHEME_ID, NORMALIZATION_VERSION, 2),
+                new IdentifierProtectionIdentity(TENANT_ID, PARTY_ID, IDENTIFIER_ID, scheme("0198ce2d-7e5a-7d9a-bfe7-42f15172338c"), NORMALIZATION_VERSION, 2),
+                new IdentifierProtectionIdentity(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID, new IdentifierRuleVersion(2), 2),
+                new IdentifierProtectionIdentity(TENANT_ID, PARTY_ID, IDENTIFIER_ID, SCHEME_ID, NORMALIZATION_VERSION, 1));
+        var encryptedValue = stored.encryptedValue();
+        for (var changed : changedIdentities) {
+            var failure = assertThrows(IllegalStateException.class, () -> adapter.matchesPrefix(encryptedValue, changed, selector));
+            assertNull(failure.getCause());
+            assertFalse(failure.toString().contains(COMPLETE_VALUE));
+        }
+        assertThrows(IllegalStateException.class, () -> adapter.matchesPrefix("v1.PRIVATE.invalid", identity, selector));
+        String[] envelope = stored.encryptedValue().split("\\.");
+        byte[] bytes = Base64.getUrlDecoder().decode(envelope[2]);
+        bytes[bytes.length - 1] ^= 1;
+        String corrupted = envelope[0] + "." + envelope[1] + "."
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        assertThrows(IllegalStateException.class, () -> adapter.matchesPrefix(corrupted, identity, selector));
     }
 
     @Test

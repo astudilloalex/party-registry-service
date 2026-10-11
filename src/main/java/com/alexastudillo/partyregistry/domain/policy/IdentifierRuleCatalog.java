@@ -58,6 +58,16 @@ public final class IdentifierRuleCatalog {
         return normalizers.keySet();
     }
 
+    /** Resolves normalization alone so historical read selectors are never subjected to admission validators. */
+    public IdentifierNormalizer resolveNormalizer(String normalizerKey) {
+        IdentifierNormalizer normalizer = normalizers.get(normalizerKey);
+        if (normalizer == null) {
+            throw new DomainValidationException(DomainViolation.IDENTIFIER_RULE_CATALOG_INVALID,
+                    "Identifier scheme references an unsupported normalization rule");
+        }
+        return normalizer;
+    }
+
     public Set<String> supportedValidatorKeys() {
         return validators.keySet();
     }

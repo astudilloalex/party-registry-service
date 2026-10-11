@@ -4,9 +4,10 @@ Party Registry Service is a Quarkus 3 microservice for tenant-scoped civil and l
 
 ## Technology baseline
 
-- Java 25 and Gradle 9
+- Java 25, Gradle Wrapper 9.7.0, and Quarkus 3.40.1 LTS
 - Quarkus REST with Jackson and Mutiny
 - Hibernate Reactive with Panache and the Vert.x PostgreSQL client
+- PostgreSQL 14 or newer; isolated verification uses PostgreSQL 18
 - JDBC PostgreSQL access reserved for Flyway migrations
 - SmallRye OpenAPI, Health, and Context Propagation
 - Micrometer Prometheus metrics and OpenTelemetry tracing
@@ -180,18 +181,33 @@ Build the JVM artifact:
 java -jar build/quarkus-app/quarkus-run.jar
 ```
 
-Build and test a native executable with a container runtime:
+Build and test a native executable with a container runtime. Container builds use
+the Mandrel JDK 25 UBI 9 image configured in `application.properties`, matching CI:
 
 ```shell
-./gradlew buildNative -Dquarkus.native.container-build=true
-./gradlew testNative -Dquarkus.native.container-build=true
+./gradlew quarkusBuild -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false -Dquarkus.native.container-build=true
+./gradlew quarkusIntTest -Dquarkus.native.enabled=true -Dquarkus.package.jar.enabled=false -Dquarkus.native.container-build=true
 ```
+
+For this application's native compilation, use
+`-Dquarkus.native.native-image-xmx=8g` when explicitly limiting the compiler heap;
+a 4 GB heap is insufficient. This option affects compilation, not runtime memory.
 
 When using rootless Podman, expose its Docker-compatible socket to Testcontainers, for example:
 
 ```shell
 export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 ```
+
+If the socket-activated Podman service closes idle connections and Testcontainers
+reports `Broken pipe`, keep a temporary API service running during verification:
+
+```shell
+podman system service --time=0 unix:///tmp/party-registry-podman.sock
+```
+
+In another terminal, set `DOCKER_HOST=unix:///tmp/party-registry-podman.sock` for
+the Gradle commands. Stop the temporary service after verification finishes.
 
 If port 8081 is already used by a local service or tunnel, select an ephemeral HTTP test port for that execution:
 
@@ -201,6 +217,17 @@ DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock QUARKUS_HTTP_TEST_PORT=
 
 The same environment overrides can be used for packaged and native test commands; they do not change the deployed service configuration.
 For native container builds with Podman, also pass `-Dquarkus.native.container-runtime=podman` to select the local runtime explicitly.
+
+Grafana LGTM is a development-only conditional dependency of OpenTelemetry and
+is explicitly disabled in the development profile. Development continues to use
+the configured OTLP endpoint; enable Grafana LGTM locally with
+`QUARKUS_OBSERVABILITY_ENABLED=true` when needed.
+
+Quarkus 3.40.1's OpenTelemetry/Prometheus integration can emit an
+`OpenTelemetry API usage issue detected` warning when sampling an exemplar
+without an active trace context. This framework behavior is tracked in
+[quarkusio/quarkus#55855](https://github.com/quarkusio/quarkus/issues/55855);
+the warning remains visible in application logs.
 
 ## API foundation
 

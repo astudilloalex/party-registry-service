@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
 
@@ -89,8 +91,8 @@ class FoundationConfigurationTest {
 
     private static Properties loadApplicationProperties() throws IOException {
         Properties properties = new Properties();
-        try (InputStream input = FoundationConfigurationTest.class.getResourceAsStream("/application.properties")) {
-            assertNotNull(input);
+        // Inspect the source policy instead of whichever profile resource the test classloader exposes first.
+        try (InputStream input = Files.newInputStream(Path.of("src/main/resources/application.properties"))) {
             properties.load(input);
         }
         return properties;

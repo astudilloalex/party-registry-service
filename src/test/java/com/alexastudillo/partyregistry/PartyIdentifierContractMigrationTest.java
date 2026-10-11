@@ -39,7 +39,7 @@ class PartyIdentifierContractMigrationTest {
         Flyway flyway = Flyway.configure()
                 .dataSource(DATABASE.getJdbcUrl(), DATABASE.getUsername(), DATABASE.getPassword())
                 .locations("classpath:db/migration").cleanDisabled(true).load();
-        assertEquals(8, flyway.migrate().migrationsExecuted);
+        assertEquals(9, flyway.migrate().migrationsExecuted);
         flyway.validate();
         assertEquals(0, flyway.migrate().migrationsExecuted);
         try (Connection connection = connection()) {

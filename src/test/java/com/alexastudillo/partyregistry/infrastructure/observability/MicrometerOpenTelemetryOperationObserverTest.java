@@ -103,6 +103,10 @@ class MicrometerOpenTelemetryOperationObserverTest {
 
     @Test
     void mapsEveryClosedEnumValueToOneDistinctBoundedLabel() {
+        assertEquals("party.search-by-identifier", MicrometerOpenTelemetryOperationObserver.operationLabel(
+                ObservedOperation.APPLICATION_IDENTIFIER_EXACT_SEARCH));
+        assertEquals("party.search-by-identifier-prefix", MicrometerOpenTelemetryOperationObserver.operationLabel(
+                ObservedOperation.APPLICATION_IDENTIFIER_PREFIX_SEARCH));
         assertEquals(
                 ObservedOperation.values().length,
                 java.util.Arrays.stream(ObservedOperation.values())

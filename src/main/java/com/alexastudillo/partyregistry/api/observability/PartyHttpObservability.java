@@ -64,8 +64,14 @@ public class PartyHttpObservability {
      * @return stable operation label, {@code unsupported} for a recognized route's other methods, or {@code unmatched}
      */
     public String operationName(String method, String path) {
+        String searchOperation = searchOperationName(method, path);
+        if (!UNMATCHED_OPERATION.equals(searchOperation)) {
+            return searchOperation;
+        }
         String identifierOperation = identifierOperationName(method, path);
-        if (!UNMATCHED_OPERATION.equals(identifierOperation)) { return identifierOperation; }
+        if (!UNMATCHED_OPERATION.equals(identifierOperation)) {
+            return identifierOperation;
+        }
         String schemeOperation = identifierSchemeOperationName(method, path);
         if (!UNMATCHED_OPERATION.equals(schemeOperation)) {
             return schemeOperation;
@@ -78,30 +84,13 @@ public class PartyHttpObservability {
         if (!UNMATCHED_OPERATION.equals(rootOperation)) {
             return rootOperation;
         }
-        if (NATURAL_PERSON_PATH.equals(path) && "POST".equals(method)) {
-            return "create";
+        String legalEntityOperation = legalEntityOperationName(method, path);
+        if (!UNMATCHED_OPERATION.equals(legalEntityOperation)) {
+            return legalEntityOperation;
         }
-        if (LEGAL_ENTITY_PATH.equals(path) && "POST".equals(method)) {
-            return "create-legal-entity";
-        }
-        if (path.startsWith(LEGAL_ENTITY_ITEM_PREFIX)
-                && path.length() > LEGAL_ENTITY_ITEM_PREFIX.length()
-                && path.indexOf('/', LEGAL_ENTITY_ITEM_PREFIX.length()) < 0) {
-            return switch (method) {
-                case "GET" -> "retrieve-legal-entity";
-                case "PUT" -> "replace-legal-entity";
-                case PATCH_METHOD -> "patch-legal-entity";
-                default -> UNSUPPORTED_OPERATION;
-            };
-        }
-        if (path.startsWith(NATURAL_PERSON_ITEM_PREFIX)
-                && path.indexOf('/', NATURAL_PERSON_ITEM_PREFIX.length()) < 0) {
-            return switch (method) {
-                case "GET" -> "retrieve";
-                case "PUT" -> "replace";
-                case PATCH_METHOD -> "patch";
-                default -> UNSUPPORTED_OPERATION;
-            };
+        String naturalPersonOperation = naturalPersonOperationName(method, path);
+        if (!UNMATCHED_OPERATION.equals(naturalPersonOperation)) {
+            return naturalPersonOperation;
         }
         return UNMATCHED_OPERATION;
     }
@@ -339,5 +328,48 @@ public class PartyHttpObservability {
         }
         String partyId = path.substring(PARTY_ITEM_PREFIX.length(), path.length() - suffix.length());
         return !partyId.isEmpty() && partyId.indexOf('/') < 0;
+    }
+
+    private static String searchOperationName(String method, String path) {
+        if ("/v1/parties/search/by-identifier".equals(path)) {
+            return "POST".equals(method) ? "party.search-by-identifier" : UNSUPPORTED_OPERATION;
+        }
+        if ("/v1/parties/search/by-identifier-prefix".equals(path)) {
+            return "POST".equals(method) ? "party.search-by-identifier-prefix" : UNSUPPORTED_OPERATION;
+        }
+        return UNMATCHED_OPERATION;
+    }
+
+    private static String legalEntityOperationName(String method, String path) {
+        if (LEGAL_ENTITY_PATH.equals(path) && "POST".equals(method)) {
+            return "create-legal-entity";
+        }
+        if (path.startsWith(LEGAL_ENTITY_ITEM_PREFIX)
+                && path.length() > LEGAL_ENTITY_ITEM_PREFIX.length()
+                && path.indexOf('/', LEGAL_ENTITY_ITEM_PREFIX.length()) < 0) {
+            return switch (method) {
+                case "GET" -> "retrieve-legal-entity";
+                case "PUT" -> "replace-legal-entity";
+                case PATCH_METHOD -> "patch-legal-entity";
+                default -> UNSUPPORTED_OPERATION;
+            };
+        }
+        return UNMATCHED_OPERATION;
+    }
+
+    private static String naturalPersonOperationName(String method, String path) {
+        if (NATURAL_PERSON_PATH.equals(path) && "POST".equals(method)) {
+            return "create";
+        }
+        if (path.startsWith(NATURAL_PERSON_ITEM_PREFIX)
+                && path.indexOf('/', NATURAL_PERSON_ITEM_PREFIX.length()) < 0) {
+            return switch (method) {
+                case "GET" -> "retrieve";
+                case "PUT" -> "replace";
+                case PATCH_METHOD -> "patch";
+                default -> UNSUPPORTED_OPERATION;
+            };
+        }
+        return UNMATCHED_OPERATION;
     }
 }
