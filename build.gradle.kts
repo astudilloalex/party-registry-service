@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
     java
     id("io.quarkus")
@@ -105,15 +107,21 @@ tasks.withType<Test> {
     useJUnitPlatform()
     maxHeapSize = "2g"
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    testLogging {
+        exceptionFormat = TestExceptionFormat.FULL
+    }
 }
 
 tasks.named<Test>("quarkusIntTest") {
     useJUnitPlatform()
+    // Pin the launch profile even when packaged test resources are not discovered.
+    systemProperty("quarkus.test.integration-test-profile", "test")
     classpath = sourceSets["integrationTest"].runtimeClasspath
     shouldRunAfter(tasks.test)
 }
 
 tasks.named<Test>("testNative") {
+    systemProperty("quarkus.test.integration-test-profile", "test")
     classpath -= sourceSets["test"].output
 }
 

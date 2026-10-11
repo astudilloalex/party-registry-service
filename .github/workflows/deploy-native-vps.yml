@@ -58,6 +58,18 @@ jobs:
           -Dquarkus.native.march=compatibility
           -Dquarkus.native.builder-image=quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-25
 
+      - name: Upload test failure diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/reports/tests/
+            build/test-results/
+            build/quarkus.log
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Build and publish the container image
         id: publish
         shell: bash

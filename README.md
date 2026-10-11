@@ -174,6 +174,12 @@ Run packaged integration tests:
 ./gradlew quarkusIntTest
 ```
 
+The `quarkusIntTest` and `testNative` tasks explicitly launch the packaged application
+with the isolated `test` profile, so they do not require production credentials or
+cryptographic keys. Test failures print full exception details. The deployment
+workflow retains HTML/XML test reports and `build/quarkus.log` in a
+`test-diagnostics-<run-id>-<run-attempt>` artifact for seven days when the build fails.
+
 Build the JVM artifact:
 
 ```shell
