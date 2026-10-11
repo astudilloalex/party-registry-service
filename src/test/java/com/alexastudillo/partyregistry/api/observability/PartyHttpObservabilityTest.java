@@ -98,6 +98,9 @@ class PartyHttpObservabilityTest {
     @Test
     void resolvesOnlyStableOperationNames() {
         PartyHttpObservability observability = new PartyHttpObservability(new SimpleMeterRegistry());
+        assertEquals("party.search-by-identifier", observability.operationName("POST", "/v1/parties/search/by-identifier"));
+        assertEquals("party.search-by-identifier-prefix", observability.operationName("POST", "/v1/parties/search/by-identifier-prefix"));
+        assertEquals("unsupported", observability.operationName("GET", "/v1/parties/search/by-identifier"));
 
         assertEquals("create", observability.operationName("POST", "/v1/natural-person"));
         assertEquals("retrieve", observability.operationName("GET", "/v1/natural-person/party-id"));

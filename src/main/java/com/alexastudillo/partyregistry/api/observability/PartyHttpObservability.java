@@ -64,6 +64,12 @@ public class PartyHttpObservability {
      * @return stable operation label, {@code unsupported} for a recognized route's other methods, or {@code unmatched}
      */
     public String operationName(String method, String path) {
+        if ("/v1/parties/search/by-identifier".equals(path)) {
+            return "POST".equals(method) ? "party.search-by-identifier" : UNSUPPORTED_OPERATION;
+        }
+        if ("/v1/parties/search/by-identifier-prefix".equals(path)) {
+            return "POST".equals(method) ? "party.search-by-identifier-prefix" : UNSUPPORTED_OPERATION;
+        }
         String identifierOperation = identifierOperationName(method, path);
         if (!UNMATCHED_OPERATION.equals(identifierOperation)) { return identifierOperation; }
         String schemeOperation = identifierSchemeOperationName(method, path);

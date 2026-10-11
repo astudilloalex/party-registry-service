@@ -50,7 +50,8 @@ class IdentifierSearchCpuDispatcherTest {
     @Test
     @RunOnVertxContext
     void rejectsSaturationAndRemovesCancelledQueuedWork(UniAsserter asserter) {
-        var dispatcher = new IdentifierSearchCpuDispatcher(1, 1);
+        var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var dispatcher = new IdentifierSearchCpuDispatcher(1, 1, registry);
         Context origin = Vertx.currentContext();
         var entered = new CompletableFuture<Void>();
         var release = new CountDownLatch(1);
@@ -77,6 +78,10 @@ class IdentifierSearchCpuDispatcherTest {
         asserter.assertFailedWith(() -> dispatcher.dispatch(cancelled -> "rejected"), failure -> {
             var unavailable = assertInstanceOf(ApplicationException.class, failure);
             assertInstanceOf(ApplicationFailure.DependencyUnavailable.class, unavailable.failure());
+            assertEquals(1, registry.get("party.registry.identifier.search.cpu.rejections").counter().count());
+            assertEquals(1, registry.get("party.registry.identifier.search.cpu.queued").gauge().value());
+            assertEquals(1, registry.get("party.registry.identifier.search.cpu.capacity").gauge().value());
+            registry.getMeters().forEach(meter -> assertTrue(meter.getId().getTags().isEmpty()));
         });
         asserter.execute(() -> {
             queued.get().cancel();
@@ -88,6 +93,7 @@ class IdentifierSearchCpuDispatcherTest {
         asserter.execute(() -> {
             assertFalse(ranQueued.get());
             dispatcher.close();
+            registry.close();
         });
     }
 }
