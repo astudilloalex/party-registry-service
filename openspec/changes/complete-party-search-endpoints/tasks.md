@@ -139,15 +139,15 @@ Requirement references below resolve to the named requirements in the [exact spe
   - Requirements: E2, E7, E8, P2, P9, P10; Design: Observability.
   - Verification: observation tests distinguish terminal outcomes and partial work statistics, preserve the exact configured console format, and reveal no selector/token/protected material or high-cardinality identities in metric dimensions.
 
-- [ ] 6.2 Add real HTTP context and strict-input contract tests for both routes using the shared search assertions.
+- [x] 6.2 Add real HTTP context and strict-input contract tests for both routes using the shared search assertions.
   - Requirements: E2, E3, P2, P3, P5, P7.
   - Verification: tests cover header name/cardinality/value precedence, accepted-only echo, concurrent attribution and management exemption, body/query restrictions, raw-unit boundaries, null/empty arrays, and all invalid limit/cursor token cases with stable status/code-only failures.
 
-- [ ] 6.3 Add exact-search historical matching, ownership, ordering, and complete-collection HTTP/database cases using actually protected test data.
+- [x] 6.3 Add exact-search historical matching, ownership, ordering, and complete-collection HTTP/database cases using actually protected test data.
   - Requirements: E4, E5, E6, E7.
   - Verification: both Party types, every stored status, withdrawn schemes, normalization variants, historical duplicate identifiers, timestamp ties, empty/foreign-only results, and at least 201 same-value hits return the specified safe complete metadata.
 
-- [ ] 6.4 Add prefix-search literal matching and forward/backward continuation HTTP/database cases across multiple candidate batches.
+- [x] 6.4 Add prefix-search literal matching and forward/backward continuation HTTP/database cases across multiple candidate batches.
   - Requirements: P4, P5, P6, P7, P8, P9.
   - Verification: short official-ID fragments, punctuation, case expansion, all filters/states, duplicate/shared-Party hits, limit boundaries, equivalent/changed scopes, deleted boundaries, empty continuations, and exact counts satisfy the EARS scenarios.
 

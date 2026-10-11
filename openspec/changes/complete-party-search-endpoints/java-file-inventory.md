@@ -70,6 +70,21 @@ not presumed clean.
 
 ### Task 6.1 revision checkpoint
 
+Task 6.2: Unit `api/resource/IdentifierSearchInputContractTest.java`, including
+`Attribution`, `Completion` and `CompletionCapture`, saved blob
+`7c3f0aebed8f45d1b051634a6589c678ed58054e`; focused tests pass, JDTLS 0 at
+19:18:13. Final Sonar analysis reconciliation is pending.
+
+Task 6.3: Unit `support/IdentifierSearchDatabaseFixture.java` blob
+`3ff7bc3575616aa0a9894938bb1503027dfa3c78` and
+`api/resource/IdentifierSearchHistoricalContractTest.java` blob
+`c2ebb175907728a8168f26c13c253b8c2ea7e777`; focused tests pass and fresh JDTLS
+diagnostics are zero (19:24:00 / 19:24:23). Final Sonar reconciliation is pending.
+
+Task 6.4: Unit `api/resource/IdentifierSearchPrefixContractTest.java`, saved blob
+`d88b77e114b95c7614bdb76d1235ba7fe8dffa44`; three focused methods pass,
+JDTLS 0 (19:33:12). Final Sonar reconciliation is pending.
+
 Paths use the relative roots defined above. All files have fresh zero-problem
 Standard JDTLS diagnostics (18:56–19:06); focused verification is recorded in
 verification.md. Final Sonar model/rules/revision reconciliation remains pending.

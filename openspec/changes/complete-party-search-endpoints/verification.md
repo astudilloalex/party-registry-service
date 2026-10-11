@@ -640,3 +640,63 @@ Actual Sonar IDE analyses in the current 18:47:45 extension session report zero
 issues/hotspots for completed runs; final revision/model reconciliation remains
 task 8.4. Focused iteration and complete final validation were explicitly
 confirmed by the user. Full JVM/native acceptance remains pending.
+
+## Task 6.2: Real HTTP context and strict-input contracts
+
+IdentifierSearchInputContractTest exercises both routes with shared safe-schema
+assertions. Seven test methods cover missing/duplicated/noncanonical headers,
+context precedence over invalid bodies, case-insensitive names, accepted-only
+echo, blank/oversized/C1 user rejection, the 128-character user boundary,
+management exemption, strict absent/null/malformed/duplicate/unknown/wrong-type
+body handling, forbidden query and exact pagination inputs, both invalid/empty
+filter dimensions, raw UTF-16 and supplementary boundaries, invalid integer and
+cursor tokens, valid limit boundaries, ignored mutation headers, and overlapping
+successful/failing requests with captured completion MDC and later reuse.
+
+The first focused run exposed a test-client encoding substitution: RestAssured
+sent `unsafe?user` rather than the intended C1 character. Configuring the HTTP
+header element charset to ISO-8859-1 sends the original character and proves
+the actual `400 user-id-unsafe` response on both routes. No service validation
+was relaxed and no failing case was removed.
+
+`DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*IdentifierSearchInputContractTest' --console=plain`
+passed in 3m 40s: seven search test methods, zero failed/skipped; automatically
+included architecture checks also passed. Final saved revision has zero JDTLS
+problems at 19:18:13 (current workspace log lines 3591–3598). Final full
+acceptance remains pending.
+
+## Task 6.4: Protected prefix HTTP navigation
+
+Three real HTTP/database tests prove complete 520-candidate traversal through
+an initial 260 nonmatching candidates, default and 1/200 limit boundaries,
+equivalent full filters/normalized selector/user/process scopes, changed scope
+and tenant rejection, forward/backward navigation, deleted boundaries, empty
+live continuation with remaining totals, and vanished datasets. A five-hit
+national-ID fixture shares one Party/value and a microsecond creation timestamp;
+unsigned UUID order traverses 2/2/1 without collapse and a short `17` fragment
+needs no complete checksum. Literal percent/underscore/accent matching, uppercase
+expansion of 64 raw sharp-s characters, every state/type dimension, conjunctive
+filters, stored history and foreign concealment are exercised with real AES/HMAC.
+
+Focused `IdentifierSearchPrefixContractTest` passed in 3m 19s, then in 3m 9s
+after adding national-ID duplicate/timestamp cases. JDTLS reports zero problems
+for the final revision (19:33:12, log lines 3678–3685). No native/full-suite
+acceptance is inferred from these focused JVM tests.
+
+## Task 6.3: Protected exact HTTP history
+
+The new test-thread database fixture uses DML against Flyway-managed tables
+and the production AES-GCM/HMAC/AAD protection implementation. No manual DDL,
+plaintext storage, mock protection or request-path JDBC was introduced.
+Exact HTTP tests cover 201 shared-Party historical matches, microsecond timestamp
+ties and unsigned UUID ordering, stored masks/labels, foreign isolation, complete
+metadata, complete equality versus prefix/substring/mask/accent/spacing changes,
+all 40 Party-type/Party-state/identifier-state combinations under each of the
+four scheme states, duplicate filter memberships, empty filters, and conjunctive
+state rejection. Synthetic evidence includes past expiration dates and current
+admission-incompatible schemes/values to prove discovery is normalizer-only.
+
+Focused `IdentifierSearchHistoricalContractTest` passed in 3m 38s. The fixture's
+initial JDBC short assignment compilation failure was corrected with setInt;
+no narrowing cast or suppression was used. Fresh JDTLS reports zero problems
+for fixture and test at 19:24:00 and 19:24:23 (workspace log lines 3609–3631).
