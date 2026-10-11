@@ -599,3 +599,44 @@ body, invalid/unknown fields, unknown scheme and forbidden query inputs.
 The resource/architecture command passed, BUILD SUCCESSFUL in 6m 42s;
 JDTLS reports zero problems for resource, producer and test. Broader HTTP,
 runtime/native, observability and performance acceptance remains in section 6.
+
+## Task 6.1: Bounded operation and numeric work observations
+
+Both search routes now participate in the existing HTTP completion observer
+with fixed `party.search-by-identifier` and `party.search-by-identifier-prefix`
+labels. Application observes per-subscription accepted attribution and bounded
+terminal outcomes through the existing port. RequestContextFilter continues
+to own completion logging, process echo and MDC cleanup; its code and the
+configured logging format were preserved.
+
+The read adapter publishes per-subscription numeric SQL, batch, inspected
+candidate, match, maximum batch and maximum retained page observations on
+success, failure, timeout and cancellation, including partial failed scans.
+Detached workers receive only the numeric observation handle, not request
+metadata or a session. CPU gauges expose worker/queue capacity and active/queued
+batches; saturation increments a rejection counter. Dimensions contain only
+closed operation/measurement/outcome labels; no request identities or selectors
+are accepted. Late work cannot create an additional terminal observation.
+
+Focused verification:
+
+```shell
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*IdentifierSearchWorkObserverTest' --tests '*MicrometerOpenTelemetryOperationObserverTest' --tests '*OperationObservationTest' --tests '*IdentifierSearchCpuDispatcherTest' --tests '*IdentifierSearchReadAdapterTest' --tests '*IdentifierSearchResourceContractTest' --tests '*IdentifierSearchUseCasesTest' --console=plain
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew test --tests '*IdentifierSearchCpuDispatcherTest' --tests '*PartyHttpObservabilityTest' --console=plain
+```
+
+Both commands passed (3m 56s and 3m 27s). Initial compile failure from using
+SimpleMeterRegistry as AutoCloseable was corrected. An initial architecture
+failure correctly rejected injecting an observation port into the REST
+resource; observation is now Application-owned and the focused architecture
+rule passes. No compiler warnings were introduced. Runtime OpenTelemetry usage
+and duplicate PostgreSQL gauge notices remain distinct from compiler results.
+
+Fresh Standard JDTLS reports zero problems for all 16 affected files in
+`/home/alex/.config/Antigravity IDE/User/workspaceStorage/fc73fbd3bb7d62718087c857851a4deb/redhat.java/jdt_ws/.metadata/.log`,
+lines 3093–3445. The session's JUnit discovery plug-in NPE at 18:56:10 is
+recorded separately; subsequent source diagnostics and Gradle tests completed.
+Actual Sonar IDE analyses in the current 18:47:45 extension session report zero
+issues/hotspots for completed runs; final revision/model reconciliation remains
+task 8.4. Focused iteration and complete final validation were explicitly
+confirmed by the user. Full JVM/native acceptance remains pending.

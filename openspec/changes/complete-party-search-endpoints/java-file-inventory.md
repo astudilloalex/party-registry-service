@@ -68,6 +68,31 @@ not presumed clean.
 
 ## Pending acceptance
 
+### Task 6.1 revision checkpoint
+
+Paths use the relative roots defined above. All files have fresh zero-problem
+Standard JDTLS diagnostics (18:56–19:06); focused verification is recorded in
+verification.md. Final Sonar model/rules/revision reconciliation remains pending.
+
+| Source set / relative file | Saved Git blob |
+| --- | --- |
+| Production `application/model/ObservedOperation.java` | `6712df8b142ec7cb2b88acc49641034191a97fb4` |
+| Production `api/resource/IdentifierSearchResource.java` | `fc030243e1df462187ae8acc58128a3ad8120d3d` |
+| Production `api/observability/PartyHttpObservability.java` | `36f22ec4f56073cc9ca028b8ddd083aa2284fb35` |
+| Production `application/usecase/SearchPartiesByIdentifierUseCase.java` | `d63da492eca201a6faedbb5b86d5b1aa9014dc4c` |
+| Production `application/usecase/SearchPartiesByIdentifierPrefixUseCase.java` | `5556eb3a27947a1464c9b8423157d58243c1a1e4` |
+| Production `infrastructure/configuration/IdentifierSearchUseCaseProducer.java` | `72ac0e7d03c88a05e6ad40ab8965f6b61454cdc1` |
+| Production `infrastructure/observability/IdentifierSearchWorkObserver.java`, including enums and `Sample` | `419449471eed7008ef8ea77d26db5198b5cc349a` |
+| Production `infrastructure/observability/MicrometerOpenTelemetryOperationObserver.java` | `af368c312041112fffa97c99c0a807f55d4f8e07` |
+| Production `infrastructure/persistence/HibernateReactiveIdentifierSearchReadAdapter.java`, including `ReadContext` | `a0267f5c6ad80f8405de213c6e5389783bef8b47` |
+| Production `infrastructure/persistence/IdentifierSearchSql.java` | `f6d2dd83323e06a5148d27bd28f003baa04a92e1` |
+| Production `infrastructure/security/IdentifierSearchCpuDispatcher.java` | `38391ba4a4b534a2d14ec62984047843f7ff0b40` |
+| Unit `infrastructure/observability/IdentifierSearchWorkObserverTest.java` | `f6bd71b62b49b2fa622836707b779b509445a175` |
+| Unit `infrastructure/observability/MicrometerOpenTelemetryOperationObserverTest.java` | `92383b08b76e06d970ea42a861e3920cf85decdd` |
+| Unit `application/usecase/IdentifierSearchUseCasesTest.java` | `12dcc0a16148ea6fccb4acc4aedcfcccfd5dca0c` |
+| Unit `api/observability/PartyHttpObservabilityTest.java` | `2e4df4f53fb22b32b9a15b486cca38444dfe530d` |
+| Unit `infrastructure/security/IdentifierSearchCpuDispatcherTest.java` | `3cbba81738317772178f092ad88d562299ef0133` |
+
 - Per-file final-revision JDTLS and Sonar evidence.
 - Full final-source `./gradlew test` and `./gradlew build` results.
 - Actual native build and native HTTP integration execution.

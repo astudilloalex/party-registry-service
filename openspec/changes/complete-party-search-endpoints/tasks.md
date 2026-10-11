@@ -135,7 +135,7 @@ Requirement references below resolve to the named requirements in the [exact spe
 
 ## 6. Automated HTTP, Integration, and Runtime Verification
 
-- [ ] 6.1 Integrate bounded search operation/span labels and numeric work/capacity observations with the existing request completion and MDC mechanisms.
+- [x] 6.1 Integrate bounded search operation/span labels and numeric work/capacity observations with the existing request completion and MDC mechanisms.
   - Requirements: E2, E7, E8, P2, P9, P10; Design: Observability.
   - Verification: observation tests distinguish terminal outcomes and partial work statistics, preserve the exact configured console format, and reveal no selector/token/protected material or high-cardinality identities in metric dimensions.
 
