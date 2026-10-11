@@ -191,30 +191,30 @@ Requirement references below resolve to the named requirements in the [exact spe
   - Requirements: all E/P requirements; Design: Testing Strategy.
   - Verification: record a successful full `./gradlew test` result for the final saved source revisions, including new search cases and existing behavior regressions; no relevant failing test is skipped to obtain success.
 
-- [ ] 8.2 Run ./gradlew build and resolve compilation, packaging, and packaged JVM integration failures.
+- [x] 8.2 Run ./gradlew build and resolve compilation, packaging, and packaged JVM integration failures.
   - Requirements: E1, E7, E8, P1, P9, P10; proposal implementation validation constraints.
   - Verification: record a successful `./gradlew build`, actual packaged search HTTP results, and no new compiler warnings on the final implementation baseline.
 
-- [ ] 8.3 Complete resolved-model JDTLS review for every affected production, unit, shared-contract, and integration Java file, including nested types.
+- [x] 8.3 Complete resolved-model JDTLS review for every affected production, unit, shared-contract, and integration Java file, including nested types.
   - Requirements: proposal Java quality constraints; Design: Java, SonarQube, and verification evidence.
   - Verification: final saved-file inventory has actual zero-problem diagnostics, responsibility Javadoc, and reconciled Java 25 Gradle/IDE results; any mismatch or nullability/type-safety warning is investigated and resolved without blanket suppression.
 
-- [ ] 8.4 Complete actual SonarQube analysis and remediation for every final saved affected Java revision using the current resolved model and active rules.
+- [x] 8.4 Complete actual SonarQube analysis and remediation for every final saved affected Java revision using the current resolved model and active rules.
   - Requirements: proposal SonarQube quality constraints; Design: Java, SonarQube, and verification evidence.
   - Verification: per-file evidence records analyzer/rules/parameters, Git blob, actual completion, findings/hotspots, fixes and reanalysis with no unresolved acceptance finding; neither incomplete-model zero counts nor historical/standalone results are presented as a server Quality Gate.
 
-- [ ] 8.5 Run ./gradlew buildNative -Dquarkus.native.container-build=true with the configured Java 25 native builder and resolve search-related native compatibility failures.
+- [x] 8.5 Run ./gradlew buildNative -Dquarkus.native.container-build=true with the configured Java 25 native builder and resolve search-related native compatibility failures.
   - Requirements: proposal native compatibility constraints; Design: Contract Tests.
   - Verification: record successful `./gradlew buildNative -Dquarkus.native.container-build=true` output and the actual native artifact; affected codecs, projections, JCA, resources, and reflection registrations build correctly.
 
-- [ ] 8.6 Run ./gradlew testNative -Dquarkus.native.container-build=true against the actual native executable and resolve affected packaged/native contract failures.
+- [x] 8.6 Run ./gradlew testNative -Dquarkus.native.container-build=true against the actual native executable and resolve affected packaged/native contract failures.
   - Requirements: all E/P public contract requirements; proposal native validation constraints.
   - Verification: record successful `./gradlew testNative -Dquarkus.native.container-build=true` with actual search HTTP evidence, encrypted-history lookup, strict binding, protected cursors, status-consistent envelopes, null metadata, and sanitized failures.
 
-- [ ] 8.7 Inspect both final resource signatures, DTO mapping/wrapping order, inward dependencies, reactive execution boundaries, and requirement-to-test coverage.
+- [x] 8.7 Inspect both final resource signatures, DTO mapping/wrapping order, inward dependencies, reactive execution boundaries, and requirement-to-test coverage.
   - Requirements: all E/P requirements; Design: Architecture, REST boundary, Testing Strategy.
   - Verification: evidence maps every EARS scenario to passing checks or its documented conditional applicability, confirms shared DTO envelopes and global handling, and finds no Domain/entity/bare-response leakage, blocking wait, manual subscription, or unbounded session/CPU concurrency.
 
-- [ ] 8.8 Run openspec validate complete-party-search-endpoints --type change --strict --no-interactive and reconcile the final task, source, diagnostics, test, performance, and handoff evidence.
+- [x] 8.8 Run openspec validate complete-party-search-endpoints --type change --strict --no-interactive and reconcile the final task, source, diagnostics, test, performance, and handoff evidence.
   - Requirements: E1, P1; Design: Requirements Traceability, Java, SonarQube, and verification evidence.
   - Verification: strict validation succeeds, all checked tasks have actual completion evidence for current revisions, any post-verification code fix triggers the affected checks again, and implementation is declared complete only when required JVM/native/IDE/Sonar acceptance is satisfied.

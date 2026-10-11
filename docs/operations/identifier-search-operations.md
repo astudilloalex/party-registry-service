@@ -139,6 +139,48 @@ Podman/Testcontainers socket (this machine uses
 `QUARKUS_HTTP_TEST_PORT=0` avoids a fixed test-port conflict. Native builds require
 the configured Mandrel JDK 25 builder image and sufficient local resources.
 
+For long Testcontainers suites, a socket-activated Podman API with its default
+five-second idle timeout can leave cached client connections unusable. The final
+packaged verification succeeded with an isolated API running without idle expiry.
+Run it in a separate terminal and point validation commands at that socket:
+
+```shell
+podman system service --time=0 unix:///tmp/party-registry-validation.sock
+DOCKER_HOST=unix:///tmp/party-registry-validation.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build
+```
+
+Keep that process alive through validation and stop it when finished. This
+temporary endpoint uses the same rootless engine and does not require changing
+the machine's persistent Podman service or test behavior.
+
+On this rootless environment, the Mandrel builder's Docker-compatible execution
+failed to fork even its version probe. Direct Podman execution succeeds. Select
+the supported native runtime explicitly when this distinction applies:
+
+```shell
+./gradlew buildNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman
+./gradlew testNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman
+```
+
+Keep the stable `DOCKER_HOST` endpoint for Testcontainers while the native
+builder uses Podman directly. Do not change source behavior or suppress native
+diagnostics to work around a failing container version probe.
+
+Verify that the executable actually launched by native tests is current. An
+incremental run retained pre-change native outputs here despite successful
+generation output; the native contract tests caught absent search routes and an
+old served document. Regenerate stale generated outputs with Gradle clean and
+disable cache reuse, then verify the fresh executable and native source JAR:
+
+```shell
+./gradlew clean buildNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman --no-build-cache
+./gradlew testNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman --no-build-cache
+```
+
+Gradle clean removes generated JVM test/performance reports too. Preserve their
+verification evidence before cleaning. Successful generation alone does not
+prove that the launched native executable contains the current routes/contract.
+
 Run focused tests during iteration and all final acceptance commands on saved
 revisions:
 

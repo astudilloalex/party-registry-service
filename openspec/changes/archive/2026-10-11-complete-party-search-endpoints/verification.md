@@ -947,3 +947,190 @@ Task 8.2 remains unchecked and apply is paused for guidance on diagnosing/fixing
 this transport blocker and rerunning full build. Final per-file JDTLS/Sonar,
 native build/test, requirement audit and strict OpenSpec acceptance remain
 uncompleted; no native or overall implementation completion is claimed.
+
+### Task 8.2 resumed: isolated persistent API resolves transport blocker
+
+Podman's documented API service default idle timeout is five seconds. Journal
+inspection confirms repeated socket-activated service shutdown/restart during
+the failed integration run. To test this lifecycle interaction without changing
+global settings, a task-owned transient user unit runs:
+
+```shell
+systemd-run --user --unit=party-registry-search-validation-podman --collect /usr/bin/podman system service --time=0 unix:///tmp/opencode/party-registry-podman.sock
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew build --console=plain
+```
+
+The isolated API responds to `_ping` and remains active without idle expiry.
+The unfiltered full build passed in **4m 29s**, with **38 actual packaged JVM
+tests, zero failures and zero skipped**. The prior 1,846-test full unit result
+is correctly UP-TO-DATE, not represented as a second fresh execution. Integration
+sources compiled without new warnings. No application/test behavior, retries,
+suppression, permanent Podman configuration or unrelated container was changed.
+This establishes the persistent API as a working mitigation for the observed
+transport/lifecycle failure; it is not a claim about all possible broken-pipe
+causes. The owned transient unit is retained only through final validation and
+will be stopped afterward.
+
+## Task 8.3: Final resolved-model JDTLS review
+
+All 75 affected Java files were reopened individually using the IDE CLI, then
+their final worktree Git blobs were computed. Fresh Standard-mode JDTLS reports
+zero problems for every file, including nested types, at 21:19:47–21:21:45.
+The complete [final inventory](java-final-revision-inventory.md) reconciles prior
+per-task revisions and current files; current Java 25/Quarkus 3.40.1 diagnostics
+agree with the successful full unit and packaged build results. Javadoc and
+warning contracts were preserved; no suppression or weaker model was installed.
+Actual JDTLS evidence: current workspace log lines 4200–5272. Sonar acceptance
+remains separate task 8.4, not inferred from JDTLS or compilation.
+
+## Task 8.4: Actual per-file final Sonar analysis
+
+The installed Java analyzer manifest identifies 8.36.0.45637 (implementation
+8ad0e752c36821bbd87f475d6683a90fad615341) in SonarQube for IDE 5.7.0.
+Current runs use Java 25, Quarkus 3.40.1 dependencies, 571 active Java rules and
+default parameters without workspace/user rule overrides. Completed full-analysis
+records were reconciled for all 75 final saved file revisions: zero issues and
+zero hotspots. Sixty files were analyzed in the final reopen sweep; fifteen
+unchanged final revisions retain their explicitly recorded earlier completed
+analyses in this same current-model session. No skipped, cancelled or incomplete
+model is counted as a successful analysis. Actual per-file timestamps, source
+blobs, full analysis flags, rule/model facts and log ranges are preserved in
+[sonar-final-evidence.md](sonar-final-evidence.md) and the final revision inventory.
+Earlier findings/remediations remain in the incremental ledger. No suppression
+or rule weakening was introduced and no remote server Quality Gate is claimed.
+
+## Task 8.5: Actual Mandrel Java 25 native executable
+
+The first native attempt failed before compilation: the Docker-compatible API
+execution of the builder could not fork `native-image --version`. A direct
+Docker-compatible reproduction with container user 1000:1000 failed identically;
+direct Podman execution, including keep-id, returned Mandrel's version correctly.
+No application compiler failure or unsupported search reflection was inferred
+from this runtime/environment failure. Selecting the supported Podman native
+runtime resolves it without changing global limits or source code:
+
+```shell
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew buildNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman --console=plain
+```
+
+Result: **BUILD SUCCESSFUL in 4m 25s**, generating the actual executable
+`build/party-registry-service-1.0.0-SNAPSHOT-runner`. The generated artifact
+properties confirm type=native, Java 25, Mandrel 25.0.4.1-Final. Native Image
+generation took 3m 59s, file size 132.75 MiB, peak RSS 6.94 GiB. Search codecs,
+DTO registrations, scalar projections and JCA compiled on the configured JDK 25
+builder without source changes. Actual HTTP/native runtime acceptance is 8.6.
+
+The required legacy task emits its Quarkus deprecation notice; packaging reports
+a duplicated framework PanacheEntity entry. Graal also reports existing RabbitMQ
+experimental IncludeResources and dependency proxy-metadata deprecations. These
+are recorded native/dependency packaging notices, not hidden compiler warnings;
+none were suppressed or used to weaken application validation.
+
+## Task 8.6: Fresh artifact correction and actual native HTTP acceptance
+
+The first full native test run executed 38 methods, with four search failures
+and no skips: search paths returned 404 and the served search contract was old.
+This did not establish a DTO/reflection defect. Artifact inspection proved the
+launched executable and native intermediate JAR still dated **14:05**, with no
+IdentifierSearchResource, while the current application JAR included the resource.
+The earlier successful generation output alone was therefore not accepted as
+proof that the executable actually launched by tests was current.
+
+Old generated outputs were removed through Gradle clean and regenerated without
+build-cache reuse; no application or test Java code was changed:
+
+```shell
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew clean buildNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman --no-build-cache --console=plain
+DOCKER_HOST=unix:///tmp/opencode/party-registry-podman.sock QUARKUS_HTTP_TEST_PORT=0 ./gradlew testNative -Dquarkus.native.container-build=true -Dquarkus.native.container-runtime=podman --no-build-cache --console=plain
+```
+
+Clean native generation passed in **3m 51s**. The refreshed native source JAR
+contains IdentifierSearchResource, both generated REST invokers and the read
+adapter/bean/proxy classes. The final native command also generated the image
+and passed in **7m 1s**. The final executable is
+`build/party-registry-service-1.0.0-SNAPSHOT-runner`, **132,754,488 bytes**, with
+fresh timestamp **22:04:41**. This supersedes the stale launched artifact in the
+initial task 8.5/8.6 checkpoint; final native build acceptance is revalidated.
+
+Actual native aggregate: **38 tests, zero failures, zero skipped**, execution
+duration 3m 8.13s. PackagedIdentifierSearchContractIT executes all four methods
+successfully against the actual native process: older encryption/signing keys,
+current-key registration/search, exact/prefix navigation, strict binding,
+null cursors, safe errors and approved/served OpenAPI equality. Native XML logs
+identify the executable launch and native Quarkus startup; compilation or JVM
+success is not used as a substitute.
+
+Reports: `build/reports/tests/testNative/index.html` and
+`build/test-results/testNative/TEST-com.alexastudillo.partyregistry.PackagedIdentifierSearchContractIT.xml`.
+Gradle clean removed earlier generated JVM/performance reports; their successful
+command output, measured checkpoints and revision evidence remain preserved in
+this ledger and the recorded tool outputs. Saved Java revisions are unchanged.
+
+Per the user's explicit stopping point, work stops after task 8.6 at **42/44**.
+Tasks **8.7 and 8.8 remain unchecked for tomorrow**: final boundary/requirement
+audit and strict OpenSpec/evidence reconciliation have not been performed.
+
+The task-owned transient Podman API unit was successfully stopped after native
+validation. Global Podman configuration/socket were not changed. The final
+worktree whitespace check passed. Resume this same repo-local change at 8.7;
+no archive or final strict validation was performed at this stopping point.
+
+## Task 8.7: Final boundary and requirement coverage inspection
+
+On 2026-10-11, all 75 current Java blobs were recomputed and matched the final
+revision inventory. Both resource signatures, safe DTO fields, mapping before
+CDI ResponseManager wrapping, neutral/shared error translation, inward
+dependencies, guarded finite read ownership, detached bounded CPU dispatch and
+sequential keyset traversal were inspected. No Java source change was needed.
+
+[final-boundary-audit.md](final-boundary-audit.md) records the inspected locations
+and maps every exact/prefix EARS scenario to existing passing checks or the
+documented conditional authentication applicability. Execution references are
+the previous final-source JVM/packaged/native runs, not new executions. Task 8.7
+is complete; evidence reconciliation and strict validation remain task 8.8.
+
+## Task 8.8: Strict validation passed; Sonar evidence reconciliation paused
+
+On 2026-10-11, the required command succeeded:
+
+```shell
+openspec validate complete-party-search-endpoints --type change --strict --no-interactive
+```
+
+Output: `Change 'complete-party-search-endpoints' is valid`. `git diff --check`
+also passed. All 75 Java blobs still match the final revision inventory. The
+retained full-JVM command output ends with `BUILD SUCCESSFUL in 12m 43s` at
+lines 6679–6681. The native search XML remains available with four tests and
+zero failures/errors/skips. JDTLS's saved final-sweep diagnostics remain in the
+workspace log at the documented locations. Performance checkpoints and the
+service-local central-architecture handoff remain recorded in this ledger and
+the linked operations documents. No Java changes or new JVM/native/analyzer
+executions were performed during this documentation audit.
+
+The original Sonar evidence directory cited by sonar-final-evidence.md,
+`/home/alex/.config/Antigravity IDE/logs/20261010T184745/window1/exthost/SonarSource.sonarlint-vscode/`,
+is no longer present. The available IDE session directories start at
+20261010T212131 and include 20261011T091555; the only discovered current Sonar
+log is under that latter session. The documented prior per-file analysis results
+are preserved, but their original L0/L1 records cannot currently be inspected
+to finish reconciliation. No failed analysis or source defect is inferred from
+missing logs, and prior task 8.4 history has not been overwritten.
+
+Task 8.8 remains unchecked pending user guidance to restore the original logs
+from a retained copy or obtain fresh resolved-model Sonar analyses for all 75
+unchanged revisions and preserve their evidence. Overall progress is 43/44;
+strict specification validity alone is not final quality acceptance.
+
+### Task 8.8: Evidence acceptance confirmed by the user
+
+On 2026-10-11, the user confirmed that Sonar has no warnings and accepted the
+existing evidence as sufficient. This resolves the reconciliation pause using
+the recorded final-revision analyses in sonar-final-evidence.md and the user's
+confirmation. The missing original IDE logs remain a documented retention
+limitation; no fresh analyzer execution or restored log availability is claimed.
+
+Strict validation and whitespace checks passed, source revisions match the
+accepted inventory, and final JVM/native/JDTLS/Sonar, performance and handoff
+evidence is reconciled as recorded above. Task 8.8 is complete, bringing tracked
+implementation progress to 44/44. No Java source revision changed during this
+final audit, and no archive operation was performed.
